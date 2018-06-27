@@ -1,0 +1,60 @@
+name: chart-svg
+version: '0.0.1'
+synopsis: See readme.md
+description: See readme.md for description.
+category: project
+author: Tony Day
+maintainer: tonyday567@gmail.com
+copyright: Tony Day (c) 2017
+license: BSD3
+github: tonyday567/chart-svg
+extra-source-files:
+  - stack.yaml
+default-extensions:
+  - NegativeLiterals
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - UnicodeSyntax
+ghc-options:
+  -Wall
+  -Wcompat
+  -Wincomplete-record-updates
+  -Wincomplete-uni-patterns
+  -Wredundant-constraints
+dependencies:
+  - base >=4.7 && <5
+executables:
+  chart-svg:
+    main: app.hs
+    source-dirs: app
+    dependencies:
+      - protolude
+      - numhask-prelude
+      - chart-svg
+      - colour
+      - text
+      - svg-tree
+      - numhask-range
+      - microlens
+      - JuicyPixels
+      - generic-lens
+
+library:
+  source-dirs:
+    src
+  dependencies:
+    - protolude
+    - colour
+    - containers
+    - numhask-prelude
+    - mtl
+    - text
+    - svg-tree
+    - numhask-range
+    - microlens
+    - JuicyPixels
+    - generic-lens
+    - linear
+
+  exposed-modules:
+    Chart.Backend.Svg

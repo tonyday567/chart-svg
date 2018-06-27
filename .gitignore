@@ -1,0 +1,6 @@
+/.stack-work/
+TAGS
+.DS_Store
+*/.DS_Store
+/other/*.svg
+/.projectile
