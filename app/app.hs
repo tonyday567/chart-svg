@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
-
+ 
 import Chart.Backend.Svg
 import NumHask.Prelude hiding (Text)
 import NumHask.Pair
@@ -41,89 +41,135 @@ rss =
   , rectXY (\x -> 0.5 * exp (-(x ** 2) / 8)) (Range -5 5) 50
   ]
 
-rectExample :: Chart
-rectExample =
-  chart_ (aspect one) $
-  RectChart
-  (RectStyle 0.1 (PixelRGBA8 102 102 102 127) 0.3 (PixelRGBA8 102 5 102 127)
-   0.3 mempty)
-  [one]
+one' :: Chart
+one' =
+  Chart
+  (RectA $ RectStyle 0.1 (PixelRGBA8 102 102 102 127) 0.5 (PixelRGBA8 102 5 102 127)
+   0.5 mempty)
+  [SpotRect one]
 
-rotateExample :: Chart
-rotateExample = rotateChart 30 rectExample
+one'' :: Chart
+one'' =
+  Chart
+  (RectA $ RectStyle 0.1 (PixelRGBA8 102 102 102 127) 0.1 (PixelRGBA8 102 5 102 127)
+   0.1 mempty)
+  [SpotRect one]
 
-translateExample :: Chart
-translateExample = Chart svg' vb' where
-  (Chart svg' vb) = translateChart (Pair 1 1) rotateExample
-  vb' = vb <> vbox rotateExample
+rotateOne :: ChartSvg
+rotateOne =
+  multiSvg_ (aspect one) [showOrigin, one''] <>
+  rotateSvg 30 (multiSvg_ (aspect one) [one'])
 
-rectChart_Example :: Chart
+translateOne :: ChartSvg
+translateOne = -- ChartSvg svg' vb' where
+  multiSvg_ (aspect one) [showOrigin, one''] <>
+  (translateSvg (Pair 1 1) $ rotateSvg 30 (multiSvg_ (aspect one) [one']))
+  
+  --(ChartSvg svg' vb) = translateSvg (Pair 1 1) rotateOne
+  --vb' = vb <> vbox rotateOne
+
+rectChart_Example :: ChartSvg
 rectChart_Example =
-  chart_ (aspect 3) $ RectChart (ropts!!0) (rss!!0)
+  chartSvg_ (aspect 3) $ Chart (RectA $ ropts!!0) (SpotRect <$> rss!!0)
 
-rectMulti_Example :: Chart
-rectMulti_Example = multi_ (aspect 3) $ zipWith RectChart ropts rss
+rectMulti_Example :: ChartSvg
+rectMulti_Example = multiSvg_ (aspect 3) $
+  zipWith (\s xs -> Chart (RectA s) (SpotRect <$> xs)) ropts rss
 
 ts :: [(Text.Text, Pair Double)]
 ts = zip
   (map Text.singleton ['a' .. 'y'])
   [Pair (sin (x * 0.1)) x | x <- [0 .. 25]]
 
-textExample :: Chart
+textExample :: ChartSvg
 textExample =
-  chart_ (ViewBox $ styleBox t1) t1
+  chartSvg_ (ViewBox $ styleBox t1) t1
   where
-    t1 = TextChart
-      (defaultTextStyle & field @"size" .~ 1)
-      [("hello jane",Pair 0 0)]
+    t1 = Chart
+      (TextA (defaultTextStyle & field @"size" .~ 1) ["abcdefghij"])
+      [SpotPoint $ Pair 0 0]
 
-textChart_Example :: Chart
+textChart_Example :: ChartSvg
 textChart_Example =
-  chart_
+  chartSvg_
   (aspect 3) $
-  TextChart
-  ( defaultTextStyle &
-    field @"size" .~ 0.2
+  Chart
+  ( TextA
+    (defaultTextStyle &
+    field @"size" .~ 0.2)
+    (fst <$> ts)
   )
-  ts
+  (SpotPoint . snd <$> ts)
 
-circleExample :: Chart
+circleExample :: ChartSvg
 circleExample =
-  chart_ (ViewBox $ styleBox c) c
+  chartSvg_ (ViewBox $ styleBox c) c
   where
     c =
-      GlyphChart
-      ( defaultGlyphStyle &
+     Chart
+      ( GlyphA (defaultGlyphStyle &
         field @"size" .~ 1 &
-        field @"borderSize" .~ 0.2)
-      [Pair 0 0]
+        field @"borderSize" .~ 0.2))
+      [SpotPoint $ Pair 0 0]
 
-frameStyle :: RectStyle
-frameStyle = border 0.01 ublue 1
+cs1 :: [Chart]
+cs1 = zipWith
+     (\(sh, bs) p ->
+         Chart
+         ( GlyphA (defaultGlyphStyle &
+                    field @"size" .~ 0.5 &
+                    field @"borderSize" .~ bs &
+                    field @"shape" .~ sh))
+         [SpotPoint p])
+     [ (CircleGlyph, 0.1)
+     , (SquareGlyph, 0.1)
+     , (RectSharpGlyph 1.5, 0)
+     , (RectRoundedGlyph 1.5 0.02, 0)
+     , (EllipseGlyph 1.5, 0)
+     , (VLineGlyph 0.2, 0)
+     , (HLineGlyph 0.2, 0)
+     , (SmileyGlyph, 0)
+     ]
+     [Pair x 0 | x <- [0..7]]
 
-frame :: Chart -> Chart
-frame c = c <> frameChart frameStyle c
+fitted :: [Chart] -> ChartSvg
+fitted cs =
+  multiSvg_ (ViewBox $ styleBoxes cs) cs
+
+decoration :: ChartSvg -> ChartSvg
+decoration ch = frame (border 0.01 ublue 1) ch <> ch
+
+rend :: Pair Double -> FilePath -> ChartSvg -> IO ()
+rend asp f ch = save (dir<>f) asp (decoration ch)
+
+exp1 :: IO ()
+exp1 = do
+  let t1 = fst <$> ts
+  let ps = projectTo (aspect 3) $ SpotPoint . snd <$> ts
+  let t1s = TextA (defaultTextStyle & field @"size" .~ 0.2) . (:[]) <$> t1
+  let cs = zipWith Chart t1s ((:[]) <$> ps)
+  let r1 = styleBox <$> cs
+  let a1 = TextA (defaultTextStyle & field @"size" .~ 0.2) t1
+  let cr = (chartSvg_ (aspect 3) (Chart (RectA defaultRectStyle) (SpotRect <$> r1)))
+  let ct = (chartSvg_ (aspect 3) (Chart a1 (ps)))
+  rend (Pair 600 200) "exp1.svg" $ ct <> cr
 
 main :: IO ()
 main = do
-  save (dir<>"mempty.svg") (Pair 200.0 200.0) (frame mempty)
-  save (dir<>"rectExample.svg") (Pair 200.0 200.0)
-    (padChart 1.1 $ frame $ rectExample)
-  save (dir<>"rotateExample.svg") (Pair 200.0 200.0)
-    (padChart 1.1 $ frame $ rotateExample)
-  save (dir<>"translateExample.svg") (Pair 200.0 200.0)
-    (padChart 1.1 $ frame $ translateExample)
-  save (dir<>"rectChart_Example.svg") (Pair 600.0 200.0) $
-    frame rectChart_Example
-  save (dir<>"rectMulti_Example.svg") (Pair 600.0 200.0) $
-    frame rectMulti_Example
-  save (dir<>"textExample.svg") (Pair 600.0 200.0) $ frame textExample
-  save (dir<>"textChart_Example.svg") (Pair 600.0 200.0) $ frame textChart_Example
-  save (dir<>"circleExample.svg") (Pair 200.0 200.0) $ frame circleExample
+  rend (Pair 200.0 200.0) "zero.svg" mempty
+  rend (Pair 200.0 200.0) "one'.svg" (chartSvg_ (aspect one) one')
+  rend (Pair 200.0 200.0) "rotateOne.svg" rotateOne
+  rend (Pair 200.0 200.0) "translateOne.svg" translateOne
+  rend (Pair 600.0 200.0) "rectChart_Example.svg" rectChart_Example
+  rend (Pair 600.0 200.0) "rectMulti_Example.svg" rectMulti_Example
+  rend (Pair 600.0 200.0) "textExample.svg" textExample
+  rend (Pair 600.0 200.0) "textChart_Example.svg" textChart_Example
+  rend (Pair 200.0 200.0) "circleExample.svg" circleExample
+  rend (Pair 200.0 200.0) "glyphsExample.svg" (fitted cs1)
+  exp1
   putStrLn (" 👍" :: Text.Text)
 
 {-
-showOrigin a svg = svg <> (glyph_ (field @"borderSize" .~ 0 $ field @"size" .~ a $ field @"color" .~ UColor 0 0 0 1 $ defaultGlyphOptions))
 
 pixelChart_Example =
   pixelChart_ asquare

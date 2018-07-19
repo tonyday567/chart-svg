@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6990cfc092a021eb5a9bde3c90b29955acbd3ea30bcd9a23ab76c7b269db0efe
+-- hash: edc40c4870375b1bd94436149b4c846bdfa8c945e2f55a3ee7bdd64d65bfd76e
 
 name:           chart-svg
 version:        0.0.1
@@ -70,19 +70,4 @@ executable chart-svg
     , protolude
     , svg-tree
     , text
-  default-language: Haskell2010
-
-test-suite test
-  type: exitcode-stdio-1.0
-  main-is: test.hs
-  other-modules:
-      Paths_chart_svg
-  hs-source-dirs:
-      test
-  default-extensions: NegativeLiterals NoImplicitPrelude OverloadedStrings UnicodeSyntax
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
-  build-depends:
-      base >=4.7 && <5
-    , doctest
-    , protolude
   default-language: Haskell2010

@@ -6,21 +6,21 @@ chart-svg
 test svgs
 ---
 
-mempty
+zero
 
-![](other/mempty.svg)
+![](other/zero.svg)
 
-rect
+one'
 
-![](other/rectExample.svg)
+![](other/one'.svg)
 
 rotate
 
-![](other/rotateExample.svg)
+![](other/rotateOne.svg)
 
 translate
 
-![](other/translateExample.svg)
+![](other/translateOne.svg)
 
 rectChart_
 
@@ -38,9 +38,17 @@ textChart_
 
 ![](other/textChart_Example.svg)
 
-glyph
+circle
 
 ![](other/circleExample.svg)
+
+glyphs
+
+![](other/glyphsExample.svg)
+
+glyphs alt
+
+![](other/glyphsAlt.svg)
 
 
 uptohere

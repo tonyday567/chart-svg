@@ -35,38 +35,6 @@ import Codec.Picture.Types
 import Data.Generics.Product (field)
 import Linear.V2
 
--- * helpers
-(<$$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
-(<$$>) f x = fmap f <$> x
-
--- * Rectangle combinators
-(+.+) :: (Additive a) => Pair a -> Rect a -> Rect a
-(+.+) (Pair x' y') (Rect x z y w) = Rect (x+x') (z+x') (y+y') (w+y')
-
-(*.*) :: (Multiplicative a) => Pair a -> Rect a -> Rect a
-(*.*) (Pair x' y') (Rect x z y w) = Rect (x*x') (z*x') (y*y') (w*y')
-
-widen :: (Field a, FromInteger a) => a -> Rect a -> Rect a
-widen a (Rect x z y w) =
-  Rect (x-a/2) (z+a/2) (y-a/2) (w+a/2)
-
-padRect :: Double -> Rect Double -> Rect Double
-padRect p (Rect x z y w) = Rect (x-wid) (z+wid) (y-hei) (w+hei)
-  where
-    wid = (p - 1) * (z - x)
-    hei = (p - 1) * (w - y)
-
-widthRect :: (AdditiveGroup a) => Rect a -> a
-widthRect (Rect x z _ _) = z - x
-
-heightRect :: (AdditiveGroup a) => Rect a -> a
-heightRect (Rect _ _ y w) = w - y
-
--- | Create rect data for a formulae y = f(x)
-rectXY :: (BoundedField a, Ord a, FromInteger a) => (a -> a) -> Range a -> Int -> [Rect a]
-rectXY f r g = (\x -> Rect (x-tick/(one+one)) (x+tick/(one+one)) zero (f x)) <$> grid MidPos r g
-  where
-    tick = NumHask.Space.width r / fromIntegral g
 
 -- * Chart
 -- | the aspect of a chart expressed as a ratio of x-plane : y-plane.
@@ -75,20 +43,59 @@ newtype ViewBox a = ViewBox { vbRect :: Rect a } deriving (Show, Eq, Semigroup)
 aspect :: (BoundedField a, Ord a, FromInteger a) => a -> ViewBox a
 aspect a = ViewBox $ Ranges ((a *) <$> one) one
 
-data Chart = Chart { chartSvg :: [Tree], vbox :: ViewBox Double }
+data ChartSvg = ChartSvg { chartTrees :: [Tree], vbox :: ViewBox Double }
 
-instance Semigroup Chart where
-  (Chart s b) <> (Chart s' b') = Chart (s<>s') (b<>b')
+instance Semigroup ChartSvg where
+  (ChartSvg s b) <> (ChartSvg s' b') = ChartSvg (s<>s') (b<>b')
 
-instance Monoid Chart where
-  mempty = Chart mempty (ViewBox zero)
+instance Monoid ChartSvg where
+  mempty = ChartSvg mempty (ViewBox zero)
 
--- * Chart ADT
-data ChartType
-  = RectChart RectStyle [Rect Double]
-  | TextChart TextStyle [(Text.Text, Pair Double)]
-  | GlyphChart GlyphStyle [Pair Double]
+-- * primitive Chart elements
+
+-- | a space occupying the x,y-plane
+data Spot = SpotPoint (Pair Double) | SpotRect (Rect Double) deriving (Show)
+
+-- * projecting to a ViewBox
+
+-- | bounding box of data (ie ignore styling)
+bbox :: Spot -> Rect Double
+bbox (SpotRect x) = x
+bbox (SpotPoint (Pair x y)) = Rect x x y y
+
+bboxes :: [Spot] -> Rect Double
+bboxes = fold . fmap bbox
+
+projectOn :: Rect Double -> Rect Double -> Spot -> Spot
+projectOn new old@(Rect x z y w) po@(SpotPoint po'@(Pair px py))
+  | x==z && y==w = po
+  | x==z = SpotPoint (Pair px py')
+  | y==w = SpotPoint (Pair px' py)
+  | otherwise = SpotPoint pn
+  where
+    pn@(Pair px' py') = project old new po'
+projectOn new old@(Rect x z y w) ro@(SpotRect ro'@(Rect ox oz oy ow))
+  | x==z && y==w = ro
+  | x==z = SpotRect (Rect ox oz ny nw)
+  | y==w = SpotRect (Rect nx nz oy ow)
+  | otherwise = SpotRect n
+  where
+    n@(Rect nx nz ny nw) = projectRect old new ro'
+
+projectTo :: ViewBox Double -> [Spot] -> [Spot]
+projectTo (ViewBox vb) xs = projectOn vb (bboxes xs) <$> xs
+
+projectTo2 :: ViewBox Double -> [[Spot]] -> [[Spot]]
+projectTo2 (ViewBox vb) xss = fmap (projectOn vb (fold $ bboxes <$> xss)) <$> xss
+
+-- | a piece of chart structure
+data Annotation
+  = RectA RectStyle
+  | TextA TextStyle [Text.Text]
+  | GlyphA GlyphStyle
   deriving (Show)
+
+data Chart = Chart { ann :: Annotation, spots :: [Spot]} deriving (Show)
 
 -- * RectChart styling
 
@@ -190,64 +197,24 @@ daGlyph o =
   (fillColor .~ Last (Just $ ColorRef $ (o ^. field @"color"))) .
   (fillOpacity .~ (Just (fromRational $ o ^. field @"opacity")))
 
--- * projecting to a ViewBox
 
--- | range based just on point data (ie ignore styling)
-pointBoxes :: ChartType -> Rect Double
-pointBoxes (RectChart _ xs) = fold xs
-pointBoxes (TextChart _ xs) = fold $ (\(_, Pair x y) -> Rect x x y y) <$> xs
-pointBoxes (GlyphChart _ xs) = fold $ (\(Pair x y) -> Rect x x y y) <$> xs
+{-
+da :: Annotation -> DrawAttributes
+da (RectA s) = daRect s
+da (TextA s) = daText s
+da (GlyphA s) = daGlyph s
+-}
 
-projectPair :: (BoundedField a, Ord a, Signed a, FromInteger a) => Rect a -> Rect a -> Pair a -> Pair a
-projectPair new old@(Rect x z y w) po@(Pair px py)
-  | x==z && y==w = po
-  | x==z = Pair px py'
-  | y==w = Pair px' py
-  | otherwise = pn
+styleBoxRect :: RectStyle -> Rect Double
+styleBoxRect s = Rect (-x/2) (x/2) (-x/2) (x/2)
   where
-    pn@(Pair px' py') = project old new po
+    x = case daRect s ^. Svg.strokeWidth & getLast of
+      Just (Num x') -> x'
+      _ -> 0
 
-projectRect' :: (BoundedField a, Ord a, Signed a, FromInteger a) => Rect a -> Rect a -> Rect a -> Rect a
-projectRect' new old@(Rect x z y w) o@(Rect ox oz oy ow)
-  | x==z && y==w = o
-  | x==z = Rect ox oz ny nw
-  | y==w = Rect nx nz oy ow
-  | otherwise = n
-  where
-    n@(Rect nx nz ny nw) = projectRect old new o
-
--- | project to a ViewBox based on a specific data range
-projectOn :: ViewBox Double -> Rect Double -> ChartType -> ChartType
-projectOn (ViewBox vb) r (RectChart s xs) = RectChart s $
-  projectRect' vb r <$> xs
-projectOn (ViewBox vb) r (TextChart s xs) = TextChart s $
-  zip ts ps
-  where
-    ts = fst <$> xs
-    ps = projectPair vb r . snd <$> xs
-projectOn (ViewBox vb) r (GlyphChart s xs) = GlyphChart s $ projectPair vb r <$> xs
-
-projectOnPoint :: ViewBox Double -> ChartType -> ChartType
-projectOnPoint vb d = projectOn vb (pointBoxes d) d
-
-projectOnPoints :: ViewBox Double -> [ChartType] -> [ChartType]
-projectOnPoints vb xss = projectOn vb (fold $ pointBoxes <$> xss) <$> xss
-
-da :: ChartType -> DrawAttributes
-da (RectChart s _) = daRect s
-da (TextChart s _) = daText s
-da (GlyphChart s _) = daGlyph s
-
-styleBoxRect :: RectStyle -> Rect Double -> Rect Double
-styleBoxRect s x = widen e x where
-  e = case daRect s ^. Svg.strokeWidth & getLast of
-        Just (Num x') -> x'
-        _ -> 0
-
-styleBoxText :: TextStyle -> (Text.Text, Pair Double) -> Rect Double
-styleBoxText o (t, p) =
-    (+.+) p
-    (Rect ((-x'/2) + x'*origx) (x'/2 + x'*origx) ((-y'/2) - n1') (y'/2 - n1'))
+styleBoxText :: TextStyle -> Text.Text -> Rect Double
+styleBoxText o t =
+    Rect ((-x'/2) + x'*origx) (x'/2 + x'*origx) ((-y'/2) - n1') (y'/2 - n1')
     where
       s = case getLast ((daText o) ^. fontSize) of
         Just (Num n) -> n
@@ -264,8 +231,19 @@ styleBoxText o (t, p) =
         Last (Just TextAnchorMiddle) -> 0
         _ -> 0
 
-styleBoxGlyph :: GlyphStyle -> Pair Double -> Rect Double
-styleBoxGlyph s x = (+.+) x $ widen e $ case sh of
+-- * Rectangle combinators
+(+.+) :: (Additive a) => Pair a -> Rect a -> Rect a
+(+.+) (Pair x' y') (Rect x z y w) = Rect (x+x') (z+x') (y+y') (w+y')
+
+(*.*) :: (Multiplicative a) => Pair a -> Rect a -> Rect a
+(*.*) (Pair x' y') (Rect x z y w) = Rect (x*x') (z*x') (y*y') (w*y')
+
+widen :: (Field a, FromInteger a) => a -> Rect a -> Rect a
+widen a (Rect x z y w) =
+  Rect (x-a/2) (z+a/2) (y-a/2) (w+a/2)
+
+styleBoxGlyph :: GlyphStyle -> Rect Double
+styleBoxGlyph s = widen e $ case sh of
   EllipseGlyph a -> Pair sz (a*sz) *.* one
   RectSharpGlyph a -> Pair sz (a*sz) *.* one
   RectRoundedGlyph a _ -> Pair sz (a*sz) *.* one
@@ -279,41 +257,53 @@ styleBoxGlyph s x = (+.+) x $ widen e $ case sh of
           Just (Num x') -> x'
           _ -> 0
 
-styleBox :: ChartType -> Rect Double
-styleBox (RectChart s xs) = fold $ styleBoxRect s <$> xs
-styleBox (TextChart s xs) = fold $ styleBoxText s <$> xs
-styleBox (GlyphChart s xs) = fold $ styleBoxGlyph s <$> xs
+plusSpot :: Rect Double -> Spot -> Rect Double
+plusSpot (Rect x z y w) (SpotRect (Rect x' z' y' w')) =
+  Rect (x+x') (z+z') (y+y') (w+w')
+plusSpot (Rect x z y w) (SpotPoint (Pair x' y')) =
+  Rect (x+x') (z+x') (y+y') (w+y')
 
-styleBoxes :: [ChartType] -> Rect Double
+styleBox :: Chart -> Rect Double
+styleBox (Chart (RectA s) xs) = fold $ plusSpot (styleBoxRect s) <$> xs
+styleBox (Chart (TextA s ts) xs) = fold $ zipWith plusSpot (styleBoxText s <$> ts) xs
+styleBox (Chart (GlyphA s) xs) = fold $ plusSpot (styleBoxGlyph s) <$> xs
+
+styleBoxes :: [Chart] -> Rect Double
 styleBoxes xss = fold $ styleBox <$> xss
 
 -- | project data to a ViewBox based on style effects
-projectOnStyle :: ViewBox Double -> ChartType -> ChartType
-projectOnStyle vb d = projectOn vb (styleBox d) d
+projectToStyle :: ViewBox Double -> Chart -> Chart
+projectToStyle (ViewBox vb) ch@(Chart s xs) =
+  Chart s (projectOn vb (styleBox ch) <$> xs)
 
 -- | project data to a ViewBox based on style effects
-projectOnStyles :: ViewBox Double -> [ChartType] -> [ChartType]
-projectOnStyles vb xss = projectOn vb (styleBoxes xss) <$> xss
+projectToStyle2 :: ViewBox Double -> [Chart] -> [Chart]
+projectToStyle2 (ViewBox vb) chs =
+  zipWith Chart ss (fmap (projectOn vb (styleBoxes chs)) <$> xss)
+  where
+    ss = (\(Chart s _) -> s) <$> chs
+    xss = (\(Chart _ xs) -> xs) <$> chs
 
-treeRect :: Rect Double -> Pair Double -> Tree
-treeRect (Rect x z y w) (Pair x' y') =
+treeRect :: Rect Double -> Tree
+treeRect (Rect x z y w) =
   RectangleTree $
-  rectUpperLeftCorner .~ (Num (x+x'), Num (-(w+y'))) $
-  rectWidth .~ Num (fromRational z-fromRational x) $
-  rectHeight .~ Num (fromRational w-fromRational y) $
+  rectUpperLeftCorner .~ (Num x, Num (-w)) $
+  rectWidth .~ Num (z-x) $
+  rectHeight .~ Num (w-y) $
   defaultSvg
 
-treeText :: (P.Text, Pair Double) -> Tree
-treeText (t, (Pair x y)) =
-  TextTree Nothing (textAt (Num x, Num y) t)
+treeText :: P.Text -> Pair Double -> Tree
+treeText t (Pair x y) =
+  TextTree Nothing (textAt (Num x, Num (-y)) t)
 
 treeShape :: GlyphShape -> Double -> Pair Double -> Tree
 treeShape CircleGlyph s (Pair x y) =
-  CircleTree $ Circle mempty (Num x, Num y) (Num (s/2))
+  CircleTree $ Circle mempty (Num x, Num (-y)) (Num (s/2))
 
-treeShape SquareGlyph s p = treeRect (s *. one) p
+treeShape SquareGlyph s p = treeRect (plusSpot (s *. one) (SpotPoint p))
 
-treeShape (RectSharpGlyph x') s p  = treeRect (Pair s (x'*s) *.* one) p
+treeShape (RectSharpGlyph x') s p  =
+  treeRect (plusSpot (Pair s (x'*s) *.* one) (SpotPoint p))
 
 treeShape (RectRoundedGlyph rx ry) s (Pair x' y')  =
   RectangleTree $
@@ -378,10 +368,13 @@ treeGlyph :: GlyphStyle -> Pair Double -> Tree
 treeGlyph s p =
   treeShape (s ^. field @"shape") (s ^. field @"size") p
 
-tree_ :: ChartType -> Tree
-tree_ (RectChart s xs) = groupTrees (daRect s) (treeRect <$> xs <*> pure zero)
-tree_ (TextChart s xs) = groupTrees (daText s) (treeText <$> xs)
-tree_ (GlyphChart s xs) = groupTrees (daGlyph s) (treeGlyph s <$> xs)
+tree_ :: Chart -> Tree
+tree_ (Chart (RectA s) xs) =
+  groupTrees (daRect s) (treeRect . (\(SpotRect x) -> x) <$> xs)
+tree_ (Chart (TextA s ts) xs) =
+  groupTrees (daText s) (zipWith (\t (SpotPoint x) -> treeText t x) ts xs)
+tree_ (Chart (GlyphA s) xs) =
+  groupTrees (daGlyph s) ((\(SpotPoint x) -> treeGlyph s x) <$> xs)
 
 groupTrees :: DrawAttributes -> [Tree] -> Tree
 groupTrees da' tree =
@@ -390,45 +383,54 @@ groupTrees da' tree =
   groupChildren .~ tree &
   GroupTree
 
-chart :: ViewBox Double -> ChartType -> Chart
-chart vb c =
-  Chart
-  ((:[]) $ tree_ (projectOnStyle vb c))
-  vb
+chartSvg :: ViewBox Double -> Chart -> ChartSvg
+chartSvg (ViewBox vb) c =
+  ChartSvg
+  ((:[]) $ tree_ c)
+  (ViewBox $ styleBox c <> vb)
 
-chart_ :: ViewBox Double -> ChartType -> Chart
-chart_ vb c = chart vb (projectOnPoint vb c)
+chartSvg_ :: ViewBox Double -> Chart -> ChartSvg
+chartSvg_ vb c = chartSvg vb (Chart (ann c) (projectTo vb (spots c)))
 
-multi :: ViewBox Double -> [ChartType] -> Chart
-multi vb cs =
-  Chart
-  (tree_ <$> projectOnStyles vb cs)
-  vb
+multiSvg :: ViewBox Double -> [Chart] -> ChartSvg
+multiSvg (ViewBox vb) cs =
+  ChartSvg
+  (tree_ <$> cs)
+  (ViewBox $ vb <> styleBoxes cs)
 
-multi_ :: ViewBox Double -> [ChartType] -> Chart
-multi_ vb xss = multi vb (projectOnPoints vb xss)
+multiSvg_ :: ViewBox Double -> [Chart] -> ChartSvg
+multiSvg_ vb chs = multiSvg vb chs'
+  where
+    xss = projectTo2 vb (spots <$> chs)
+    ss = ann <$> chs
+    chs' = zipWith Chart ss xss
 
 
--- * chart combinators
+-- * chartSvg combinators
+padRect :: Double -> Rect Double -> Rect Double
+padRect p (Rect x z y w) = Rect (x-wid) (z+wid) (y-hei) (w+hei)
+  where
+    wid = (p - 1) * (z - x)
+    hei = (p - 1) * (w - y)
 
-padChart :: Double -> Chart -> Chart
-padChart p (Chart s (ViewBox vb)) = Chart s (ViewBox (padRect p vb))
+pad :: Double -> ChartSvg -> ChartSvg
+pad p (ChartSvg s (ViewBox vb)) = ChartSvg s (ViewBox (padRect p vb))
 
-frameChart :: RectStyle -> Chart -> Chart
-frameChart o (Chart _ (ViewBox vb)) =
-  Chart
-  ((:[]) . tree_ $ (RectChart o [vb]))
+frame :: RectStyle -> ChartSvg -> ChartSvg
+frame o (ChartSvg _ (ViewBox vb)) =
+  ChartSvg
+  ((:[]) . tree_ $ (Chart (RectA o) [SpotRect vb]))
   (ViewBox vb)
 
-wrapTree :: Pair Double -> Chart -> Document
-wrapTree (Pair wid hei) (Chart ts (ViewBox vb)) =
+wrapTree :: Pair Double -> ChartSvg -> Document
+wrapTree (Pair wid hei) (ChartSvg ts (ViewBox vb)) =
   Document
   ((\(Rect x z y w) -> Just (x,-w,z-x,w-y)) vb)
   (Just (Num wid))
   (Just (Num hei))
   ts (Map.empty) "" [] ""
 
-save :: FilePath -> Pair Double -> Chart -> IO ()
+save :: FilePath -> Pair Double -> ChartSvg -> IO ()
 save f sz ts = saveXmlFile f (wrapTree sz ts)
 
 
@@ -453,8 +455,8 @@ ublack = PixelRGBA8 0 0 0 255
 uwhite :: PixelRGBA8
 uwhite = PixelRGBA8 255 255 255 255
 
-
-
+ured :: PixelRGBA8
+ured = PixelRGBA8 255 0 0 255
 
 -- * transformations
 
@@ -465,15 +467,15 @@ rotateDA r = mempty & transform .~ Just [Rotate r Nothing]
 translateDA :: Pair Double -> DrawAttributes
 translateDA (Pair x y) = mempty & transform .~ Just [Translate x (-y)]
 
-rotateChart :: Double -> Chart -> Chart
-rotateChart r (Chart svg (ViewBox vb)) = 
-  Chart
+rotateSvg :: Double -> ChartSvg -> ChartSvg
+rotateSvg r (ChartSvg svg (ViewBox vb)) = 
+  ChartSvg
   ([groupTrees (rotateDA r) svg])
   (ViewBox $ rotatedRect r vb)
 
-translateChart :: Pair Double -> Chart -> Chart
-translateChart p (Chart svg (ViewBox vb)) = 
-  Chart
+translateSvg :: Pair Double -> ChartSvg -> ChartSvg
+translateSvg p (ChartSvg svg (ViewBox vb)) = 
+  ChartSvg
   ([groupTrees (translateDA p) svg])
   (ViewBox $ translateRect p vb)
 
@@ -498,94 +500,27 @@ translateRect :: Pair Double -> Rect Double -> Rect Double
 translateRect (Pair x' y') (Rect x z y w) = Rect (x+x') (z+x') (y+y') (w+y')
 
 
+showOriginWith :: Double -> PixelRGBA8 -> Chart
+showOriginWith s c = 
+  Chart
+  ( GlyphA $
+    field @"borderSize" .~ 0 $
+    field @"size" .~ s $
+    field @"color" .~ c $
+    defaultGlyphStyle)
+  [SpotPoint (Pair 0 0)]
+
+showOrigin :: Chart
+showOrigin = showOriginWith 0.1 ured
+
+-- | Create rect data for a formulae y = f(x)
+rectXY :: (BoundedField a, Ord a, FromInteger a) => (a -> a) -> Range a -> Int -> [Rect a]
+rectXY f r g = (\x -> Rect (x-tick/(one+one)) (x+tick/(one+one)) zero (f x)) <$> grid MidPos r g
+  where
+    tick = NumHask.Space.width r / fromIntegral g
+
+
 {-
-
--- | create a basic chart shape from Options
-glyph_ (GlyphOptions s c bc bs (Ellipse a)) = Chart
-  ( S.ellipse !
-    A.rx (toValue s) !
-    A.ry (toValue $ s*a) !
-    A.strokeWidth (toValue bs) !
-    A.stroke (colorA bc) !
-    A.strokeOpacity (toValue $ ucopacity bc) !
-    A.fill (colorA c) !
-    A.fillOpacity (toValue $ ucopacity c)
-  )
-  (widen bs $ Pair x (a*x) *.* one)
-glyph_ (GlyphOptions s c bc bs Octagaon) = Chart
-  (S.g $ mconcat
-  [ S.circle !
-    A.r (toValue (0.5*s)) !
-    A.fill "yellow" !
-    A.cx (toValue (0.5*s)) !
-    A.cy (toValue (0.5*s))
-  , S.ellipse !
-    A.rx (toValue (0.05*s)) !
-    A.ry (toValue (0.1*s)) !
-    A.fill "black" !
-    A.cx (toValue (0.35*s)) !
-    A.cy (toValue (0.3*s))
-  , S.ellipse !
-    A.rx (toValue (0.05*s)) !
-    A.ry (toValue (0.1*s)) !
-    A.fill "black" !
-    A.cx (toValue (0.65*s)) !
-    A.cy (toValue (0.3*s))
-  , S.g
-    (S.path ! A.d
-     (toValue $
-      ("M0,0 A" :: Text)<>show (0.4*s)<>","<>show (0.4*s)<>" "<>
-      show (0.1*s)<>" 0,0 "<>show (0.65*s)<>",0") !
-     A.fill "none" !
-     A.stroke "black" !
-     A.strokeWidth (toValue (0.05*s))) !
-    A.transform (S.translate (0.15*s) (0.65*s))
-  ] !
-    A.strokeWidth (toValue bs) !
-    A.stroke (colorA bc) !
-    A.strokeOpacity (toValue $ ucopacity bc) !
-    A.fill (colorA c) !
-    A.fillOpacity (toValue $ ucopacity c)
-  )
-  (widen bs $ s *. one)
-glyph_ (GlyphOptions s c bc bs (RectSharp a)) = Chart
-  ( S.rect !
-    A.height (toValue s) !
-    A.width (toValue $ s*a) !
-    A.strokeWidth (toValue bs) !
-    A.stroke (colorA bc) !
-    A.strokeOpacity (toValue $ ucopacity bc) !
-    A.fill (colorA c) !
-    A.fillOpacity (toValue $ ucopacity c)
-  )
-  (widen bs $ Pair s (a*s) *.* one)
-glyph_ (GlyphOptions s c bc bs (RectRounded a r)) = Chart
-  ( S.rect !
-    A.height (toValue s) !
-    A.width (toValue $ s*a) !
-    A.rx (toValue $ r*s) !
-    A.ry (toValue $ r*s) !
-    A.strokeWidth (toValue bs) !
-    A.stroke (colorA bc) !
-    A.strokeOpacity (toValue $ ucopacity bc) !
-    A.fill (colorA c) !
-    A.fillOpacity (toValue $ ucopacity c)
-  )
-  (widen bs $ Pair x (a*s) *.* one)
-glyph_ (GlyphOptions s c bc bs (VLine a)) = line_ a
-  [Pair 0 (-x/2)
-  , Pair 0 (x/2)]
-glyph_ (HLine a) = line_ a
-  [ Pair (-x/2) 0
-  , Pair (x/2) 0] !
-  A.strokeWidth (toValue a)
-
-glyphs opts xs = mconcat $ toList $ (\x -> translate x (glyph_ opts)) <$> xs
-
-glyphChart optss asp r xyss =
-  mconcat $ zipWith glyphs optss (projectss r asp xyss)
-
-glyphChart_ optss asp xyss = glyphChart optss asp (range xyss) xyss
 
 pixel_ :: Pixel -> S.Svg
 pixel_ (Pixel r c) = 
@@ -654,5 +589,34 @@ hud_ (HudOptions p as gs ts ls can) asp@(Ranges ax ay) r@(Ranges rx ry) =
     r <- get
     let canvas' = id_ "canvas" (rectAtts can (rect_ r))
     return canvas'
+
+
+-- * helpers
+(<$$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
+(<$$>) f x = fmap f <$> x
+
+-- * Rectangle combinators
+(+.+) :: (Additive a) => Pair a -> Rect a -> Rect a
+(+.+) (Pair x' y') (Rect x z y w) = Rect (x+x') (z+x') (y+y') (w+y')
+
+(*.*) :: (Multiplicative a) => Pair a -> Rect a -> Rect a
+(*.*) (Pair x' y') (Rect x z y w) = Rect (x*x') (z*x') (y*y') (w*y')
+
+widen :: (Field a, FromInteger a) => a -> Rect a -> Rect a
+widen a (Rect x z y w) =
+  Rect (x-a/2) (z+a/2) (y-a/2) (w+a/2)
+
+padRect :: Double -> Rect Double -> Rect Double
+padRect p (Rect x z y w) = Rect (x-wid) (z+wid) (y-hei) (w+hei)
+  where
+    wid = (p - 1) * (z - x)
+    hei = (p - 1) * (w - y)
+
+widthRect :: (AdditiveGroup a) => Rect a -> a
+widthRect (Rect x z _ _) = z - x
+
+heightRect :: (AdditiveGroup a) => Rect a -> a
+heightRect (Rect _ _ y w) = w - y
+
 
 -}
