@@ -4,6 +4,9 @@ chart-svg
 [![Build Status](https://travis-ci.org/tonyday567/chart-svg.svg)](https://travis-ci.org/tonyday567/chart-svg) [![Hackage](https://img.shields.io/hackage/v/chart-svg.svg)](https://hackage.haskell.org/package/chart-svg) [![lts](https://www.stackage.org/package/chart-svg/badge/lts)](http://stackage.org/lts/package/chart-svg) [![nightly](https://www.stackage.org/package/chart-svg/badge/nightly)](http://stackage.org/nightly/package/chart-svg) 
 
 test svgs
+===
+
+rects
 ---
 
 zero
@@ -30,6 +33,13 @@ rectMulti_
 
 ![](other/rectMulti_Example.svg)
 
+pixelChart_
+
+![](other/pixelExample.svg)
+
+text
+---
+
 text
 
 ![](other/textExample.svg)
@@ -37,6 +47,17 @@ text
 textChart_
 
 ![](other/textChart_Example.svg)
+
+boundText
+
+![](other/boundText.svg)
+
+label + bounding box
+
+![](other/labelExample.svg)
+
+glyphs
+---
 
 circle
 
@@ -46,40 +67,42 @@ glyphs
 
 ![](other/glyphsExample.svg)
 
-glyphs alt
+smiley
 
-![](other/glyphsAlt.svg)
+![](other/smileyExample.svg)
+
+glyph
+
+![](other/glyphExample.svg)
 
 
-uptohere
+line charts
 ---
 
-pixelChart_
+line
 
-![](other/pixelChart_Example.svg)
+![](other/lineExample.svg)
 
-lineChart_
+gline
 
-![](other/lineChart_Example.svg)
+![](other/glineExample.svg)
 
-glineChart_
+labelled glyph
+---
 
-![](other/glineChart_Example.svg)
+lglyph
 
-lglyphChart_
+![](other/lglyphExample.svg)
 
-![](other/lglyphChart_Example.svg)
+putting it all together
 
-labelled
-
-![](other/labelledExample.svg)
-
+![](other/compoundExample.svg)
 
 recipe
 ---
 
 ```
-stack build --test --exec "$(stack path --local-install-root)/bin/chart-svg" --exec "$(stack path --local-bin)/pandoc -f markdown -i other/readme_.md -t markdown -o readme.md --filter pandoc-include --mathjax" --exec "vmd readme.md" --file-watch --ghc-options -freverse-errors
+stack build --test --exec "$(stack path --local-install-root)/bin/chart-svg" --exec "$(stack path --local-bin)/pandoc -f markdown -i other/readme_.md -t html -o index.html --filter pandoc-include --mathjax" --file-watch --ghc-options -freverse-errors
 ```
 
 reference

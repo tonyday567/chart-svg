@@ -1,7 +1,11 @@
-resolver: nightly-2018-06-08
+resolver: nightly-2018-08-17
 
 packages:
   - .
+  - ../numhask/numhask
+  - ../numhask/numhask-prelude
+  - ../numhask/numhask-hedgehog
+  - ../numhask-range/numhask-range
 
 extra-deps: []
 

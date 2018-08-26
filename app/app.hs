@@ -22,6 +22,7 @@ import Codec.Picture.Types
 import qualified Data.Text as Text
 import Data.List ((!!))
 import Data.Generics.Product (field)
+import Data.Generics.Sum
 
 -- import qualified Data.Text as Text
 -- import qualified Data.Text.Lazy.IO as Lazy
@@ -64,7 +65,7 @@ translateOne :: ChartSvg
 translateOne = -- ChartSvg svg' vb' where
   multiSvg_ (aspect one) [showOrigin, one''] <>
   (translateSvg (Pair 1 1) $ rotateSvg 30 (multiSvg_ (aspect one) [one']))
-  
+
   --(ChartSvg svg' vb) = translateSvg (Pair 1 1) rotateOne
   --vb' = vb <> vbox rotateOne
 
@@ -112,25 +113,64 @@ circleExample =
         field @"borderSize" .~ 0.2))
       [SpotPoint $ Pair 0 0]
 
+smileyExample :: ChartSvg
+smileyExample =
+  chartSvg_ (ViewBox $ styleBox c) c
+  where
+    c =
+     Chart
+      ( GlyphA (defaultGlyphStyle &
+        field @"size" .~ 1 &
+        field @"borderSize" .~ 0.02 &
+        field @"shape" .~ SmileyGlyph))
+      [SpotPoint $ Pair 0 0]
+
 cs1 :: [Chart]
 cs1 = zipWith
      (\(sh, bs) p ->
          Chart
          ( GlyphA (defaultGlyphStyle &
-                    field @"size" .~ 0.5 &
+                    field @"size" .~ 1 &
                     field @"borderSize" .~ bs &
                     field @"shape" .~ sh))
          [SpotPoint p])
      [ (CircleGlyph, 0.1)
      , (SquareGlyph, 0.1)
-     , (RectSharpGlyph 1.5, 0)
-     , (RectRoundedGlyph 1.5 0.02, 0)
-     , (EllipseGlyph 1.5, 0)
+     , (RectSharpGlyph 0.75, 0.1)
+     , (RectRoundedGlyph 0.75 0.1 0.1, 0.1)
+     , (EllipseGlyph 0.75, 0)
      , (VLineGlyph 0.2, 0)
      , (HLineGlyph 0.2, 0)
-     , (SmileyGlyph, 0)
+     , (SmileyGlyph, 0.1)
      ]
      [Pair x 0 | x <- [0..7]]
+
+
+gdata :: [[Pair Double]]
+gdata =
+  [ dataXY sin (Range 0 (2*pi)) 30
+  , dataXY cos (Range 0 (2*pi)) 30
+  ]
+
+gopts :: [GlyphStyle]
+gopts =
+  [ field @"borderSize" .~ 0.001 $
+    field @"size" .~ 0.1 $
+    defaultGlyphStyle
+  , field @"borderSize" .~ 0.001 $
+    field @"size" .~ 0.1 $
+    field @"color" .~ PixelRGBA8 100 30 30 100 $
+    field @"shape" .~ (RectRoundedGlyph 1.5 0.01 0.01) $
+    defaultGlyphStyle
+  ]
+
+glyphExample :: ChartSvg
+glyphExample =
+  multiSvg_ (aspect 3) cs
+  where
+    cs = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) gdata gopts
+
+-- rendering
 
 fitted :: [Chart] -> ChartSvg
 fitted cs =
@@ -142,17 +182,126 @@ decoration ch = frame (border 0.01 ublue 1) ch <> ch
 rend :: Pair Double -> FilePath -> ChartSvg -> IO ()
 rend asp f ch = save (dir<>f) asp (decoration ch)
 
-exp1 :: IO ()
-exp1 = do
-  let t1 = fst <$> ts
-  let ps = projectTo (aspect 3) $ SpotPoint . snd <$> ts
-  let t1s = TextA (defaultTextStyle & field @"size" .~ 0.2) . (:[]) <$> t1
-  let cs = zipWith Chart t1s ((:[]) <$> ps)
-  let r1 = styleBox <$> cs
-  let a1 = TextA (defaultTextStyle & field @"size" .~ 0.2) t1
-  let cr = (chartSvg_ (aspect 3) (Chart (RectA defaultRectStyle) (SpotRect <$> r1)))
-  let ct = (chartSvg_ (aspect 3) (Chart a1 (ps)))
-  rend (Pair 600 200) "exp1.svg" $ ct <> cr
+
+-- textual
+
+boundText :: ChartSvg
+boundText = multiSvg_ (aspect 3)  [cr, ct]
+  where
+  t1 = fst <$> ts
+  ps = projectTo (aspect 3) $ SpotPoint . snd <$> ts
+  t1s = TextA (defaultTextStyle & field @"size" .~ 0.2) . (:[]) <$> t1
+  cs = zipWith Chart t1s ((:[]) <$> ps)
+  r1 = styleBox <$> cs
+  r1' = (\(Rect x z y w) -> Rect (x - (z-x)/2) (z - (z-x)/2) y w) <$> r1
+  a1 = TextA (defaultTextStyle & field @"size" .~ 0.2) t1
+  cr = ( (Chart (RectA defaultRectStyle) (SpotRect <$> r1)))
+  ct = ((Chart a1 (ps)))
+
+-- TODO: shortcut the svg boiler-plate
+pixelExample :: ChartSvg
+pixelExample = multiSvg_ (aspect 1) $
+  (\(r,c) -> Chart (RectA (RectStyle 0 ublack 0 c 1 mempty)) ([SpotRect r])) <$>
+  pixelate (\(Pair x y) -> (x+y)*(x+y)) one (Pair 40 40) ured ublack
+
+
+labelExample :: ChartSvg
+labelExample =
+    multiSvg (ViewBox $ Rect -5 5 -5 5)
+    [ nudgeLE (Pair 1 1) 45
+    , nudgeLE (Pair 0 0) 0 & field @"ann" . _As @"TextA" %~ _1 . field @"opacity" .~ 0.2
+    , Chart (RectA defaultRectStyle) [SpotRect (rotatedRect 0 (styleBox $ nudgeLE (Pair 1 1) 45))]
+    , Chart
+      ( GlyphA (defaultGlyphStyle &
+        field @"size" .~ 0.4 &
+        field @"borderSize" .~ 0.02 &
+        field @"color" .~ ured))
+      [SpotPoint $ Pair 0 0]]
+  where
+    labelChart = Chart (TextA (defaultTextStyle & field @"size" .~ 1 & field @"textDA" %~ (<> translateDA (Pair 0 0)) ) (["translated text" :: Text.Text])) ([SpotPoint $ Pair 0 0])
+    nudgeLE p d = labelChart & field @"ann" . _As @"TextA" %~ _1 . field @"textDA" %~ (<> translateDA p <> rotateDA d)
+
+
+-- fabulous lines
+ls :: [[Pair Double]]
+ls =
+  map (uncurry Pair) <$>
+  [ [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)]
+  , [(0.0, 0.0), (3.0, 3.0)]
+  , [(0.5, 4.0), (0.5, 0)]
+  ]
+
+lopts :: [LineStyle]
+lopts =
+  zipWith (\w c -> defaultLineStyle & field @"color" .~ c & field @"width" .~ w)
+  [0.015, 0.03, 0.01]
+  [ PixelRGBA8 197 140 75 153
+  , PixelRGBA8 60 127 43 153
+  , PixelRGBA8 56 42 140 255
+  ]
+
+lineExample :: ChartSvg
+lineExample =
+  multiSvg_ (aspect 1.5) cs
+  where
+    cs = zipWith (\d s -> Chart (LineA s) (SpotPoint <$> d)) ls lopts
+
+-- gline
+gopts3 :: [GlyphStyle]
+gopts3 =
+  zipWith
+  (\x y ->
+     field @"color" .~ x $
+     field @"borderColor" .~ x $
+     field @"borderSize" .~ 0.005 $
+     field @"shape" .~ y $
+     field @"size" .~ 0.08 $
+     defaultGlyphStyle)
+  [ PixelRGBA8 120 67 30 120
+  , PixelRGBA8 30 48 130 120
+  , PixelRGBA8 60 60 60 120
+  ]
+  [EllipseGlyph 1.5, SquareGlyph, CircleGlyph]
+
+
+
+glineChart = cs <> gs where
+  cs = zipWith (\d s -> Chart (LineA s) (SpotPoint <$> d)) ls lopts
+  gs = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) ls gopts3
+
+glineExample :: ChartSvg
+glineExample =
+  multiSvg_ (aspect 1.5) glineChart
+
+lgdata :: [(Text.Text, Pair Double)]
+lgdata =
+  (\(p@(Pair x y)) -> (show x <> "," <> show y, fromIntegral <$> p)) <$>
+    (Pair <$> [0 .. 5] <*> [0 .. 5] :: [Pair Int])
+
+lglyphExample :: ChartSvg
+lglyphExample = multiSvg_ (aspect 1) lglyphChart
+
+lglyphChart :: [Chart]
+lglyphChart = (ts <> gs)
+  where
+    ts = (\(t, p) ->
+            Chart
+            (TextA
+             ( defaultTextStyle &
+               field @"opacity" .~ 0.2 &
+               field @"textDA" %~ (<> translateDA (Pair 0 0.04))) [t]) (SpotPoint <$> [p]))
+         <$> lgdata
+    gs = (\d ->
+            Chart
+            (GlyphA
+             (defaultGlyphStyle &
+              field @"size" .~ 0.01 &
+              field @"borderSize" .~ 0 &
+              field @"color" .~ ublack))
+            (SpotPoint <$> [d])) <$> (snd <$> lgdata)
+
+compoundExample :: ChartSvg
+compoundExample = multiSvg_ (aspect 1.5) (lglyphChart <> glineChart)
 
 main :: IO ()
 main = do
@@ -166,143 +315,14 @@ main = do
   rend (Pair 600.0 200.0) "textChart_Example.svg" textChart_Example
   rend (Pair 200.0 200.0) "circleExample.svg" circleExample
   rend (Pair 200.0 200.0) "glyphsExample.svg" (fitted cs1)
-  exp1
+  rend (Pair 600.0 200.0) "glyphExample.svg" glyphExample
+  rend (Pair 200.0 200.0) "smileyExample.svg" smileyExample
+  rend (Pair 600 200) "boundText.svg" boundText
+  rend (Pair 400.0 400.0) "pixelExample.svg" pixelExample
+  rend (Pair 600.0 200.0) "labelExample.svg" labelExample
+  rend (Pair 400.0 400.0) "lglyphExample.svg" lglyphExample
+  rend (Pair 600.0 400.0) "lineExample.svg" lineExample
+  rend (Pair 600.0 400.0) "glineExample.svg" glineExample
+  rend (Pair 600.0 400.0) "compoundExample.svg" compoundExample
   putStrLn (" 👍" :: Text.Text)
 
-{-
-
-pixelChart_Example =
-  pixelChart_ asquare
-  [(\(r,c) ->
-      Pixel r
-      (ucolor $ blend c
-       (acolor $ UColor 0.47 0.73 0.86 1)
-       (acolor $ UColor 0.01 0.06 0.22 1)
-      )) <$>
-   rectF (\(Pair x y) -> (x+y)*(x+y))
-   one (Pair 40 40)]
-
-
-boxedLabelledExample =
-  labelled (LabelOptions
-    ( field @"rotation" .~ (Just (-45)) $
-      field @"alignH" .~ AlignLeft $
-      defaultTextOptions)
-    (Pair 1 1) 0.1)
-  "a label"
-  (glyph_ (field @"shape" .~ Octagaon $ defaultGlyphOptions))
-
-ls :: [[Pair Double]]
-ls =
-  map (uncurry Pair) <$>
-  [ [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)]
-  , [(0.0, 0.0), (3.0, 3.0)]
-  , [(0.5, 4.0), (0.5, 0)]
-  ]
-
-lopts :: [LineOptions]
-lopts =
-  zipWith LineOptions
-  [0.015, 0.03, 0.01]
-  [ UColor 0.773 0.510 0.294 0.6
-  , UColor 0.235 0.498 0.169 0.6
-  , UColor 0.204 0.161 0.537 1.0
-  ]
-
-lineChart_Example = lineChart_ lopts sixbyfour ls
-
-lgdata :: [(Text, Pair Double)]
-lgdata =
-  (\(p@(Pair x y)) -> (show x <> "," <> show y, fromIntegral <$> p)) <$>
-    (Pair <$> [0 .. 5] <*> [0 .. 5] :: [Pair Int])
-
-gopts :: [GlyphOptions]
-gopts =
-  [ field @"borderSize" .~ 0.001 $
-    field @"size" .~ 0.1 $
-    defaultGlyphOptions
-  , field @"borderSize" .~ 0.001 $
-    field @"size" .~ 0.1 $
-    field @"color" .~ ucolor (rybColor 7 `withOpacity` 0.4) $
-    field @"shape" .~ (RectRounded 1.5 0.01) $
-    defaultGlyphOptions
-  ]
-
-gdata :: [[Pair Double]]
-gdata =
-  [ dataXY sin (Range 0 (2*pi)) 30
-  , dataXY cos (Range 0 (2*pi)) 30
-  ]
-
-glyphChart_Example = glyphChart_ gopts widescreen gdata
-
-lglyphChart_Example =
-  lglyphChart_
-  [ field @"gap" .~ 0.015 $
-    field @"text" . field @"size" .~ 0.12 $
-    defaultLabelOptions]
-  [field @"color" .~ ublack $
-   field @"borderSize" .~ 0 $
-   field @"size" .~ 0.01 $
-   defaultGlyphOptions]
-  sixbyfour
-  [lgdata]
-
-labelledExample =
-  labelled (LabelOptions
-    ( field @"rotation" .~ (Just (-45)) $
-      field @"alignH" .~ AlignLeft $
-      defaultTextOptions)
-    (Pair 1 1) 0.1)
-  "a label"
-  (glyph_ defaultGlyphOptions)
-
-gopts3 :: [GlyphOptions]
-gopts3 =
-  zipWith
-  (\x y ->
-     field @"color" .~ ucolor (withOpacity (d3Colors1 x) 0.2) $
-     field @"borderColor" .~ ucolor (withOpacity (d3Colors1 x) 1) $
-     field @"borderSize" .~ 0.005 $
-     field @"shape" .~ y $
-     field @"size" .~ 0.08 $
-     defaultGlyphOptions)
-  [6,8,2]
-  [Ellipse 1.5, Square, Circle]
-
-glineChart_Example = glineChart_ lopts gopts3 sixbyfour ls
-
-titles' :: [(TitleOptions, Text)]
-titles' =
-  [ (defaultTitleOptions, "Example Chart")
-  , ( field @"text" . field @"size" .~ 0.08 $
-      field @"align" .~ AlignRight $
-      field @"place" .~ PlaceBottom $
-      defaultTitleOptions
-    , "an example chart for chart-unit")
-  ]
-
-legends' :: [(LegendType, Text)]
-legends' =
-  zipWith
-    (\x y -> (LegendLine x 0.1, y))
-    lopts
-    ["hockey stick", "diagonal line", "verticle line"]
-
-hopts = 
-     field @"titles" .~ titles' $
-     field @"canvas" . field @"color" .~ UColor 0.3 0.3 0.3 0.3 $
-     field @"axes" %~ map (field @"outerPad" .~ 1) $
-     field @"legends" .~ [ field @"chartType" .~ legends' $
-                           defaultLegendOptions] $
-     defaultHudOptions
-
-hud_Example = hud_ hopts sixbyfour one
-
-pad' :: Double -> Rect Double -> Rect Double
-pad' p (Rect x z y w) = Rect (x-wid) (z+wid) (y-hei) (w+hei)
-  where
-    wid = (p - 1) * (z - x)
-    hei = (p - 1) * (w-y)
-
--}

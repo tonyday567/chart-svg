@@ -1,0 +1,120 @@
+<h1 id="chart-svg">chart-svg</h1>
+<p><a href="https://travis-ci.org/tonyday567/chart-svg"><img src="https://travis-ci.org/tonyday567/chart-svg.svg" alt="Build Status" /></a> <a href="https://hackage.haskell.org/package/chart-svg"><img src="https://img.shields.io/hackage/v/chart-svg.svg" alt="Hackage" /></a> <a href="http://stackage.org/lts/package/chart-svg"><img src="https://www.stackage.org/package/chart-svg/badge/lts" alt="lts" /></a> <a href="http://stackage.org/nightly/package/chart-svg"><img src="https://www.stackage.org/package/chart-svg/badge/nightly" alt="nightly" /></a></p>
+<h1 id="test-svgs">test svgs</h1>
+<h2 id="rects">rects</h2>
+<p>zero</p>
+<div class="figure">
+<img src="other/zero.svg" />
+
+</div>
+<p>one'</p>
+<div class="figure">
+<img src="other/one&#39;.svg" />
+
+</div>
+<p>rotate</p>
+<div class="figure">
+<img src="other/rotateOne.svg" />
+
+</div>
+<p>translate</p>
+<div class="figure">
+<img src="other/translateOne.svg" />
+
+</div>
+<p>rectChart_</p>
+<div class="figure">
+<img src="other/rectChart_Example.svg" />
+
+</div>
+<p>rectMulti_</p>
+<div class="figure">
+<img src="other/rectMulti_Example.svg" />
+
+</div>
+<p>pixelChart_</p>
+<div class="figure">
+<img src="other/pixelExample.svg" />
+
+</div>
+<h2 id="text">text</h2>
+<p>text</p>
+<div class="figure">
+<img src="other/textExample.svg" />
+
+</div>
+<p>textChart_</p>
+<div class="figure">
+<img src="other/textChart_Example.svg" />
+
+</div>
+<p>boundText</p>
+<div class="figure">
+<img src="other/boundText.svg" />
+
+</div>
+<p>label + bounding box</p>
+<div class="figure">
+<img src="other/labelExample.svg" />
+
+</div>
+<h2 id="glyphs">glyphs</h2>
+<p>circle</p>
+<div class="figure">
+<img src="other/circleExample.svg" />
+
+</div>
+<p>glyphs</p>
+<div class="figure">
+<img src="other/glyphsExample.svg" />
+
+</div>
+<p>smiley</p>
+<div class="figure">
+<img src="other/smileyExample.svg" />
+
+</div>
+<p>glyph</p>
+<div class="figure">
+<img src="other/glyphExample.svg" />
+
+</div>
+<h2 id="line-charts">line charts</h2>
+<p>line</p>
+<div class="figure">
+<img src="other/lineExample.svg" />
+
+</div>
+<p>gline</p>
+<div class="figure">
+<img src="other/glineExample.svg" />
+
+</div>
+<h2 id="labelled-glyph">labelled glyph</h2>
+<p>lglyph</p>
+<div class="figure">
+<img src="other/lglyphExample.svg" />
+
+</div>
+<p>putting it all together</p>
+<div class="figure">
+<img src="other/compoundExample.svg" />
+
+</div>
+<h2 id="recipe">recipe</h2>
+<pre><code>stack build --test --exec &quot;$(stack path --local-install-root)/bin/chart-svg&quot; --exec &quot;$(stack path --local-bin)/pandoc -f markdown -i other/readme_.md -t html -o index.html --filter pandoc-include --mathjax&quot; --file-watch --ghc-options -freverse-errors</code></pre>
+<h2 id="reference">reference</h2>
+<ul class="incremental">
+<li><a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html#flag-reference">ghc options</a></li>
+<li><a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html">pragmas</a></li>
+<li><a href="https://www.stackage.org/">libraries</a></li>
+<li><a href="https://www.stackage.org/package/hoogle">hoogle</a></li>
+<li><a href="https://www.stackage.org/package/doctest">doctest</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial">MDN svg</a></li>
+<li><a href="https://www.w3.org/TR/SVG2/text.html#TextAnchoringProperties">SVG2</a></li>
+<li><a href="http://hackage.haskell.org/package/blaze-svg-0.3.6.1">blaze-svg</a></li>
+<li><a href="http://hackage.haskell.org/package/blaze-markup-0.8.2.1/docs/Text-Blaze-Internal.html#t:Attributable">blaze-markup</a></li>
+<li><a href="https://hackage.haskell.org/package/plot-light-0.4.3/docs/src/Graphics.Rendering.Plot.Light.Internal.html#text">plot-light</a></li>
+<li><a href="http://hackage.haskell.org/package/svg-tree-0.6.2.2/docs/Graphics-Svg-Types.html#v:documentLocation">svg-tree</a></li>
+<li><a href="http://hackage.haskell.org/package/JuicyPixels-3.2.9.5/docs/Codec-Picture-Types.html#t:PixelRGBA8">JuicyPixels</a></li>
+</ul>
