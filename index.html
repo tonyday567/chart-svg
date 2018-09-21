@@ -1,17 +1,18 @@
 <h1 id="chart-svg">chart-svg</h1>
 <p><a href="https://travis-ci.org/tonyday567/chart-svg"><img src="https://travis-ci.org/tonyday567/chart-svg.svg" alt="Build Status" /></a> <a href="https://hackage.haskell.org/package/chart-svg"><img src="https://img.shields.io/hackage/v/chart-svg.svg" alt="Hackage" /></a> <a href="http://stackage.org/lts/package/chart-svg"><img src="https://www.stackage.org/package/chart-svg/badge/lts" alt="lts" /></a> <a href="http://stackage.org/nightly/package/chart-svg"><img src="https://www.stackage.org/package/chart-svg/badge/nightly" alt="nightly" /></a></p>
 <h1 id="test-svgs">test svgs</h1>
-<h2 id="rects">rects</h2>
-<p>zero</p>
+<h2 id="mempty">mempty</h2>
+<p><code>render (Point (200.0 :: Double) 200.0) mempty</code> produces the following svg text:</p>
+<pre><code>&lt;?xml version=&#39;1.0&#39; ?&gt;
+&lt;svg viewBox=&quot;-0.5 -0.5 1.0 1.0&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot; xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; version=&quot;1.1&quot; width=&quot;200.0&quot; height=&quot;200.0&quot; /&gt;
+</code></pre>
+<h2 id="one">one</h2>
+<p><code>chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]]</code></p>
 <div class="figure">
-<img src="other/zero.svg" />
+<img src="other/one.svg" />
 
 </div>
-<p>one'</p>
-<div class="figure">
-<img src="other/one&#39;.svg" />
-
-</div>
+<h2 id="chartsvg-transforms">ChartSvg transforms</h2>
 <p>rotate</p>
 <div class="figure">
 <img src="other/rotateOne.svg" />
@@ -22,30 +23,27 @@
 <img src="other/translateOne.svg" />
 
 </div>
-<p>rectChart_</p>
+<h2 id="rectangle">rectangle</h2>
 <div class="figure">
-<img src="other/rectChart_Example.svg" />
+<img src="other/rectChart.svg" />
 
 </div>
-<p>rectMulti_</p>
 <div class="figure">
-<img src="other/rectMulti_Example.svg" />
+<img src="other/rectCharts.svg" />
 
 </div>
-<p>pixelChart_</p>
 <div class="figure">
-<img src="other/pixelExample.svg" />
+<img src="other/pixel.svg" />
 
 </div>
 <h2 id="text">text</h2>
-<p>text</p>
 <div class="figure">
-<img src="other/textExample.svg" />
+<img src="other/textChart.svg" />
 
 </div>
-<p>textChart_</p>
+<p>text chart</p>
 <div class="figure">
-<img src="other/textChart_Example.svg" />
+<img src="other/textsChart.svg" />
 
 </div>
 <p>boundText</p>
@@ -53,52 +51,52 @@
 <img src="other/boundText.svg" />
 
 </div>
-<p>label + bounding box</p>
+<p>rotated label</p>
 <div class="figure">
-<img src="other/labelExample.svg" />
+<img src="other/label.svg" />
 
 </div>
 <h2 id="glyphs">glyphs</h2>
 <p>circle</p>
 <div class="figure">
-<img src="other/circleExample.svg" />
+<img src="other/circle.svg" />
 
 </div>
 <p>glyphs</p>
 <div class="figure">
-<img src="other/glyphsExample.svg" />
+<img src="other/glyphs.svg" />
 
 </div>
 <p>smiley</p>
 <div class="figure">
-<img src="other/smileyExample.svg" />
+<img src="other/smiley.svg" />
 
 </div>
 <p>glyph</p>
 <div class="figure">
-<img src="other/glyphExample.svg" />
+<img src="other/glyphsChart.svg" />
 
 </div>
 <h2 id="line-charts">line charts</h2>
 <p>line</p>
 <div class="figure">
-<img src="other/lineExample.svg" />
+<img src="other/lines.svg" />
 
 </div>
 <p>gline</p>
 <div class="figure">
-<img src="other/glineExample.svg" />
+<img src="other/glines.svg" />
 
 </div>
 <h2 id="labelled-glyph">labelled glyph</h2>
 <p>lglyph</p>
 <div class="figure">
-<img src="other/lglyphExample.svg" />
+<img src="other/lglyph.svg" />
 
 </div>
 <p>putting it all together</p>
 <div class="figure">
-<img src="other/compoundExample.svg" />
+<img src="other/compound.svg" />
 
 </div>
 <h2 id="recipe">recipe</h2>

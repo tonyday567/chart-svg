@@ -5,7 +5,8 @@ packages:
   - ../numhask/numhask
   - ../numhask/numhask-prelude
   - ../numhask/numhask-hedgehog
-  - ../numhask-range/numhask-range
+  - ../numhask/numhask-space
+  # - ../numhask-range/numhask-range
 
 extra-deps: []
 

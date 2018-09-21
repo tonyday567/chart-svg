@@ -6,16 +6,24 @@ chart-svg
 test svgs
 ===
 
-rects
+mempty
 ---
 
-zero
+`render (Point (200.0 :: Double) 200.0) mempty` produces the following svg text:
 
-![](other/zero.svg)
+```include
+other/mempty.md
+```
 
-one'
+one
+---
 
-![](other/one'.svg)
+`chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]]`
+
+![](other/one.svg)
+
+ChartSvg transforms
+---
 
 rotate
 
@@ -25,55 +33,50 @@ translate
 
 ![](other/translateOne.svg)
 
-rectChart_
+rectangle
+---
 
-![](other/rectChart_Example.svg)
+![](other/rectChart.svg)
 
-rectMulti_
+![](other/rectCharts.svg)
 
-![](other/rectMulti_Example.svg)
-
-pixelChart_
-
-![](other/pixelExample.svg)
+![](other/pixel.svg)
 
 text
 ---
 
-text
+![](other/textChart.svg)
 
-![](other/textExample.svg)
+text chart
 
-textChart_
-
-![](other/textChart_Example.svg)
+![](other/textsChart.svg)
 
 boundText
 
 ![](other/boundText.svg)
 
-label + bounding box
+rotated label
 
-![](other/labelExample.svg)
+![](other/label.svg)
 
 glyphs
 ---
 
 circle
 
-![](other/circleExample.svg)
+![](other/circle.svg)
 
 glyphs
 
-![](other/glyphsExample.svg)
+![](other/glyphs.svg)
 
 smiley
 
-![](other/smileyExample.svg)
+![](other/smiley.svg)
 
 glyph
 
-![](other/glyphExample.svg)
+![](other/glyphsChart.svg)
 
 
 line charts
@@ -81,22 +84,22 @@ line charts
 
 line
 
-![](other/lineExample.svg)
+![](other/lines.svg)
 
 gline
 
-![](other/glineExample.svg)
+![](other/glines.svg)
 
 labelled glyph
 ---
 
 lglyph
 
-![](other/lglyphExample.svg)
+![](other/lglyph.svg)
 
 putting it all together
 
-![](other/compoundExample.svg)
+![](other/compound.svg)
 
 recipe
 ---

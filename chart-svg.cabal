@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dfb6719c73964009376b587b9ce8a579d53d4b3599e16d17706a2288a885632d
+-- hash: f2ad918b2ee31480baefb1b69a1ce2cface0c4b8aadba47349176969885740c4
 
 name:           chart-svg
 version:        0.0.1
@@ -28,9 +28,10 @@ source-repository head
 
 library
   exposed-modules:
-      Chart.Backend.Svg
-  other-modules:
-      Paths_chart_svg
+    Chart.Core
+    Chart.Hud
+    Chart.Spot
+    Chart.Svg
   hs-source-dirs:
       src
   default-extensions: NegativeLiterals NoImplicitPrelude OverloadedStrings UnicodeSyntax
@@ -44,17 +45,17 @@ library
     , linear
     , microlens
     , mtl
+    , numhask
     , numhask-prelude
-    , numhask-range
+    , numhask-space
     , protolude
     , svg-tree
     , text
+    , xml
   default-language: Haskell2010
 
 executable chart-svg
   main-is: app.hs
-  other-modules:
-      Paths_chart_svg
   hs-source-dirs:
       app
   default-extensions: NegativeLiterals NoImplicitPrelude OverloadedStrings UnicodeSyntax
@@ -64,11 +65,14 @@ executable chart-svg
     , base >=4.7 && <5
     , chart-svg
     , colour
+    , containers
     , generic-lens
     , microlens
+    , numhask
     , numhask-prelude
-    , numhask-range
+    , numhask-space
     , protolude
     , svg-tree
     , text
+    , xml
   default-language: Haskell2010
