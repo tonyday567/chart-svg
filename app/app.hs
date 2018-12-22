@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
@@ -17,13 +16,11 @@
 import Chart.Svg
 import NumHask.Prelude hiding (Text, rotate)
 import Lens.Micro 
-import GHC.Exts (fromList)
 import Codec.Picture.Types
 import qualified Data.Text as Text
 import Data.List ((!!))
 import Data.Generics.Product (field)
--- import Data.Generics.Sum
--- import Chart.Hud
+import Chart.Hud
 import Chart.Core
 import Chart.Spot
 import Graphics.Svg.CssTypes hiding (Point)
@@ -254,61 +251,6 @@ lglyph = txt <> gly where
       field @"color" .~ black))
       mempty
       (SpotPoint <$> [d])) <$> (snd <$> lgdata)
-
-rend' :: FilePath -> Double -> [Chart Double] -> IO ()
-rend' f n cs = write f (Point (n*200.0) 200.0) $ chartSvg (aspect n) cs
-
-rend'' :: FilePath -> [Chart Double] -> IO ()
-rend'' f cs = rend' f n cs
-  where
-    n = ratio $ ViewBox (styleBoxes cs)
-
-data ScratchStyle = ScratchStyle
-  { fileName :: FilePath
-  , size :: Double
-  , ratioAspect :: Double
-  , outerPad :: Double
-  , innerPad :: Double
-  , frame' :: ChartSvg Double -> ChartSvg Double
-  , maybeOrig :: Maybe (Double, PixelRGBA8)
-  } deriving (Generic)
-
-defaultScratchStyle :: ScratchStyle
-defaultScratchStyle  = ScratchStyle "other/scratchpad.svg" 200 1.5 1.05 1.05 defaultFrame (Just (0.04, red))
-
-clearScratchStyle :: ScratchStyle
-clearScratchStyle  = ScratchStyle "other/scratchpad.svg" 400 1 1 1 defaultFrame Nothing
-
-scratchSvgWith :: ScratchStyle -> [ChartSvg Double] -> IO ()
-scratchSvgWith s x =
-  write
-  (s ^. field @"fileName")
-  (Point (s ^. field @"ratioAspect" * s ^. field @"size") (s ^. field @"size")) $
-  pad (s ^. field @"outerPad") $
-  (s ^. field @"frame'") $
-  pad (s ^. field @"innerPad") $
-  mconcat x
-
-scratchSvg :: [ChartSvg Double] -> IO ()
-scratchSvg = scratchSvgWith defaultScratchStyle
-
-scratch :: [Chart Double] -> IO ()
-scratch = scratchWith defaultScratchStyle
-
-scratchWith :: ScratchStyle -> [Chart Double] -> IO ()
-scratchWith s x =
-  write
-  (s ^. field @"fileName")
-  (Point (s ^. field @"ratioAspect" * s ^. field @"size") (s ^. field @"size")) $
-  pad (s ^. field @"outerPad") $
-  (s ^. field @"frame'") $
-  pad (s ^. field @"innerPad") $
-  chartSvg
-  (aspect (s ^. field @"ratioAspect"))
-  (orig' <> x) where
-  orig' = case s^.field @"maybeOrig" of
-    Nothing -> mempty
-    Just (n,c) -> [showOriginWith n c]
 
 code :: (Semigroup a, IsString a) => a -> a
 code x = "\n```\n" <> x <> "\n```\n"

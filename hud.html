@@ -1,3 +1,7 @@
+<meta charset="utf-8"> <link rel="stylesheet" href="other/lhs.css">
+<script type="text/javascript" async
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
 <h1 id="hud-development">hud development</h1>
 <p>Notes, testing and code for chart-svg develoment.</p>
 <p><br></p>
@@ -70,29 +74,28 @@ glyphs <span class="fu">=</span> zipWith (\d s <span class="ot">-&gt;</span> <sp
 <p>In addition to raw data, and to the manifestation of that data on a physical plane, a chart usually includes decoration that assists in interpreting the chart data - axes, grid lines, titles, legends and friends that visual explain what is being seen in the chart.</p>
 <p>chart-svg calls this decoration the heads-up-display - the hud.</p>
 <p>The remainder of this *.lhs records hud development.</p>
-<h2 id="api-effect">api effect</h2>
+<h2 id="decorating-the-canvas">decorating the canvas</h2>
 <p>huds are different to pure chart data only in the sense that they require both information on the raw data (eg data ranges to calculate tick values) and information on the representation (eg how wide the chart is to properly locate the tick text on the page)</p>
 <p>The xy-plane on which the data is represented - the canvas - is a good place to tease this out.</p>
 <p>chart-svg and, specifically, <code>chartSvg</code> recognises that the physical representation of a data point may fall outside the data range, so that the viewbox becomes wider than the raw data suggests.</p>
+<p>Here's an attempt to create a background canvas for our example chart corners:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">corners ::</span> [<span class="dt">Chart</span> <span class="dt">Double</span>]
-corners <span class="fu">=</span>
+<span class="ot">corners ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> [<span class="dt">Chart</span> <span class="dt">Double</span>]
+corners s <span class="fu">=</span>
   [<span class="dt">Chart</span>
   (<span class="dt">GlyphA</span> <span class="fu">$</span>
    field <span class="fu">@</span><span class="st">&quot;borderSize&quot;</span> <span class="fu">.~</span> <span class="dv">0</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;size&quot;</span> <span class="fu">.~</span> <span class="fl">0.1</span> <span class="fu">$</span>
+    field <span class="fu">@</span><span class="st">&quot;size&quot;</span> <span class="fu">.~</span> s <span class="fu">$</span>
     defaultGlyphStyle)
   mempty
   [<span class="dt">SP</span> (<span class="fu">-</span><span class="fl">0.5</span>) (<span class="fu">-</span><span class="fl">0.5</span>), <span class="dt">SP</span> (<span class="fu">-</span><span class="fl">0.5</span>) <span class="fl">0.5</span>, <span class="dt">SP</span> <span class="fl">0.5</span> (<span class="fu">-</span><span class="fl">0.5</span>), <span class="dt">SP</span> <span class="fl">0.5</span> <span class="fl">0.5</span>]]
 
-<span class="ot">canvas ::</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
-canvas <span class="fu">=</span> chartSvg one (corners <span class="fu">&lt;&gt;</span> [<span class="dt">Chart</span> (<span class="dt">RectA</span> defaultRectStyle) mempty [one]])</code></pre></div>
-<div class="figure">
-<img src="other/canvas.svg" />
-
-</div>
+<span class="ot">canvas1 ::</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
+canvas1 <span class="fu">=</span> chartSvg one (corners <span class="fl">0.1</span> <span class="fu">&lt;&gt;</span> [<span class="dt">Chart</span> (<span class="dt">RectA</span> (blob grey <span class="fl">0.2</span>)) mempty [one]])</code></pre></div>
+<p><br> <img src="other/canvas1.svg" /> <br></p>
+<p>The canvas has to take into account both the data area and the physical representation of the data; in this case the circle size of the data points.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">canvas2 ::</span> (<span class="dt">ToRatio</span> a, <span class="dt">FromRatio</span> a, <span class="dt">Subtractive</span> a, <span class="dt">Field</span> a, <span class="dt">BoundedJoinSemiLattice</span> a, <span class="dt">BoundedMeetSemiLattice</span> a) <span class="ot">=&gt;</span> <span class="dt">ViewBox</span> a <span class="ot">-&gt;</span> [<span class="dt">Chart</span> a] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> a
+<span class="ot">canvas2 ::</span> (<span class="dt">ToRatio</span> a, <span class="dt">FromRatio</span> a, <span class="dt">Subtractive</span> a, <span class="dt">Field</span> a, <span class="dt">BoundedLattice</span> a) <span class="ot">=&gt;</span> <span class="dt">ViewBox</span> a <span class="ot">-&gt;</span> [<span class="dt">Chart</span> a] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> a
 canvas2 (<span class="dt">ViewBox</span> asp) cs <span class="fu">=</span>
   chartSvg_ (<span class="dt">ViewBox</span> asp&#39;) (cs&#39; <span class="fu">&lt;&gt;</span> [canvas&#39;])
   <span class="kw">where</span>
@@ -100,10 +103,15 @@ canvas2 (<span class="dt">ViewBox</span> asp) cs <span class="fu">=</span>
     asp&#39; <span class="fu">=</span> styleBoxes cs&#39;
     canvas&#39; <span class="fu">=</span> <span class="dt">Chart</span> (<span class="dt">RectA</span> (blob grey <span class="fl">0.2</span>)) mempty
       [<span class="dt">SpotArea</span> asp&#39;]</code></pre></div>
-<div class="figure">
-<img src="other/canvas2.svg" />
-
-</div>
+<p><br> <img src="other/canvas2.svg" /> <br></p>
+<p>So the introduction of a hud to a chart requires a different api to chartSvg. Together with a list of Charts and a ViewBox, we require a function that takes in a ViewBox - the viewbox of the main chart list - and gives back a list of Charts which is the pre-rendered hud.</p>
+<p><br></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
+<span class="ot">canvas3 ::</span> <span class="dt">Hud</span> a
+canvas3 <span class="fu">=</span> canvas (blob grey <span class="fl">0.2</span>) mempty</code></pre></div>
+<p><code>hudSvg one canvas3 (corners 0.25)</code></p>
+<p><br> <img src="other/canvas3.svg" /> <br></p>
+<h2 id="basic-axes">basic axes</h2>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
 <span class="ot">bbars ::</span> [<span class="dt">Bar</span> <span class="dt">Double</span>]
 bbars <span class="fu">=</span>
@@ -111,21 +119,15 @@ bbars <span class="fu">=</span>
   , <span class="dt">Bar</span> <span class="dt">PlaceLeft</span> defaultRectStyle <span class="fl">0.05</span> <span class="fl">0.02</span>
   ]
 
-<span class="ot">bars ::</span> (<span class="dt">ToRatio</span> a, <span class="dt">FromRatio</span> a, <span class="dt">Subtractive</span> a, <span class="dt">Field</span> a,
-             <span class="dt">BoundedJoinSemiLattice</span> a, <span class="dt">BoundedMeetSemiLattice</span> a) <span class="ot">=&gt;</span>
-            <span class="dt">ViewBox</span> a <span class="ot">-&gt;</span> [<span class="dt">Chart</span> a] <span class="ot">-&gt;</span> [<span class="dt">Bar</span> a] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> a
-bars (<span class="dt">ViewBox</span> asp) cs bs <span class="fu">=</span>
-  chartSvg_ (<span class="dt">ViewBox</span> asp&#39;&#39;) (cs&#39; <span class="fu">&lt;&gt;</span> bs&#39; <span class="fu">&lt;&gt;</span> [canvas&#39;])
+<span class="ot">hud1 ::</span> <span class="dt">ViewBox</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> [<span class="dt">Chart</span> <span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
+hud1 vb cs <span class="fu">=</span> 
+  hudSvg vb [c,b] cs
   <span class="kw">where</span>
-    cs&#39; <span class="fu">=</span> projectSpots asp cs
-    asp&#39; <span class="fu">=</span> styleBoxes cs&#39;
-    bs&#39; <span class="fu">=</span> (\b <span class="ot">-&gt;</span> bar b mempty asp&#39;) <span class="fu">&lt;$&gt;</span> bs
-    asp&#39;&#39; <span class="fu">=</span> asp&#39; <span class="fu">&lt;&gt;</span> toArea (fold <span class="fu">$</span> fold <span class="fu">$</span> spots <span class="fu">&lt;$&gt;</span> bs&#39;)
-    canvas&#39; <span class="fu">=</span> <span class="dt">Chart</span> (<span class="dt">RectA</span> (blob grey <span class="fl">0.2</span>)) mempty
-      [<span class="dt">SpotArea</span> asp&#39;]</code></pre></div>
-<p><code>bars (aspect 1.5) glyphs bbars</code></p>
+    c <span class="fu">=</span> canvas (blob grey <span class="fl">0.2</span>) mempty
+    b <span class="fu">=</span> bars bbars mempty</code></pre></div>
+<p><code>hud1 (aspect 1.5) glyphs</code></p>
 <div class="figure">
-<img src="other/bars.svg" />
+<img src="other/hud1.svg" />
 
 </div>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
@@ -135,7 +137,15 @@ main <span class="fu">=</span> <span class="kw">do</span>
     ( clearScratchStyle <span class="fu">&amp;</span>
     field <span class="fu">@</span><span class="st">&quot;fileName&quot;</span> <span class="fu">.~</span> <span class="st">&quot;other/glyphs.svg&quot;</span> <span class="fu">&amp;</span>
     field <span class="fu">@</span><span class="st">&quot;ratioAspect&quot;</span> <span class="fu">.~</span> <span class="fl">1.5</span>) glyphs
-  write <span class="st">&quot;other/canvas.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) canvas
-  write <span class="st">&quot;other/canvas2.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) (canvas2 one corners)
-  write <span class="st">&quot;other/bars.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> bars (aspect <span class="fl">1.5</span>) glyphs bbars</code></pre></div>
-<p>λ&gt;</p>
+  write <span class="st">&quot;other/canvas1.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) canvas1
+  write <span class="st">&quot;other/canvas2.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) (canvas2 one (corners <span class="fl">0.2</span>))
+  write <span class="st">&quot;other/canvas3.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) (hudSvg one [canvas3] (corners <span class="fl">0.25</span>))
+  write <span class="st">&quot;other/hud1.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud1 (aspect <span class="fl">1.5</span>) glyphs</code></pre></div>
+<p><br></p>
+<p>λ&gt; workflow</p>
+<p><br></p>
+<pre><code>stack build --test --exec &quot;$(stack path --local-install-root)/bin/chart-hud&quot; --exec &quot;$(stack path --local-bin)/pandoc -f markdown+lhs -i other/header.md -i app/hud.lhs -i other/footer.md -t html -o hud.html --filter pandoc-include --mathjax&quot; --file-watch --ghc-options -freverse-errors</code></pre>
+<hr />
+<div class="footer">
+<p>Made with love 'n' care; and <a href="https://haskell-lang.org/">haskell</a>, <a href="https://pandoc.org">pandoc</a>, and <a href="https://docs.haskellstack.org/en/stable/README/">stack</a>.</p>
+</div>

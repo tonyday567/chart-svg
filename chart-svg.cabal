@@ -41,6 +41,7 @@ library
     , base >=4.7 && <5
     , colour
     , containers
+    , formatting
     , generic-lens
     , linear
     , microlens
@@ -49,6 +50,7 @@ library
     , numhask-prelude
     , numhask-space
     , protolude
+    , scientific
     , svg-tree
     , text
     , xml
@@ -76,3 +78,35 @@ executable chart-svg
     , text
     , xml
   default-language: Haskell2010
+
+executable chart-hud
+  main-is: hud.lhs
+  hs-source-dirs: app
+  default-extensions:
+    NegativeLiterals
+    NoImplicitPrelude
+    OverloadedStrings
+    UnicodeSyntax
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+  build-depends:
+      JuicyPixels
+    , base >=4.7 && <5
+    , chart-svg
+    , colour
+    , containers
+    , generic-lens
+    , microlens
+    , numhask
+    , numhask-prelude
+    , numhask-space
+    , protolude
+    , svg-tree
+    , text
+    , xml
+  default-language: Haskell2010
+

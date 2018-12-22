@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -25,8 +26,8 @@ module Chart.Svg
   , treeText
   , tree
   , projectSpots
+  , chartSvg_
   , chartSvg
-  , chartSvgExact
   , fittedSvg
   , pad
   , frame
@@ -40,6 +41,13 @@ module Chart.Svg
   , translateDA
   , rotate
   , translate
+  , ScratchStyle(..)
+  , defaultScratchStyle
+  , clearScratchStyle
+  , scratchSvgWith
+  , scratch
+  , scratchWith
+  , scratchSvg
   ) where
  
 import Chart.Core
@@ -222,12 +230,7 @@ projectSpots a cs = cs'
     dass = drawatts <$> cs
     cs' = zipWith3 Chart ss dass xss
 
--- | convert a [Chart] to a ChartSvg, projecting Chart data to exactly the supplied ViewBox
-chartSvgExact :: (ToRatio a, FromRatio a, Subtractive a, Field a, BoundedLattice a) =>
-  ViewBox a -> [Chart a] -> ChartSvg a
-chartSvgExact vb@(ViewBox a) cs = chartSvg_ vb (projectSpots a cs)
-
--- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied ViewBox, and expanding the ViewBox for chart style is necessary
+-- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied ViewBox, and expanding the ViewBox for chart style if necessary
 chartSvg :: (Chartable a) =>
   ViewBox a -> [Chart a] -> ChartSvg a
 chartSvg (ViewBox a) cs = chartSvg_ (ViewBox $ styleBoxes cs') cs'
@@ -305,3 +308,51 @@ translate p (ChartSvg (ViewBox vb) c) =
   (ViewBox $ translateArea p vb)
   [groupTrees (translateDA (fromRational <$> p)) c]
 
+-- * development helpers
+
+data ScratchStyle = ScratchStyle
+  { fileName :: FilePath
+  , size :: Double
+  , ratioAspect :: Double
+  , outerPad :: Double
+  , innerPad :: Double
+  , frame' :: ChartSvg Double -> ChartSvg Double
+  , maybeOrig :: Maybe (Double, PixelRGBA8)
+  } deriving (Generic)
+
+defaultScratchStyle :: ScratchStyle
+defaultScratchStyle  = ScratchStyle "other/scratchpad.svg" 200 1.5 1.05 1.05 defaultFrame (Just (0.04, red))
+
+clearScratchStyle :: ScratchStyle
+clearScratchStyle  = ScratchStyle "other/scratchpad.svg" 400 1 1 1 defaultFrame Nothing
+
+scratchSvgWith :: ScratchStyle -> [ChartSvg Double] -> IO ()
+scratchSvgWith s x =
+  write
+  (s ^. field @"fileName")
+  (Point (s ^. field @"ratioAspect" * s ^. field @"size") (s ^. field @"size")) $
+  pad (s ^. field @"outerPad") $
+  (s ^. field @"frame'") $
+  pad (s ^. field @"innerPad") $
+  mconcat x
+
+scratchSvg :: [ChartSvg Double] -> IO ()
+scratchSvg = scratchSvgWith defaultScratchStyle
+
+scratch :: [Chart Double] -> IO ()
+scratch = scratchWith defaultScratchStyle
+
+scratchWith :: ScratchStyle -> [Chart Double] -> IO ()
+scratchWith s x =
+  write
+  (s ^. field @"fileName")
+  (Point (s ^. field @"ratioAspect" * s ^. field @"size") (s ^. field @"size")) $
+  pad (s ^. field @"outerPad") $
+  (s ^. field @"frame'") $
+  pad (s ^. field @"innerPad") $
+  chartSvg
+  (aspect (s ^. field @"ratioAspect"))
+  (orig' <> x) where
+  orig' = case s^.field @"maybeOrig" of
+    Nothing -> mempty
+    Just (n,c) -> [showOriginWith n c]
