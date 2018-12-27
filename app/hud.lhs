@@ -30,6 +30,7 @@ import Data.Generics.Product (field)
 import Chart.Hud
 import Chart.Core
 import Chart.Spot
+import Graphics.Svg.Types as Svg hiding (Point)
 
 \end{code}
 
@@ -136,7 +137,7 @@ canvas1 = chartSvg one (corners 0.1 <> [Chart (RectA (blob grey 0.2)) mempty [on
 ![](other/canvas1.svg)
 <br>
 
-The canvas has to take into account both the data area and the physical representation of the data; in this case the circle size of the data points.
+The canvas has to take into account the data area and the physical representation of the data; in this case the circle size of the data points.
 
 \begin{code}
 
@@ -173,29 +174,87 @@ canvas3 = canvas (blob grey 0.2) mempty
 <br>
 
 
-basic axes
+basic axis bars and titles
 ---
+
+Building the Hud includes a layering process: the next Hud element being added (which is a [Chart a]) takes into account the ViewBox of the chart and all the previous hud elements.
+
+The `foldl layer mempty` fold of the Huds effectively forgets what is the chart and what are the hud elements, and text anchoring cannot reference the original chart rep.
 
 \begin{code}
 
-bbars :: [Bar Double]
-bbars =
-  [ Bar PlaceBottom defaultRectStyle 0.05 0.02
+b1 :: [Bar Double]
+b1 =
+  [ Bar PlaceTop defaultRectStyle 0.05 0.02
+  , Bar PlaceRight defaultRectStyle 0.05 0.02
+  , Bar PlaceBottom defaultRectStyle 0.05 0.02
   , Bar PlaceLeft defaultRectStyle 0.05 0.02
   ]
 
+t1 :: [Title Double]
+t1 = (\a p -> (field @"place" .~ p :: Title Double -> Title Double) $
+        field @"align" .~ a $
+        defaultTitle (show a <> ":" <> show p)) <$>
+      [TextAnchorStart, TextAnchorMiddle, TextAnchorEnd] <*>
+      [PlaceBottom, PlaceTop, PlaceLeft, PlaceRight]
+
 hud1 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
-hud1 vb cs = 
-  hudSvg vb [c,b] cs
+hud1 vb cs =
+  hudSvg vb [c, b, t] cs
   where
     c = canvas (blob grey 0.2) mempty
-    b = bars bbars mempty
+    b = mconcat $ (\x -> bar x mempty) <$> b1
+    t = foldl layer mempty $ (\x -> title x mempty) <$>
+      (((field @"place" .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double) $
+      defaultTitle "PlaceAbsolute") : t1)
 
 \end{code}
 
 `hud1 (aspect 1.5) glyphs`
 
 ![](other/hud1.svg)
+
+
+`fold` ignores the other Hud elements
+
+\begin{code}
+hud2 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud2 vb cs =
+  hudSvg vb [c, b, t] cs
+  where
+    c = canvas (blob grey 0.2) mempty
+    b = mconcat $ (\x -> bar x mempty) <$> b1
+    t = fold $ (\x -> title x mempty) <$>
+      (((field @"place" .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double) $
+      defaultTitle "PlaceAbsolute") : t1)
+\end{code}
+
+![](other/hud2.svg)
+
+tick marks and labels
+---
+
+Tick marks is an example of computing and placing Hud elements according to the original range of the data.
+
+\begin{code}
+
+hud3 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud3 vb cs =
+  hudSvg vb [c, (bBot <> tBot <> bLeft <> tLeft <> bTop <> tTop <> bRight <> tRight), t'] cs
+  where
+    c = canvas (blob grey 0.2) mempty
+    bBot = bar (Bar PlaceBottom defaultRectStyle 0.005 0.01) mempty
+    bLeft = bar (Bar PlaceLeft defaultRectStyle 0.005 0.01) mempty
+    bTop = bar (Bar PlaceTop defaultRectStyle 0.005 0.01) mempty
+    bRight = bar (Bar PlaceRight defaultRectStyle 0.005 0.01) mempty
+    tBot = tickMarks defaultTick mempty
+    tLeft = tickMarks ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double) $ defaultTick) mempty
+    tTop = tickMarks ((field @"place" .~ PlaceTop :: Tick Double -> Tick Double) $ defaultTick) mempty
+    tRight = tickMarks ((field @"place" .~ PlaceRight :: Tick Double -> Tick Double) $ defaultTick) mempty
+    t' = title (defaultTitle "tick marks") mempty
+\end{code}
+
+![](other/hud3.svg)
 
 \begin{code}
 
@@ -209,6 +268,8 @@ main = do
   write "other/canvas2.svg" (Point 200 200) (canvas2 one (corners 0.2))
   write "other/canvas3.svg" (Point 200 200) (hudSvg one [canvas3] (corners 0.25))
   write "other/hud1.svg" (Point 400 400) $ hud1 (aspect 1.5) glyphs
+  write "other/hud2.svg" (Point 400 400) $ hud2 (aspect 1.5) glyphs
+  write "other/hud3.svg" (Point 400 400) $ hud3 (aspect 1.5) glyphs
 
 \end{code}
 

@@ -375,5 +375,3 @@ pixelate f r g c0 c1 = (\(x,y) -> (x, blend y c0 c1)) <$> ps'
     rs = snd <$> ps
     rs' = project (space1 rs :: Range Double) (Range 0 1) <$> rs
     ps' = zip (fst <$> ps) rs'
-
-

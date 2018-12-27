@@ -1,0 +1,7 @@
+- ignore: {name: Eta reduce}
+- ignore: {name: Use if}
+- ignore: {name: Use first}
+- ignore: {name: Avoid lambda}
+
+# To generate a suitable file for HLint do:
+# $ hlint --default > .hlint.yaml

@@ -28,7 +28,7 @@ import NumHask.Analysis.Space
 -- | a point on the xy-plane
 newtype Point a = Point'
   { getPair :: Pair a
-  } deriving (Eq, Show, Functor)
+  } deriving (Eq, Show, Functor, Additive)
 
 -- | pattern for Point x y
 pattern Point :: a -> a -> Point a

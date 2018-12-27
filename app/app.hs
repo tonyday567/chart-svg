@@ -179,12 +179,6 @@ f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 cssCrisp :: CssRule
 cssCrisp = CssRule [] [CssDeclaration "shape-rendering" [[CssString "crispEdges"]]]
 
-placedLabel :: Point Double -> Double -> Text.Text -> Chart Double
-placedLabel p d t =
-  Chart (TextA defaultTextStyle [t])
-  (mempty <> translateDA p <> rotateDA d)
-  [zero]
-
 label :: [Chart Double]
 label =
   [placedLabel (Point (1.0 :: Double) 1.0) (45.0 :: Double) "text at (1,1) rotated by 45 degrees"]
@@ -241,7 +235,7 @@ lglyph :: [Chart Double]
 lglyph = txt <> gly where
   txt = (\(t, p) -> Chart (TextA
     ( defaultTextStyle &
-      field @"opacity" .~ 0.2) [t]) (translateDA (Point 0 0.04))
+      field @"opacity" .~ 0.2) [t]) (translateDA (Point ( 0 :: Double) 0.04))
     (SpotPoint <$> [p]))
     <$> lgdata
   gly = (\d -> Chart (GlyphA

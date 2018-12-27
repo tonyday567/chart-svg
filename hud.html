@@ -28,7 +28,8 @@
 <span class="kw">import </span><span class="dt">Data.Generics.Product</span> (field)
 <span class="kw">import </span><span class="dt">Chart.Hud</span>
 <span class="kw">import </span><span class="dt">Chart.Core</span>
-<span class="kw">import </span><span class="dt">Chart.Spot</span></code></pre></div>
+<span class="kw">import </span><span class="dt">Chart.Spot</span>
+<span class="kw">import </span><span class="dt">Graphics.Svg.Types</span> <span class="kw">as</span> <span class="dt">Svg</span> <span class="kw">hiding</span> (<span class="dt">Point</span>)</code></pre></div>
 <p>A Chart consists of a few conceptual layers:</p>
 <h2 id="data-to-be-represented">data to be represented</h2>
 <p>Data for chart-svg charts is typically a double-list of either points or rectangles. The data below are three simple lines.</p>
@@ -93,7 +94,7 @@ corners s <span class="fu">=</span>
 <span class="ot">canvas1 ::</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
 canvas1 <span class="fu">=</span> chartSvg one (corners <span class="fl">0.1</span> <span class="fu">&lt;&gt;</span> [<span class="dt">Chart</span> (<span class="dt">RectA</span> (blob grey <span class="fl">0.2</span>)) mempty [one]])</code></pre></div>
 <p><br> <img src="other/canvas1.svg" /> <br></p>
-<p>The canvas has to take into account both the data area and the physical representation of the data; in this case the circle size of the data points.</p>
+<p>The canvas has to take into account the data area and the physical representation of the data; in this case the circle size of the data points.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
 <span class="ot">canvas2 ::</span> (<span class="dt">ToRatio</span> a, <span class="dt">FromRatio</span> a, <span class="dt">Subtractive</span> a, <span class="dt">Field</span> a, <span class="dt">BoundedLattice</span> a) <span class="ot">=&gt;</span> <span class="dt">ViewBox</span> a <span class="ot">-&gt;</span> [<span class="dt">Chart</span> a] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> a
 canvas2 (<span class="dt">ViewBox</span> asp) cs <span class="fu">=</span>
@@ -111,23 +112,72 @@ canvas2 (<span class="dt">ViewBox</span> asp) cs <span class="fu">=</span>
 canvas3 <span class="fu">=</span> canvas (blob grey <span class="fl">0.2</span>) mempty</code></pre></div>
 <p><code>hudSvg one canvas3 (corners 0.25)</code></p>
 <p><br> <img src="other/canvas3.svg" /> <br></p>
-<h2 id="basic-axes">basic axes</h2>
+<h2 id="basic-axis-bars-and-titles">basic axis bars and titles</h2>
+<p>Building the Hud includes a layering process: the next Hud element being added (which is a [Chart a]) takes into account the ViewBox of the chart and all the previous hud elements.</p>
+<p>The <code>foldl layer mempty</code> fold of the Huds effectively forgets what is the chart and what are the hud elements, and text anchoring cannot reference the original chart rep.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">bbars ::</span> [<span class="dt">Bar</span> <span class="dt">Double</span>]
-bbars <span class="fu">=</span>
-  [ <span class="dt">Bar</span> <span class="dt">PlaceBottom</span> defaultRectStyle <span class="fl">0.05</span> <span class="fl">0.02</span>
+<span class="ot">b1 ::</span> [<span class="dt">Bar</span> <span class="dt">Double</span>]
+b1 <span class="fu">=</span>
+  [ <span class="dt">Bar</span> <span class="dt">PlaceTop</span> defaultRectStyle <span class="fl">0.05</span> <span class="fl">0.02</span>
+  , <span class="dt">Bar</span> <span class="dt">PlaceRight</span> defaultRectStyle <span class="fl">0.05</span> <span class="fl">0.02</span>
+  , <span class="dt">Bar</span> <span class="dt">PlaceBottom</span> defaultRectStyle <span class="fl">0.05</span> <span class="fl">0.02</span>
   , <span class="dt">Bar</span> <span class="dt">PlaceLeft</span> defaultRectStyle <span class="fl">0.05</span> <span class="fl">0.02</span>
   ]
 
+<span class="ot">t1 ::</span> [<span class="dt">Title</span> <span class="dt">Double</span>]
+t1 <span class="fu">=</span> (\a p <span class="ot">-&gt;</span> (field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span><span class="ot"> p ::</span> <span class="dt">Title</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Title</span> <span class="dt">Double</span>) <span class="fu">$</span>
+        field <span class="fu">@</span><span class="st">&quot;align&quot;</span> <span class="fu">.~</span> a <span class="fu">$</span>
+        defaultTitle (show a <span class="fu">&lt;&gt;</span> <span class="st">&quot;:&quot;</span> <span class="fu">&lt;&gt;</span> show p)) <span class="fu">&lt;$&gt;</span>
+      [<span class="dt">TextAnchorStart</span>, <span class="dt">TextAnchorMiddle</span>, <span class="dt">TextAnchorEnd</span>] <span class="fu">&lt;*&gt;</span>
+      [<span class="dt">PlaceBottom</span>, <span class="dt">PlaceTop</span>, <span class="dt">PlaceLeft</span>, <span class="dt">PlaceRight</span>]
+
 <span class="ot">hud1 ::</span> <span class="dt">ViewBox</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> [<span class="dt">Chart</span> <span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
-hud1 vb cs <span class="fu">=</span> 
-  hudSvg vb [c,b] cs
+hud1 vb cs <span class="fu">=</span>
+  hudSvg vb [c, b, t] cs
   <span class="kw">where</span>
     c <span class="fu">=</span> canvas (blob grey <span class="fl">0.2</span>) mempty
-    b <span class="fu">=</span> bars bbars mempty</code></pre></div>
+    b <span class="fu">=</span> mconcat <span class="fu">$</span> (\x <span class="ot">-&gt;</span> bar x mempty) <span class="fu">&lt;$&gt;</span> b1
+    t <span class="fu">=</span> foldl layer mempty <span class="fu">$</span> (\x <span class="ot">-&gt;</span> title x mempty) <span class="fu">&lt;$&gt;</span>
+      (((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceAbsolute</span> (<span class="dt">Point</span> <span class="dv">0</span> <span class="dv">0</span>)<span class="ot"> ::</span> <span class="dt">Title</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Title</span> <span class="dt">Double</span>) <span class="fu">$</span>
+      defaultTitle <span class="st">&quot;PlaceAbsolute&quot;</span>) <span class="fu">:</span> t1)</code></pre></div>
 <p><code>hud1 (aspect 1.5) glyphs</code></p>
 <div class="figure">
 <img src="other/hud1.svg" />
+
+</div>
+<p><code>fold</code> ignores the other Hud elements</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">hud2 ::</span> <span class="dt">ViewBox</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> [<span class="dt">Chart</span> <span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
+hud2 vb cs <span class="fu">=</span>
+  hudSvg vb [c, b, t] cs
+  <span class="kw">where</span>
+    c <span class="fu">=</span> canvas (blob grey <span class="fl">0.2</span>) mempty
+    b <span class="fu">=</span> mconcat <span class="fu">$</span> (\x <span class="ot">-&gt;</span> bar x mempty) <span class="fu">&lt;$&gt;</span> b1
+    t <span class="fu">=</span> fold <span class="fu">$</span> (\x <span class="ot">-&gt;</span> title x mempty) <span class="fu">&lt;$&gt;</span>
+      (((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceAbsolute</span> (<span class="dt">Point</span> <span class="dv">0</span> <span class="dv">0</span>)<span class="ot"> ::</span> <span class="dt">Title</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Title</span> <span class="dt">Double</span>) <span class="fu">$</span>
+      defaultTitle <span class="st">&quot;PlaceAbsolute&quot;</span>) <span class="fu">:</span> t1)</code></pre></div>
+<div class="figure">
+<img src="other/hud2.svg" />
+
+</div>
+<h2 id="tick-marks-and-labels">tick marks and labels</h2>
+<p>Tick marks is an example of computing and placing Hud elements according to the original range of the data.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
+<span class="ot">hud3 ::</span> <span class="dt">ViewBox</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> [<span class="dt">Chart</span> <span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
+hud3 vb cs <span class="fu">=</span>
+  hudSvg vb [c, (bBot <span class="fu">&lt;&gt;</span> tBot <span class="fu">&lt;&gt;</span> bLeft <span class="fu">&lt;&gt;</span> tLeft <span class="fu">&lt;&gt;</span> bTop <span class="fu">&lt;&gt;</span> tTop <span class="fu">&lt;&gt;</span> bRight <span class="fu">&lt;&gt;</span> tRight), t&#39;] cs
+  <span class="kw">where</span>
+    c <span class="fu">=</span> canvas (blob grey <span class="fl">0.2</span>) mempty
+    bBot <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceBottom</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
+    bLeft <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceLeft</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
+    bTop <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceTop</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
+    bRight <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceRight</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
+    tBot <span class="fu">=</span> tickMarks defaultTick mempty
+    tLeft <span class="fu">=</span> tickMarks ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceLeft</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTick) mempty
+    tTop <span class="fu">=</span> tickMarks ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceTop</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTick) mempty
+    tRight <span class="fu">=</span> tickMarks ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceRight</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTick) mempty
+    t&#39; <span class="fu">=</span> title (defaultTitle <span class="st">&quot;tick marks&quot;</span>) mempty</code></pre></div>
+<div class="figure">
+<img src="other/hud3.svg" />
 
 </div>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
@@ -140,7 +190,9 @@ main <span class="fu">=</span> <span class="kw">do</span>
   write <span class="st">&quot;other/canvas1.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) canvas1
   write <span class="st">&quot;other/canvas2.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) (canvas2 one (corners <span class="fl">0.2</span>))
   write <span class="st">&quot;other/canvas3.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) (hudSvg one [canvas3] (corners <span class="fl">0.25</span>))
-  write <span class="st">&quot;other/hud1.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud1 (aspect <span class="fl">1.5</span>) glyphs</code></pre></div>
+  write <span class="st">&quot;other/hud1.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud1 (aspect <span class="fl">1.5</span>) glyphs
+  write <span class="st">&quot;other/hud2.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud2 (aspect <span class="fl">1.5</span>) glyphs
+  write <span class="st">&quot;other/hud3.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud3 (aspect <span class="fl">1.5</span>) glyphs</code></pre></div>
 <p><br></p>
 <p>λ&gt; workflow</p>
 <p><br></p>

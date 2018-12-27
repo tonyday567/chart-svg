@@ -48,6 +48,7 @@ module Chart.Svg
   , scratch
   , scratchWith
   , scratchSvg
+  , placedLabel
   ) where
  
 import Chart.Core
@@ -286,12 +287,13 @@ write fp p = writeWith fp p Map.empty "" []
 
 -- * transformations
 -- | A DrawAttributes to rotate by x degrees.
-rotateDA :: Double -> DrawAttributes
-rotateDA r = mempty & transform .~ Just [Rotate r Nothing]
+rotateDA :: (ToRatio a) => a -> DrawAttributes
+rotateDA r = mempty & transform .~ Just [Rotate (fromRational r) Nothing]
 
 -- | A DrawAttributes to translate by a Point.
-translateDA :: Point Double -> DrawAttributes
-translateDA (Point x y) = mempty & transform .~ Just [Translate x (-y)]
+translateDA :: (ToRatio a) => Point a -> DrawAttributes
+translateDA (Point x y) = mempty & transform .~ Just
+  [Translate (fromRational x) (-fromRational y)]
 
 -- | Rotate a ChartSvg expanding the ViewBox as necessary.
 -- Multiple rotations will expand the bounding box conservatively.
@@ -299,14 +301,14 @@ rotate :: (Chartable a, FromInteger a, TrigField a) => a -> ChartSvg a -> ChartS
 rotate r (ChartSvg (ViewBox vb) c) = 
   ChartSvg
   (ViewBox $ rotateArea r vb)
-  [groupTrees (rotateDA (fromRational r)) c]
+  [groupTrees (rotateDA r) c]
 
 -- | Translate a ChartSvg also moving the ViewBox
 translate :: (Additive a, ToRatio a) => Point a -> ChartSvg a -> ChartSvg a
 translate p (ChartSvg (ViewBox vb) c) = 
   ChartSvg
   (ViewBox $ translateArea p vb)
-  [groupTrees (translateDA (fromRational <$> p)) c]
+  [groupTrees (translateDA p) c]
 
 -- * development helpers
 
@@ -356,3 +358,9 @@ scratchWith s x =
   orig' = case s^.field @"maybeOrig" of
     Nothing -> mempty
     Just (n,c) -> [showOriginWith n c]
+
+placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
+placedLabel p d t =
+  Chart (TextA defaultTextStyle [t])
+  (mempty <> translateDA p <> rotateDA d)
+  [zero]
