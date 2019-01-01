@@ -23,14 +23,14 @@ Notes, testing and code for chart-svg develoment.
 {-# OPTIONS_GHC -Wall #-}
 
 import Chart.Svg
-import NumHask.Prelude hiding (Text)
+import NumHask.Prelude
 import Lens.Micro
 import Codec.Picture.Types
 import Data.Generics.Product (field)
 import Chart.Hud
 import Chart.Core
 import Chart.Spot
-import Graphics.Svg.Types as Svg hiding (Point)
+import Graphics.Svg.Types as Svg hiding (Point, Text)
 
 \end{code}
 
@@ -240,7 +240,7 @@ Tick marks is an example of computing and placing Hud elements according to the 
 
 hud3 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud3 vb cs =
-  hudSvg vb [c, (bBot <> tBot <> bLeft <> tLeft <> bTop <> tTop <> bRight <> tRight), t'] cs
+  hudSvg vb ([c, (bBot <> tBot <> bLeft <> tLeft <> bTop <> tTop <> bRight <> tRight)] <> t') cs
   where
     c = canvas (blob grey 0.2) mempty
     bBot = bar (Bar PlaceBottom defaultRectStyle 0.005 0.01) mempty
@@ -251,10 +251,45 @@ hud3 vb cs =
     tLeft = tickMarks ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double) $ defaultTick) mempty
     tTop = tickMarks ((field @"place" .~ PlaceTop :: Tick Double -> Tick Double) $ defaultTick) mempty
     tRight = tickMarks ((field @"place" .~ PlaceRight :: Tick Double -> Tick Double) $ defaultTick) mempty
-    t' = title (defaultTitle "tick marks") mempty
+    t' = (\x -> title ((field @"place" .~ x  :: Title Double -> Title Double) $ defaultTitle "tick marks") mempty) <$>
+      ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
+
 \end{code}
 
 ![](other/hud3.svg)
+
+<br>
+
+tick label rotation
+---
+
+Getting ticks to display sensibly can be labor intensive.  Starting with some longer labels to illustrate the process:
+
+\begin{code}
+
+hud4 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud4 vb cs =
+  hudSvg vb ([c, (bBot <> tBot <> bLeft <> tLeft <> bTop <> tTop <> bRight <> tRight)] <> t') cs
+  where
+    labels = ["tick labels", "often need to be", "manipulated", "by text anchoring", ", by rotation", "and by adjustments to font size"] :: [Text]
+    ts = (field @"tstyle" .~ TickLabels labels :: Tick Double -> Tick Double) $ defaultTick
+    c = canvas (blob grey 0.2) mempty
+    bBot = bar (Bar PlaceBottom defaultRectStyle 0.005 0.01) mempty
+    bLeft = bar (Bar PlaceLeft defaultRectStyle 0.005 0.01) mempty
+    bTop = bar (Bar PlaceTop defaultRectStyle 0.005 0.01) mempty
+    bRight = bar (Bar PlaceRight defaultRectStyle 0.005 0.01) mempty
+    tBot :: Hud Double
+    tBot = Hud $ \vb' a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts, mempty) in let (Hud hud) = tick ts' das' in hud vb' a
+    tLeft = tickMarks ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double) $ ts) mempty
+    tTop :: Hud Double
+    tTop = Hud $ \vb' a -> let (ts',das') = adjustTick defaultAutoOptions vb' a ((field @"place" .~ PlaceTop :: Tick Double -> Tick Double) $ ts, mempty) in let (Hud hud) = tick ts' das' in hud vb' a
+    tRight = tickMarks ((field @"place" .~ PlaceRight :: Tick Double -> Tick Double) $ ts) mempty
+    t' = (\x -> title ((field @"place" .~ x  :: Title Double -> Title Double) $ defaultTitle "automated tick style") mempty) <$>
+      ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
+\end{code}
+
+![](other/hud4.svg)
+
 
 \begin{code}
 
@@ -270,6 +305,7 @@ main = do
   write "other/hud1.svg" (Point 400 400) $ hud1 (aspect 1.5) glyphs
   write "other/hud2.svg" (Point 400 400) $ hud2 (aspect 1.5) glyphs
   write "other/hud3.svg" (Point 400 400) $ hud3 (aspect 1.5) glyphs
+  write "other/hud4.svg" (Point 400 400) $ hud4 (aspect 1.5) glyphs
 
 \end{code}
 

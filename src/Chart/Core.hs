@@ -156,13 +156,15 @@ data TextStyle = TextStyle
   , hsize :: Double
   , vsize :: Double
   , nudge1 :: Double
+  , rotation :: Maybe Double
   } deriving (Show, Eq, Generic)
 
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 grey 1.0 TextAnchorMiddle 0.45 1.1 (-0.25)
+  TextStyle 0.08 grey 1.0 TextAnchorMiddle 0.45 1.1 (-0.25) Nothing
 
+-- | doesn't include the rotation text style which needs to be specified in the same layer as the placement.
 daText :: TextStyle -> DrawAttributes
 daText o =
   mempty &
@@ -172,13 +174,14 @@ daText o =
   (fillColor .~ Last (Just $ ColorRef (o ^. field @"color"))) .
   (fillOpacity .~ Just (fromRational $ o ^. field @"opacity")) .
   (textAnchor .~ Last (Just (o ^. field @"alignH")))
+  -- maybe identity (\x -> transform .~ Just [Rotate x Nothing]) (o ^. field @"rotation")
 
 -- | the extra area from text styling
 styleBoxText :: (FromRatio a) =>
   TextStyle -> DrawAttributes -> Text.Text -> Area a
-styleBoxText o das t = fromRational <$>
-    Area ((-x'/two) + x'*origx) (x'/two + x'*origx) ((-y'/two) - n1') (y'/two - n1')
+styleBoxText o das t = fromRational <$> maybe flat (\r -> rotateArea r flat) (o ^. field @"rotation")
     where
+      flat = Area ((-x'/two) + x'*origx) (x'/two + x'*origx) ((-y'/two) - n1') (y'/two - n1')
       das' = das <> daText o
       s = case getLast (das' ^. fontSize) of
         Just (Num n) -> fromRational n

@@ -115,6 +115,14 @@ treeText t p =
   where
     (Point x y) = fromRational <$> p
 
+-- | Text svg with rotation
+treeTextRotate :: (ToRatio a) => P.Text -> a -> Point a -> Tree
+treeTextRotate t rot p =
+  TextTree Nothing (textAt (Num x, Num (-y)) t) &
+  drawAttr .~ rotatePDA rot p
+  where
+    (Point x y) = fromRational <$> p
+
 -- | GlyphShape to svg primitive
 treeShape :: GlyphShape -> Double -> Point Double -> Tree
 treeShape CircleGlyph s p =
@@ -200,7 +208,9 @@ treeLine xs =
 -- | convert a Chart to svg
 tree :: (Chartable a) => Chart a -> Tree
 tree (Chart (TextA s ts) das xs) =
-  groupTrees (das <> daText s) (zipWith treeText ts (toPoint <$> xs))
+  groupTrees (das <> daText s) (zipWith treeText' ts (toPoint <$> xs))
+  where
+    treeText' = maybe treeText (\r txt p -> treeTextRotate txt (fromRational r) p) (s ^. field @"rotation")
 tree (Chart (GlyphA s) das xs) =
   groupTrees (das <> daGlyph s) (treeGlyph s <$> (toPoint . fmap fromRational <$> xs))
 tree (Chart (LineA s) das xs) =
@@ -259,7 +269,6 @@ frame o (ChartSvg (ViewBox vb) _) =
 defaultFrame :: (Chartable a) => ChartSvg a -> ChartSvg a
 defaultFrame ch = frame (border 0.01 blue 1.0) ch <> ch
 
-
 -- | render a ChartSvg to an xml Document with the supplied size and various bits and pieces
 renderXmlWith :: (ToRatio a) => Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
 renderXmlWith (Point wid hei) defs desc css fp (ChartSvg (ViewBox vb) ts) =
@@ -289,6 +298,12 @@ write fp p = writeWith fp p Map.empty "" []
 -- | A DrawAttributes to rotate by x degrees.
 rotateDA :: (ToRatio a) => a -> DrawAttributes
 rotateDA r = mempty & transform .~ Just [Rotate (fromRational r) Nothing]
+
+-- | A DrawAttributes to rotate around a point by x degrees.
+rotatePDA :: (ToRatio a) => a -> Point a -> DrawAttributes
+rotatePDA r p = mempty & transform .~ Just [Rotate (fromRational r) (Just (x,y))]
+  where
+    (Point x y) = fromRational <$> p
 
 -- | A DrawAttributes to translate by a Point.
 translateDA :: (ToRatio a) => Point a -> DrawAttributes

@@ -1,7 +1,3 @@
-<meta charset="utf-8"> <link rel="stylesheet" href="other/lhs.css">
-<script type="text/javascript" async
-  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
-</script>
 <h1 id="hud-development">hud development</h1>
 <p>Notes, testing and code for chart-svg develoment.</p>
 <p><br></p>
@@ -22,14 +18,14 @@
 <span class="ot">{-# OPTIONS_GHC -Wall #-}</span>
 
 <span class="kw">import </span><span class="dt">Chart.Svg</span>
-<span class="kw">import </span><span class="dt">NumHask.Prelude</span> <span class="kw">hiding</span> (<span class="dt">Text</span>)
+<span class="kw">import </span><span class="dt">NumHask.Prelude</span>
 <span class="kw">import </span><span class="dt">Lens.Micro</span>
 <span class="kw">import </span><span class="dt">Codec.Picture.Types</span>
 <span class="kw">import </span><span class="dt">Data.Generics.Product</span> (field)
 <span class="kw">import </span><span class="dt">Chart.Hud</span>
 <span class="kw">import </span><span class="dt">Chart.Core</span>
 <span class="kw">import </span><span class="dt">Chart.Spot</span>
-<span class="kw">import </span><span class="dt">Graphics.Svg.Types</span> <span class="kw">as</span> <span class="dt">Svg</span> <span class="kw">hiding</span> (<span class="dt">Point</span>)</code></pre></div>
+<span class="kw">import </span><span class="dt">Graphics.Svg.Types</span> <span class="kw">as</span> <span class="dt">Svg</span> <span class="kw">hiding</span> (<span class="dt">Point</span>, <span class="dt">Text</span>)</code></pre></div>
 <p>A Chart consists of a few conceptual layers:</p>
 <h2 id="data-to-be-represented">data to be represented</h2>
 <p>Data for chart-svg charts is typically a double-list of either points or rectangles. The data below are three simple lines.</p>
@@ -164,7 +160,7 @@ hud2 vb cs <span class="fu">=</span>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
 <span class="ot">hud3 ::</span> <span class="dt">ViewBox</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> [<span class="dt">Chart</span> <span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
 hud3 vb cs <span class="fu">=</span>
-  hudSvg vb [c, (bBot <span class="fu">&lt;&gt;</span> tBot <span class="fu">&lt;&gt;</span> bLeft <span class="fu">&lt;&gt;</span> tLeft <span class="fu">&lt;&gt;</span> bTop <span class="fu">&lt;&gt;</span> tTop <span class="fu">&lt;&gt;</span> bRight <span class="fu">&lt;&gt;</span> tRight), t&#39;] cs
+  hudSvg vb ([c, (bBot <span class="fu">&lt;&gt;</span> tBot <span class="fu">&lt;&gt;</span> bLeft <span class="fu">&lt;&gt;</span> tLeft <span class="fu">&lt;&gt;</span> bTop <span class="fu">&lt;&gt;</span> tTop <span class="fu">&lt;&gt;</span> bRight <span class="fu">&lt;&gt;</span> tRight)] <span class="fu">&lt;&gt;</span> t&#39;) cs
   <span class="kw">where</span>
     c <span class="fu">=</span> canvas (blob grey <span class="fl">0.2</span>) mempty
     bBot <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceBottom</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
@@ -175,9 +171,37 @@ hud3 vb cs <span class="fu">=</span>
     tLeft <span class="fu">=</span> tickMarks ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceLeft</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTick) mempty
     tTop <span class="fu">=</span> tickMarks ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceTop</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTick) mempty
     tRight <span class="fu">=</span> tickMarks ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceRight</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTick) mempty
-    t&#39; <span class="fu">=</span> title (defaultTitle <span class="st">&quot;tick marks&quot;</span>) mempty</code></pre></div>
+    t&#39; <span class="fu">=</span> (\x <span class="ot">-&gt;</span> title ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span><span class="ot"> x  ::</span> <span class="dt">Title</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Title</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTitle <span class="st">&quot;tick marks&quot;</span>) mempty) <span class="fu">&lt;$&gt;</span>
+      ([<span class="dt">PlaceRight</span>, <span class="dt">PlaceLeft</span>, <span class="dt">PlaceTop</span>, <span class="dt">PlaceBottom</span>]<span class="ot"> ::</span> [<span class="dt">Place</span> <span class="dt">Double</span>])</code></pre></div>
 <div class="figure">
 <img src="other/hud3.svg" />
+
+</div>
+<p><br></p>
+<h2 id="tick-label-rotation">tick label rotation</h2>
+<p>Getting ticks to display sensibly can be labor intensive. Starting with some longer labels to illustrate the process:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
+<span class="ot">hud4 ::</span> <span class="dt">ViewBox</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> [<span class="dt">Chart</span> <span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
+hud4 vb cs <span class="fu">=</span>
+  hudSvg vb ([c, (bBot <span class="fu">&lt;&gt;</span> tBot <span class="fu">&lt;&gt;</span> bLeft <span class="fu">&lt;&gt;</span> tLeft <span class="fu">&lt;&gt;</span> bTop <span class="fu">&lt;&gt;</span> tTop <span class="fu">&lt;&gt;</span> bRight <span class="fu">&lt;&gt;</span> tRight)] <span class="fu">&lt;&gt;</span> t&#39;) cs
+  <span class="kw">where</span>
+    labels <span class="fu">=</span> [<span class="st">&quot;tick labels&quot;</span>, <span class="st">&quot;often need to be&quot;</span>, <span class="st">&quot;manipulated&quot;</span>, <span class="st">&quot;by text anchoring&quot;</span>, <span class="st">&quot;, by rotation&quot;</span>, <span class="st">&quot;and by adjustments to font size&quot;</span>]<span class="ot"> ::</span> [<span class="dt">Text</span>]
+    ts <span class="fu">=</span> (field <span class="fu">@</span><span class="st">&quot;tstyle&quot;</span> <span class="fu">.~</span> <span class="dt">TickLabels</span><span class="ot"> labels ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTick
+    c <span class="fu">=</span> canvas (blob grey <span class="fl">0.2</span>) mempty
+    bBot <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceBottom</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
+    bLeft <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceLeft</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
+    bTop <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceTop</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
+    bRight <span class="fu">=</span> bar (<span class="dt">Bar</span> <span class="dt">PlaceRight</span> defaultRectStyle <span class="fl">0.005</span> <span class="fl">0.01</span>) mempty
+<span class="ot">    tBot ::</span> <span class="dt">Hud</span> <span class="dt">Double</span>
+    tBot <span class="fu">=</span> <span class="dt">Hud</span> <span class="fu">$</span> \vb&#39; a <span class="ot">-&gt;</span> <span class="kw">let</span> (ts&#39;,das&#39;) <span class="fu">=</span> adjustTick defaultAutoOptions vb&#39; a (ts, mempty) <span class="kw">in</span> <span class="kw">let</span> (<span class="dt">Hud</span> hud) <span class="fu">=</span> tick ts&#39; das&#39; <span class="kw">in</span> hud vb&#39; a
+    tLeft <span class="fu">=</span> tickMarks ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceLeft</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> ts) mempty
+<span class="ot">    tTop ::</span> <span class="dt">Hud</span> <span class="dt">Double</span>
+    tTop <span class="fu">=</span> <span class="dt">Hud</span> <span class="fu">$</span> \vb&#39; a <span class="ot">-&gt;</span> <span class="kw">let</span> (ts&#39;,das&#39;) <span class="fu">=</span> adjustTick defaultAutoOptions vb&#39; a ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceTop</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> ts, mempty) <span class="kw">in</span> <span class="kw">let</span> (<span class="dt">Hud</span> hud) <span class="fu">=</span> tick ts&#39; das&#39; <span class="kw">in</span> hud vb&#39; a
+    tRight <span class="fu">=</span> tickMarks ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span> <span class="dt">PlaceRight</span><span class="ot"> ::</span> <span class="dt">Tick</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Tick</span> <span class="dt">Double</span>) <span class="fu">$</span> ts) mempty
+    t&#39; <span class="fu">=</span> (\x <span class="ot">-&gt;</span> title ((field <span class="fu">@</span><span class="st">&quot;place&quot;</span> <span class="fu">.~</span><span class="ot"> x  ::</span> <span class="dt">Title</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Title</span> <span class="dt">Double</span>) <span class="fu">$</span> defaultTitle <span class="st">&quot;automated tick style&quot;</span>) mempty) <span class="fu">&lt;$&gt;</span>
+      ([<span class="dt">PlaceRight</span>, <span class="dt">PlaceLeft</span>, <span class="dt">PlaceTop</span>, <span class="dt">PlaceBottom</span>]<span class="ot"> ::</span> [<span class="dt">Place</span> <span class="dt">Double</span>])</code></pre></div>
+<div class="figure">
+<img src="other/hud4.svg" />
 
 </div>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
@@ -192,12 +216,9 @@ main <span class="fu">=</span> <span class="kw">do</span>
   write <span class="st">&quot;other/canvas3.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) (hudSvg one [canvas3] (corners <span class="fl">0.25</span>))
   write <span class="st">&quot;other/hud1.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud1 (aspect <span class="fl">1.5</span>) glyphs
   write <span class="st">&quot;other/hud2.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud2 (aspect <span class="fl">1.5</span>) glyphs
-  write <span class="st">&quot;other/hud3.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud3 (aspect <span class="fl">1.5</span>) glyphs</code></pre></div>
+  write <span class="st">&quot;other/hud3.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud3 (aspect <span class="fl">1.5</span>) glyphs
+  write <span class="st">&quot;other/hud4.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> hud4 (aspect <span class="fl">1.5</span>) glyphs</code></pre></div>
 <p><br></p>
 <p>λ&gt; workflow</p>
 <p><br></p>
 <pre><code>stack build --test --exec &quot;$(stack path --local-install-root)/bin/chart-hud&quot; --exec &quot;$(stack path --local-bin)/pandoc -f markdown+lhs -i other/header.md -i app/hud.lhs -i other/footer.md -t html -o hud.html --filter pandoc-include --mathjax&quot; --file-watch --ghc-options -freverse-errors</code></pre>
-<hr />
-<div class="footer">
-<p>Made with love 'n' care; and <a href="https://haskell-lang.org/">haskell</a>, <a href="https://pandoc.org">pandoc</a>, and <a href="https://docs.haskellstack.org/en/stable/README/">stack</a>.</p>
-</div>

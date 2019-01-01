@@ -1,141 +1,119 @@
-<h1 id="hud-development">hud development</h1>
-<p>Notes, testing and code for chart-svg develoment.</p>
-<p><br></p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE DataKinds #-}</span>
-<span class="ot">{-# LANGUAGE FlexibleContexts #-}</span>
-<span class="ot">{-# LANGUAGE FlexibleInstances #-}</span>
-<span class="ot">{-# LANGUAGE MonoLocalBinds #-}</span>
-<span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span>
-<span class="ot">{-# LANGUAGE OverloadedLabels #-}</span>
-<span class="ot">{-# LANGUAGE OverloadedLists #-}</span>
-<span class="ot">{-# LANGUAGE OverloadedStrings #-}</span>
-<span class="ot">{-# LANGUAGE RankNTypes #-}</span>
-<span class="ot">{-# LANGUAGE RebindableSyntax #-}</span>
-<span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span>
-<span class="ot">{-# LANGUAGE TypeApplications #-}</span>
-<span class="ot">{-# LANGUAGE TypeFamilies #-}</span>
-<span class="ot">{-# LANGUAGE TypeOperators #-}</span>
-<span class="ot">{-# OPTIONS_GHC -Wall #-}</span>
+<h1 id="chart-svg">chart-svg</h1>
+<p><a href="https://travis-ci.org/tonyday567/chart-svg"><img src="https://travis-ci.org/tonyday567/chart-svg.svg" alt="Build Status" /></a> <a href="https://hackage.haskell.org/package/chart-svg"><img src="https://img.shields.io/hackage/v/chart-svg.svg" alt="Hackage" /></a> <a href="http://stackage.org/lts/package/chart-svg"><img src="https://www.stackage.org/package/chart-svg/badge/lts" alt="lts" /></a> <a href="http://stackage.org/nightly/package/chart-svg"><img src="https://www.stackage.org/package/chart-svg/badge/nightly" alt="nightly" /></a></p>
+<h1 id="test-svgs">test svgs</h1>
+<h2 id="mempty">mempty</h2>
+<p><code>render (Point (200.0 :: Double) 200.0) mempty</code> produces the following svg text:</p>
+<pre><code>&lt;?xml version=&#39;1.0&#39; ?&gt;
+&lt;svg viewBox=&quot;-0.5 -0.5 1.0 1.0&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot; xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; version=&quot;1.1&quot; width=&quot;200.0&quot; height=&quot;200.0&quot; /&gt;
+</code></pre>
+<h2 id="one">one</h2>
+<p><code>chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]]</code></p>
+<div class="figure">
+<img src="other/one.svg" />
 
-<span class="kw">import </span><span class="dt">Chart.Svg</span>
-<span class="kw">import </span><span class="dt">NumHask.Prelude</span> <span class="kw">hiding</span> (<span class="dt">Text</span>)
-<span class="kw">import </span><span class="dt">Lens.Micro</span>
-<span class="kw">import </span><span class="dt">Codec.Picture.Types</span>
-<span class="kw">import </span><span class="dt">Data.Generics.Product</span> (field)
-<span class="kw">import </span><span class="dt">Chart.Hud</span>
-<span class="kw">import </span><span class="dt">Chart.Core</span>
-<span class="kw">import </span><span class="dt">Chart.Spot</span></code></pre></div>
-<p>A Chart consists of a few conceptual layers:</p>
-<h2 id="data-to-be-represented">data to be represented</h2>
-<p>Data for chart-svg charts is typically a double-list of either points or rectangles. The data below are three simple lines.</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">ls ::</span> [[<span class="dt">Point</span> <span class="dt">Double</span>]]
-ls <span class="fu">=</span>
-  map (uncurry <span class="dt">Point</span>) <span class="fu">&lt;$&gt;</span>
-  [ [(<span class="fl">0.0</span>, <span class="fl">1.0</span>), (<span class="fl">1.0</span>, <span class="fl">1.0</span>), (<span class="fl">2.0</span>, <span class="fl">5.0</span>)]
-  , [(<span class="fl">0.0</span>, <span class="fl">0.0</span>), (<span class="fl">3.0</span>, <span class="fl">3.0</span>)]
-  , [(<span class="fl">0.5</span>, <span class="fl">4.0</span>), (<span class="fl">0.5</span>, <span class="dv">0</span>)]
-  ]</code></pre></div>
-<h2 id="manifest-representations-of-the-data">manifest representations of the data</h2>
-<p>Physical, on-the-page representations of data are separate to the data itself.</p>
-<p>chart-svg categorises representations into different style categories. The code below specifies a line style for representing chart data, with differing colors and line widths.</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">gopts ::</span> [<span class="dt">GlyphStyle</span>]
-gopts <span class="fu">=</span>
-  [ field <span class="fu">@</span><span class="st">&quot;borderSize&quot;</span> <span class="fu">.~</span> <span class="dv">0</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;size&quot;</span> <span class="fu">.~</span> <span class="fl">0.1</span> <span class="fu">$</span>
-    defaultGlyphStyle
-  , field <span class="fu">@</span><span class="st">&quot;borderSize&quot;</span> <span class="fu">.~</span> <span class="dv">0</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;size&quot;</span> <span class="fu">.~</span> <span class="fl">0.1</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;color&quot;</span> <span class="fu">.~</span> <span class="dt">PixelRGBA8</span> <span class="dv">100</span> <span class="dv">30</span> <span class="dv">30</span> <span class="dv">100</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;shape&quot;</span> <span class="fu">.~</span> <span class="dt">RectRoundedGlyph</span> <span class="fl">1.5</span> <span class="fl">0.01</span> (<span class="fl">0.01</span><span class="ot"> ::</span> <span class="dt">Double</span>) <span class="fu">$</span>
-    defaultGlyphStyle
-  , field <span class="fu">@</span><span class="st">&quot;borderSize&quot;</span> <span class="fu">.~</span> <span class="dv">0</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;size&quot;</span> <span class="fu">.~</span> <span class="fl">0.1</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;color&quot;</span> <span class="fu">.~</span> <span class="dt">PixelRGBA8</span> <span class="dv">100</span> <span class="dv">130</span> <span class="dv">80</span> <span class="dv">100</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;shape&quot;</span> <span class="fu">.~</span> <span class="dt">EllipseGlyph</span> <span class="fl">1.5</span> <span class="fu">$</span>
-    defaultGlyphStyle
-  ]</code></pre></div>
-<p>and this is enough to create a chart:</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">glyphs ::</span> [<span class="dt">Chart</span> <span class="dt">Double</span>]
-glyphs <span class="fu">=</span> zipWith (\d s <span class="ot">-&gt;</span> <span class="dt">Chart</span> (<span class="dt">GlyphA</span> s) mempty (<span class="dt">SpotPoint</span> <span class="fu">&lt;$&gt;</span> d)) ls gopts</code></pre></div>
+</div>
+<h2 id="chartsvg-transforms">ChartSvg transforms</h2>
+<p>rotate</p>
+<div class="figure">
+<img src="other/rotateOne.svg" />
+
+</div>
+<p>translate</p>
+<div class="figure">
+<img src="other/translateOne.svg" />
+
+</div>
+<h2 id="rectangle">rectangle</h2>
+<div class="figure">
+<img src="other/rectChart.svg" />
+
+</div>
+<div class="figure">
+<img src="other/rectCharts.svg" />
+
+</div>
+<div class="figure">
+<img src="other/pixel.svg" />
+
+</div>
+<h2 id="text">text</h2>
+<div class="figure">
+<img src="other/textChart.svg" />
+
+</div>
+<p>text chart</p>
+<div class="figure">
+<img src="other/textsChart.svg" />
+
+</div>
+<p>boundText</p>
+<div class="figure">
+<img src="other/boundText.svg" />
+
+</div>
+<p>rotated label</p>
+<div class="figure">
+<img src="other/label.svg" />
+
+</div>
+<h2 id="glyphs">glyphs</h2>
+<p>circle</p>
+<div class="figure">
+<img src="other/circle.svg" />
+
+</div>
+<p>glyphs</p>
 <div class="figure">
 <img src="other/glyphs.svg" />
 
 </div>
-<p>This layering is not exactly canonical. <a href="http://r4ds.had.co.nz/visualize.html">ggplot2</a> uses the term <a href="https://ggplot2.tidyverse.org/reference/aes.html">aesthetics</a> for the process of deciding which features of the data will be brought out in the visualisation, so that style is seen as a function of the data.</p>
-<p>By clearly specifying what is a position on the page (the Spot) from what may be some other style decision (the color or shape of a geometric object), however, other chart features, such as grid-lines and axes, can reuse the same functionality used to build the data representation.</p>
-<h1 id="the-hud">3. the hud</h1>
-<p>In addition to raw data, and to the manifestation of that data on a physical plane, a chart usually includes decoration that assists in interpreting the chart data - axes, grid lines, titles, legends and friends that visual explain what is being seen in the chart.</p>
-<p>chart-svg calls this decoration the heads-up-display - the hud.</p>
-<p>The remainder of this *.lhs records hud development.</p>
-<h2 id="api-effect">api effect</h2>
-<p>huds are different to pure chart data only in the sense that they require both information on the raw data (eg data ranges to calculate tick values) and information on the representation (eg how wide the chart is to properly locate the tick text on the page)</p>
-<p>The xy-plane on which the data is represented - the canvas - is a good place to tease this out.</p>
-<p>chart-svg and, specifically, <code>chartSvg</code> recognises that the physical representation of a data point may fall outside the data range, so that the viewbox becomes wider than the raw data suggests.</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">corners ::</span> [<span class="dt">Chart</span> <span class="dt">Double</span>]
-corners <span class="fu">=</span>
-  [<span class="dt">Chart</span>
-  (<span class="dt">GlyphA</span> <span class="fu">$</span>
-   field <span class="fu">@</span><span class="st">&quot;borderSize&quot;</span> <span class="fu">.~</span> <span class="dv">0</span> <span class="fu">$</span>
-    field <span class="fu">@</span><span class="st">&quot;size&quot;</span> <span class="fu">.~</span> <span class="fl">0.1</span> <span class="fu">$</span>
-    defaultGlyphStyle)
-  mempty
-  [<span class="dt">SP</span> (<span class="fu">-</span><span class="fl">0.5</span>) (<span class="fu">-</span><span class="fl">0.5</span>), <span class="dt">SP</span> (<span class="fu">-</span><span class="fl">0.5</span>) <span class="fl">0.5</span>, <span class="dt">SP</span> <span class="fl">0.5</span> (<span class="fu">-</span><span class="fl">0.5</span>), <span class="dt">SP</span> <span class="fl">0.5</span> <span class="fl">0.5</span>]]
-
-<span class="ot">canvas ::</span> <span class="dt">ChartSvg</span> <span class="dt">Double</span>
-canvas <span class="fu">=</span> chartSvg one (corners <span class="fu">&lt;&gt;</span> [<span class="dt">Chart</span> (<span class="dt">RectA</span> defaultRectStyle) mempty [one]])</code></pre></div>
+<p>smiley</p>
 <div class="figure">
-<img src="other/canvas.svg" />
+<img src="other/smiley.svg" />
 
 </div>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">canvas2 ::</span> (<span class="dt">ToRatio</span> a, <span class="dt">FromRatio</span> a, <span class="dt">Subtractive</span> a, <span class="dt">Field</span> a, <span class="dt">BoundedJoinSemiLattice</span> a, <span class="dt">BoundedMeetSemiLattice</span> a) <span class="ot">=&gt;</span> <span class="dt">ViewBox</span> a <span class="ot">-&gt;</span> [<span class="dt">Chart</span> a] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> a
-canvas2 (<span class="dt">ViewBox</span> asp) cs <span class="fu">=</span>
-  chartSvg_ (<span class="dt">ViewBox</span> asp&#39;) (cs&#39; <span class="fu">&lt;&gt;</span> [canvas&#39;])
-  <span class="kw">where</span>
-    cs&#39; <span class="fu">=</span> projectSpots asp cs
-    asp&#39; <span class="fu">=</span> styleBoxes cs&#39;
-    canvas&#39; <span class="fu">=</span> <span class="dt">Chart</span> (<span class="dt">RectA</span> (blob grey <span class="fl">0.2</span>)) mempty
-      [<span class="dt">SpotArea</span> asp&#39;]</code></pre></div>
+<p>glyph</p>
 <div class="figure">
-<img src="other/canvas2.svg" />
+<img src="other/glyphsChart.svg" />
 
 </div>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">bbars ::</span> [<span class="dt">Bar</span> <span class="dt">Double</span>]
-bbars <span class="fu">=</span>
-  [ <span class="dt">Bar</span> <span class="dt">PlaceBottom</span> defaultRectStyle <span class="fl">0.05</span> <span class="fl">0.02</span>
-  , <span class="dt">Bar</span> <span class="dt">PlaceLeft</span> defaultRectStyle <span class="fl">0.05</span> <span class="fl">0.02</span>
-  ]
-
-<span class="ot">bars ::</span> (<span class="dt">ToRatio</span> a, <span class="dt">FromRatio</span> a, <span class="dt">Subtractive</span> a, <span class="dt">Field</span> a,
-             <span class="dt">BoundedJoinSemiLattice</span> a, <span class="dt">BoundedMeetSemiLattice</span> a) <span class="ot">=&gt;</span>
-            <span class="dt">ViewBox</span> a <span class="ot">-&gt;</span> [<span class="dt">Chart</span> a] <span class="ot">-&gt;</span> [<span class="dt">Bar</span> a] <span class="ot">-&gt;</span> <span class="dt">ChartSvg</span> a
-bars (<span class="dt">ViewBox</span> asp) cs bs <span class="fu">=</span>
-  chartSvg_ (<span class="dt">ViewBox</span> asp&#39;&#39;) (cs&#39; <span class="fu">&lt;&gt;</span> bs&#39; <span class="fu">&lt;&gt;</span> [canvas&#39;])
-  <span class="kw">where</span>
-    cs&#39; <span class="fu">=</span> projectSpots asp cs
-    asp&#39; <span class="fu">=</span> styleBoxes cs&#39;
-    bs&#39; <span class="fu">=</span> (\b <span class="ot">-&gt;</span> bar b mempty asp&#39;) <span class="fu">&lt;$&gt;</span> bs
-    asp&#39;&#39; <span class="fu">=</span> asp&#39; <span class="fu">&lt;&gt;</span> toArea (fold <span class="fu">$</span> fold <span class="fu">$</span> spots <span class="fu">&lt;$&gt;</span> bs&#39;)
-    canvas&#39; <span class="fu">=</span> <span class="dt">Chart</span> (<span class="dt">RectA</span> (blob grey <span class="fl">0.2</span>)) mempty
-      [<span class="dt">SpotArea</span> asp&#39;]</code></pre></div>
-<p><code>bars (aspect 1.5) glyphs bbars</code></p>
+<h2 id="line-charts">line charts</h2>
+<p>line</p>
 <div class="figure">
-<img src="other/bars.svg" />
+<img src="other/lines.svg" />
 
 </div>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-<span class="ot">main ::</span> <span class="dt">IO</span> ()
-main <span class="fu">=</span> <span class="kw">do</span>
-  scratchWith
-    ( clearScratchStyle <span class="fu">&amp;</span>
-    field <span class="fu">@</span><span class="st">&quot;fileName&quot;</span> <span class="fu">.~</span> <span class="st">&quot;other/glyphs.svg&quot;</span> <span class="fu">&amp;</span>
-    field <span class="fu">@</span><span class="st">&quot;ratioAspect&quot;</span> <span class="fu">.~</span> <span class="fl">1.5</span>) glyphs
-  write <span class="st">&quot;other/canvas.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) canvas
-  write <span class="st">&quot;other/canvas2.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">200</span> <span class="dv">200</span>) (canvas2 one corners)
-  write <span class="st">&quot;other/bars.svg&quot;</span> (<span class="dt">Point</span> <span class="dv">400</span> <span class="dv">400</span>) <span class="fu">$</span> bars (aspect <span class="fl">1.5</span>) glyphs bbars</code></pre></div>
-<p>λ&gt;</p>
+<p>gline</p>
+<div class="figure">
+<img src="other/glines.svg" />
+
+</div>
+<h2 id="labelled-glyph">labelled glyph</h2>
+<p>lglyph</p>
+<div class="figure">
+<img src="other/lglyph.svg" />
+
+</div>
+<p>putting it all together</p>
+<div class="figure">
+<img src="other/compound.svg" />
+
+</div>
+<h2 id="recipe">recipe</h2>
+<pre><code>stack build --test --exec &quot;$(stack path --local-install-root)/bin/chart-svg&quot; --exec &quot;$(stack path --local-bin)/pandoc -f markdown -i other/readme_.md -t html -o index.html --filter pandoc-include --mathjax&quot; --file-watch --ghc-options -freverse-errors</code></pre>
+<pre><code>stack build --test --exec &quot;$(stack path --local-install-root)/bin/chart-hud&quot; --exec &quot;$(stack path --local-bin)/pandoc -f markdown+lhs -i app/hud.lhs -t html -o hud.html --filter pandoc-include --mathjax&quot; --file-watch --ghc-options -freverse-errors</code></pre>
+<h2 id="reference">reference</h2>
+<ul class="incremental">
+<li><a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html#flag-reference">ghc options</a></li>
+<li><a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html">pragmas</a></li>
+<li><a href="https://www.stackage.org/">libraries</a></li>
+<li><a href="https://www.stackage.org/package/hoogle">hoogle</a></li>
+<li><a href="https://www.stackage.org/package/doctest">doctest</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial">MDN svg</a></li>
+<li><a href="https://www.w3.org/TR/SVG2/text.html#TextAnchoringProperties">SVG2</a></li>
+<li><a href="http://hackage.haskell.org/package/blaze-svg-0.3.6.1">blaze-svg</a></li>
+<li><a href="http://hackage.haskell.org/package/blaze-markup-0.8.2.1/docs/Text-Blaze-Internal.html#t:Attributable">blaze-markup</a></li>
+<li><a href="https://hackage.haskell.org/package/plot-light-0.4.3/docs/src/Graphics.Rendering.Plot.Light.Internal.html#text">plot-light</a></li>
+<li><a href="http://hackage.haskell.org/package/svg-tree-0.6.2.2/docs/Graphics-Svg-Types.html#v:documentLocation">svg-tree</a></li>
+<li><a href="http://hackage.haskell.org/package/JuicyPixels-3.2.9.5/docs/Codec-Picture-Types.html#t:PixelRGBA8">JuicyPixels</a></li>
+</ul>
