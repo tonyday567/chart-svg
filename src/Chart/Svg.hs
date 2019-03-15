@@ -26,8 +26,10 @@ module Chart.Svg
   , treeText
   , tree
   , projectSpots
+  , projectSpotsWith
   , chartSvg_
   , chartSvg
+  , chartSvgWith
   , fittedSvg
   , pad
   , frame
@@ -142,6 +144,18 @@ treeShape (RectRoundedGlyph x'' rx ry) s p  =
   where
     (Area x z y w) = fromRational <$> scale (Point s (x''*s)) one
     (Point x' y') = fromRational <$> p
+treeShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p  =
+  PolygonTree $
+  polygonPoints .~ rps $
+  drawAttr . transform .~ Just [Translate x' (-y')] $
+  defaultSvg
+  where
+    rps =
+      [ V2 (s*xa) (-s*ya)
+      , V2 (s*xb) (-s*yb)
+      , V2 (s*xc) (-s*yc)
+      ]
+    (Point x' y') = fromRational <$> p
 treeShape (EllipseGlyph x') s (Point x y) =
   EllipseTree $ Ellipse mempty (Num (fromRational x), Num (-(fromRational y)))
   (Num $ fromRational s/two) (Num $ (fromRational x'*fromRational s)/two)
@@ -241,12 +255,27 @@ projectSpots a cs = cs'
     dass = drawatts <$> cs
     cs' = zipWith3 Chart ss dass xss
 
+projectSpotsWith :: (Chartable a) => Area a -> Area a -> [Chart a] -> [Chart a]
+projectSpotsWith new old cs = cs'
+  where
+    xss = fmap (projectOn new old) <$> spots <$> cs
+    ss = annotation <$> cs
+    dass = drawatts <$> cs
+    cs' = zipWith3 Chart ss dass xss
+
 -- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied ViewBox, and expanding the ViewBox for chart style if necessary
 chartSvg :: (Chartable a) =>
   ViewBox a -> [Chart a] -> ChartSvg a
 chartSvg (ViewBox a) cs = chartSvg_ (ViewBox $ styleBoxes cs') cs'
   where
     cs' = projectSpots a cs
+
+-- | convert a [Chart] to a ChartSvg, projecting Chart data from a specified Area range to the supplied ViewBox, and expanding the ViewBox for chart style if necessary
+chartSvgWith :: (Chartable a) =>
+  ViewBox a -> Area a -> [Chart a] -> ChartSvg a
+chartSvgWith (ViewBox new) old cs = chartSvg_ (ViewBox $ new <> styleBoxes cs') cs'
+  where
+    cs' = projectSpotsWith new old cs
 
 -- | convert a [Chart] to a ChartSvg, setting the ViewBox equal to the Chart data area
 fittedSvg :: (Chartable a) =>
@@ -301,7 +330,7 @@ rotateDA r = mempty & transform .~ Just [Rotate (fromRational r) Nothing]
 
 -- | A DrawAttributes to rotate around a point by x degrees.
 rotatePDA :: (ToRatio a) => a -> Point a -> DrawAttributes
-rotatePDA r p = mempty & transform .~ Just [Rotate (fromRational r) (Just (x,y))]
+rotatePDA r p = mempty & transform .~ Just [Rotate (fromRational r) (Just (x,-y))]
   where
     (Point x y) = fromRational <$> p
 

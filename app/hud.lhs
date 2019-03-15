@@ -155,7 +155,7 @@ canvas2 (ViewBox asp) cs =
 <br>
 ![](other/canvas2.svg)
 <br>
-
+ 
 So the introduction of a hud to a chart requires a different api to chartSvg.  Together with a list of Charts and a ViewBox, we require a function that takes in a ViewBox - the viewbox of the main chart list - and gives back a list of Charts which is the pre-rendered hud.
 
 <br>
@@ -238,6 +238,22 @@ Tick marks is an example of computing and placing Hud elements according to the 
 
 \begin{code}
 
+hud3a :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud3a vb cs =
+  hudSvg vb ([c, (bBot <> tBot <> bLeft <> tLeft)]) cs
+  where
+    c = canvas (blob grey 0.2) mempty
+    bBot = bar (Bar PlaceBottom defaultRectStyle 0.005 0.01) mempty
+    bLeft = bar (Bar PlaceLeft defaultRectStyle 0.005 0.01) mempty
+    tBot = tick defaultTick mempty
+    tLeft = tick ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double) $ defaultTick) mempty
+
+\end{code}
+
+![](other/hud3a.svg)
+
+\begin{code}
+
 hud3 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud3 vb cs =
   hudSvg vb ([c, (bBot <> tBot <> bLeft <> tLeft <> bTop <> tTop <> bRight <> tRight)] <> t') cs
@@ -247,10 +263,10 @@ hud3 vb cs =
     bLeft = bar (Bar PlaceLeft defaultRectStyle 0.005 0.01) mempty
     bTop = bar (Bar PlaceTop defaultRectStyle 0.005 0.01) mempty
     bRight = bar (Bar PlaceRight defaultRectStyle 0.005 0.01) mempty
-    tBot = tickMarks defaultTick mempty
-    tLeft = tickMarks ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double) $ defaultTick) mempty
-    tTop = tickMarks ((field @"place" .~ PlaceTop :: Tick Double -> Tick Double) $ defaultTick) mempty
-    tRight = tickMarks ((field @"place" .~ PlaceRight :: Tick Double -> Tick Double) $ defaultTick) mempty
+    tBot = tick defaultTick mempty
+    tLeft = tick ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double) $ defaultTick) mempty
+    tTop = tick ((field @"place" .~ PlaceTop :: Tick Double -> Tick Double) $ defaultTick) mempty
+    tRight = tick ((field @"place" .~ PlaceRight :: Tick Double -> Tick Double) $ defaultTick) mempty
     t' = (\x -> title ((field @"place" .~ x  :: Title Double -> Title Double) $ defaultTitle "tick marks") mempty) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
 
@@ -279,11 +295,11 @@ hud4 vb cs =
     bTop = bar (Bar PlaceTop defaultRectStyle 0.005 0.01) mempty
     bRight = bar (Bar PlaceRight defaultRectStyle 0.005 0.01) mempty
     tBot :: Hud Double
-    tBot = Hud $ \vb' a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts, mempty) in let (Hud hud) = tick ts' das' in hud vb' a
-    tLeft = tickMarks ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double) $ ts) mempty
+    tBot = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts, mempty) in let (Hud hud) = tick ts' das' in hud vb' d a
+    tLeft = tick ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double) $ ts) mempty
     tTop :: Hud Double
-    tTop = Hud $ \vb' a -> let (ts',das') = adjustTick defaultAutoOptions vb' a ((field @"place" .~ PlaceTop :: Tick Double -> Tick Double) $ ts, mempty) in let (Hud hud) = tick ts' das' in hud vb' a
-    tRight = tickMarks ((field @"place" .~ PlaceRight :: Tick Double -> Tick Double) $ ts) mempty
+    tTop = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a ((field @"place" .~ PlaceTop :: Tick Double -> Tick Double) $ ts, mempty) in let (Hud hud) = tick ts' das' in hud vb' d a
+    tRight = tick ((field @"place" .~ PlaceRight :: Tick Double -> Tick Double) $ ts) mempty
     t' = (\x -> title ((field @"place" .~ x  :: Title Double -> Title Double) $ defaultTitle "automated tick style") mempty) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
 \end{code}
@@ -305,6 +321,7 @@ main = do
   write "other/hud1.svg" (Point 400 400) $ hud1 (aspect 1.5) glyphs
   write "other/hud2.svg" (Point 400 400) $ hud2 (aspect 1.5) glyphs
   write "other/hud3.svg" (Point 400 400) $ hud3 (aspect 1.5) glyphs
+  write "other/hud3a.svg" (Point 400 400) $ hud3a (aspect 1.5) glyphs
   write "other/hud4.svg" (Point 400 400) $ hud4 (aspect 1.5) glyphs
 
 \end{code}

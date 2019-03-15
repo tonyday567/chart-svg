@@ -1,12 +1,14 @@
-resolver: lts-12.20
+resolver: nightly-2019-03-15
 
 packages:
   - .
-  - ../numhask/numhask
-  - ../numhask/numhask-prelude
-  - ../numhask/numhask-hedgehog
-  - ../numhask/numhask-space
-  # - ../numhask-range/numhask-range
 
-extra-deps: []
+extra-deps:
+  - git: https://github.com/tonyday567/numhask.git
+    commit: 717b02421d57b61890f21b9102c262628a98c968
+    subdirs:
+      - numhask
+      - numhask-prelude
+      - numhask-space
+
 

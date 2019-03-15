@@ -28,9 +28,13 @@ module Chart.Core
   , border
   , TextStyle(..)
   , defaultTextStyle
+  , anchorToString
+  , stringToAnchor
   , GlyphStyle(..)
   , defaultGlyphStyle
   , GlyphShape(..)
+  , toGlyphShape
+  , fromGlyphShape
   , LineStyle(..)
   , defaultLineStyle
   , styleBoxText
@@ -159,6 +163,17 @@ data TextStyle = TextStyle
   , rotation :: Maybe Double
   } deriving (Show, Eq, Generic)
 
+anchorToString :: (IsString s) => TextAnchor -> s
+anchorToString TextAnchorMiddle = "Middle"
+anchorToString TextAnchorStart = "Start"
+anchorToString TextAnchorEnd = "End"
+
+stringToAnchor :: (Eq s, IsString s) => s -> TextAnchor
+stringToAnchor "Middle" = TextAnchorMiddle
+stringToAnchor "Start" = TextAnchorStart
+stringToAnchor "End" = TextAnchorEnd
+stringToAnchor _ = TextAnchorMiddle
+
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
@@ -220,10 +235,37 @@ data GlyphShape
   | EllipseGlyph Double
   | RectSharpGlyph Double
   | RectRoundedGlyph Double Double Double
+  | TriangleGlyph (Point Double) (Point Double) (Point Double)
   | VLineGlyph Double
   | HLineGlyph Double
   | SmileyGlyph
   deriving (Show, Eq, Generic)
+
+fromGlyphShape :: (IsString s) => GlyphShape -> (s, [Double])
+fromGlyphShape CircleGlyph = ("Circle", [])
+fromGlyphShape SquareGlyph = ("Square", [])
+fromGlyphShape (EllipseGlyph n) = ("Ellipse", [n])
+fromGlyphShape (RectSharpGlyph n) = ("RectSharp", [n])
+fromGlyphShape (RectRoundedGlyph n1 n2 n3) = ("RectRounded", [n1,n2,n3])
+fromGlyphShape (TriangleGlyph (Point x1 y1) (Point x2 y2) (Point x3 y3)) =
+  ("Triangle", [x1, y1, x2, y2, x3, y3])
+fromGlyphShape (VLineGlyph n) = ("VLine", [n])
+fromGlyphShape (HLineGlyph n) = ("HLine", [n])
+fromGlyphShape SmileyGlyph = ("Smiley", [])
+
+toGlyphShape :: (IsString s, Eq s) => (s, [Double]) -> GlyphShape
+toGlyphShape ("Circle", _) = CircleGlyph
+toGlyphShape ("Square", _) = SquareGlyph
+toGlyphShape ("Ellipse", n:_) = EllipseGlyph n
+toGlyphShape ("RectSharp", n:_) = RectSharpGlyph n
+toGlyphShape ("RectRounded", n1:n2:n3:_) = RectRoundedGlyph n1 n2 n3
+toGlyphShape ("Triangle", x1:y1:x2:y2:x3:y3:_) = (TriangleGlyph (Point x1 y1) (Point x2 y2) (Point x3 y3))
+toGlyphShape ("VLine", n:_) = VLineGlyph n
+toGlyphShape ("HLine", n:_) = HLineGlyph n
+toGlyphShape ("Smiley", _) = SmileyGlyph
+toGlyphShape _ = SmileyGlyph
+
+
 
 daGlyph :: GlyphStyle -> DrawAttributes
 daGlyph o =
