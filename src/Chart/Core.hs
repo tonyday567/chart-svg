@@ -35,6 +35,7 @@ module Chart.Core
   , GlyphShape(..)
   , toGlyphShape
   , fromGlyphShape
+  , toGlyph
   , LineStyle(..)
   , defaultLineStyle
   , styleBoxText
@@ -52,7 +53,6 @@ module Chart.Core
   , showOriginWith
   , blue
   , grey
-  , transparent
   , red
   , black
   , white
@@ -63,8 +63,8 @@ module Chart.Core
 import Codec.Picture.Types
 import Control.Exception
 import Data.Generics.Product (field)
-import Graphics.Svg as Svg hiding (Point, toPoint)
-import Lens.Micro
+import Graphics.Svg as Svg hiding (Point, toPoint, Text)
+import Control.Lens hiding (transform)
 import NumHask.Data.Pair
 import NumHask.Prelude as P hiding (Group)
 import qualified Data.Text as Text
@@ -120,9 +120,9 @@ translateChart p c =
 -- | Rectangle styling
 data RectStyle = RectStyle
   { borderSize :: Double
-  , borderColor :: PixelRGBA8
+  , borderColor :: PixelRGB8
   , borderOpacity :: Double
-  , color :: PixelRGBA8
+  , color :: PixelRGB8
   , opacity :: Double
   } deriving (Show, Eq, Generic)
 
@@ -134,27 +134,27 @@ daRect :: RectStyle -> DrawAttributes
 daRect o =
   mempty &
   (strokeWidth .~ Last (Just $ Num (fromRational $ o ^. field @"borderSize"))) .
-  (strokeColor .~ Last (Just $ ColorRef (o ^. field @"borderColor"))) .
+  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"borderColor"))) .
   (strokeOpacity .~ Just (fromRational $ o ^. field @"borderOpacity")) .
-  (fillColor .~ Last (Just $ ColorRef (o ^. field @"color"))) .
+  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"color"))) .
   (fillOpacity .~ Just (fromRational $ o ^. field @"opacity")) 
 
 -- | solid rectangle, no border
-blob :: PixelRGBA8 -> Double -> RectStyle
-blob = RectStyle zero transparent zero
+blob :: PixelRGB8 -> Double -> RectStyle
+blob = RectStyle zero black zero
 
 -- | clear and utrans rect
 clear :: RectStyle
-clear = RectStyle zero transparent zero transparent zero
+clear = RectStyle zero black zero black zero
 
 -- | transparent rectangle, with border
-border :: Double -> PixelRGBA8 -> Double -> RectStyle
-border s c o = RectStyle s c o transparent zero
+border :: Double -> PixelRGB8 -> Double -> RectStyle
+border s c o = RectStyle s c o black zero
 
 -- | Text styling
 data TextStyle = TextStyle
   { size :: Double
-  , color :: PixelRGBA8
+  , color :: PixelRGB8
   , opacity :: Double
   , alignH :: TextAnchor 
   , hsize :: Double
@@ -186,7 +186,7 @@ daText o =
   (fontSize .~ Last (Just $ Num (o ^. field @"size"))) .
   (strokeWidth .~ Last (Just $ Num 0)) .
   (strokeColor .~ Last (Just FillNone)) .
-  (fillColor .~ Last (Just $ ColorRef (o ^. field @"color"))) .
+  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"color"))) .
   (fillOpacity .~ Just (fromRational $ o ^. field @"opacity")) .
   (textAnchor .~ Last (Just (o ^. field @"alignH")))
   -- maybe identity (\x -> transform .~ Just [Rotate x Nothing]) (o ^. field @"rotation")
@@ -216,9 +216,9 @@ styleBoxText o das t = fromRational <$> maybe flat (\r -> rotateArea r flat) (o 
 -- | Glyph styling
 data GlyphStyle = GlyphStyle
   { size :: Double -- ^ glyph radius
-  , color :: PixelRGBA8 -- ^ fill color
+  , color :: PixelRGB8 -- ^ fill color
   , opacity :: Double
-  , borderColor :: PixelRGBA8 -- ^ stroke color
+  , borderColor :: PixelRGB8 -- ^ stroke color
   , borderOpacity :: Double
   , borderSize :: Double -- ^ stroke width (adds a bit to the bounding box)
   , shape :: GlyphShape
@@ -259,21 +259,33 @@ toGlyphShape ("Square", _) = SquareGlyph
 toGlyphShape ("Ellipse", n:_) = EllipseGlyph n
 toGlyphShape ("RectSharp", n:_) = RectSharpGlyph n
 toGlyphShape ("RectRounded", n1:n2:n3:_) = RectRoundedGlyph n1 n2 n3
-toGlyphShape ("Triangle", x1:y1:x2:y2:x3:y3:_) = (TriangleGlyph (Point x1 y1) (Point x2 y2) (Point x3 y3))
+toGlyphShape ("Triangle", x1:y1:x2:y2:x3:y3:_) = TriangleGlyph (Point x1 y1) (Point x2 y2) (Point x3 y3)
 toGlyphShape ("VLine", n:_) = VLineGlyph n
 toGlyphShape ("HLine", n:_) = HLineGlyph n
 toGlyphShape ("Smiley", _) = SmileyGlyph
 toGlyphShape _ = SmileyGlyph
 
-
+toGlyph :: (Eq a, IsString a) => a -> GlyphShape
+toGlyph sh =
+  case sh of
+    "Circle" -> CircleGlyph
+    "Square" -> SquareGlyph
+    "Triangle" -> TriangleGlyph (Point (-1) 0) (Point 1 0) (Point 0 1)
+    "Ellipse" -> EllipseGlyph 1.5
+    "Rectangle" -> RectSharpGlyph 1.5
+    "Rounded Rectangle" -> RectRoundedGlyph 1.5 0.1 0.1
+    "Verticle Line" -> VLineGlyph 0.01
+    "Horizontal Line" -> HLineGlyph 0.01
+    "Smiley Face" -> SmileyGlyph
+    _ -> CircleGlyph
 
 daGlyph :: GlyphStyle -> DrawAttributes
 daGlyph o =
   mempty &
   (strokeWidth .~ Last (Just $ Num (o ^. field @"borderSize"))) .
-  (strokeColor .~ Last (Just $ ColorRef (o ^. field @"borderColor"))) .
+  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"borderColor"))) .
   (strokeOpacity .~ Just (fromRational $ o ^. field @"borderOpacity")) .
-  (fillColor .~ Last (Just $ ColorRef (o ^. field @"color"))) .
+  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"color"))) .
   (fillOpacity .~ Just (fromRational $ o ^. field @"opacity"))
 
 -- | the extra area from glyph styling
@@ -292,7 +304,7 @@ styleBoxGlyph s = fromRational <$> case sh of
 -- | line style
 data LineStyle = LineStyle
   { width :: Double
-  , color :: PixelRGBA8
+  , color :: PixelRGB8
   , opacity :: Double
   } deriving (Show, Eq, Generic)
 
@@ -304,7 +316,7 @@ daLine :: LineStyle -> DrawAttributes
 daLine o =
   mempty &
   (strokeWidth .~ Last (Just $ Num (o ^. field @"width"))) .
-  (strokeColor .~ Last (Just $ ColorRef (o ^. field @"color"))) .
+  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"color"))) .
   (strokeOpacity .~ Just (fromRational $ o ^. field @"opacity")) .
   (fillColor .~ Last (Just FillNone))
 
@@ -366,7 +378,7 @@ projectWithStyles vb chs =
     xss = (\(Chart _ _ xs) -> xs) <$> chs
 
 -- | include a circle at the origin with size and color
-showOriginWith :: forall a. (Chartable a) => Double -> PixelRGBA8 -> Chart a
+showOriginWith :: forall a. (Chartable a) => Double -> PixelRGB8 -> Chart a
 showOriginWith s c =
   Chart
   (GlyphA $
@@ -383,40 +395,37 @@ showOrigin = showOriginWith 0.1 red
 
 -- * color
 -- | the official chart-unit blue
-blue :: PixelRGBA8
-blue = PixelRGBA8 93 165 218 255
+blue :: PixelRGB8
+blue = PixelRGB8 93 165 218
 
 -- | the official chart-unit grey
-grey :: PixelRGBA8
-grey = PixelRGBA8 102 102 102 255
-
--- | transparent
-transparent :: PixelRGBA8
-transparent = PixelRGBA8 0 0 0 0
+grey :: PixelRGB8
+grey = PixelRGB8 102 102 102
 
 -- | black
-black :: PixelRGBA8
-black = PixelRGBA8 0 0 0 255
+black :: PixelRGB8
+black = PixelRGB8 0 0 0
 
 -- | white
-white :: PixelRGBA8
-white = PixelRGBA8 255 255 255 255
+white :: PixelRGB8
+white = PixelRGB8 255 255 255
 
 -- | red
-red :: PixelRGBA8
-red = PixelRGBA8 255 0 0 255
+red :: PixelRGB8
+red = PixelRGB8 255 0 0
 
 -- | interpolate between two colors
-blend :: Double -> PixelRGBA8 -> PixelRGBA8 -> PixelRGBA8
+blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
 blend c = mixWithAlpha f (f 0) where
   f _ x0 x1 = fromIntegral (round (fromIntegral x0 + c * (fromIntegral x1 - fromIntegral x0)) :: Integer)
 
 -- | create pixel data from a function on a Point
 pixelate :: (Lattice a, Field a, Subtractive a, FromInteger a) =>
-  (Point a -> Double) -> Area a -> Point Int -> PixelRGBA8 -> PixelRGBA8 -> [(Area a, PixelRGBA8)]
+  (Point a -> Double) -> Area a -> Point Int -> PixelRGB8 -> PixelRGB8 -> [(Area a, PixelRGB8)]
 pixelate f r g c0 c1 = (\(x,y) -> (x, blend y c0 c1)) <$> ps'
   where
     ps = areaF f r g
     rs = snd <$> ps
     rs' = project (space1 rs :: Range Double) (Range 0 1) <$> rs
     ps' = zip (fst <$> ps) rs'
+

@@ -61,7 +61,7 @@ import Data.List (zipWith3)
 import Graphics.Svg as Svg hiding (Point, toPoint)
 import Graphics.Svg.CssTypes as Svg hiding (Point)
 -- import Graphics.Svg.Types as Svg hiding (Point, toPoint)
-import Lens.Micro
+import Control.Lens hiding (transform)
 import Linear.V2
 import NumHask.Data.Rect
 import NumHask.Prelude as P hiding (Group, rotate, Element)
@@ -313,7 +313,7 @@ renderXml p = renderXmlWith p Map.empty "" [] ""
 
 -- | render an xml document to Text
 xmlToText :: Document -> P.Text
-xmlToText = Text.pack . ppcTopElement prettyConfigPP . xmlOfDocument
+xmlToText = Text.pack . ppcElement defaultConfigPP . xmlOfDocument
 
 -- | write a ChartSvg to a svg file with various Document attributes.
 writeWith :: (ToRatio a) => FilePath -> Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
@@ -363,7 +363,7 @@ data ScratchStyle = ScratchStyle
   , outerPad :: Double
   , innerPad :: Double
   , frame' :: ChartSvg Double -> ChartSvg Double
-  , maybeOrig :: Maybe (Double, PixelRGBA8)
+  , maybeOrig :: Maybe (Double, PixelRGB8)
   } deriving (Generic)
 
 defaultScratchStyle :: ScratchStyle

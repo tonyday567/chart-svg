@@ -1,18 +1,19 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Chart.Hud where
 
@@ -22,14 +23,14 @@ module Chart.Hud where
 import NumHask.Prelude as P hiding (Group)
 -- import qualified Data.Colour.SRGB as C
 -- import Control.Monad.State.Lazy
-import Graphics.Svg.Types as Svg hiding (Point)
+import Graphics.Svg.Types as Svg hiding (Point, Text)
 -- import Graphics.Svg as Svg
 -- import NumHask.Data.Rect
 -- import NumHask.Data.Pair
 -- import NumHask.Data.Range
 -- import NumHask.Analysis.Space
 -- import qualified Data.Map as Map
-import Lens.Micro
+import Control.Lens
 import Codec.Picture.Types
 import Data.Generics.Product (field)
 -- import Data.Generics.Sum
@@ -42,6 +43,7 @@ import Chart.Core
 import Formatting
 import Data.Scientific
 import Data.List (nub)
+import Lucid.Base
 
 maximum' :: (Ord a) => [a] -> Maybe a
 maximum' [] = Nothing
@@ -100,6 +102,28 @@ data Place a
   | PlaceAbsolute (Point a)
   deriving (Show, Eq, Generic)
 
+instance (Show a) => ToHtml (Place a) where
+  toHtml p = toHtml (show p :: Text)
+  toHtmlRaw p = toHtmlRaw (show p :: Text)
+
+toPlace :: (Eq a, IsString a) => a -> Place b
+toPlace sh =
+  case sh of
+    "Top" -> PlaceTop
+    "Bottom" -> PlaceBottom
+    "Left" -> PlaceLeft
+    "Right" -> PlaceRight
+    _ -> PlaceTop
+
+fromPlace :: (IsString a) => Place b -> a
+fromPlace p =
+  case p of
+    PlaceTop -> "Top"
+    PlaceBottom -> "Bottom"
+    PlaceLeft -> "Left"
+    PlaceRight -> "Right"
+    _ -> "wtf"
+
 data Bar a = Bar
   { place :: Place a
   , rstyle :: RectStyle
@@ -138,6 +162,25 @@ bar b das = Hud $ \(ViewBox (Area x' z' y' w')) (ViewBox (Area x z y w)) _ -> (:
 bars :: (Chartable a) => [Bar a] -> DrawAttributes -> Hud a
 bars bs das = mconcat ((\b -> bar b das) <$> bs)
 
+instance ToHtml TextAnchor where
+  toHtml = toHtml . (show :: TextAnchor -> Text)
+  toHtmlRaw = toHtmlRaw . (show :: TextAnchor -> Text)
+
+toTextAnchor :: (Eq a, IsString a) => a -> TextAnchor
+toTextAnchor sh =
+  case sh of
+    "Start" -> TextAnchorStart
+    "Middle" -> TextAnchorMiddle
+    "End" -> TextAnchorEnd
+    _ -> TextAnchorMiddle
+
+fromTextAnchor :: (IsString a) => TextAnchor -> a
+fromTextAnchor p =
+  case p of
+    TextAnchorStart -> "Top"
+    TextAnchorMiddle -> "Middle"
+    TextAnchorEnd -> "End"
+
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 data Title a = Title
   { text :: P.Text
@@ -152,7 +195,7 @@ defaultTitle txt =
     Title
     txt
     ( field @"size" .~ 0.12 $
-      field @"color" .~ PixelRGBA8 0 0 0 150 $
+      field @"color" .~ PixelRGB8 0 0 0 $
       defaultTextStyle)
     PlaceTop
     TextAnchorMiddle
@@ -269,9 +312,9 @@ computeTicks :: (Epsilon a, RealFloat a, ExpField a, QuotientField a Integer, Fr
 computeTicks s asp r =
     case s of
       TickNone -> ([], [])
-      TickRound (f, n) -> (project r asp <$> ticks0, (toFormat f) ticks0)
+      TickRound (f, n) -> (project r asp <$> ticks0, toFormat f ticks0)
         where ticks0 = gridSensible OuterPos True r (fromIntegral n) 
-      TickExact (f, n) -> (project r asp <$> ticks0, (toFormat f) ticks0)
+      TickExact (f, n) -> (project r asp <$> ticks0, toFormat f ticks0)
         where ticks0 = grid OuterPos r n
       TickLabels ls ->
           ( project (Range 0 (fromIntegral $ length ls)) asp <$>
@@ -313,7 +356,7 @@ tick t das =
   ] <>
   zipWith
   (\txt sp ->
-      (Chart (TextA (ta (t ^. field @"textStyle")) [txt]))
+      Chart (TextA (ta (t ^. field @"textStyle")) [txt])
        (das <> translateDA (placePos a + textPos)) [SpotPoint sp])
   (snd (ts (ra d) (ra xs)))
   (ps (ra d) (ra xs))
@@ -346,13 +389,13 @@ tick t das =
           PlaceTop -> Point 0 (t ^. field @"buff")
           PlaceBottom -> Point 0 ((-t^. field @"textBuff") + -0.5 * fromRational (t ^. field @"textStyle" ^. field @"vsize") * fromRational (t ^. field @"textStyle" ^. field @"size"))
           PlaceLeft -> Point (- (t ^. field @"textBuff")) (fromRational (t ^. field @"textStyle" ^. field @"nudge1") * fromRational (t ^. field @"textStyle" ^. field @"vsize") * fromRational (t ^. field @"textStyle" ^. field @"size"))
-          PlaceRight -> Point ((t ^. field @"buff")) (fromRational (t ^. field @"textStyle" ^. field @"nudge1") * fromRational (t ^. field @"textStyle" ^. field @"vsize") * fromRational (t ^. field @"textStyle" ^. field @"size"))
+          PlaceRight -> Point (t ^. field @"buff") (fromRational (t ^. field @"textStyle" ^. field @"nudge1") * fromRational (t ^. field @"textStyle" ^. field @"vsize") * fromRational (t ^. field @"textStyle" ^. field @"size"))
           PlaceAbsolute p -> p
         ta s = case t ^. field @"place" of
           PlaceBottom -> s
           PlaceTop -> s
-          PlaceLeft -> (field @"alignH" .~ TextAnchorEnd :: TextStyle -> TextStyle) $ s
-          PlaceRight -> (field @"alignH" .~ TextAnchorStart :: TextStyle -> TextStyle) $ s
+          PlaceLeft -> (field @"alignH" .~ TextAnchorEnd :: TextStyle -> TextStyle) s
+          PlaceRight -> (field @"alignH" .~ TextAnchorStart :: TextStyle -> TextStyle) s
           PlaceAbsolute _ -> s
 
 -- | options for prettifying axis decorations
@@ -362,7 +405,7 @@ data AutoOptions =
   , maxYRatio :: Double
   , angledRatio :: Double
   , allowDiagonal :: Bool
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic) 
 
 defaultAutoOptions :: AutoOptions
 defaultAutoOptions = AutoOptions 0.08 0.06 0.12 True
@@ -377,10 +420,10 @@ adjustTick (AutoOptions mrx ma mry ad) vb cs (t, das)
           True ->
             ((case t ^. field @"place" of
                 PlaceBottom -> field @"textStyle" . field @"alignH" .~ TextAnchorEnd
-                PlaceTop -> field @"textStyle" . field @"alignH" .~ TextAnchorStart) $
+                PlaceTop -> field @"textStyle" . field @"alignH" .~ TextAnchorStart
+                _ -> field @"textStyle" . field @"alignH" .~ TextAnchorEnd) $
              (field @"textStyle" . field @"size" %~ (/adjustSizeA)) $
-             (field @"textStyle" . field @"rotation" .~ Just (-45)) $ t,
-                  (das))
+             (field @"textStyle" . field @"rotation" .~ Just (-45)) t, das)
           False -> ((field @"textStyle" . field @"size" %~ (/adjustSizeA)) t, das)
   | t ^. field @"place" `elem` [PlaceLeft, PlaceRight] =
     ((field @"textStyle" . field @"size" %~ (/adjustSizeY)) t, das)
@@ -401,7 +444,54 @@ adjustTick (AutoOptions mrx ma mry ad) vb cs (t, das)
           (maximum' $
           (\(Area _ _ y w) -> w - y)
               <$> styleBoxText (t ^. field @"textStyle") das <$> tickl)
-    adjustSizeX = maybe one identity (maximum' [(maxWidth / (fromRational $ upper asp - lower asp)) / mrx, one])
-    adjustSizeY = maybe one identity (maximum' [(maxHeight / (fromRational $ upper asp - lower asp)) / mry, one])
-    adjustSizeA = maybe one identity (maximum' [(maxHeight / (fromRational $ upper asp - lower asp)) / ma, one])
+    adjustSizeX = maybe one identity (maximum' [(maxWidth / fromRational (upper asp - lower asp)) / mrx, one])
+    adjustSizeY = maybe one identity (maximum' [(maxHeight / fromRational (upper asp - lower asp)) / mry, one])
+    adjustSizeA = maybe one identity (maximum' [(maxHeight / fromRational (upper asp - lower asp)) / ma, one])
 
+data CanvasConfig = CanvasConfig
+  { color :: PixelRGB8
+  , opacity :: Double
+  } deriving (Eq, Show, Generic)
+
+defaultCanvasConfig :: CanvasConfig
+defaultCanvasConfig  = CanvasConfig grey 0.1
+
+data AxisConfig a = AxisConfig
+  { abar :: Maybe (Bar a)
+  , hasAuto :: Bool
+  , tickN :: Int
+  , tickSize :: Double
+  , place :: Place Double
+  } deriving (Eq, Show, Generic)
+
+defaultAxisConfig :: AxisConfig Double
+defaultAxisConfig = AxisConfig (Just defaultBar) True 8 0.1 PlaceBottom
+
+data HudConfig a = HudConfig
+  { canvas1 :: Maybe CanvasConfig
+  , title1 :: Maybe (Title Double)
+  , axis1 :: Maybe (AxisConfig Double)
+  } deriving (Eq, Show, Generic)
+
+defaultHudConfig :: HudConfig Double
+defaultHudConfig =
+  HudConfig
+  (Just defaultCanvasConfig)
+  (Just (defaultTitle "chart-svg automation testing"))
+  (Just defaultAxisConfig)
+
+hud :: HudConfig Double -> ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud cfg vb =
+  hudSvg vb [c1, bar1 <> tick1, htitle]
+  where
+    c1 = maybe mempty (\cfg' -> canvas
+      (blob
+       (cfg' ^. field @"color")
+       (cfg' ^. field @"opacity")) mempty)
+      (cfg ^. field @"canvas1")
+    bar1 = maybe mempty (\x -> maybe mempty (`bar` mempty) (x ^. field @"abar"))
+      (cfg ^. field @"axis1")
+    ts c = (field @"tstyle" .~ TickRound (TickFormatDefault, c ^. field @"tickN") :: Tick Double -> Tick Double) defaultTick
+    autoTick c = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts c, mempty) in let (Hud h) = tick ts' das' in h vb' d a
+    tick1 = maybe mempty autoTick (cfg ^. field @"axis1")
+    htitle = maybe mempty (`title` mempty) (cfg ^. field @"title1")

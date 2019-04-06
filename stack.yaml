@@ -2,6 +2,8 @@ resolver: nightly-2019-03-15
 
 packages:
   - .
+  - ../box
+  - ../web-page
 
 extra-deps:
   - git: https://github.com/tonyday567/numhask.git
@@ -10,5 +12,9 @@ extra-deps:
       - numhask
       - numhask-prelude
       - numhask-space
+  - lucid-svg-0.7.0.0
+  - generic-lens-1.1.0.0
+  - git: https://github.com/ku-fpg/javascript-bridge.git
+    commit: bb72dbb7d2f6376353f67aec6c251271ffb055d5
 
 

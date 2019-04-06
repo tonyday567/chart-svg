@@ -15,12 +15,11 @@
   
 import Chart.Svg
 import NumHask.Prelude hiding (Text, rotate)
-import Lens.Micro 
+import Control.Lens 
 import Codec.Picture.Types
 import qualified Data.Text as Text
 import Data.List ((!!))
 import Data.Generics.Product (field)
-import Chart.Hud
 import Chart.Core
 import Chart.Spot
 import Graphics.Svg.CssTypes hiding (Point)
@@ -28,8 +27,8 @@ import qualified Data.Map as Map
 
 ropts :: [RectStyle]
 ropts =
-  [ blob (PixelRGBA8 93 165 218 255) 0.5
-  , blob (PixelRGBA8 120 80 60 255) 0.5
+  [ blob (PixelRGB8 93 165 218) 0.5
+  , blob (PixelRGB8 120 80 60) 0.5
   ]
 
 rss :: [[Area Double]]
@@ -39,7 +38,7 @@ rss =
   ]
 
 rs :: RectStyle
-rs = RectStyle 0.1 (PixelRGBA8 102 102 102 127) 0.5 (PixelRGBA8 102 5 102 127) 0.5
+rs = RectStyle 0.1 (PixelRGB8 102 102 102) 0.5 (PixelRGB8 102 5 102) 0.5
 
 rs' :: RectStyle
 rs' = rs &  field @"opacity" .~ 0.1 &  field @"borderOpacity" .~ 0.1
@@ -147,7 +146,7 @@ gopts =
     defaultGlyphStyle
   , field @"borderSize" .~ 0.001 $
     field @"size" .~ 0.1 $
-    field @"color" .~ PixelRGBA8 100 30 30 100 $
+    field @"color" .~ PixelRGB8 100 30 30 $
     field @"shape" .~ RectRoundedGlyph 1.5 0.01 (0.01 :: Double) $
     defaultGlyphStyle
   ]
@@ -196,9 +195,9 @@ lopts :: [LineStyle]
 lopts =
   zipWith (\w c -> defaultLineStyle & field @"color" .~ c & field @"width" .~ w)
   [0.015, 0.03, 0.01]
-  [ PixelRGBA8 197 140 75 153
-  , PixelRGBA8 60 127 43 153
-  , PixelRGBA8 56 42 140 255
+  [ PixelRGB8 197 140 75
+  , PixelRGB8 60 127 43
+  , PixelRGB8 56 42 140
   ]
 
 lines :: [Chart Double]
@@ -215,9 +214,9 @@ gopts3 =
      field @"shape" .~ y $
      field @"size" .~ 0.08 $
      defaultGlyphStyle)
-  [ PixelRGBA8 120 67 30 120
-  , PixelRGBA8 30 48 130 120
-  , PixelRGBA8 60 60 60 120
+  [ PixelRGB8 120 67 30
+  , PixelRGB8 30 48 130
+  , PixelRGB8 60 60 60
   ]
   [EllipseGlyph 1.5, SquareGlyph, CircleGlyph]
 

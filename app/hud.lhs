@@ -24,7 +24,7 @@ Notes, testing and code for chart-svg develoment.
 
 import Chart.Svg
 import NumHask.Prelude
-import Lens.Micro
+import Control.Lens
 import Codec.Picture.Types
 import Data.Generics.Product (field)
 import Chart.Hud
@@ -69,12 +69,12 @@ gopts =
     defaultGlyphStyle
   , field @"borderSize" .~ 0 $
     field @"size" .~ 0.1 $
-    field @"color" .~ PixelRGBA8 100 30 30 100 $
+    field @"color" .~ PixelRGB8 100 30 30 $
     field @"shape" .~ RectRoundedGlyph 1.5 0.01 (0.01 :: Double) $
     defaultGlyphStyle
   , field @"borderSize" .~ 0 $
     field @"size" .~ 0.1 $
-    field @"color" .~ PixelRGBA8 100 130 80 100 $
+    field @"color" .~ PixelRGB8 100 130 80 $
     field @"shape" .~ EllipseGlyph 1.5 $
     defaultGlyphStyle
   ]
@@ -129,8 +129,8 @@ corners s =
   mempty
   [SP (-0.5) (-0.5), SP (-0.5) 0.5, SP 0.5 (-0.5), SP 0.5 0.5]]
 
-canvas1 :: ChartSvg Double
-canvas1 = chartSvg one (corners 0.1 <> [Chart (RectA (blob grey 0.2)) mempty [one]])
+can1 :: ChartSvg Double
+can1 = chartSvg one (corners 0.1 <> [Chart (RectA (blob grey 0.2)) mempty [one]])
 
 \end{code}
 <br>
@@ -141,8 +141,8 @@ The canvas has to take into account the data area and the physical representatio
 
 \begin{code}
 
-canvas2 :: (ToRatio a, FromRatio a, Subtractive a, Field a, BoundedLattice a) => ViewBox a -> [Chart a] -> ChartSvg a
-canvas2 (ViewBox asp) cs =
+can2 :: (ToRatio a, FromRatio a, Subtractive a, Field a, BoundedLattice a) => ViewBox a -> [Chart a] -> ChartSvg a
+can2 (ViewBox asp) cs =
   chartSvg_ (ViewBox asp') (cs' <> [canvas'])
   where
     cs' = projectSpots asp cs
@@ -315,8 +315,8 @@ main = do
     ( clearScratchStyle &
     field @"fileName" .~ "other/glyphs.svg" &
     field @"ratioAspect" .~ 1.5) glyphs
-  write "other/canvas1.svg" (Point 200 200) canvas1
-  write "other/canvas2.svg" (Point 200 200) (canvas2 one (corners 0.2))
+  write "other/canvas1.svg" (Point 200 200) can1
+  write "other/canvas2.svg" (Point 200 200) (can2 one (corners 0.2))
   write "other/canvas3.svg" (Point 200 200) (hudSvg one [canvas3] (corners 0.25))
   write "other/hud1.svg" (Point 400 400) $ hud1 (aspect 1.5) glyphs
   write "other/hud2.svg" (Point 400 400) $ hud2 (aspect 1.5) glyphs
