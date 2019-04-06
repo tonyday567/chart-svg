@@ -15,9 +15,9 @@
   
 import Chart.Svg
 import NumHask.Prelude hiding (Text)
-import Lens.Micro 
+import Control.Lens 
 import qualified Data.Text as Text
-import Data.Generics.Product (field)
+import Data.Generics.Labels()
 import Chart.Hud
 import Chart.Core
 import Chart.Spot
@@ -29,10 +29,11 @@ tri1 a b s =
   [ Chart
     (GlyphA
       (defaultGlyphStyle &
-        field @"shape" .~ TriangleGlyph (Point 0 0)
+        #shape .~ TriangleGlyph (Point 0 0)
         (Point (fromIntegral a) 0)
         (Point (fromIntegral a) (fromIntegral b)) &
-        field @"borderSize" .~ 0.01 & field @"size" .~ s))
+        #borderSize .~ 0.01 &
+        #size .~ s))
     (translateDA c)
     [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
   ]
@@ -45,10 +46,10 @@ tri2 a b s gap bs txts =
   [ Chart
     (GlyphA
       (defaultGlyphStyle &
-        field @"shape" .~ TriangleGlyph (Point 0 0)
+        #shape .~ TriangleGlyph (Point 0 0)
         (Point (fromIntegral a) 0)
         (Point (fromIntegral a) (fromIntegral b)) &
-        field @"borderSize" .~ bs & field @"size" .~ s))
+        #borderSize .~ bs & #size .~ s))
     (translateDA c)
     [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
   ] <>
@@ -60,31 +61,31 @@ tri2 a b s gap bs txts =
   [a,b,h]
   [ Point (s * fromIntegral a / 2) ((-gap) -
               0.65 *
-              fromRational (ts ^. field @"vsize") *
-              fromRational (ts ^. field @"size"))
+              fromRational (ts ^. #vsize) *
+              fromRational (ts ^. #size))
   , Point (s * fromIntegral a + gap) (s * fromIntegral b / 2)
   , Point (s * fromIntegral a / 2 - gap * ((fromIntegral b) ** (2.0 :: Double) / (fromIntegral h) ** (2 :: Double))) (s * fromIntegral b / 2 + gap * ((fromIntegral a) ** (2.0 :: Double) / (fromIntegral h) ** (2 :: Double)))
   ]
   [ ts
-  , ts & field @"alignH" .~ TextAnchorStart
-  , ts & field @"rotation" .~ Just (-(atan (fromIntegral b/fromIntegral a)) * (180 / pi))
+  , ts & #alignH .~ TextAnchorStart
+  , ts & #rotation .~ Just (-(atan (fromIntegral b/fromIntegral a)) * (180 / pi))
   ]
   where
     c :: Point Double
     c = Point (-s*(fromIntegral a*2)/3) (-s*fromIntegral b/3)
     h :: Integer
     h = round $ sqrt (fromIntegral (a^(2::Integer)+b^(2::Integer)) :: Float) :: Integer
-    ts = defaultTextStyle & field @"size" .~ txts
+    ts = defaultTextStyle & #size .~ txts
 
 tri3 :: Integer -> Integer -> Double -> Double -> Double -> Double -> [Chart Double]
 tri3 a b s gap bs txts =
   [ Chart
     (GlyphA
       (defaultGlyphStyle &
-        field @"shape" .~ TriangleGlyph (Point 0 0)
+        #shape .~ TriangleGlyph (Point 0 0)
         (Point (fromIntegral a / ns) 0)
         (Point (fromIntegral a / ns) (fromIntegral b / ns)) &
-        field @"borderSize" .~ bs & field @"size" .~ s))
+        #borderSize .~ bs & #size .~ s))
     (translateDA ((/ns) <$> c))
     [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
   ] <>
@@ -96,21 +97,21 @@ tri3 a b s gap bs txts =
   [a,b,h]
   [ Point (s * fromIntegral a / 2) ((-gap) -
               0.65 *
-              fromRational (ts ^. field @"vsize") *
-              fromRational (ts ^. field @"size"))
+              fromRational (ts ^. #vsize) *
+              fromRational (ts ^. #size))
   , Point (s * fromIntegral a + gap) (s * fromIntegral b / 2)
   , Point (s * fromIntegral a / 2 - gap * ((fromIntegral b) ** (2.0 :: Double) / (fromIntegral h) ** (2 :: Double))) (s * fromIntegral b / 2 + gap * ((fromIntegral a) ** (2.0 :: Double) / (fromIntegral h) ** (2 :: Double)))
   ]
   [ ts
-  , ts & field @"alignH" .~ TextAnchorStart
-  , ts & field @"rotation" .~ Just (-(atan (fromIntegral b/fromIntegral a)) * (180 / pi))
+  , ts & #alignH .~ TextAnchorStart
+  , ts & #rotation .~ Just (-(atan (fromIntegral b/fromIntegral a)) * (180 / pi))
   ]
   where
     c :: Point Double
     c = Point (-s*(fromIntegral a*2)/3) (-s*fromIntegral b/3)
     h :: Integer
     h = round $ sqrt (fromIntegral (a^(2::Integer)+b^(2::Integer)) :: Float) :: Integer
-    ts = defaultTextStyle & field @"size" .~ txts
+    ts = defaultTextStyle & #size .~ txts
     ns = log $ sqrt $ fromIntegral a * fromIntegral b / 2
 
 tri2s :: Double -> Double -> Double -> Double -> [(Integer,Integer)] -> [Chart Double]
@@ -141,8 +142,8 @@ corners :: Area Double -> Double -> [Chart Double]
 corners (Area x z y w) s =
   [Chart
   (GlyphA $
-   field @"borderSize" .~ 0 $
-    field @"size" .~ s $
+   #borderSize .~ 0 $
+    #size .~ s $
     defaultGlyphStyle)
   mempty
   [SP x y, SP x w, SP z y, SP z w]]
@@ -151,7 +152,7 @@ hud1 :: [Hud Double]
 hud1 =
   [ -- canvas (blob grey 0.05) mempty
     tick defaultTick mempty <>
-    tick ((field @"place" .~ PlaceLeft :: Tick Double -> Tick Double)
+    tick ((#place .~ PlaceLeft :: Tick Double -> Tick Double)
           defaultTick) mempty
   ]
 

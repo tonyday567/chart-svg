@@ -12,18 +12,18 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
-  
-import Chart.Svg
-import NumHask.Prelude hiding (Text, rotate)
-import Control.Lens 
-import Codec.Picture.Types
-import qualified Data.Text as Text
-import Data.List ((!!))
-import Data.Generics.Product (field)
+
 import Chart.Core
 import Chart.Spot
+import Chart.Svg
+import Codec.Picture.Types
+import Control.Lens
+import Data.Generics.Labels()
+import Data.List ((!!))
 import Graphics.Svg.CssTypes hiding (Point)
+import NumHask.Prelude hiding (Text, rotate)
 import qualified Data.Map as Map
+import qualified Data.Text as Text
 
 ropts :: [RectStyle]
 ropts =
@@ -41,7 +41,7 @@ rs :: RectStyle
 rs = RectStyle 0.1 (PixelRGB8 102 102 102) 0.5 (PixelRGB8 102 5 102) 0.5
 
 rs' :: RectStyle
-rs' = rs &  field @"opacity" .~ 0.1 &  field @"borderOpacity" .~ 0.1
+rs' = rs &  #opacity .~ 0.1 & #borderOpacity .~ 0.1
 
 oneChart :: Chart Double
 oneChart = Chart (RectA rs) mempty [one]
@@ -77,7 +77,7 @@ ts = zip
 textChart :: Chart Double
 textChart =
   Chart
-  (TextA (defaultTextStyle & field @"size" .~ (1.0 :: Double)) ["abcdefghij"])
+  (TextA (defaultTextStyle & #size .~ (1.0 :: Double)) ["abcdefghij"])
   mempty
   [zero]
 
@@ -86,7 +86,7 @@ textsChart =
   Chart
   ( TextA
     (defaultTextStyle &
-    field @"size" .~ 0.2)
+    #size .~ 0.2)
     (fst <$> ts)
   )
   mempty
@@ -96,8 +96,8 @@ circle' :: Chart Double
 circle' =
      Chart
       ( GlyphA (defaultGlyphStyle &
-        field @"size" .~ 1 &
-        field @"borderSize" .~ 0.2))
+        #size .~ 1 &
+        #borderSize .~ 0.2))
       mempty
       [zero]
 
@@ -105,9 +105,9 @@ smiley :: Chart Double
 smiley =
      Chart
       ( GlyphA (defaultGlyphStyle &
-        field @"size" .~ 1 &
-        field @"borderSize" .~ (0.02 :: Double) &
-        field @"shape" .~ SmileyGlyph))
+        #size .~ 1 &
+        #borderSize .~ (0.02 :: Double) &
+        #shape .~ SmileyGlyph))
       mempty
       [zero]
 
@@ -116,9 +116,9 @@ glyphs = zipWith
      (\(sh, bs) p ->
          Chart
          ( GlyphA (defaultGlyphStyle &
-                    field @"size" .~ (0.2 :: Double) &
-                    field @"borderSize" .~ bs &
-                    field @"shape" .~ sh))
+                    #size .~ (0.2 :: Double) &
+                    #borderSize .~ bs &
+                    #shape .~ sh))
          mempty
          [p])
      [ (CircleGlyph, 0.01 :: Double)
@@ -141,13 +141,13 @@ gdata =
 
 gopts :: [GlyphStyle]
 gopts =
-  [ field @"borderSize" .~ 0.001 $
-    field @"size" .~ 0.1 $
+  [ #borderSize .~ 0.001 $
+    #size .~ 0.1 $
     defaultGlyphStyle
-  , field @"borderSize" .~ 0.001 $
-    field @"size" .~ 0.1 $
-    field @"color" .~ PixelRGB8 100 30 30 $
-    field @"shape" .~ RectRoundedGlyph 1.5 0.01 (0.01 :: Double) $
+  , #borderSize .~ 0.001 $
+    #size .~ 0.1 $
+    #color .~ PixelRGB8 100 30 30 $
+    #shape .~ RectRoundedGlyph 1.5 0.01 (0.01 :: Double) $
     defaultGlyphStyle
   ]
 
@@ -163,9 +163,9 @@ boundText =
   where
   t1 = fst <$> ts
   ps = projectTo (vbArea $ aspect 3) $ SpotPoint . snd <$> ts
-  t1s = TextA (defaultTextStyle & field @"size" .~ 0.2) . (:[]) <$> t1
+  t1s = TextA (defaultTextStyle & #size .~ 0.2) . (:[]) <$> t1
   cs = zipWith (\x y -> Chart x mempty y) t1s ((:[]) <$> ps)
-  a1 = TextA (defaultTextStyle & field @"size" .~ 0.2) t1
+  a1 = TextA (defaultTextStyle & #size .~ 0.2) t1
 
 pixel' :: (Point Double -> Double) -> [Chart Double]
 pixel' f =
@@ -193,7 +193,7 @@ ls =
 
 lopts :: [LineStyle]
 lopts =
-  zipWith (\w c -> defaultLineStyle & field @"color" .~ c & field @"width" .~ w)
+  zipWith (\w c -> defaultLineStyle & #color .~ c & #width .~ w)
   [0.015, 0.03, 0.01]
   [ PixelRGB8 197 140 75
   , PixelRGB8 60 127 43
@@ -208,11 +208,11 @@ gopts3 :: [GlyphStyle]
 gopts3 =
   zipWith
   (\x y ->
-     field @"color" .~ x $
-     field @"borderColor" .~ x $
-     field @"borderSize" .~ 0.005 $
-     field @"shape" .~ y $
-     field @"size" .~ 0.08 $
+     #color .~ x $
+     #borderColor .~ x $
+     #borderSize .~ 0.005 $
+     #shape .~ y $
+     #size .~ 0.08 $
      defaultGlyphStyle)
   [ PixelRGB8 120 67 30
   , PixelRGB8 30 48 130
@@ -234,14 +234,14 @@ lglyph :: [Chart Double]
 lglyph = txt <> gly where
   txt = (\(t, p) -> Chart (TextA
     ( defaultTextStyle &
-      field @"opacity" .~ 0.2) [t]) (translateDA (Point ( 0 :: Double) 0.04))
+      #opacity .~ 0.2) [t]) (translateDA (Point ( 0 :: Double) 0.04))
     (SpotPoint <$> [p]))
     <$> lgdata
   gly = (\d -> Chart (GlyphA
     ( defaultGlyphStyle &
-      field @"size" .~ 0.01 &
-      field @"borderSize" .~ 0 &
-      field @"color" .~ black))
+      #size .~ 0.01 &
+      #borderSize .~ 0 &
+      #color .~ black))
       mempty
       (SpotPoint <$> [d])) <$> (snd <$> lgdata)
 
@@ -256,81 +256,81 @@ main = do
     (pad 1.1 $ chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]])
   write "other/rotateOne.svg" (Point 200.0 200.0) rotateOne
   write "other/translateOne.svg" (Point 200.0 200.0) translateOne
-  scratchWith (defaultScratchStyle & field @"fileName" .~ "other/rectChart.svg")
+  scratchWith (defaultScratchStyle & #fileName .~ "other/rectChart.svg")
     [rectChart]
-  scratchWith (defaultScratchStyle & field @"fileName" .~ "other/rectCharts.svg")
+  scratchWith (defaultScratchStyle & #fileName .~ "other/rectCharts.svg")
     rectCharts
   writeWith "other/pixel.svg" (Point 200.0 200.0) Map.empty "" [cssCrisp] (chartSvg one (pixel' f1))
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/textChart.svg" &
-     field @"ratioAspect" .~ 3
+     #fileName .~ "other/textChart.svg" &
+     #ratioAspect .~ 3
     )
     [textChart]
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/textsChart.svg" &
-     field @"ratioAspect" .~ 3
+     #fileName .~ "other/textsChart.svg" &
+     #ratioAspect .~ 3
     )
     [textsChart]
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/boundText.svg" &
-     field @"ratioAspect" .~ 3
+     #fileName .~ "other/boundText.svg" &
+     #ratioAspect .~ 3
     )
     boundText
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/label.svg" &
-     field @"ratioAspect" .~ 1
+     #fileName .~ "other/label.svg" &
+     #ratioAspect .~ 1
     )
     label
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/circle.svg" &
-     field @"ratioAspect" .~ 1
+     #fileName .~ "other/circle.svg" &
+     #ratioAspect .~ 1
     )
     [circle']
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/glyphs.svg" &
-     field @"ratioAspect" .~ 3
+     #fileName .~ "other/glyphs.svg" &
+     #ratioAspect .~ 3
     )
     glyphs
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/smiley.svg" &
-     field @"ratioAspect" .~ 1
+     #fileName .~ "other/smiley.svg" &
+     #ratioAspect .~ 1
     )
     [smiley]
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/glyphsChart.svg" &
-     field @"ratioAspect" .~ 3
+     #fileName .~ "other/glyphsChart.svg" &
+     #ratioAspect .~ 3
     )
     glyphsChart
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/lglyph.svg" &
-     field @"ratioAspect" .~ 1.5
+     #fileName .~ "other/lglyph.svg" &
+     #ratioAspect .~ 1.5
     )
     lglyph
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/lines.svg" &
-     field @"ratioAspect" .~ 1.5
+     #fileName .~ "other/lines.svg" &
+     #ratioAspect .~ 1.5
     )
     lines
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/glines.svg" &
-     field @"ratioAspect" .~ 1.5
+     #fileName .~ "other/glines.svg" &
+     #ratioAspect .~ 1.5
     )
     glines
   scratchWith
     (defaultScratchStyle &
-     field @"fileName" .~ "other/compound.svg" &
-     field @"ratioAspect" .~ 1.5
+     #fileName .~ "other/compound.svg" &
+     #ratioAspect .~ 1.5
     )
     (lglyph <> glines)
   putStrLn (" 👍" :: Text.Text)

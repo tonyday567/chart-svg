@@ -10,7 +10,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -62,7 +61,7 @@ module Chart.Core
 
 import Codec.Picture.Types
 import Control.Exception
-import Data.Generics.Product (field)
+import Data.Generics.Labels ()
 import Graphics.Svg as Svg hiding (Point, toPoint, Text)
 import Control.Lens hiding (transform)
 import NumHask.Data.Pair
@@ -92,7 +91,7 @@ type Chartable a =
   , BoundedMeetSemiLattice a)
 
 -- | a piece of chart structure
--- | The use of field @"rowName" with these Annotation collection doesn't seem to mesh well with polymorphism, so a switch to concrete types (which fit it with svg-tree methods) occurs at this layer, and the underlying data structure is a lot of Doubles
+-- | The use of #rowName with these Annotation collection doesn't seem to mesh well with polymorphism, so a switch to concrete types (which fit it with svg-tree methods) occurs at this layer, and the underlying data structure is a lot of Doubles
 data Annotation
   = RectA RectStyle
   | TextA TextStyle [Text.Text]
@@ -104,7 +103,7 @@ data Annotation
 -- | rotate a Chart by x degrees. This does not touch the underlying data but instead adds a draw attribute to the styling.
 -- Multiple rotations will expand the bounding box conservatively.
 rotateChart :: (ToRatio a) => a -> Chart a -> Chart a
-rotateChart r c = c & field @"drawatts" %~ (<> rot (fromRational r))
+rotateChart r c = c & #drawatts %~ (<> rot (fromRational r))
   where
     rot r' = mempty & transform .~ Just [Rotate r' Nothing]
 
@@ -112,7 +111,7 @@ rotateChart r c = c & field @"drawatts" %~ (<> rot (fromRational r))
 translateChart :: (ToRatio a) => Pair a -> Chart a -> Chart a
 translateChart p c =
   c &
-  field @"drawatts" %~
+  #drawatts %~
   (<> (mempty & transform .~ Just [Translate x (-y)]))
   where
    (Pair x y) = fromRational <$> p 
@@ -133,11 +132,11 @@ defaultRectStyle = RectStyle 0.005 grey 0.5 blue 0.5
 daRect :: RectStyle -> DrawAttributes
 daRect o =
   mempty &
-  (strokeWidth .~ Last (Just $ Num (fromRational $ o ^. field @"borderSize"))) .
-  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"borderColor"))) .
-  (strokeOpacity .~ Just (fromRational $ o ^. field @"borderOpacity")) .
-  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"color"))) .
-  (fillOpacity .~ Just (fromRational $ o ^. field @"opacity")) 
+  (strokeWidth .~ Last (Just $ Num (fromRational $ o ^. #borderSize))) .
+  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #borderColor))) .
+  (strokeOpacity .~ Just (fromRational $ o ^. #borderOpacity)) .
+  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
+  (fillOpacity .~ Just (fromRational $ o ^. #opacity)) 
 
 -- | solid rectangle, no border
 blob :: PixelRGB8 -> Double -> RectStyle
@@ -183,27 +182,27 @@ defaultTextStyle =
 daText :: TextStyle -> DrawAttributes
 daText o =
   mempty &
-  (fontSize .~ Last (Just $ Num (o ^. field @"size"))) .
+  (fontSize .~ Last (Just $ Num (o ^. #size))) .
   (strokeWidth .~ Last (Just $ Num 0)) .
   (strokeColor .~ Last (Just FillNone)) .
-  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"color"))) .
-  (fillOpacity .~ Just (fromRational $ o ^. field @"opacity")) .
-  (textAnchor .~ Last (Just (o ^. field @"alignH")))
-  -- maybe identity (\x -> transform .~ Just [Rotate x Nothing]) (o ^. field @"rotation")
+  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
+  (fillOpacity .~ Just (fromRational $ o ^. #opacity)) .
+  (textAnchor .~ Last (Just (o ^. #alignH)))
+  -- maybe identity (\x -> transform .~ Just [Rotate x Nothing]) (o ^. #rotation)
 
 -- | the extra area from text styling
 styleBoxText :: (FromRatio a) =>
   TextStyle -> DrawAttributes -> Text.Text -> Area a
-styleBoxText o das t = fromRational <$> maybe flat (\r -> rotateArea r flat) (o ^. field @"rotation")
+styleBoxText o das t = fromRational <$> maybe flat (\r -> rotateArea r flat) (o ^. #rotation)
     where
       flat = Area ((-x'/two) + x'*origx) (x'/two + x'*origx) ((-y'/two) - n1') (y'/two - n1')
       das' = das <> daText o
       s = case getLast (das' ^. fontSize) of
         Just (Num n) -> fromRational n
         _ -> 0.0
-      h = o ^. field @"hsize"
-      v = o ^. field @"vsize"
-      n1 = o ^. field @"nudge1"
+      h = o ^. #hsize
+      v = o ^. #vsize
+      n1 = o ^. #nudge1
       x' = s * h * fromRational (Text.length t)
       y' = s * v
       n1' = s * n1
@@ -282,11 +281,11 @@ toGlyph sh =
 daGlyph :: GlyphStyle -> DrawAttributes
 daGlyph o =
   mempty &
-  (strokeWidth .~ Last (Just $ Num (o ^. field @"borderSize"))) .
-  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"borderColor"))) .
-  (strokeOpacity .~ Just (fromRational $ o ^. field @"borderOpacity")) .
-  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"color"))) .
-  (fillOpacity .~ Just (fromRational $ o ^. field @"opacity"))
+  (strokeWidth .~ Last (Just $ Num (o ^. #borderSize))) .
+  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #borderColor))) .
+  (strokeOpacity .~ Just (fromRational $ o ^. #borderOpacity)) .
+  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
+  (fillOpacity .~ Just (fromRational $ o ^. #opacity))
 
 -- | the extra area from glyph styling
 styleBoxGlyph :: (Chartable a) => GlyphStyle -> Area a
@@ -298,8 +297,8 @@ styleBoxGlyph s = fromRational <$> case sh of
   HLineGlyph a -> scale (Point sz (a*sz)) one
   _ -> (sz*) <$> one
   where
-    sh = s ^. field @"shape" 
-    sz = s ^. field @"size"
+    sh = s ^. #shape 
+    sz = s ^. #size
 
 -- | line style
 data LineStyle = LineStyle
@@ -315,9 +314,9 @@ defaultLineStyle = LineStyle 0.02 blue 0.5
 daLine :: LineStyle -> DrawAttributes
 daLine o =
   mempty &
-  (strokeWidth .~ Last (Just $ Num (o ^. field @"width"))) .
-  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. field @"color"))) .
-  (strokeOpacity .~ Just (fromRational $ o ^. field @"opacity")) .
+  (strokeWidth .~ Last (Just $ Num (o ^. #width))) .
+  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
+  (strokeOpacity .~ Just (fromRational $ o ^. #opacity)) .
   (fillColor .~ Last (Just FillNone))
 
 -- | the extra area from the stroke element of an svg style attribute
@@ -382,9 +381,9 @@ showOriginWith :: forall a. (Chartable a) => Double -> PixelRGB8 -> Chart a
 showOriginWith s c =
   Chart
   (GlyphA $
-    field @"borderSize" .~ 0.0 $
-    field @"size" .~ s $
-    field @"color" .~ c $
+    #borderSize .~ 0.0 $
+    #size .~ s $
+    #color .~ c $
     defaultGlyphStyle)
   mempty
   [SP zero zero]

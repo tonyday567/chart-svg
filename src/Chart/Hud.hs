@@ -12,38 +12,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Chart.Hud where
 
--- import qualified Text.Blaze as B
--- import qualified Data.Text as Text
--- import qualified Data.Text.Lazy.IO as Lazy
-import NumHask.Prelude as P hiding (Group)
--- import qualified Data.Colour.SRGB as C
--- import Control.Monad.State.Lazy
-import Graphics.Svg.Types as Svg hiding (Point, Text)
--- import Graphics.Svg as Svg
--- import NumHask.Data.Rect
--- import NumHask.Data.Pair
--- import NumHask.Data.Range
--- import NumHask.Analysis.Space
--- import qualified Data.Map as Map
-import Control.Lens
-import Codec.Picture.Types
-import Data.Generics.Product (field)
--- import Data.Generics.Sum
--- import Linear.V2
--- import Data.Colour
--- import Control.Exception
-import Chart.Svg
-import Chart.Spot
 import Chart.Core
-import Formatting
-import Data.Scientific
+import Chart.Spot
+import Chart.Svg
+import Codec.Picture.Types
+import Control.Lens
+import Data.Generics.Labels ()
 import Data.List (nub)
+import Data.Scientific
+import Formatting
+import Graphics.Svg.Types as Svg hiding (Point, Text)
 import Lucid.Base
+import NumHask.Prelude as P hiding (Group)
 
 maximum' :: (Ord a) => [a] -> Maybe a
 maximum' [] = Nothing
@@ -138,26 +123,26 @@ canvas :: RectStyle -> DrawAttributes -> Hud a
 canvas s das = Hud $ \(ViewBox vb) _ _ -> [Chart (RectA s) das [SpotArea vb]]
 
 bar :: (Chartable a) => Bar a -> DrawAttributes -> Hud a
-bar b das = Hud $ \(ViewBox (Area x' z' y' w')) (ViewBox (Area x z y w)) _ -> (:[]) $ case b ^. field @"place" of
+bar b das = Hud $ \(ViewBox (Area x' z' y' w')) (ViewBox (Area x z y w)) _ -> (:[]) $ case b ^. #place of
   PlaceTop ->
     Chart (RectA (rstyle b)) das
     [SA x z
-     (w' + b ^. field @"buff")
-     (w' + b ^. field @"buff" + b ^. field @"wid")
+     (w' + b ^. #buff)
+     (w' + b ^. #buff + b ^. #wid)
     ]
   PlaceBottom -> Chart (RectA (rstyle b)) das
     [SA x z
-     (y' - b ^. field @"wid" - b ^. field @"buff")
-     (y' - b ^. field @"buff")]
+     (y' - b ^. #wid - b ^. #buff)
+     (y' - b ^. #buff)]
   PlaceLeft -> Chart (RectA (rstyle b)) das
-    [SA (x' - b ^. field @"wid" - b ^. field @"buff")
-     (x' - b ^. field @"buff") y w]
+    [SA (x' - b ^. #wid - b ^. #buff)
+     (x' - b ^. #buff) y w]
   PlaceRight -> Chart (RectA (rstyle b)) das
-    [SA (z' + (b ^. field @"buff"))
-     (z' + (b ^. field @"buff") + (b ^. field @"wid")) y w]
+    [SA (z' + (b ^. #buff))
+     (z' + (b ^. #buff) + (b ^. #wid)) y w]
   PlaceAbsolute (Point x'' _) -> Chart (RectA (rstyle b)) das
-    [SA (x'' + (b ^. field @"buff"))
-     (x'' + (b ^. field @"buff") + (b ^. field @"wid")) y w]
+    [SA (x'' + (b ^. #buff))
+     (x'' + (b ^. #buff) + (b ^. #wid)) y w]
 
 bars :: (Chartable a) => [Bar a] -> DrawAttributes -> Hud a
 bars bs das = mconcat ((\b -> bar b das) <$> bs)
@@ -194,8 +179,8 @@ defaultTitle :: (Chartable a) => P.Text -> Title a
 defaultTitle txt =
     Title
     txt
-    ( field @"size" .~ 0.12 $
-      field @"color" .~ PixelRGB8 0 0 0 $
+    ( #size .~ 0.12 $
+      #color .~ PixelRGB8 0 0 0 $
       defaultTextStyle)
     PlaceTop
     TextAnchorMiddle
@@ -205,46 +190,46 @@ defaultTitle txt =
 title :: (Chartable a, FromInteger a) => Title a -> DrawAttributes -> Hud a
 title t das =
   Hud $ \(ViewBox a) _ _ -> (:[]) $
-    Chart (TextA style' [t ^. field @"text"])
+    Chart (TextA style' [t ^. #text])
     (das <> translateDA (placePos a + alignPos a) <> rotateDA (rot :: Double)) [zero]
       where
         style'
-          | t ^.field @"align" == TextAnchorStart =
-            field @"alignH" .~ TextAnchorStart $ t ^. field @"style"
-          | t ^.field @"align" == TextAnchorEnd =
-            field @"alignH" .~ TextAnchorEnd $ t ^. field @"style"
-          | otherwise = t ^. field @"style"
+          | t ^. #align == TextAnchorStart =
+            #alignH .~ TextAnchorStart $ t ^. #style
+          | t ^. #align == TextAnchorEnd =
+            #alignH .~ TextAnchorEnd $ t ^. #style
+          | otherwise = t ^. #style
         rot
-          | t ^. field @"place" == PlaceRight = 90.0
-          | t ^. field @"place" == PlaceLeft = -90.0
+          | t ^. #place == PlaceRight = 90.0
+          | t ^. #place == PlaceLeft = -90.0
           | otherwise = 0
-        placePos (Area x z y w) = case t ^. field @"place" of
-          PlaceTop -> Point ((x+z)/2.0) (w + (t ^. field @"buff"))
+        placePos (Area x z y w) = case t ^. #place of
+          PlaceTop -> Point ((x+z)/2.0) (w + (t ^. #buff))
           PlaceBottom -> Point ((x+z)/2.0)
-            (y - (t ^. field @"buff") -
-              0.5 * fromRational (t ^. field @"style" ^. field @"vsize") *
-              fromRational (t ^. field @"style" ^. field @"size"))
-          PlaceLeft -> Point (x - (t ^. field @"buff")) ((y+w)/2.0)
-          PlaceRight -> Point (z + (t ^. field @"buff")) ((y+w)/2.0)
+            (y - (t ^. #buff) -
+              0.5 * fromRational (t ^. #style ^. #vsize) *
+              fromRational (t ^. #style ^. #size))
+          PlaceLeft -> Point (x - (t ^. #buff)) ((y+w)/2.0)
+          PlaceRight -> Point (z + (t ^. #buff)) ((y+w)/2.0)
           PlaceAbsolute p -> p
         alignPos (Area x z y w)
-          | t ^. field @"align" == TextAnchorStart &&
-            t ^. field @"place" `elem` [PlaceTop, PlaceBottom] =
+          | t ^. #align == TextAnchorStart &&
+            t ^. #place `elem` [PlaceTop, PlaceBottom] =
             Point ((x-z)/2.0) 0
-          | t ^. field @"align" == TextAnchorStart &&
-            t ^. field @"place" `elem` [PlaceLeft] =
+          | t ^. #align == TextAnchorStart &&
+            t ^. #place `elem` [PlaceLeft] =
             Point 0 ((y-w)/2.0)
-          | t ^. field @"align" == TextAnchorStart &&
-            t ^. field @"place" `elem` [PlaceRight] =
+          | t ^. #align == TextAnchorStart &&
+            t ^. #place `elem` [PlaceRight] =
             Point 0 ((w-y)/2.0)
-          | t ^. field @"align" == TextAnchorEnd &&
-            t ^. field @"place" `elem` [PlaceTop, PlaceBottom] =
+          | t ^. #align == TextAnchorEnd &&
+            t ^. #place `elem` [PlaceTop, PlaceBottom] =
             Point ((-x+z)/2.0) 0
-          | t ^. field @"align" == TextAnchorEnd &&
-            t ^. field @"place" `elem` [PlaceLeft] =
+          | t ^. #align == TextAnchorEnd &&
+            t ^. #place `elem` [PlaceLeft] =
             Point 0 ((-y+w)/2.0)
-          | t ^. field @"align" == TextAnchorEnd &&
-            t ^. field @"place" `elem` [PlaceRight] =
+          | t ^. #align == TextAnchorEnd &&
+            t ^. #place `elem` [PlaceRight] =
             Point 0 ((y-w)/2.0)
           | otherwise = Point 0 0
 
@@ -258,7 +243,7 @@ data Tick a = Tick
   } deriving (Show, Eq, Generic)
 
 defaultTick :: (Chartable a) => Tick a
-defaultTick = Tick PlaceBottom (field @"borderOpacity" .~ 1 $ field @"borderColor" .~ grey $ field @"shape" .~ VLineGlyph 0.005 $ defaultGlyphStyle) (field @"size" .~ 0.05 $ defaultTextStyle) 0.03 0.05 (TickRound (TickFormatDefault, 8))
+defaultTick = Tick PlaceBottom (#borderOpacity .~ 1 $ #borderColor .~ grey $ #shape .~ VLineGlyph 0.005 $ defaultGlyphStyle) (#size .~ 0.05 $ defaultTextStyle) 0.03 0.05 (TickRound (TickFormatDefault, 8))
 
 data TickFormat
   = TickFormatDefault
@@ -350,52 +335,52 @@ tick :: (Tickable a) =>
   Tick a -> DrawAttributes -> Hud a
 tick t das =
   Hud $ \(ViewBox a) (ViewBox d) xs ->
-  [ Chart (GlyphA (t ^. field @"gstyle"))
+  [ Chart (GlyphA (t ^. #gstyle))
     (das <> translateDA (placePos a) <> rotateDA (rot :: Double))
     (SpotPoint <$> ps' (ra d) (ra xs))
   ] <>
   zipWith
   (\txt sp ->
-      Chart (TextA (ta (t ^. field @"textStyle")) [txt])
+      Chart (TextA (ta (t ^. #textStyle)) [txt])
        (das <> translateDA (placePos a + textPos)) [SpotPoint sp])
   (snd (ts (ra d) (ra xs)))
   (ps (ra d) (ra xs))
       where
         ps a xs
-          | t ^. field @"place" `elem` [PlaceTop, PlaceBottom] =
+          | t ^. #place `elem` [PlaceTop, PlaceBottom] =
             (\x -> Point x 0) <$> fst (ts a xs)
           | otherwise =
             (\y -> Point 0 y) <$> fst (ts a xs)
         ps' a xs
-          | t ^. field @"place" `elem` [PlaceTop, PlaceBottom] =
+          | t ^. #place `elem` [PlaceTop, PlaceBottom] =
             (\x -> Point x 0) <$> fst (ts a xs)
           | otherwise =
             (\x -> Point x 0) <$> fst (ts a xs)
         ra (Area x z y w)
-          | t ^. field @"place" `elem` [PlaceTop, PlaceBottom] = Range x z
+          | t ^. #place `elem` [PlaceTop, PlaceBottom] = Range x z
           | otherwise = Range y w
-        ts a xs = computeTicks (t ^. field @"tstyle") a xs
+        ts a xs = computeTicks (t ^. #tstyle) a xs
         rot
-          | t ^. field @"place" == PlaceRight = -90.0
-          | t ^. field @"place" == PlaceLeft = -90.0
+          | t ^. #place == PlaceRight = -90.0
+          | t ^. #place == PlaceLeft = -90.0
           | otherwise = 0
-        placePos (Area x z y w) = case t ^. field @"place" of
-          PlaceTop -> Point 0 (w + (t ^. field @"buff"))
-          PlaceBottom -> Point 0 (y - (t ^. field @"buff"))
-          PlaceLeft -> Point (x - (t ^. field @"buff")) 0
-          PlaceRight -> Point (z + (t ^. field @"buff")) 0
+        placePos (Area x z y w) = case t ^. #place of
+          PlaceTop -> Point 0 (w + (t ^. #buff))
+          PlaceBottom -> Point 0 (y - (t ^. #buff))
+          PlaceLeft -> Point (x - (t ^. #buff)) 0
+          PlaceRight -> Point (z + (t ^. #buff)) 0
           PlaceAbsolute p -> p
-        textPos = case t ^. field @"place" of
-          PlaceTop -> Point 0 (t ^. field @"buff")
-          PlaceBottom -> Point 0 ((-t^. field @"textBuff") + -0.5 * fromRational (t ^. field @"textStyle" ^. field @"vsize") * fromRational (t ^. field @"textStyle" ^. field @"size"))
-          PlaceLeft -> Point (- (t ^. field @"textBuff")) (fromRational (t ^. field @"textStyle" ^. field @"nudge1") * fromRational (t ^. field @"textStyle" ^. field @"vsize") * fromRational (t ^. field @"textStyle" ^. field @"size"))
-          PlaceRight -> Point (t ^. field @"buff") (fromRational (t ^. field @"textStyle" ^. field @"nudge1") * fromRational (t ^. field @"textStyle" ^. field @"vsize") * fromRational (t ^. field @"textStyle" ^. field @"size"))
+        textPos = case t ^. #place of
+          PlaceTop -> Point 0 (t ^. #buff)
+          PlaceBottom -> Point 0 ((-t^. #textBuff) + -0.5 * fromRational (t ^. #textStyle ^. #vsize) * fromRational (t ^. #textStyle ^. #size))
+          PlaceLeft -> Point (- (t ^. #textBuff)) (fromRational (t ^. #textStyle ^. #nudge1) * fromRational (t ^. #textStyle ^. #vsize) * fromRational (t ^. #textStyle ^. #size))
+          PlaceRight -> Point (t ^. #buff) (fromRational (t ^. #textStyle ^. #nudge1) * fromRational (t ^. #textStyle ^. #vsize) * fromRational (t ^. #textStyle ^. #size))
           PlaceAbsolute p -> p
-        ta s = case t ^. field @"place" of
+        ta s = case t ^. #place of
           PlaceBottom -> s
           PlaceTop -> s
-          PlaceLeft -> (field @"alignH" .~ TextAnchorEnd :: TextStyle -> TextStyle) s
-          PlaceRight -> (field @"alignH" .~ TextAnchorStart :: TextStyle -> TextStyle) s
+          PlaceLeft -> (#alignH .~ TextAnchorEnd :: TextStyle -> TextStyle) s
+          PlaceRight -> (#alignH .~ TextAnchorStart :: TextStyle -> TextStyle) s
           PlaceAbsolute _ -> s
 
 -- | options for prettifying axis decorations
@@ -413,37 +398,37 @@ defaultAutoOptions = AutoOptions 0.08 0.06 0.12 True
 -- | adjust Tick for sane font sizes etc
 adjustTick :: (Tickable a) => AutoOptions -> ViewBox a -> Area a -> (Tick a, DrawAttributes) -> (Tick a, DrawAttributes)
 adjustTick (AutoOptions mrx ma mry ad) vb cs (t, das)
-  | t ^. field @"place" `elem` [PlaceBottom, PlaceTop] = case ad of
-      False -> ((field @"textStyle" %~ (field @"size" %~ (/adjustSizeX))) t, das)
+  | t ^. #place `elem` [PlaceBottom, PlaceTop] = case ad of
+      False -> ((#textStyle %~ (#size %~ (/adjustSizeX))) t, das)
       True ->
         case adjustSizeX > one of
           True ->
-            ((case t ^. field @"place" of
-                PlaceBottom -> field @"textStyle" . field @"alignH" .~ TextAnchorEnd
-                PlaceTop -> field @"textStyle" . field @"alignH" .~ TextAnchorStart
-                _ -> field @"textStyle" . field @"alignH" .~ TextAnchorEnd) $
-             (field @"textStyle" . field @"size" %~ (/adjustSizeA)) $
-             (field @"textStyle" . field @"rotation" .~ Just (-45)) t, das)
-          False -> ((field @"textStyle" . field @"size" %~ (/adjustSizeA)) t, das)
-  | t ^. field @"place" `elem` [PlaceLeft, PlaceRight] =
-    ((field @"textStyle" . field @"size" %~ (/adjustSizeY)) t, das)
+            ((case t ^. #place of
+                PlaceBottom -> #textStyle . #alignH .~ TextAnchorEnd
+                PlaceTop -> #textStyle . #alignH .~ TextAnchorStart
+                _ -> #textStyle . #alignH .~ TextAnchorEnd) $
+             (#textStyle . #size %~ (/adjustSizeA)) $
+             (#textStyle . #rotation .~ Just (-45)) t, das)
+          False -> ((#textStyle . #size %~ (/adjustSizeA)) t, das)
+  | t ^. #place `elem` [PlaceLeft, PlaceRight] =
+    ((#textStyle . #size %~ (/adjustSizeY)) t, das)
 
   where
     ra (Area x z y w)
-      | t ^. field @"place" `elem` [PlaceTop, PlaceBottom] = Range x z
+      | t ^. #place `elem` [PlaceTop, PlaceBottom] = Range x z
       | otherwise = Range y w
     asp = ra (vbArea vb)
     r = ra cs
-    tickl = snd (computeTicks (t ^. field @"tstyle") asp r)
+    tickl = snd (computeTicks (t ^. #tstyle) asp r)
     maxWidth =
           maybe one identity (maximum' $
           (\(Area x z _ _) -> z - x)
-              <$> styleBoxText (t ^. field @"textStyle") das <$> tickl)
+              <$> styleBoxText (t ^. #textStyle) das <$> tickl)
     maxHeight =
       maybe one identity
           (maximum' $
           (\(Area _ _ y w) -> w - y)
-              <$> styleBoxText (t ^. field @"textStyle") das <$> tickl)
+              <$> styleBoxText (t ^. #textStyle) das <$> tickl)
     adjustSizeX = maybe one identity (maximum' [(maxWidth / fromRational (upper asp - lower asp)) / mrx, one])
     adjustSizeY = maybe one identity (maximum' [(maxHeight / fromRational (upper asp - lower asp)) / mry, one])
     adjustSizeA = maybe one identity (maximum' [(maxHeight / fromRational (upper asp - lower asp)) / ma, one])
@@ -486,12 +471,12 @@ hud cfg vb =
   where
     c1 = maybe mempty (\cfg' -> canvas
       (blob
-       (cfg' ^. field @"color")
-       (cfg' ^. field @"opacity")) mempty)
-      (cfg ^. field @"canvas1")
-    bar1 = maybe mempty (\x -> maybe mempty (`bar` mempty) (x ^. field @"abar"))
-      (cfg ^. field @"axis1")
-    ts c = (field @"tstyle" .~ TickRound (TickFormatDefault, c ^. field @"tickN") :: Tick Double -> Tick Double) defaultTick
+       (cfg' ^. #color)
+       (cfg' ^. #opacity)) mempty)
+      (cfg ^. #canvas1)
+    bar1 = maybe mempty (\x -> maybe mempty (`bar` mempty) (x ^. #abar))
+      (cfg ^. #axis1)
+    ts c = (#tstyle .~ TickRound (TickFormatDefault, c ^. #tickN) :: Tick Double -> Tick Double) defaultTick
     autoTick c = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts c, mempty) in let (Hud h) = tick ts' das' in h vb' d a
-    tick1 = maybe mempty autoTick (cfg ^. field @"axis1")
-    htitle = maybe mempty (`title` mempty) (cfg ^. field @"title1")
+    tick1 = maybe mempty autoTick (cfg ^. #axis1)
+    htitle = maybe mempty (`title` mempty) (cfg ^. #title1)

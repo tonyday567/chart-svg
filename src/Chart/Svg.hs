@@ -10,7 +10,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -43,7 +42,7 @@ module Chart.Svg
   , translateDA
   , rotate
   , translate
-  , ScratchStyle(..)
+  , ScratchStyle(ScratchStyle)
   , defaultScratchStyle
   , clearScratchStyle
   , scratchSvgWith
@@ -52,15 +51,13 @@ module Chart.Svg
   , scratchSvg
   , placedLabel
   ) where
- 
+
 import Chart.Core
 import Chart.Spot
 import Codec.Picture.Types
-import Data.Generics.Product (field)
 import Data.List (zipWith3)
 import Graphics.Svg as Svg hiding (Point, toPoint)
 import Graphics.Svg.CssTypes as Svg hiding (Point)
--- import Graphics.Svg.Types as Svg hiding (Point, toPoint)
 import Control.Lens hiding (transform)
 import Linear.V2
 import NumHask.Data.Rect
@@ -68,8 +65,6 @@ import NumHask.Prelude as P hiding (Group, rotate, Element)
 import Text.XML.Light.Output
 import qualified Data.Map as Map
 import qualified Data.Text as Text
--- import qualified Data.Map as Map
-
 
 -- * Svg
 -- | An Svg ViewBox
@@ -210,7 +205,7 @@ treeShape SmileyGlyph s' p =
 -- | GlyphStyle to svg primitive
 treeGlyph :: GlyphStyle -> Point Double -> Tree
 treeGlyph s =
-  treeShape (s ^. field @"shape") (s ^. field @"size")
+  treeShape (s ^. #shape) (s ^. #size)
 
 -- | line svg
 treeLine :: (Chartable a) => [Point a] -> Tree
@@ -224,7 +219,7 @@ tree :: (Chartable a) => Chart a -> Tree
 tree (Chart (TextA s ts) das xs) =
   groupTrees (das <> daText s) (zipWith treeText' ts (toPoint <$> xs))
   where
-    treeText' = maybe treeText (\r txt p -> treeTextRotate txt (fromRational r) p) (s ^. field @"rotation")
+    treeText' = maybe treeText (\r txt p -> treeTextRotate txt (fromRational r) p) (s ^. #rotation)
 tree (Chart (GlyphA s) das xs) =
   groupTrees (das <> daGlyph s) (treeGlyph s <$> (toPoint . fmap fromRational <$> xs))
 tree (Chart (LineA s) das xs) =
@@ -375,11 +370,11 @@ clearScratchStyle  = ScratchStyle "other/scratchpad.svg" 400 1 1 1 defaultFrame 
 scratchSvgWith :: ScratchStyle -> [ChartSvg Double] -> IO ()
 scratchSvgWith s x =
   write
-  (s ^. field @"fileName")
-  (Point (s ^. field @"ratioAspect" * s ^. field @"size") (s ^. field @"size")) $
-  pad (s ^. field @"outerPad") $
-  (s ^. field @"frame'") $
-  pad (s ^. field @"innerPad") $
+  (s ^. #fileName)
+  (Point (s ^. #ratioAspect * s ^. #size) (s ^. #size)) $
+  pad (s ^. #outerPad) $
+  (s ^. #frame') $
+  pad (s ^. #innerPad) $
   mconcat x
 
 scratchSvg :: [ChartSvg Double] -> IO ()
@@ -391,15 +386,15 @@ scratch = scratchWith defaultScratchStyle
 scratchWith :: ScratchStyle -> [Chart Double] -> IO ()
 scratchWith s x =
   write
-  (s ^. field @"fileName")
-  (Point (s ^. field @"ratioAspect" * s ^. field @"size") (s ^. field @"size")) $
-  pad (s ^. field @"outerPad") $
-  (s ^. field @"frame'") $
-  pad (s ^. field @"innerPad") $
+  (s ^. #fileName)
+  (Point (s ^. #ratioAspect * s ^. #size) (s ^. #size)) $
+  pad (s ^. #outerPad) $
+  (s ^. #frame') $
+  pad (s ^. #innerPad) $
   chartSvg
-  (aspect (s ^. field @"ratioAspect"))
+  (aspect (s ^. #ratioAspect))
   (orig' <> x) where
-  orig' = case s^.field @"maybeOrig" of
+  orig' = case s ^. #maybeOrig of
     Nothing -> mempty
     Just (n,c) -> [showOriginWith n c]
 
