@@ -1,11 +1,10 @@
 <h1 id="chart-svg">chart-svg</h1>
 <p><a href="https://travis-ci.org/tonyday567/chart-svg"><img src="https://travis-ci.org/tonyday567/chart-svg.svg" alt="Build Status" /></a> <a href="https://hackage.haskell.org/package/chart-svg"><img src="https://img.shields.io/hackage/v/chart-svg.svg" alt="Hackage" /></a> <a href="http://stackage.org/lts/package/chart-svg"><img src="https://www.stackage.org/package/chart-svg/badge/lts" alt="lts" /></a> <a href="http://stackage.org/nightly/package/chart-svg"><img src="https://www.stackage.org/package/chart-svg/badge/nightly" alt="nightly" /></a></p>
+<p>Try <code>stack build --exec "$(stack path --local-install-root)/bin/style-page" --file-watch</code> for an interactive style builder.</p>
 <h1 id="test-svgs">test svgs</h1>
 <h2 id="mempty">mempty</h2>
 <p><code>render (Point (200.0 :: Double) 200.0) mempty</code> produces the following svg text:</p>
-<pre><code>&lt;?xml version=&#39;1.0&#39; ?&gt;
-&lt;svg viewBox=&quot;-0.5 -0.5 1.0 1.0&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot; xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; version=&quot;1.1&quot; width=&quot;200.0&quot; height=&quot;200.0&quot; /&gt;
-</code></pre>
+<pre><code>&lt;svg viewBox=&quot;-0.5 -0.5 1.0 1.0&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot; xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; version=&quot;1.1&quot; width=&quot;200.0&quot; height=&quot;200.0&quot; /&gt;</code></pre>
 <h2 id="one">one</h2>
 <p><code>chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]]</code></p>
 <p><img src="other/one.svg" /></p>
@@ -47,18 +46,13 @@
 <p><img src="other/compound.svg" /></p>
 <h2 id="recipe">recipe</h2>
 <pre><code>stack build --test --exec &quot;$(stack path --local-install-root)/bin/chart-svg&quot; --exec &quot;$(stack path --local-bin)/pandoc -f markdown -i other/readme_.md -t html -o index.html --filter pandoc-include --mathjax&quot; --file-watch --ghc-options -freverse-errors</code></pre>
-<pre><code>stack build --test --exec &quot;$(stack path --local-install-root)/bin/chart-hud&quot; --exec &quot;$(stack path --local-bin)/pandoc -f markdown+lhs -i app/hud.lhs -t html -o hud.html --filter pandoc-include --mathjax&quot; --file-watch --ghc-options -freverse-errors</code></pre>
+<pre><code>stack build --test --exec &quot;$(stack path --local-install-root)/bin/chart-hud&quot; --exec &quot;$(stack path --local-bin)/pandoc -f markdown+lhs -i app/hud.lhs -t html -o hud.html --filter pandoc-include --mathjax&quot; --file-watch --ghc-options -freverse-errors
+
+stack build --exec &quot;$(stack path --local-install-root)/bin/style-page&quot; --file-watch</code></pre>
 <h2 id="reference">reference</h2>
 <ul class="incremental">
-<li><a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html#flag-reference">ghc options</a></li>
-<li><a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html">pragmas</a></li>
-<li><a href="https://www.stackage.org/">libraries</a></li>
-<li><a href="https://www.stackage.org/package/hoogle">hoogle</a></li>
-<li><a href="https://www.stackage.org/package/doctest">doctest</a></li>
 <li><a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial">MDN svg</a></li>
 <li><a href="https://www.w3.org/TR/SVG2/text.html#TextAnchoringProperties">SVG2</a></li>
-<li><a href="http://hackage.haskell.org/package/blaze-svg-0.3.6.1">blaze-svg</a></li>
-<li><a href="http://hackage.haskell.org/package/blaze-markup-0.8.2.1/docs/Text-Blaze-Internal.html#t:Attributable">blaze-markup</a></li>
 <li><a href="https://hackage.haskell.org/package/plot-light-0.4.3/docs/src/Graphics.Rendering.Plot.Light.Internal.html#text">plot-light</a></li>
 <li><a href="http://hackage.haskell.org/package/svg-tree-0.6.2.2/docs/Graphics-Svg-Types.html#v:documentLocation">svg-tree</a></li>
 <li><a href="http://hackage.haskell.org/package/JuicyPixels-3.2.9.5/docs/Codec-Picture-Types.html#t:PixelRGBA8">JuicyPixels</a></li>

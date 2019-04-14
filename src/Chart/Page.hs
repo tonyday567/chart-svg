@@ -28,12 +28,12 @@ import Web.Page
 import Web.Page.Bootstrap
 import Web.Page.Html.Input
 import Web.Page.Bridge
-import Web.Page.Bridge.Rep
+import Web.Page.Rep
 import qualified Box ()
 
 repGlyphShape :: (Monad m) => SharedRep m GlyphShape
 repGlyphShape = toGlyph <$>
-  dropdown_ takeText show "Shape"
+  dropdown takeText show "Shape"
   [ "Circle"
   , "Triangle"
   , "Square"
@@ -46,43 +46,43 @@ repGlyphShape = toGlyph <$>
   ] "Circle"
 
 repGlyphStyle :: (Monad m) => SharedRep m GlyphStyle
-repGlyphStyle = cardifySharedRep [("style", "width: 10 rem;")] mempty (Just "Glyph Style") $ do
+repGlyphStyle = first (cardify [("style", "width: 10 rem;")] mempty (Just "Glyph Style")) $ do
   sh <- repGlyphShape
-  sz <- stepsliderR_ "Size" 0 0.2 0.01 (0.04 :: Double)
-  gc <- color_ "Color"
+  sz <- slider "Size" 0 0.2 0.01 (0.04 :: Double)
+  gc <- Web.Page.Rep.color "Color"
     (defaultGlyphStyle ^. #color)
-  go <- stepsliderR_ "Opacity" 0 1 0.1 (1 :: Double)
-  bsz <- stepsliderR_ "Border Size" 0 0.02 0.001 (0.004 :: Double)
-  gbc <- color_ "Border Color"
+  go <- slider "Opacity" 0 1 0.1 (1 :: Double)
+  bsz <- slider "Border Size" 0 0.02 0.001 (0.004 :: Double)
+  gbc <- Web.Page.Rep.color "Border Color"
     (PixelRGB8 64 64 64)
-  gbo <- stepsliderR_ "Border Opacity" 0 1 0.1 (1 :: Double)
+  gbo <- slider "Border Opacity" 0 1 0.1 (1 :: Double)
   pure (GlyphStyle sz gc go gbc gbo bsz sh)
 
 repTitle :: (Monad m) => Text -> Title Double -> SharedRep m (Title Double)
 repTitle txt cfg = do
-  ttext <- textbox_ "text" txt
+  ttext <- textbox "text" txt
   ts <- repTextStyle (cfg^. #style)
   tp <- repPlace (cfg ^. #place)
   ta <- repAnchor (cfg ^. #align)
-  b <- stepsliderR_ "buffer" 0 0.2 0.01 (cfg ^. #buff)
+  b <- slider "buffer" 0 0.2 0.01 (cfg ^. #buff)
   pure $ Title ttext ts tp ta b
 
 repTextStyle :: (Monad m) => TextStyle -> SharedRep m TextStyle
 repTextStyle s = do
-  ts <- stepsliderR_ "size" 0.02 0.3 0.01 (s ^. #size)
-  tc <- color_ "color" (s ^. #color)
-  to' <- stepsliderR_ "opacity" 0 1 0.1 (s ^. #opacity)
+  ts <- slider "size" 0.02 0.3 0.01 (s ^. #size)
+  tc <- Web.Page.Rep.color "color" (s ^. #color)
+  to' <- slider "opacity" 0 1 0.1 (s ^. #opacity)
   ta <- repAnchor (s ^. #alignH)
-  th <- stepsliderR_ "hsize" 0.2 1 0.05 (s ^. #hsize)
-  tv <- stepsliderR_ "vsize" 0.5 2 0.05 (s ^. #vsize)
-  tn <- stepsliderR_ "nudge1" (-0.5) 0.5 0.05 (s ^. #nudge1)
-  trc <- maybeRep "rotation" "trc" (maybe False  (const True) (s ^. #rotation))
-    (stepsliderR_ "rotation" (-180) 180 10 (maybe 0 identity (s ^. #rotation)))
+  th <- slider "hsize" 0.2 1 0.05 (s ^. #hsize)
+  tv <- slider "vsize" 0.5 2 0.05 (s ^. #vsize)
+  tn <- slider "nudge1" (-0.5) 0.5 0.05 (s ^. #nudge1)
+  trc <- maybeRep "rotation" (maybe False  (const True) (s ^. #rotation))
+    (slider "rotation" (-180) 180 10 (maybe 0 identity (s ^. #rotation)))
   pure $ TextStyle ts tc to' ta th tv tn trc
 
-repPlace :: (ToHtml a, Show a, Monad m) => Place a -> SharedRep m (Place a)
+repPlace :: (Show a, Monad m) => Place a -> SharedRep m (Place a)
 repPlace =
-  dropdown_ (toPlace <$> takeText) fromPlace "Placement"
+  dropdown (toPlace <$> takeText) fromPlace "Placement"
   [ "Top"
   , "Bottom"
   , "Left"
@@ -91,7 +91,7 @@ repPlace =
 
 repAnchor :: (Monad m) => TextAnchor -> SharedRep m TextAnchor
 repAnchor =
-    dropdown_
+    dropdown
     (toTextAnchor <$> takeText)
     anchorToString
     "Anchor"
@@ -99,25 +99,25 @@ repAnchor =
 
 repCanvasConfig :: (Monad m) => CanvasConfig -> SharedRep m CanvasConfig
 repCanvasConfig cfg = do
-  canvasc <- color_ "Canvas Color" (cfg ^. #color)
-  canvaso <- stepsliderR_ "Canvas Opacity" 0 0.2 0.01 (cfg ^. #opacity)
+  canvasc <- Web.Page.Rep.color "Canvas Color" (cfg ^. #color)
+  canvaso <- slider "Canvas Opacity" 0 0.2 0.01 (cfg ^. #opacity)
   pure $ CanvasConfig canvasc canvaso
 
 repRectStyle :: (Monad m) => RectStyle -> SharedRep m RectStyle
 repRectStyle s = do
-  bs <- stepsliderR_ "border size" 0.02 0.3 0.01 (s ^. #borderSize)
-  bc <- color_ "border color" (s ^. #borderColor)
-  bo <- stepsliderR_ "border opacity" 0 1 0.1 (s ^. #borderOpacity)
-  c <- color_ "color" (s ^. #color)
-  o <- stepsliderR_ "opacity" 0 1 0.1 (s ^. #opacity)
+  bs <- slider "border size" 0.02 0.3 0.01 (s ^. #borderSize)
+  bc <- Web.Page.Rep.color "border color" (s ^. #borderColor)
+  bo <- slider "border opacity" 0 1 0.1 (s ^. #borderOpacity)
+  c <- Web.Page.Rep.color "color" (s ^. #color)
+  o <- slider "opacity" 0 1 0.1 (s ^. #opacity)
   pure $ RectStyle bs bc bo c o
 
 repBar :: (Monad m) => Bar Double -> SharedRep m (Bar Double)
 repBar cfg = do
   p <- repPlace (cfg ^. #place)
   r <- repRectStyle (cfg ^. #rstyle)
-  w <- stepsliderR_ "width" 0 0.1 0.01 (cfg ^. #wid)
-  b <- stepsliderR_ "buffer" 0 0.2 0.01 (cfg ^. #buff)
+  w <- slider "width" 0 0.1 0.01 (cfg ^. #wid)
+  b <- slider "buffer" 0 0.2 0.01 (cfg ^. #buff)
   pure $ Bar p r w b
 
 repAxisConfig :: (Monad m) => AxisConfig Double -> SharedRep m (AxisConfig Double)
@@ -125,25 +125,23 @@ repAxisConfig cfg = do
   b <-
     maybeRep
     "axis bar"
-    "ab"
     (isJust (cfg ^. #abar))
     (repBar (maybe defaultBar identity (cfg ^. #abar)))
-  hauto <- checkbox_ "auto" (cfg^. #hasAuto)
-  tn <- slider_ "no. ticks" 0 20 (cfg ^. #tickN)
-  ts <- stepsliderR_ "tick size" 0 0.2 0.01 (cfg ^. #tickSize)
+  hauto <- checkbox "auto" (cfg^. #hasAuto)
+  tn <- sliderI "no. ticks" 0 20 1 (cfg ^. #tickN)
+  ts <- slider "tick size" 0 0.2 0.01 (cfg ^. #tickSize)
   p <- repPlace (cfg ^. #place)
   pure $ AxisConfig b hauto tn ts p
 
 repHudConfig :: (Monad m) => HudConfig Double -> SharedRep m (HudConfig Double)
 repHudConfig cfg = do
-  t <- maybeRep "title" "xt" (isJust (cfg ^. #title1)) $
+  t <- maybeRep "title" (isJust (cfg ^. #title1)) $
     repTitle "label for title" (maybe (defaultTitle "actual title") id (cfg ^. #title1))
-  can <- maybeRep "canvas" "xc" (isJust (cfg ^. #canvas1)) $
+  can <- maybeRep "canvas" (isJust (cfg ^. #canvas1)) $
     repCanvasConfig (maybe defaultCanvasConfig id (cfg ^. #canvas1))
-  ax <- maybeRep "axis" "xa" (isJust (cfg ^. #axis1)) $
+  ax <- maybeRep "axis" (isJust (cfg ^. #axis1)) $
     repAxisConfig (maybe defaultAxisConfig id (cfg ^. #axis1))
   pure (HudConfig can t ax)
-
 
 repChart :: (Monad m) => HudConfig Double -> SharedRep m (GlyphStyle, HudConfig Double)
 repChart cfg = SharedRep $ do

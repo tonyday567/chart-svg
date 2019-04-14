@@ -14,18 +14,18 @@ import Chart.Core
 import Chart.Hud
 import Chart.Spot
 import Chart.Svg
+import Control.Lens
 import Data.HashMap.Strict
 import Lucid
 import Network.JavaScript
 import Network.Wai.Middleware.Static (addBase, noDots, staticPolicy, (>->))
 import NumHask.Data.Range
-import Protolude hiding (replace, empty, Rep)
+import Protolude hiding (replace, Rep)
 import Web.Page
 import Web.Page.Bridge
-import Web.Page.Bridge.Rep
+import Web.Page.Rep
 import Chart.Page
-import Web.Scotty
-import qualified Control.Exception as E
+import Web.Scotty hiding (get, put)
 import qualified Data.Text.Lazy as Lazy
 
 chartTest :: GlyphStyle -> HudConfig Double -> ChartSvg Double
@@ -43,14 +43,35 @@ logResults :: (a -> Text) -> Engine -> Either Text a -> IO ()
 logResults _ e (Left err) = append e "log" err
 logResults r e (Right x) = results r e x
 
-midChartTest :: (Show a) => SharedRep IO a -> (a -> Text) -> Application -> Application
-midChartTest sc rend = start $ \ ev e -> do
-  (Rep h fa, (_, hm)) <- flip runStateT (0,empty) (unrep sc)
-  append e "inputs" (Lazy.toStrict $ renderText h)
-  either (const $ append e "log" "fa hm stuffed up") (results rend e) (fa hm)
-  final <- consumeSharedBridge (logResults rend) hm (either Left fa) ev e
-    `E.finally` putStrLn ("finalled" :: Text)
-  putStrLn $ ("final value was: " :: Text) <> show final
+initShared
+  :: (MonadIO m)
+  => MonadState (HashMap Text Text) m
+  => Html ()
+  -> (HashMap Text Text -> (HashMap Text Text, Either Text a))
+  -> (a -> Text)
+  -> Engine
+  -> m ()
+initShared h fa rend e = do
+  liftIO $ append e "inputs" (Lazy.toStrict $ renderText h)
+  hm0 <- get
+  let (hm1, r) = fa hm0
+  put hm1
+  liftIO $ replace e "results" $ either (const "") rend r
+
+midEvalShared ::
+  SharedRep IO a ->
+  (Engine -> Either Text a -> IO ()) ->
+  (a -> Text) ->
+  Application -> Application
+midEvalShared s action rend = start $ \ ev e ->
+  evalSharedRepOnEvent
+  s
+  (\h fa -> zoom _2 $ initShared h fa rend e)
+  (do
+      f <- get
+      liftIO $ putStrLn $ ("final value was: " :: Text) <> show f)
+  (action e)
+  (bridge ev e)
 
 renderChart :: GlyphStyle -> HudConfig Double -> Text
 renderChart gs cfg =
@@ -61,6 +82,8 @@ main =
   scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "other")
     middleware 
-      ( midChartTest (repChart defaultHudConfig)
-        (\(gs,cfg) -> renderChart gs cfg))
+      ( midEvalShared (repChart defaultHudConfig)
+        (logResults (\(gs,cfg) -> renderChart gs cfg))
+        (\(gs,cfg) -> renderChart gs cfg)
+      )
     servePageWith "/chart/style" defaultPageConfig chartStylePage
