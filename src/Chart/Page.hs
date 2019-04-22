@@ -24,11 +24,12 @@ import Data.Attoparsec.Text
 import Data.Generics.Labels ()
 import Graphics.Svg.Types (TextAnchor(..))
 import Lucid
-import Protolude
+import Protolude hiding ((<<*>>))
 import Web.Page
 import qualified Box ()
 import NumHask.Data.Range
 import qualified Data.Text as Text
+import Data.Biapplicative
 
 repChart :: (Monad m) => Chart a -> SharedRep m (Chart a)
 repChart c = do
@@ -82,41 +83,6 @@ repAnnotation ann = SharedRep $ do
     defLine = case ann of
       LineA s -> s
       _ -> defaultLineStyle
-
-{-
-repSumTypeExample :: (Monad m) => Int -> Text -> SumTypeExample -> SharedRep m SumTypeExample
-repSumTypeExample defi deft defst = SharedRep $ do
-  (Rep hi fi) <- unrep $ sliderI "" 0 20 1 defInt
-  (Rep ht ft) <- unrep $ textbox "" defText
-  (Rep hdb fdb) <- unrep $ dropdownSum takeText id "SumTypeExample"
-    ["SumInt", "SumOnly", "SumText"]
-    (sumTypeText defst)
-  pure $ Rep (hdb <>
-              with hi [ class__ "subtype "
-                      , data_ "sumtype" "SumInt"
-                      , style_
-                   ("display:" <> bool "block" "none" (sumTypeText defst /= "SumInt"))] <>
-              with ht [ class__ "subtype "
-                      , data_ "sumtype" "SumText"
-                      , style_
-                   ("display:" <> bool "block" "none" (sumTypeText defst /= "SumText"))])
-    (\m -> let (m', db) = fdb m in
-            case db of
-              Left e -> (m', Left e)
-              Right "SumInt" -> second (second SumInt) (fi m')
-              Right "SumOnly" -> (m', Right SumOnly)
-              Right "SumText" -> second (second SumText) (ft m')
-              Right _ -> (m', Left "bad sumtype text"))
-    where
-      defInt = case defst of
-        SumInt i -> i
-        _ -> defi
-      defText = case defst of
-        SumText t -> t
-        _ -> deft
-
-
--}
 
 repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
 repLineStyle s = do
@@ -227,26 +193,16 @@ repAxisConfig cfg = do
   pure $ AxisConfig b hauto tn ts p
 
 repHudConfig :: (Monad m) => HudConfig Double -> SharedRep m (HudConfig Double)
-repHudConfig cfg = do
-  t <- maybeRep "title" (isJust (cfg ^. #title1)) $
-    repTitle "label for title" (maybe (defaultTitle "actual title") id (cfg ^. #title1))
-  can <- maybeRep "canvas" (isJust (cfg ^. #canvas1)) $
-    repCanvasConfig (maybe defaultCanvasConfig id (cfg ^. #canvas1))
-  ax <- maybeRep "axis" (isJust (cfg ^. #axis1)) $
-    repAxisConfig (maybe defaultAxisConfig id (cfg ^. #axis1))
-  pure (HudConfig can t ax)
-
-repChart' :: (Monad m) => HudConfig Double -> SharedRep m (GlyphStyle, HudConfig Double)
-repChart' cfg = SharedRep $ do
-  t@(Rep rt _) <- unrep $ repTitle "label for title" (maybe (defaultTitle "actual title") id (cfg ^. #title1))
-  can@(Rep rcan _) <- unrep $ repCanvasConfig (maybe defaultCanvasConfig id (cfg ^. #canvas1))
-  ax@(Rep rax _) <- unrep $ repAxisConfig (maybe defaultAxisConfig id (cfg ^. #axis1))
-  gs@(Rep rgs _) <- unrep $ repGlyphStyle defaultGlyphStyle
-  acc <- zoom _1 $
-    accordion "accRepChart" (Just "canvas") [("glyph style", rgs), ("canvas", rcan), ("title", rt), ("axis", rax)]
-  pure (first
-        (const acc) $
-        (\a b c d -> (a, HudConfig (Just b) (Just c) (Just d))) <$> gs <*> can <*> t <*> ax)
+repHudConfig cfg = bimap hmap mmap can <<*>> ts <<*>> axs <<*>> auto
+  where
+  can = maybeRep "canvas" (isJust (cfg ^. #hudCanvas)) $
+    repCanvasConfig (maybe defaultCanvasConfig id (cfg ^. #hudCanvas))
+  ts = listify' (Just "titles") "tz" repTitle (cfg ^. #hudTitles)
+  axs = listify' (Just "axes") "axz" (const repAxisConfig) (cfg ^. #hudAxes)
+  auto = checkbox "auto" (cfg ^. #hudAuto)
+  hmap can' ts' axs' auto' = auto' <> accordion_ "accc" Nothing
+                      [("Axes", axs'), ("Canvas", can'), ("Titles", ts')]
+  mmap can' ts' axs' auto' = HudConfig can' ts' axs' auto'
 
 repChartSvgStyle :: (Monad m) => ChartSvgStyle -> SharedRep m ChartSvgStyle
 repChartSvgStyle s = do
@@ -263,26 +219,6 @@ repChartSvgStyle s = do
     ((\(os,c) -> (,) <$> slider "size" 0 0.1 0.001 os <*> colorPicker "color" c) (maybe (0.04, red) id (s ^. #orig)))
   pure $ ChartSvgStyle x y a op' ip fr orig
 
-repAnnotation' :: (Monad m) => [Text] -> SharedRep m Annotation
-repAnnotation' texts = do
-  a <- dropdown takeText show "type"
-    [ "Rectangle"
-    , "Text"
-    , "Glyph"
-    , "Line"
-    ] "Glyph"
-  rr <- repRectStyle defaultRectStyle
-  rt <- repTextStyle defaultTextStyle
-  rg <- repGlyphStyle defaultGlyphStyle
-  rl <- repLineStyle defaultLineStyle
-  pure (case a of
-          "Rectangle" -> RectA rr
-          "Text" -> TextA rt texts
-          "Glyph" -> GlyphA rg
-          "Line" -> LineA rl
-          _ -> GlyphA rg
-       )
-
 repData :: (Monad m) => SharedRep m [Spot Double]
 repData = do
   a <- dropdown takeText show "type"
@@ -294,3 +230,95 @@ repData = do
           "line" -> SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30
           _ -> SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30
        )
+
+repTickFormat :: (Monad m) => TickFormat -> SharedRep m TickFormat
+repTickFormat cfg =
+  bimap hmap mmap tf <<*>>
+  sliderI "prec" 0 20 1 (defInt cfg) <<*>>
+  sliderI "prec" 0 20 1 (defInt cfg)
+  where
+    tf = dropdownSum takeText id "Tick Format"
+      ["TickFormatDefault", "TickFormatCommas", "TickFormatFixed", "TickFormatDollars"]
+      (tickFormatText cfg)
+    defInt tf' = case tf' of
+      TickFormatCommas n -> n
+      TickFormatFixed n -> n
+      _ -> 8
+    hmap tformat tcommas tfixed =
+      tformat <>
+      with tcommas [ class__ "subtype "
+              , data_ "sumtype" "TickFormatCommas"
+              , style_
+                ("display:" <> bool "block" "none" (tickFormatText cfg /= "TickFormatCommas"))] <>
+      with tfixed [ class__ "subtype "
+              , data_ "sumtype" "TickFormatFixed"
+              , style_
+                ("display:" <> bool "block" "none" (tickFormatText cfg /= "TickFormatFixed"))]
+    mmap tformat tcommas tfixed = case tformat of
+      "TickFormatDefault" -> TickFormatDefault
+      "TickFormatCommas" -> TickFormatCommas tcommas
+      "TickFormatFixed" -> TickFormatFixed tfixed
+      "TickFormatDollars" -> TickFormatDollars
+      _ -> TickFormatDefault
+
+repTickStyle :: (Monad m) => TickStyle Double -> SharedRep m (TickStyle Double)
+repTickStyle cfg =
+  bimap hmap mmap ts <<*>> ls <<*>> tr <<*>> te <<*>> tplaced
+  where
+    ts = dropdownSum takeText id "Tick Style"
+      ["TickNone", "TickLabels", "TickRound", "TickExact", "TickPlaced"]
+      (tickStyleText cfg)
+    ls = accordionListify (Just "tick labels") "tick-style-labels" Nothing textbox (defaultListifyLabels (length defLabels)) defLabels
+    tr = (,) <$> repTickFormat defTf <*> sliderI "round" 0 20 1 defTn
+    te = (,) <$> repTickFormat defTf <*> sliderI "exact" 0 20 1 defTn
+    tplaced = accordionListify (Just "placed ticks") "tick-style-placed" Nothing dt (defaultListifyLabels (length dtDef)) dtDef
+    hmap ts' ls' tr' te' tplaced' =
+      ts' <>
+      with ls' [ class__ "subtype "
+              , data_ "sumtype" "TickLabels"
+              , style_
+                ("display:" <> bool "block" "none" (tickStyleText cfg /= "TickLabels"))] <>
+      with tr' [ class__ "subtype "
+              , data_ "sumtype" "TickRound"
+              , style_
+                ("display:" <> bool "block" "none" (tickStyleText cfg /= "TickRound"))] <>
+      with te' [ class__ "subtype "
+              , data_ "sumtype" "TickExact"
+              , style_
+                ("display:" <> bool "block" "none" (tickStyleText cfg /= "TickExact"))] <>
+      with tplaced' [ class__ "subtype "
+              , data_ "sumtype" "TickPlaced"
+              , style_
+                ("display:" <> bool "block" "none" (tickStyleText cfg /= "TickPlaced"))]
+    mmap ts' ls' tr' te' tplaced' = case ts' of
+      "TickNone" -> TickNone
+      "TickLabels" -> TickLabels ls'
+      "TickRound" -> TickRound tr'
+      "TickExact" -> TickExact te'
+      "TickPlaced" -> TickPlaced tplaced'
+      _ -> TickNone
+    dtDef = case cfg of
+      TickPlaced x -> x
+      _ -> zip [0..5] (show <$> [0..5])
+    dt _ (x, l) = (,) <$> slider "placement" 0 1 0.01 x <*> textbox "label" l
+    defLabels = case cfg of
+      TickLabels xs -> xs
+      _ -> replicate 5 ""
+    defTn = case cfg of
+      TickRound (_, x) -> x
+      TickExact (_, x) -> x
+      _ -> 8
+    defTf = case cfg of
+      TickRound (x, _) -> x
+      TickExact (x, _) -> x
+      _ -> TickFormatDefault
+
+repTick :: (Monad m) => Tick Double -> SharedRep m (Tick Double)
+repTick cfg = do
+  p <- repPlace (cfg ^. #place)
+  gs <- repGlyphStyle (cfg ^. #gstyle)
+  ts <- repTextStyle (cfg ^. #textStyle)
+  b <- slider "buffer" 0 0.2 0.01 (cfg ^. #buff)
+  tb <- slider "text buffer" 0 0.2 0.01 (cfg ^. #textBuff)
+  ts' <- repTickStyle (cfg ^. #tstyle)
+  pure $ Tick p gs ts b tb ts'

@@ -254,6 +254,12 @@ data TickFormat
   | TickFormatDollars
   deriving (Show, Eq, Generic)
 
+tickFormatText :: TickFormat -> Text
+tickFormatText TickFormatDefault = "TickFormatDefault"
+tickFormatText TickFormatCommas{} = "TickFormatCommas"
+tickFormatText TickFormatFixed{} = "TickFormatFixed"
+tickFormatText TickFormatDollars = "TickFormatDollars"
+
 toFormat :: (Tickable a) => TickFormat -> [a] -> [P.Text]
 toFormat TickFormatDefault = precision commas 0
 toFormat (TickFormatCommas n) = precision commas n
@@ -281,6 +287,13 @@ data TickStyle a
   | TickExact (TickFormat, Int) -- ^ exactly n equally spaced ticks
   | TickPlaced [(a, P.Text)] -- ^ specific labels and placement
   deriving (Show, Eq, Generic)
+
+tickStyleText :: TickStyle a -> Text
+tickStyleText TickNone = "TickNone"
+tickStyleText TickLabels{} = "TickLabels"
+tickStyleText TickRound{} = "TickRound"
+tickStyleText TickExact{} = "TickExact"
+tickStyleText TickPlaced{} = "TickPlaced"
 
 getTickN :: TickStyle a -> Int
 getTickN (TickRound (_, n)) = n
@@ -454,33 +467,35 @@ defaultAxisConfig :: AxisConfig Double
 defaultAxisConfig = AxisConfig (Just defaultBar) True 8 0.1 PlaceBottom
 
 data HudConfig a = HudConfig
-  { canvas1 :: Maybe CanvasConfig
-  , title1 :: Maybe (Title Double)
-  , axis1 :: Maybe (AxisConfig Double)
+  { hudCanvas :: Maybe CanvasConfig
+  , hudTitles :: [Title Double]
+  , hudAxes ::  [AxisConfig Double]
+  , hudAuto :: Bool
   } deriving (Eq, Show, Generic)
 
 defaultHudConfig :: HudConfig Double
 defaultHudConfig =
   HudConfig
   (Just defaultCanvasConfig)
-  (Just (defaultTitle "chart-svg automation testing"))
-  (Just defaultAxisConfig)
+  [defaultTitle "defaultHudConfig"]
+  [defaultAxisConfig]
+  False
 
 hud :: HudConfig Double -> ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud cfg vb =
-  hudSvg vb [c1, bar1 <> tick1, htitle]
+  hudSvg vb ([can] <> titles <> axisBars <> ticks)
   where
-    c1 = maybe mempty (\cfg' -> canvas
+    can = maybe mempty (\cfg' -> canvas
       (blob
        (cfg' ^. #color)
        (cfg' ^. #opacity)) mempty)
-      (cfg ^. #canvas1)
-    bar1 = maybe mempty (\x -> maybe mempty (`bar` mempty) (x ^. #abar))
-      (cfg ^. #axis1)
-    ts c = (#tstyle .~ TickRound (TickFormatDefault, c ^. #tickN) :: Tick Double -> Tick Double) defaultTick
+      (cfg ^. #hudCanvas)
+    titles = (`title` mempty) <$> (cfg ^. #hudTitles)
+    axisBars = (\x -> maybe mempty (`bar` mempty) (x ^. #abar)) <$> (cfg ^. #hudAxes)
+    ts c = (#tstyle .~ TickRound (TickFormatDefault, c ^. #tickN) :: Tick Double -> Tick Double)
+      defaultTick
     autoTick c = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts c, mempty) in let (Hud h) = tick ts' das' in h vb' d a
-    tick1 = maybe mempty autoTick (cfg ^. #axis1)
-    htitle = maybe mempty (`title` mempty) (cfg ^. #title1)
+    ticks = autoTick <$> (cfg ^. #hudAxes)
 
 renderChartWith :: ChartSvgStyle -> HudConfig Double -> [Chart Double] -> Text
 renderChartWith scfg hcfg cs =

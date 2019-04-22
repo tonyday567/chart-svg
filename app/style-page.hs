@@ -42,24 +42,21 @@ testPage title' mid sections =
 
 repMain :: (Monad m) => ChartSvgStyle -> Chart Double -> HudConfig Double -> SharedRep m Text
 repMain cscfg ccfg hcfg =
-  bimap hmap mmap cs <<*>> ann <<*>> d <<*>> can <<*>> t <<*>> ax
+  bimap hmap mmap cs <<*>> ann <<*>> d <<*>> h
   where
-    t = repTitle "title" (maybe (defaultTitle "actual title") id (hcfg ^. #title1))
-    can = repCanvasConfig (maybe defaultCanvasConfig id (hcfg ^. #canvas1))
-    ax = repAxisConfig (maybe defaultAxisConfig id (hcfg ^. #axis1))
+    h = repHudConfig hcfg
     cs = repChartSvgStyle cscfg
     ann = repAnnotation (ccfg ^. #annotation)
     d = repData
-    mmap cs' ann' d' can' t' ax' =
-      renderChartWith cs' (HudConfig (Just can') (Just t') (Just ax'))
+    mmap cs' ann' d' h' =
+      renderChartWith cs' h'
         [Chart ann' mempty d']
-    hmap cs' ann' d' can' t' ax' =
+    hmap cs' ann' d' h' =
       accordion_ "acca" (Just "Chart Configuration")
       [ ("Chart Svg Stylings", cs')
       , ("Chart", accordion_ "accb" Nothing [("Annotation", ann')
                                             , ("data", d')])
-      , ("Chart Hud", accordion_ "accc" Nothing
-                      [("Axes", ax'), ("Canvas", can'), ("Titles", t')])
+      , ("Chart Hud", h')
       ]
 
 chartSvgTest :: GlyphStyle -> HudConfig Double -> ChartSvg Double
