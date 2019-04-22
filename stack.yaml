@@ -17,5 +17,7 @@ extra-deps:
     commit: bb72dbb7d2f6376353f67aec6c251271ffb055d5
   - git: https://github.com/tonyday567/box.git
     commit: 542dec0c31060e4d12c5aa949ced8d5813827b7e
+  #- git: https://github.com/tonyday567/web-page.git
+  #  commit: 8119903dce36766179dc99770b18bf22f4679b38
 
-
+allow-newer: true

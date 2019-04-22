@@ -14,6 +14,7 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 
 module Chart.Hud where
 
@@ -21,6 +22,7 @@ import Chart.Core
 import Chart.Spot
 import Chart.Svg
 import Codec.Picture.Types
+import Control.Category (id)
 import Control.Lens
 import Data.Generics.Labels ()
 import Data.List (nub)
@@ -412,7 +414,6 @@ adjustTick (AutoOptions mrx ma mry ad) vb cs (t, das)
           False -> ((#textStyle . #size %~ (/adjustSizeA)) t, das)
   | t ^. #place `elem` [PlaceLeft, PlaceRight] =
     ((#textStyle . #size %~ (/adjustSizeY)) t, das)
-
   where
     ra (Area x z y w)
       | t ^. #place `elem` [PlaceTop, PlaceBottom] = Range x z
@@ -480,3 +481,13 @@ hud cfg vb =
     autoTick c = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts c, mempty) in let (Hud h) = tick ts' das' in h vb' d a
     tick1 = maybe mempty autoTick (cfg ^. #axis1)
     htitle = maybe mempty (`title` mempty) (cfg ^. #title1)
+
+renderChartWith :: ChartSvgStyle -> HudConfig Double -> [Chart Double] -> Text
+renderChartWith scfg hcfg cs =
+  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey) $
+  maybe id pad (scfg ^. #outerPad) $
+  maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame) $
+  maybe id pad (scfg ^. #innerPad) $
+  hud hcfg (aspect (scfg ^. #chartAspect)) $
+  cs <>
+  maybe mempty (\(s,c) -> [showOriginWith s c]) (scfg ^. #orig)

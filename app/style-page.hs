@@ -8,82 +8,117 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 import Chart.Core
 import Chart.Hud
+import Chart.Page
 import Chart.Spot
 import Chart.Svg
+import Control.Category (id)
 import Control.Lens
 import Data.HashMap.Strict
-import Lucid
 import Network.JavaScript
 import Network.Wai.Middleware.Static (addBase, noDots, staticPolicy, (>->))
 import NumHask.Data.Range
-import Protolude hiding (replace, Rep)
+import Protolude hiding (replace, Rep, (<<*>>))
+import Data.Biapplicative
 import Web.Page
-import Web.Page.Bridge
-import Web.Page.Rep
-import Chart.Page
-import Web.Scotty hiding (get, put)
-import qualified Data.Text.Lazy as Lazy
+import Web.Scotty
+-- import qualified Data.Text as Text
+import Lucid.Base
+import Lucid hiding (b_)
 
-chartTest :: GlyphStyle -> HudConfig Double -> ChartSvg Double
-chartTest gs cfg =
+testPage :: Text -> Text -> [(Text, Html ())] -> Page
+testPage title' mid sections =
+  showJs <>
+  bootstrapPage <>
+  bridgePage &
+  #htmlHeader .~ title_ "iroTestPage" &
+  #htmlBody .~ b_ "container" (mconcat
+    [ b_ "row" (h1_ (toHtml title'))
+    , b_ "row" (h2_ ("middleware: " <> toHtml mid))
+    , b_ "row" $ mconcat $ (\(t,h) -> b_ "col" (h2_ (toHtml t) <> with div_ [id_ t] h)) <$> sections
+    ])
+
+repMain :: (Monad m) => ChartSvgStyle -> Chart Double -> HudConfig Double -> SharedRep m Text
+repMain cscfg ccfg hcfg =
+  bimap hmap mmap cs <<*>> ann <<*>> d <<*>> can <<*>> t <<*>> ax
+  where
+    t = repTitle "title" (maybe (defaultTitle "actual title") id (hcfg ^. #title1))
+    can = repCanvasConfig (maybe defaultCanvasConfig id (hcfg ^. #canvas1))
+    ax = repAxisConfig (maybe defaultAxisConfig id (hcfg ^. #axis1))
+    cs = repChartSvgStyle cscfg
+    ann = repAnnotation (ccfg ^. #annotation)
+    d = repData
+    mmap cs' ann' d' can' t' ax' =
+      renderChartWith cs' (HudConfig (Just can') (Just t') (Just ax'))
+        [Chart ann' mempty d']
+    hmap cs' ann' d' can' t' ax' =
+      accordion_ "acca" (Just "Chart Configuration")
+      [ ("Chart Svg Stylings", cs')
+      , ("Chart", accordion_ "accb" Nothing [("Annotation", ann')
+                                            , ("data", d')])
+      , ("Chart Hud", accordion_ "accc" Nothing
+                      [("Axes", ax'), ("Canvas", can'), ("Titles", t')])
+      ]
+
+chartSvgTest :: GlyphStyle -> HudConfig Double -> ChartSvg Double
+chartSvgTest gs cfg =
   hud cfg
   (aspect 1.5)
   [ Chart (GlyphA gs) mempty
     (SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30)
   ]
 
-results :: (a -> Text) -> Engine -> a -> IO ()
-results r e x = replace e "results" (r x)
+chartTest :: Chart Double
+chartTest = Chart (GlyphA defaultGlyphStyle) mempty
+    (SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30)
 
-logResults :: (a -> Text) -> Engine -> Either Text a -> IO ()
-logResults _ e (Left err) = append e "log" err
-logResults r e (Right x) = results r e x
+toChart' :: GlyphStyle -> Chart Double
+toChart' gs =
+  Chart (GlyphA gs) mempty
+  (SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30)
 
-initShared
-  :: (MonadIO m)
-  => MonadState (HashMap Text Text) m
-  => Html ()
-  -> (HashMap Text Text -> (HashMap Text Text, Either Text a))
-  -> (a -> Text)
-  -> Engine
-  -> m ()
-initShared h fa rend e = do
-  liftIO $ append e "inputs" (Lazy.toStrict $ renderText h)
-  hm0 <- get
-  let (hm1, r) = fa hm0
-  put hm1
-  liftIO $ replace e "results" $ either (const "") rend r
+toChartSvg' :: Chart Double -> HudConfig Double -> ChartSvg Double
+toChartSvg' c h = hud h (aspect 1.5) [c]
 
-midEvalShared ::
-  SharedRep IO a ->
-  (Engine -> Either Text a -> IO ()) ->
-  (a -> Text) ->
+updateChart :: Engine -> Either Text (HashMap Text Text, Either Text Text) -> IO ()
+updateChart e (Left err) = append e "log" ("map error: " <> err)
+updateChart e (Right (_,Left err)) = append e "log" ("parse error: " <> err)
+updateChart e (Right (_, Right c)) = replace e "output" c
+
+midShared ::
+  SharedRep IO Text ->
   Application -> Application
-midEvalShared s action rend = start $ \ ev e ->
-  evalSharedRepOnEvent
-  s
-  (\h fa -> zoom _2 $ initShared h fa rend e)
-  (do
-      f <- get
-      liftIO $ putStrLn $ ("final value was: " :: Text) <> show f)
-  (action e)
+midShared sr = start $ \ ev e ->
+  void $ runOnEvent
+  sr
+  (zoom _2 . initChartRender e)
+  (updateChart e)
   (bridge ev e)
 
-renderChart :: GlyphStyle -> HudConfig Double -> Text
-renderChart gs cfg =
-  xmlToText . renderXml (Point (600.0 :: Double) 400) $ chartTest gs cfg
+initChartRender
+  :: Engine
+  -> Rep Text
+  -> StateT (HashMap Text Text) IO ()
+initChartRender e r =
+  void $ oneRep r
+  (\(Rep h fa) m -> do
+      append e "input" (toText h)
+      replace e "output" (either id id . snd $ fa m))
+
+renderChart :: Double -> Double -> ChartSvg Double -> Text
+renderChart x y =
+  xmlToText . renderXml (Point x y)
 
 main :: IO ()
 main =
   scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "other")
-    middleware 
-      ( midEvalShared (repChart defaultHudConfig)
-        (logResults (\(gs,cfg) -> renderChart gs cfg))
-        (\(gs,cfg) -> renderChart gs cfg)
-      )
-    servePageWith "/chart/style" defaultPageConfig chartStylePage
+    middleware
+      (midShared (repMain defaultChartSvgStyle chartTest defaultHudConfig))
+    servePageWith "/chart/style" defaultPageConfig
+      (testPage "chart style" "repMain"
+       [ ("input", mempty)
+       , ("output", mempty)
+       ])

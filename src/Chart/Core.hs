@@ -17,6 +17,7 @@ module Chart.Core
   ( Chart(..)
   , Chartable
   , Annotation(..)
+  , annotationText
   , DrawAttributes(..)
   , rotateChart
   , translateChart
@@ -35,6 +36,7 @@ module Chart.Core
   , toGlyphShape
   , fromGlyphShape
   , toGlyph
+  , fromGlyph
   , LineStyle(..)
   , defaultLineStyle
   , styleBoxText
@@ -98,6 +100,12 @@ data Annotation
   | GlyphA GlyphStyle
   | LineA LineStyle
   deriving (Eq, Show, Generic)
+
+annotationText :: Annotation -> Text
+annotationText (RectA _) = "RectA"
+annotationText TextA{} = "TextA"
+annotationText (GlyphA _) = "GlyphA"
+annotationText (LineA _) = "LineA"
 
 -- * transformations
 -- | rotate a Chart by x degrees. This does not touch the underlying data but instead adds a draw attribute to the styling.
@@ -277,6 +285,19 @@ toGlyph sh =
     "Horizontal Line" -> HLineGlyph 0.01
     "Smiley Face" -> SmileyGlyph
     _ -> CircleGlyph
+
+fromGlyph :: (IsString a) => GlyphShape -> a
+fromGlyph sh =
+  case sh of
+    CircleGlyph -> "Circle"
+    SquareGlyph -> "Square"
+    TriangleGlyph _ _ _ -> "Triangle"
+    EllipseGlyph _ -> "Ellipse"
+    RectSharpGlyph _ -> "Rectangle"
+    RectRoundedGlyph _ _ _ -> "Rounded Rectangle"
+    VLineGlyph _ -> "Verticle Line"
+    HLineGlyph _ -> "Horizontal Line"
+    SmileyGlyph -> "Smiley Face"
 
 daGlyph :: GlyphStyle -> DrawAttributes
 daGlyph o =

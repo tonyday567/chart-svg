@@ -296,10 +296,10 @@ hud4 vb cs =
     bTop = bar (Bar PlaceTop defaultRectStyle 0.005 0.01) mempty
     bRight = bar (Bar PlaceRight defaultRectStyle 0.005 0.01) mempty
     tBot :: Hud Double
-    tBot = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts, mempty) in let (Hud hud) = tick ts' das' in hud vb' d a
+    tBot = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts, mempty) in let (Hud hud') = tick ts' das' in hud' vb' d a
     tLeft = tick ((#place .~ PlaceLeft :: Tick Double -> Tick Double) $ ts) mempty
     tTop :: Hud Double
-    tTop = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a ((#place .~ PlaceTop :: Tick Double -> Tick Double) $ ts, mempty) in let (Hud hud) = tick ts' das' in hud vb' d a
+    tTop = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a ((#place .~ PlaceTop :: Tick Double -> Tick Double) $ ts, mempty) in let (Hud hud') = tick ts' das' in hud' vb' d a
     tRight = tick ((#place .~ PlaceRight :: Tick Double -> Tick Double) $ ts) mempty
     t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "automated tick style") mempty) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])

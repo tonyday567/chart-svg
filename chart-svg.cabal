@@ -92,6 +92,7 @@ executable chart-hud
   build-depends:
       JuicyPixels
     , base >=4.7 && <5
+    , bifunctors
     , chart-svg
     , generic-lens
     , lens
@@ -111,6 +112,7 @@ executable style-page
   build-depends:
       JuicyPixels
     , base >=4.7 && <5
+    , bifunctors
     , chart-svg
     , containers
     , generic-lens

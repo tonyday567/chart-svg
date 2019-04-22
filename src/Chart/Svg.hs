@@ -50,6 +50,9 @@ module Chart.Svg
   , scratchWith
   , scratchSvg
   , placedLabel
+  , ChartSvgStyle(ChartSvgStyle)
+  , defaultChartSvgStyle
+  , renderChartSvg
   ) where
 
 import Chart.Core
@@ -403,3 +406,20 @@ placedLabel p d t =
   Chart (TextA defaultTextStyle [t])
   (mempty <> translateDA p <> rotateDA d)
   [zero]
+
+data ChartSvgStyle = ChartSvgStyle
+  { sizex :: Double
+  , sizey :: Double
+  , chartAspect :: Double
+  , outerPad :: Maybe Double
+  , innerPad :: Maybe Double
+  , chartFrame :: Maybe RectStyle
+  , orig :: Maybe (Double, PixelRGB8)
+  } deriving (Generic)
+
+defaultChartSvgStyle :: ChartSvgStyle
+defaultChartSvgStyle = ChartSvgStyle 600 400 1.5 (Just 1.05) (Just 1.05) (Just $ border 0.01 blue 1.0) (Just (0.04, red))
+
+renderChartSvg :: Double -> Double -> ChartSvg Double -> Text.Text
+renderChartSvg x y =
+  xmlToText . renderXml (Point x y)
