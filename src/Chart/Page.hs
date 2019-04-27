@@ -8,8 +8,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Chart.Page
   where
@@ -299,7 +297,7 @@ repTickStyle cfg =
       _ -> TickNone
     dtDef = case cfg of
       TickPlaced x -> x
-      _ -> zip [0..5] (show <$> [0..5])
+      _ -> zip [0..5] (show <$> [0..5::Int])
     dt _ (x, l) = (,) <$> slider "placement" 0 1 0.01 x <*> textbox "label" l
     defLabels = case cfg of
       TickLabels xs -> xs
