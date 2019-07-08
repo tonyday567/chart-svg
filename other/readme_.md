@@ -13,8 +13,8 @@ mempty
 
 `render (Point (200.0 :: Double) 200.0) mempty` produces the following svg text:
 
-```include
-other/mempty.md
+```
+<svg viewBox="-0.5 -0.5 1.0 1.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0" />
 ```
 
 one
@@ -107,7 +107,7 @@ recipe
 ---
 
 ```
-stack build --test --exec "$(stack path --local-install-root)/bin/chart-svg" --exec "$(stack path --local-bin)/pandoc -f markdown -i other/readme_.md -t html -o index.html --filter pandoc-include --mathjax" --file-watch --ghc-options -freverse-errors
+stack build --test --exec "$(stack path --local-install-root)/bin/chart-svg" --exec "$(stack path --local-bin)/pandoc -f markdown -i other/readme_.md -t html -o index.html --mathjax" --file-watch --ghc-options -freverse-errors
 ```
 
 ```
