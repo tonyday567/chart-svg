@@ -54,7 +54,7 @@ ls =
 
 \end{code}
 
-manifest representations of the data
+manifest of the data
 ---
 
 Physical, on-the-page representations of data are separate to the data itself.
@@ -91,14 +91,13 @@ glyphs = zipWith (\d s -> Chart (GlyphA s) mempty (SpotPoint <$> d)) ls gopts
 
 \end{code}
 
-![](other/glyphs.svg)
-
+![](other/glyphs_.svg)
 
 This layering is not exactly canonical. [ggplot2](http://r4ds.had.co.nz/visualize.html) uses the term [aesthetics](https://ggplot2.tidyverse.org/reference/aes.html) for the process of deciding which features of the data will be brought out in the visualisation, so that style is seen as a function of the data.
 
 By clearly specifying what is a position on the page (the Spot) from what may be some other style decision (the color or shape of a geometric object), however, other chart features, such as grid-lines and axes, can reuse the same functionality used to build the data representation.
 
-3. the hud
+the hud
 ===
 
 In addition to raw data, and to the manifestation of that data on a physical plane, a chart usually includes decoration that assists in interpreting the chart data - axes, grid lines, titles, legends and friends that visual explain what is being seen in the chart.
@@ -311,6 +310,10 @@ hud4 vb cs =
 
 main :: IO ()
 main = do
+  scratchWith
+    ( clearScratchStyle &
+    #fileName .~ "other/glyphs_.svg" &
+    #ratioAspect .~ 1.5) glyphs
   write "other/canvas1.svg" (Point 200 200) can1
   write "other/canvas2.svg" (Point 200 200) (can2 one (corners 0.2))
   write "other/canvas3.svg" (Point 200 200) (hudSvg one [canvas3] (corners 0.25))
