@@ -7,21 +7,34 @@ Status](https://travis-ci.org/tonyday567/chart-svg.svg)](https://travis-ci.org/t
 [![lts](https://www.stackage.org/package/chart-svg/badge/lts)](http://stackage.org/lts/package/chart-svg)
 [![nightly](https://www.stackage.org/package/chart-svg/badge/nightly)](http://stackage.org/nightly/package/chart-svg)
 
-try `stack build --exec "$(stack path --local-install-root)/bin/style-page" --file-watch` for a style builder.
-
 test svgs
 =========
 
 rects
 -----
 
-zero
+mempty
 
-![](other/zero.svg)
+```
+<svg viewBox="-0.5 -0.5 1.0 1.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0" />
+```
 
-one'
+unit rectangle
 
-![](other/one'.svg)
+![](other/one.svg)
+
+```
+<?xml version='1.0' ?>
+<svg viewBox="-0.603 -0.603 1.206 1.206" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0">
+  <g stroke-width="5.0e-3" stroke="#666666" fill="#5DA5DA" fill-opacity="0.5" stroke-opacity="0.5">
+    <rect width="1.0" height="1.0" x="-0.5" y="-0.5" />
+  </g>
+</svg>
+```
+
+```
+(pad 1.1 $ chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]])
+```
 
 rotate
 
@@ -31,28 +44,28 @@ translate
 
 ![](other/translateOne.svg)
 
-rectChart\_
+rectChart
 
-![](other/rectChart_Example.svg)
+![](other/rectChart.svg)
 
-rectMulti\_
+rectCharts
 
-![](other/rectMulti_Example.svg)
+![](other/rectCharts.svg)
 
-pixelChart\_
+pixelChart
 
-![](other/pixelExample.svg)
+![](other/pixel.svg)
 
 text
 ----
 
 text
 
-![](other/textExample.svg)
+![](other/textChart.svg)
 
-textChart\_
+textsChart
 
-![](other/textChart_Example.svg)
+![](other/textsChart.svg)
 
 boundText
 
@@ -60,53 +73,53 @@ boundText
 
 label + bounding box
 
-![](other/labelExample.svg)
+![](other/label.svg)
 
 glyphs
 ------
 
 circle
 
-![](other/circleExample.svg)
+![](other/circle.svg)
 
 glyphs
 
-![](other/glyphsExample.svg)
+![](other/glyphs.svg)
 
 smiley
 
-![](other/smileyExample.svg)
+![](other/smiley.svg)
 
-glyph
+glyphsChart
 
-![](other/glyphExample.svg)
+![](other/glyphsChart.svg)
 
 line charts
 -----------
 
 line
 
-![](other/lineExample.svg)
+![](other/lines.svg)
 
 gline
 
-![](other/glineExample.svg)
+![](other/glines.svg)
 
 labelled glyph
 --------------
 
 lglyph
 
-![](other/lglyphExample.svg)
+![](other/lglyph.svg)
 
 putting it all together
 
-![](other/compoundExample.svg)
+![](other/compound.svg)
 
 recipe
 ------
 ```
-stack build --test --exec "$(stack path --local-install-root)/bin/chart-svg" --exec "$(stack path --local-bin)/pandoc -f markdown -i other/readme_.md -t html -o index.html --filter pandoc-include --mathjax" --file-watch --ghc-options -freverse-errors
+stack build --test --exec "$(stack path --local-install-root)/bin/chart-svg" --file-watch --ghc-options -freverse-errors
 
 stack build --exec "$(stack path --local-install-root)/bin/style-page" --file-watch
 ```
@@ -114,12 +127,7 @@ stack build --exec "$(stack path --local-install-root)/bin/style-page" --file-wa
 reference
 ---------
 
--   [ghc
-    options](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html#flag-reference)
--   [pragmas](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html)
 -   [libraries](https://www.stackage.org/)
--   [hoogle](https://www.stackage.org/package/hoogle)
--   [doctest](https://www.stackage.org/package/doctest)
 -   [MDN svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial)
 -   [SVG2](https://www.w3.org/TR/SVG2/)
 -   [lucid](http://hackage.haskell.org/package/lucid)
