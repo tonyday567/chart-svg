@@ -53,8 +53,8 @@ ls =
   ]
 ```
 
-manifest representations of the data
-------------------------------------
+manifest of the data
+--------------------
 
 Physical, on-the-page representations of data are separate to the data
 itself.
@@ -91,7 +91,7 @@ glyphs :: [Chart Double]
 glyphs = zipWith (\d s -> Chart (GlyphA s) mempty (SpotPoint <$> d)) ls gopts
 ```
 
-![](other/glyphs.svg)
+![](other/glyphs_.svg)
 
 This layering is not exactly canonical.
 [ggplot2](http://r4ds.had.co.nz/visualize.html) uses the term
@@ -104,8 +104,8 @@ what may be some other style decision (the color or shape of a geometric
 object), however, other chart features, such as grid-lines and axes, can
 reuse the same functionality used to build the data representation.
 
-3. the hud
-==========
+the hud
+=======
 
 In addition to raw data, and to the manifestation of that data on a
 physical plane, a chart usually includes decoration that assists in
@@ -327,7 +327,7 @@ main :: IO ()
 main = do
   scratchWith
     ( clearScratchStyle &
-    #fileName .~ "other/glyphs.svg" &
+    #fileName .~ "other/glyphs_.svg" &
     #ratioAspect .~ 1.5) glyphs
   write "other/canvas1.svg" (Point 200 200) can1
   write "other/canvas2.svg" (Point 200 200) (can2 one (corners 0.2))
