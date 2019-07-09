@@ -1,0 +1,70 @@
+<?xml version='1.0' ?>
+<svg viewBox="-1.2805000000000004 -1.0305000000000002 2.561000000000001 2.1040000000000005" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="400.0" height="400.0">
+  <g stroke-width="0.0" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+    <circle cx="-0.75" cy="0.3" r="5.0e-2" />
+    <circle cx="-0.25" cy="0.3" r="5.0e-2" />
+    <circle cx="0.25" cy="-0.5" r="5.0e-2" />
+  </g>
+  <g stroke-width="0.0" stroke="#666666" fill="#641E1E" fill-opacity="0.3" stroke-opacity="0.3">
+    <rect width="0.1" height="0.15000000000000002" x="-0.8" y="0.425" rx="1.0e-2" ry="1.0e-2" />
+    <rect width="0.1" height="0.15000000000000002" x="0.7" y="-0.1750000000000001" rx="1.0e-2" ry="1.0e-2" />
+  </g>
+  <g stroke-width="0.0" stroke="#666666" fill="#648250" fill-opacity="0.3" stroke-opacity="0.3">
+    <ellipse cx="-0.5" cy="-0.30000000000000004" rx="5.0e-2" ry="7.500000000000001e-2" />
+    <ellipse cx="-0.5" cy="0.5" rx="5.0e-2" ry="7.500000000000001e-2" />
+  </g>
+  <g stroke-width="0.0" stroke="#000000" fill="#666666" fill-opacity="0.2" stroke-opacity="0.0">
+    <rect width="1.6" height="1.125" x="-0.8" y="-0.55" />
+  </g>
+  <g stroke-width="5.0e-3" stroke="#666666" fill="#5DA5DA" fill-opacity="0.5" stroke-opacity="0.5">
+    <rect width="1.5" height="5.0000000000000044e-2" x="-0.75" y="-0.6200000000000001" />
+  </g>
+  <g stroke-width="5.0e-3" stroke="#666666" fill="#5DA5DA" fill-opacity="0.5" stroke-opacity="0.5">
+    <rect width="5.0000000000000044e-2" height="1.0" x="0.8200000000000001" y="-0.5" />
+  </g>
+  <g stroke-width="5.0e-3" stroke="#666666" fill="#5DA5DA" fill-opacity="0.5" stroke-opacity="0.5">
+    <rect width="1.5" height="5.0000000000000044e-2" x="-0.75" y="0.595" />
+  </g>
+  <g stroke-width="5.0e-3" stroke="#666666" fill="#5DA5DA" fill-opacity="0.5" stroke-opacity="0.5">
+    <rect width="5.0000000000000044e-2" height="1.0" x="-0.8700000000000001" y="-0.5" />
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(0.0, -0.0) rotate(0.0)" fill-opacity="1.0" font-size="0.12" text-anchor="middle">
+    <text x="0.0" y="-0.0">PlaceAbsolute</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(-0.8725, 0.7535000000000001) rotate(0.0)" fill-opacity="1.0" font-size="0.12" text-anchor="start">
+    <text x="0.0" y="-0.0">TextAnchorStart:PlaceBottom</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(-0.8725, -0.6625000000000001) rotate(0.0)" fill-opacity="1.0" font-size="0.12" text-anchor="start">
+    <text x="0.0" y="-0.0">TextAnchorStart:PlaceTop</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(-0.9125000000000001, 0.7895000000000001) rotate(-90.0)" fill-opacity="1.0" font-size="0.12" text-anchor="start">
+    <text x="0.0" y="-0.0">TextAnchorStart:PlaceLeft</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(0.9125000000000001, -0.7585) rotate(90.0)" fill-opacity="1.0" font-size="0.12" text-anchor="start">
+    <text x="0.0" y="-0.0">TextAnchorStart:PlaceRight</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(0.0, 0.8955000000000002) rotate(0.0)" fill-opacity="1.0" font-size="0.12" text-anchor="middle">
+    <text x="0.0" y="-0.0">TextAnchorMiddle:PlaceBottom</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(0.0, -0.7985000000000001) rotate(0.0)" fill-opacity="1.0" font-size="0.12" text-anchor="middle">
+    <text x="0.0" y="-0.0">TextAnchorMiddle:PlaceTop</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(-1.0485000000000002, 1.8500000000000072e-2) rotate(-90.0)" fill-opacity="1.0" font-size="0.12" text-anchor="middle">
+    <text x="0.0" y="-0.0">TextAnchorMiddle:PlaceLeft</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(1.0485000000000002, 1.8500000000000072e-2) rotate(90.0)" fill-opacity="1.0" font-size="0.12" text-anchor="middle">
+    <text x="0.0" y="-0.0">TextAnchorMiddle:PlaceRight</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(1.1445000000000003, 1.0375000000000003) rotate(0.0)" fill-opacity="1.0" font-size="0.12" text-anchor="end">
+    <text x="0.0" y="-0.0">TextAnchorEnd:PlaceBottom</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(1.1445000000000003, -0.9345000000000001) rotate(0.0)" fill-opacity="1.0" font-size="0.12" text-anchor="end">
+    <text x="0.0" y="-0.0">TextAnchorEnd:PlaceTop</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(-1.1845000000000003, -1.0305000000000002) rotate(-90.0)" fill-opacity="1.0" font-size="0.12" text-anchor="end">
+    <text x="0.0" y="-0.0">TextAnchorEnd:PlaceLeft</text>
+  </g>
+  <g stroke-width="0.0" stroke="none" fill="#000000" transform="translate(1.1845000000000003, 1.0735000000000003) rotate(90.0)" fill-opacity="1.0" font-size="0.12" text-anchor="end">
+    <text x="0.0" y="-0.0">TextAnchorEnd:PlaceRight</text>
+  </g>
+</svg>

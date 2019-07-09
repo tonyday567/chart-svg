@@ -1,0 +1,12 @@
+<?xml version='1.0' ?>
+<svg viewBox="-0.625 -0.625 1.25 1.25" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0">
+  <g stroke-width="0.0" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+    <circle cx="-0.5" cy="0.5" r="0.125" />
+    <circle cx="-0.5" cy="-0.5" r="0.125" />
+    <circle cx="0.5" cy="0.5" r="0.125" />
+    <circle cx="0.5" cy="-0.5" r="0.125" />
+  </g>
+  <g stroke-width="0.0" stroke="#000000" fill="#666666" fill-opacity="0.2" stroke-opacity="0.0">
+    <rect width="1.25" height="1.25" x="-0.625" y="-0.625" />
+  </g>
+</svg>

@@ -1,11 +1,11 @@
 hud development
-===
+===============
 
 Notes, testing and code for chart-svg develoment.
 
 <br>
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -32,17 +32,17 @@ import Chart.Hud
 import Chart.Core
 import Chart.Spot
 import Graphics.Svg.Types as Svg hiding (Point, Text)
-
-\end{code}
+```
 
 A Chart consists of a few conceptual layers:
 
 data to be represented
----
+----------------------
 
-Data for chart-svg charts is typically a double-list of either points or rectangles.  The data below are three simple lines.
+Data for chart-svg charts is typically a double-list of either points or
+rectangles. The data below are three simple lines.
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 ls :: [[Point Double]]
 ls =
@@ -51,17 +51,19 @@ ls =
   , [(0.0, 0.0), (3.0, 3.0)]
   , [(0.5, 4.0), (0.5, 0)]
   ]
-
-\end{code}
+```
 
 manifest representations of the data
----
+------------------------------------
 
-Physical, on-the-page representations of data are separate to the data itself.
+Physical, on-the-page representations of data are separate to the data
+itself.
 
-chart-svg categorises representations into different style categories.  The code below specifies a line style for representing chart data, with differing colors and line widths.
+chart-svg categorises representations into different style categories.
+The code below specifies a line style for representing chart data, with
+differing colors and line widths.
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 gopts :: [GlyphStyle]
 gopts =
@@ -79,46 +81,60 @@ gopts =
     #shape .~ EllipseGlyph 1.5 $
     defaultGlyphStyle
   ]
-
-\end{code}
+```
 
 and this is enough to create a chart:
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 glyphs :: [Chart Double]
 glyphs = zipWith (\d s -> Chart (GlyphA s) mempty (SpotPoint <$> d)) ls gopts
-
-\end{code}
+```
 
 ![](other/glyphs.svg)
 
+This layering is not exactly canonical.
+[ggplot2](http://r4ds.had.co.nz/visualize.html) uses the term
+[aesthetics](https://ggplot2.tidyverse.org/reference/aes.html) for the
+process of deciding which features of the data will be brought out in
+the visualisation, so that style is seen as a function of the data.
 
-This layering is not exactly canonical. [ggplot2](http://r4ds.had.co.nz/visualize.html) uses the term [aesthetics](https://ggplot2.tidyverse.org/reference/aes.html) for the process of deciding which features of the data will be brought out in the visualisation, so that style is seen as a function of the data.
-
-By clearly specifying what is a position on the page (the Spot) from what may be some other style decision (the color or shape of a geometric object), however, other chart features, such as grid-lines and axes, can reuse the same functionality used to build the data representation.
+By clearly specifying what is a position on the page (the Spot) from
+what may be some other style decision (the color or shape of a geometric
+object), however, other chart features, such as grid-lines and axes, can
+reuse the same functionality used to build the data representation.
 
 3. the hud
-===
+==========
 
-In addition to raw data, and to the manifestation of that data on a physical plane, a chart usually includes decoration that assists in interpreting the chart data - axes, grid lines, titles, legends and friends that visual explain what is being seen in the chart.
+In addition to raw data, and to the manifestation of that data on a
+physical plane, a chart usually includes decoration that assists in
+interpreting the chart data - axes, grid lines, titles, legends and
+friends that visual explain what is being seen in the chart.
 
 chart-svg calls this decoration the heads-up-display - the hud.
 
-The remainder of this *.lhs records hud development.
+The remainder of this \*.lhs records hud development.
 
 decorating the canvas
----
+---------------------
 
-huds are different to pure chart data only in the sense that they require both information on the raw data (eg data ranges to calculate tick values) and information on the representation (eg how wide the chart is to properly locate the tick text on the page)
+huds are different to pure chart data only in the sense that they
+require both information on the raw data (eg data ranges to calculate
+tick values) and information on the representation (eg how wide the
+chart is to properly locate the tick text on the page)
 
-The xy-plane on which the data is represented - the canvas - is a good place to tease this out.
+The xy-plane on which the data is represented - the canvas - is a good
+place to tease this out.
 
-chart-svg and, specifically, `chartSvg` recognises that the physical representation of a data point may fall outside the data range, so that the viewbox becomes wider than the raw data suggests. 
+chart-svg and, specifically, `chartSvg` recognises that the physical
+representation of a data point may fall outside the data range, so that
+the viewbox becomes wider than the raw data suggests.
 
-Here's an attempt to create a background canvas for our example chart corners:
+Here's an attempt to create a background canvas for our example chart
+corners:
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 corners :: Double -> [Chart Double]
 corners s =
@@ -132,15 +148,15 @@ corners s =
 
 can1 :: ChartSvg Double
 can1 = chartSvg one (corners 0.1 <> [Chart (RectA (blob grey 0.2)) mempty [one]])
+```
 
-\end{code}
-<br>
-![](other/canvas1.svg)
-<br>
+<br> ![](other/canvas1.svg) <br>
 
-The canvas has to take into account the data area and the physical representation of the data; in this case the circle size of the data points.
+The canvas has to take into account the data area and the physical
+representation of the data; in this case the circle size of the data
+points.
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 can2 :: (ToRatio a, FromRatio a, Subtractive a, Field a, BoundedLattice a) => ViewBox a -> [Chart a] -> ChartSvg a
 can2 (ViewBox asp) cs =
@@ -150,39 +166,39 @@ can2 (ViewBox asp) cs =
     asp' = styleBoxes cs'
     canvas' = Chart (RectA (blob grey 0.2)) mempty
       [SpotArea asp']
+```
 
-\end{code}
+<br> ![](other/canvas2.svg) <br>
+
+So the introduction of a hud to a chart requires a different api to
+chartSvg. Together with a list of Charts and a ViewBox, we require a
+function that takes in a ViewBox - the viewbox of the main chart list -
+and gives back a list of Charts which is the pre-rendered hud.
 
 <br>
-![](other/canvas2.svg)
-<br>
- 
-So the introduction of a hud to a chart requires a different api to chartSvg.  Together with a list of Charts and a ViewBox, we require a function that takes in a ViewBox - the viewbox of the main chart list - and gives back a list of Charts which is the pre-rendered hud.
 
-<br>
-
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 canvas3 :: Hud a
 canvas3 = canvas (blob grey 0.2) mempty
-
-\end{code}
+```
 
 `hudSvg one canvas3 (corners 0.25)`
 
-<br>
-![](other/canvas3.svg)
-<br>
-
+<br> ![](other/canvas3.svg) <br>
 
 basic axis bars and titles
----
+--------------------------
 
-Building the Hud includes a layering process: the next Hud element being added (which is a [Chart a]) takes into account the ViewBox of the chart and all the previous hud elements.
+Building the Hud includes a layering process: the next Hud element being
+added (which is a \[Chart a\]) takes into account the ViewBox of the
+chart and all the previous hud elements.
 
-The `foldl layer mempty` fold of the Huds effectively forgets what is the chart and what are the hud elements, and text anchoring cannot reference the original chart rep.
+The `foldl layer mempty` fold of the Huds effectively forgets what is
+the chart and what are the hud elements, and text anchoring cannot
+reference the original chart rep.
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 b1 :: [Bar Double]
 b1 =
@@ -208,17 +224,15 @@ hud1 vb cs =
     t = foldl layer mempty $ (\x -> title x mempty) <$>
       (((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double) $
       defaultTitle "PlaceAbsolute") : t1)
-
-\end{code}
+```
 
 `hud1 (aspect 1.5) glyphs`
 
 ![](other/hud1.svg)
 
-
 `fold` ignores the other Hud elements
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 hud2 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud2 vb cs =
   hudSvg vb [c, b, t] cs
@@ -228,16 +242,17 @@ hud2 vb cs =
     t = fold $ (\x -> title x mempty) <$>
       (((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double) $
       defaultTitle "PlaceAbsolute") : t1)
-\end{code}
+```
 
 ![](other/hud2.svg)
 
 tick marks and labels
----
+---------------------
 
-Tick marks is an example of computing and placing Hud elements according to the original range of the data.
+Tick marks is an example of computing and placing Hud elements according
+to the original range of the data.
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 hud3a :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud3a vb cs =
@@ -248,12 +263,11 @@ hud3a vb cs =
     bLeft = bar (Bar PlaceLeft defaultRectStyle 0.005 0.01) mempty
     tBot = tick defaultTick mempty
     tLeft = tick ((#place .~ PlaceLeft :: Tick Double -> Tick Double) $ defaultTick) mempty
-
-\end{code}
+```
 
 ![](other/hud3a.svg)
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 hud3 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud3 vb cs =
@@ -270,19 +284,19 @@ hud3 vb cs =
     tRight = tick ((#place .~ PlaceRight :: Tick Double -> Tick Double) $ defaultTick) mempty
     t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "tick marks") mempty) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
-
-\end{code}
+```
 
 ![](other/hud3.svg)
 
 <br>
 
 tick label rotation
----
+-------------------
 
-Getting ticks to display sensibly can be labor intensive.  Starting with some longer labels to illustrate the process:
+Getting ticks to display sensibly can be labor intensive. Starting with
+some longer labels to illustrate the process:
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 hud4 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud4 vb cs =
@@ -303,14 +317,18 @@ hud4 vb cs =
     tRight = tick ((#place .~ PlaceRight :: Tick Double -> Tick Double) $ ts) mempty
     t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "automated tick style") mempty) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
-\end{code}
+```
 
 ![](other/hud4.svg)
 
-\begin{code}
+``` {.sourceCode .literate .haskell}
 
 main :: IO ()
 main = do
+  scratchWith
+    ( clearScratchStyle &
+    #fileName .~ "other/glyphs.svg" &
+    #ratioAspect .~ 1.5) glyphs
   write "other/canvas1.svg" (Point 200 200) can1
   write "other/canvas2.svg" (Point 200 200) (can2 one (corners 0.2))
   write "other/canvas3.svg" (Point 200 200) (hudSvg one [canvas3] (corners 0.25))
@@ -319,15 +337,12 @@ main = do
   write "other/hud3.svg" (Point 400 400) $ hud3 (aspect 1.5) glyphs
   write "other/hud3a.svg" (Point 400 400) $ hud3a (aspect 1.5) glyphs
   write "other/hud4.svg" (Point 400 400) $ hud4 (aspect 1.5) glyphs
-
-\end{code}
+```
 
 <br>
 
-λ> workflow
+λ\> workflow
 
 <br>
 
-```
-stack build --test --exec "$(stack path --local-install-root)/bin/chart-hud" --exec "$(stack path --local-bin)/pandoc -f markdown+lhs -i app/hud.lhs -t markdown -o hud.md --filter pandoc-include --mathjax" --file-watch --ghc-options -freverse-errors
-```
+    stack build --test --exec "$(stack path --local-install-root)/bin/chart-hud" --exec "$(stack path --local-bin)/pandoc -f markdown+lhs -i app/hud.lhs -t markdown -o hud.md --filter pandoc-include --mathjax" --file-watch --ghc-options -freverse-errors
