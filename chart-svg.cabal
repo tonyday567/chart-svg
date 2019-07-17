@@ -51,7 +51,7 @@ library
     , svg-tree
     , text
     , unordered-containers
-    , web-page
+    , web-rep
     , xml
   default-language: Haskell2010
 
@@ -129,5 +129,5 @@ executable style-page
     , text
     , unordered-containers
     , wai-middleware-static
-    , web-page
+    , web-rep
   default-language: Haskell2010

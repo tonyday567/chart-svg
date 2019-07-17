@@ -30,7 +30,6 @@ import Lucid hiding (b_)
 
 testPage :: Text -> Text -> [(Text, Html ())] -> Page
 testPage title' mid sections =
-  showJs <>
   bootstrapPage <>
   bridgePage &
   #htmlHeader .~ title_ "iroTestPage" &

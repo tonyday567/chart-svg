@@ -195,8 +195,8 @@ repHudConfig cfg = bimap hmap mmap can <<*>> ts <<*>> axs <<*>> auto
   where
   can = maybeRep (Just "canvas") (isJust (cfg ^. #hudCanvas)) $
     repCanvasConfig (maybe defaultCanvasConfig id (cfg ^. #hudCanvas))
-  ts = listify' (Just "titles") "tz" repTitle (cfg ^. #hudTitles)
-  axs = listify' (Just "axes") "axz" (const repAxisConfig) (cfg ^. #hudAxes)
+  ts = listifyDefault (Just "titles") "tz" repTitle (cfg ^. #hudTitles)
+  axs = listifyDefault (Just "axes") "axz" (const repAxisConfig) (cfg ^. #hudAxes)
   auto = checkbox (Just "auto") (cfg ^. #hudAuto)
   hmap can' ts' axs' auto' = auto' <> accordion_ "accc" Nothing
                       [("Axes", axs'), ("Canvas", can'), ("Titles", ts')]
@@ -205,7 +205,7 @@ repHudConfig cfg = bimap hmap mmap can <<*>> ts <<*>> axs <<*>> auto
 repChartSvgStyle :: (Monad m) => ChartSvgStyle -> SharedRep m ChartSvgStyle
 repChartSvgStyle s = do
   x <- slider (Just "sizex") 0 1000 1 (s ^. #sizex)
-  y <- slider (Just "sizex") 0 1000 1 (s ^. #sizey)
+  y <- slider (Just "sizey") 0 1000 1 (s ^. #sizey)
   a <- slider (Just "aspect") 0.1 10 0.1 (s ^. #chartAspect)
   op' <- maybeRep (Just "outer pad") (maybe False (const True) (s ^. #outerPad))
     (slider (Just "pad") 1 1.2 0.01 (maybe 0 identity (s ^. #outerPad)))
