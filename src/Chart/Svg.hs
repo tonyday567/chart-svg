@@ -11,6 +11,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Svg
@@ -76,7 +77,7 @@ newtype ViewBox a = ViewBox
   } deriving (Show, Eq, Semigroup, Functor, Multiplicative)
 
 -- | convert a ratio of x-plane : y-plane to a ViewBox with a height of one.
-aspect :: (FromRatio a, Multiplicative a) => a -> ViewBox a
+aspect :: (FromRational a, Multiplicative a) => a -> ViewBox a
 aspect a = ViewBox $ Area (a * (-0.5)) (a * 0.5) (-0.5) 0.5
 
 -- | convert a ViewBox to a ratio
@@ -98,7 +99,7 @@ instance (Chartable a) => Monoid (ChartSvg a) where
 
 -- * svg primitives
 -- | Rectange svg
-treeRect :: (ToRatio a) => Area a -> Tree
+treeRect :: (ToRational a) => Area a -> Tree
 treeRect a =
   RectangleTree $
   rectUpperLeftCorner .~ (Num x, Num (-w)) $
@@ -109,14 +110,14 @@ treeRect a =
     (Area x z y w) = fromRational <$> a
 
 -- | Text svg
-treeText :: (ToRatio a) => P.Text -> Point a -> Tree
+treeText :: (ToRational a) => P.Text -> Point a -> Tree
 treeText t p =
   TextTree Nothing (textAt (Num x, Num (-y)) t)
   where
     (Point x y) = fromRational <$> p
 
 -- | Text svg with rotation
-treeTextRotate :: (ToRatio a) => P.Text -> a -> Point a -> Tree
+treeTextRotate :: (ToRational a) => P.Text -> a -> Point a -> Tree
 treeTextRotate t rot p =
   TextTree Nothing (textAt (Num x, Num (-y)) t) &
   drawAttr .~ rotatePDA rot p
@@ -297,7 +298,7 @@ defaultFrame :: (Chartable a) => ChartSvg a -> ChartSvg a
 defaultFrame ch = frame (border 0.01 blue 1.0) ch <> ch
 
 -- | render a ChartSvg to an xml Document with the supplied size and various bits and pieces
-renderXmlWith :: (ToRatio a) => Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
+renderXmlWith :: (ToRational a) => Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
 renderXmlWith (Point wid hei) defs desc css fp (ChartSvg (ViewBox vb) ts) =
   Document
   ((\(Area x z y w) -> Just (x,-w,z-x,w-y)) $ fromRational <$> vb)
@@ -306,7 +307,7 @@ renderXmlWith (Point wid hei) defs desc css fp (ChartSvg (ViewBox vb) ts) =
   ts (Map.mapKeys Text.unpack defs) (Text.unpack desc) css fp
 
 -- | render a ChartSvg to an xml Document with the supplied size
-renderXml :: (ToRatio a) => Point a -> ChartSvg a -> Document
+renderXml :: (ToRational a) => Point a -> ChartSvg a -> Document
 renderXml p = renderXmlWith p Map.empty "" [] ""
 
 -- | render an xml document to Text
@@ -314,26 +315,26 @@ xmlToText :: Document -> P.Text
 xmlToText = Text.pack . ppcElement defaultConfigPP . xmlOfDocument
 
 -- | write a ChartSvg to a svg file with various Document attributes.
-writeWith :: (ToRatio a) => FilePath -> Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
+writeWith :: (ToRational a) => FilePath -> Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
 writeWith fp p defs desc css c = saveXmlFile fp (renderXmlWith p defs desc css fp c)
 
 -- | write a ChartSvg to an svg file.
-write :: (ToRatio a) => FilePath -> Point a -> ChartSvg a -> IO ()
+write :: (ToRational a) => FilePath -> Point a -> ChartSvg a -> IO ()
 write fp p = writeWith fp p Map.empty "" []
 
 -- * transformations
 -- | A DrawAttributes to rotate by x degrees.
-rotateDA :: (ToRatio a) => a -> DrawAttributes
+rotateDA :: (ToRational a) => a -> DrawAttributes
 rotateDA r = mempty & transform .~ Just [Rotate (fromRational r) Nothing]
 
 -- | A DrawAttributes to rotate around a point by x degrees.
-rotatePDA :: (ToRatio a) => a -> Point a -> DrawAttributes
+rotatePDA :: (ToRational a) => a -> Point a -> DrawAttributes
 rotatePDA r p = mempty & transform .~ Just [Rotate (fromRational r) (Just (x,-y))]
   where
     (Point x y) = fromRational <$> p
 
 -- | A DrawAttributes to translate by a Point.
-translateDA :: (ToRatio a) => Point a -> DrawAttributes
+translateDA :: (ToRational a) => Point a -> DrawAttributes
 translateDA (Point x y) = mempty & transform .~ Just
   [Translate (fromRational x) (-fromRational y)]
 
@@ -346,7 +347,7 @@ rotate r (ChartSvg (ViewBox vb) c) =
   [groupTrees (rotateDA r) c]
 
 -- | Translate a ChartSvg also moving the ViewBox
-translate :: (Additive a, ToRatio a) => Point a -> ChartSvg a -> ChartSvg a
+translate :: (Additive a, ToRational a) => Point a -> ChartSvg a -> ChartSvg a
 translate p (ChartSvg (ViewBox vb) c) = 
   ChartSvg
   (ViewBox $ translateArea p vb)

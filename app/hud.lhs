@@ -141,7 +141,7 @@ The canvas has to take into account the data area and the physical representatio
 
 \begin{code}
 
-can2 :: (ToRatio a, FromRatio a, Subtractive a, Field a, BoundedLattice a) => ViewBox a -> [Chart a] -> ChartSvg a
+can2 :: (ToRational a, FromRational a, Subtractive a, Field a, BoundedLattice a) => ViewBox a -> [Chart a] -> ChartSvg a
 can2 (ViewBox asp) cs =
   chartSvg_ (ViewBox asp') (cs' <> [canvas'])
   where

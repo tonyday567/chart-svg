@@ -49,7 +49,7 @@ layer (Hud h1) (Hud h2) =
           h1 vb s d <>
           h2 (ViewBox $ asp <> styleBoxes (h1 vb s d)) s d
 
-hudSvg :: (ToRatio a, FromRatio a, Subtractive a, Field a, BoundedLattice a) =>
+hudSvg :: (ToRational a, FromRational a, Subtractive a, Field a, BoundedLattice a) =>
   ViewBox a -> [Hud a] -> [Chart a] -> ChartSvg a
 hudSvg (ViewBox asp) hs cs =
   chartSvg_
@@ -62,7 +62,7 @@ hudSvg (ViewBox asp) hs cs =
     vbData = ViewBox $ toArea $ fold $ fold (spots <$> cs')
     xs = toArea $ fold $ fold (spots <$> cs)
 
-hudSvgWith :: (ToRatio a, FromRatio a, Subtractive a, Field a, BoundedLattice a) =>
+hudSvgWith :: (ToRational a, FromRational a, Subtractive a, Field a, BoundedLattice a) =>
   ViewBox a -> Area a -> [Hud a] -> [Chart a] -> ChartSvg a
 hudSvgWith vb@(ViewBox new) old hs cs =
   chartSvg_
@@ -117,7 +117,7 @@ data Bar a = Bar
   , buff :: a
   } deriving (Show, Eq, Generic)
 
-defaultBar :: (FromRatio a) => Bar a
+defaultBar :: (FromRational a) => Bar a
 defaultBar = Bar PlaceBottom defaultRectStyle 0.02 0.02
 
 canvas :: RectStyle -> DrawAttributes -> Hud a
@@ -307,12 +307,12 @@ getTickFormat (TickExact (tf, _)) = tf
 getTickFormat _ = TickFormatDefault
 
 -- | compute tick values and labels given options, ranges and formatting
-computeTicks :: (Epsilon a, RealFloat a, ExpField a, QuotientField a Integer, FromInteger a, Chartable a) => TickStyle a -> Range a -> Range a -> ([a], [P.Text])
+computeTicks :: (Epsilon a, RealFloat a, ExpField a, QuotientField a Integer, FromRatio a Integer, FromIntegral a Integer, Chartable a) => TickStyle a -> Range a -> Range a -> ([a], [P.Text])
 computeTicks s asp r =
     case s of
       TickNone -> ([], [])
       TickRound (f, n) -> (project r asp <$> ticks0, toFormat f ticks0)
-        where ticks0 = gridSensible OuterPos True r (fromIntegral n) 
+        where ticks0 = gridSensible OuterPos True r (fromIntegral n :: Integer)
       TickExact (f, n) -> (project r asp <$> ticks0, toFormat f ticks0)
         where ticks0 = grid OuterPos r n
       TickLabels ls ->
@@ -322,7 +322,7 @@ computeTicks s asp r =
       TickPlaced xs -> (project r asp . fst <$> xs, snd <$> xs)
 
 -- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
-precision :: (FromInteger a, FromRatio a, QuotientField a Integer, RealFloat a) => Format P.Text (Integer -> P.Text) -> Int -> [a] -> [P.Text]
+precision :: (FromInteger a, FromRational a, QuotientField a Integer, RealFloat a) => Format P.Text (Integer -> P.Text) -> Int -> [a] -> [P.Text]
 precision f n0 xs
   | foldr max 0 xs < 0.01 = precLoop expt' n0 (fromFloatDigits <$> xs)
   | foldr max 0 xs > 100000 = precLoop expt' n0 (fromFloatDigits <$> xs)

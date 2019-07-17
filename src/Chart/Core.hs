@@ -85,8 +85,8 @@ data Chart a = Chart
 
 -- | the aspects a number needs to be to form the data for a chart
 type Chartable a =
-  ( ToRatio a
-  , FromRatio a
+  ( ToRatio a Integer
+  , FromRatio a Integer
   , Subtractive a
   , Field a
   , BoundedJoinSemiLattice a
@@ -110,13 +110,13 @@ annotationText (LineA _) = "LineA"
 -- * transformations
 -- | rotate a Chart by x degrees. This does not touch the underlying data but instead adds a draw attribute to the styling.
 -- Multiple rotations will expand the bounding box conservatively.
-rotateChart :: (ToRatio a) => a -> Chart a -> Chart a
+rotateChart :: (ToRatio a Integer) => a -> Chart a -> Chart a
 rotateChart r c = c & #drawatts %~ (<> rot (fromRational r))
-  where
+  where 
     rot r' = mempty & transform .~ Just [Rotate r' Nothing]
 
 -- | translate a Chart by a Point
-translateChart :: (ToRatio a) => Pair a -> Chart a -> Chart a
+translateChart :: (ToRatio a Integer) => Pair a -> Chart a -> Chart a
 translateChart p c =
   c &
   #drawatts %~
@@ -199,7 +199,7 @@ daText o =
   -- maybe identity (\x -> transform .~ Just [Rotate x Nothing]) (o ^. #rotation)
 
 -- | the extra area from text styling
-styleBoxText :: (FromRatio a) =>
+styleBoxText :: (FromRatio a Integer) =>
   TextStyle -> DrawAttributes -> Text.Text -> Area a
 styleBoxText o das t = fromRational <$> maybe flat (\r -> rotateArea r flat) (o ^. #rotation)
     where
@@ -341,7 +341,7 @@ daLine o =
   (fillColor .~ Last (Just FillNone))
 
 -- | the extra area from the stroke element of an svg style attribute
-styleBoxStroke :: (FromRatio a) => DrawAttributes -> Area a
+styleBoxStroke :: (FromRatio a Integer) => DrawAttributes -> Area a
 styleBoxStroke das = fromRational <$> Area (-x/2) (x/2) (-x/2) (x/2)
   where
     x = case das ^. Svg.strokeWidth & getLast of
@@ -350,7 +350,7 @@ styleBoxStroke das = fromRational <$> Area (-x/2) (x/2) (-x/2) (x/2)
 
 -- | the extra geometric dimensions of a 'DrawAttributes'
 -- only handles stroke width and transformations
-styleBoxDA :: (ToRatio a, FromRatio a, Subtractive a) => DrawAttributes -> Area a -> Area a
+styleBoxDA :: (ToRatio a Integer, FromRatio a Integer, Subtractive a) => DrawAttributes -> Area a -> Area a
 styleBoxDA da r = fromRational <$> r' where
   r' = foldr tr (fromRational <$> styleBoxStroke da + r)
     (da ^. transform & maybe [] identity)
@@ -441,7 +441,7 @@ blend c = mixWithAlpha f (f 0) where
 
 -- | create pixel data from a function on a Point
 pixelate :: (Lattice a, Field a, Subtractive a, FromInteger a) =>
-  (Point a -> Double) -> Area a -> Point Int -> PixelRGB8 -> PixelRGB8 -> [(Area a, PixelRGB8)]
+  (Point a -> Double) -> Area a -> Grid (Area a) -> PixelRGB8 -> PixelRGB8 -> [(Area a, PixelRGB8)]
 pixelate f r g c0 c1 = (\(x,y) -> (x, blend y c0 c1)) <$> ps'
   where
     ps = areaF f r g

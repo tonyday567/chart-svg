@@ -169,7 +169,7 @@ boundText =
 pixel' :: (Point Double -> Double) -> [Chart Double]
 pixel' f =
   (\(r,c) -> Chart (RectA (RectStyle 0 black 0 c 1)) mempty [SpotArea r]) <$>
-  pixelate f (fmap (pi*) one) (Point 100 100) blue grey
+  pixelate f (fmap (pi*) one) (Pair 100 100) blue grey
 
 f1 :: TrigField a => Point a -> a
 f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))

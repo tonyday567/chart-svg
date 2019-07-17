@@ -38,7 +38,12 @@ pattern Point a b = Point' (Pair a b)
 -- | a rectangular area on the xy-plane
 newtype Area a = Area'
   { getRect :: Rect a
-  } deriving (Eq, Show, Functor, Space, Semigroup, Monoid, FieldSpace)
+  } deriving (Eq, Show, Functor, Space, Semigroup, Monoid)
+
+instance (Lattice a, Field a, Subtractive a, FromInteger a) => FieldSpace (Area a) where
+  type (Grid (Area a)) = Pair Int
+  grid o (Area' r) n = grid o r n
+  gridSpace (Area' r) n = Area' <$> gridSpace r n
 
 -- | pattern for Area x z y w
 pattern Area :: a -> a -> a -> a -> Area a
@@ -192,5 +197,5 @@ dataXY :: (Lattice a, Field a, Subtractive a, FromInteger a) => (a -> a) -> Rang
 dataXY f r g = (\x -> Point x (f x)) <$> grid OuterPos r g
 
 -- | Create area data for a formulae c = f(x,y)
-areaF :: (Lattice a, Field a, Subtractive a, FromInteger a) => (Point a -> b) -> Area a -> Point Int -> [(Area a, b)]
-areaF f r g = (\x -> (x, f (Point' $ mid (getRect x)))) <$> gridSpace r (getPair g)
+areaF :: (Lattice a, Field a, Subtractive a, FromInteger a) => (Point a -> b) -> Area a -> Grid (Area a) -> [(Area a, b)]
+areaF f r g = (\x -> (x, f (Point' $ mid (getRect x)))) <$> gridSpace r g
