@@ -326,11 +326,3 @@ main = do
 \end{code}
 
 <br>
-
-λ> workflow
-
-<br>
-
-```
-stack build --test --exec "$(stack path --local-install-root)/bin/chart-hud" --exec "$(stack path --local-bin)/pandoc -f markdown+lhs -i app/hud.lhs -t markdown -o hud.md --filter pandoc-include --mathjax" --file-watch --ghc-options -freverse-errors
-```
