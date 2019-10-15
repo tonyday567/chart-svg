@@ -294,10 +294,10 @@ hud4 vb cs =
     bTop = bar PlaceTop (Bar defaultRectStyle 0.005 0.01) mempty
     bRight = bar PlaceRight (Bar defaultRectStyle 0.005 0.01) mempty
     tBot :: Hud Double
-    tBot = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a PlaceBottom (ts, mempty) in let (Hud hud') = tick PlaceBottom ts' das' in hud' vb' d a
+    tBot = adjustedTickHud (AxisConfig Nothing (Just defaultAdjustments) ts PlaceBottom)
     tLeft = tick PlaceLeft ts mempty
     tTop :: Hud Double
-    tTop = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a PlaceTop (ts, mempty) in let (Hud hud') = tick PlaceTop ts' das' in hud' vb' d a
+    tTop = adjustedTickHud (AxisConfig Nothing (Just defaultAdjustments) ts PlaceTop)
     tRight = tick PlaceRight ts mempty
     t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "automated tick style") mempty) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])

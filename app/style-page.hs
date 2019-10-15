@@ -169,7 +169,7 @@ main =
     middleware $ staticPolicy (noDots >-> addBase "other")
     middleware
       (midShared
-       (repChoice 1
+       (repChoice 0
         [("main",
          repMain defaultChartSvgStyle (GlyphA defaultGlyphStyle)
          defaultHudConfig),

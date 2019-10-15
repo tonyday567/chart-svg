@@ -22,7 +22,7 @@ import Data.Attoparsec.Text
 import Data.Generics.Labels ()
 import Lucid
 import Protolude hiding ((<<*>>))
-import Web.Page hiding (foldl', foldr)
+import Web.Page
 import qualified Box ()
 import NumHask.Data.Range
 import qualified Data.Text as Text
@@ -46,7 +46,7 @@ repAnnotation ann = SharedRep $ do
   pure $ Rep (ha <>
               with hrect [ class__ "subtype "
                       , data_ "sumtype" "RectA"
-                      , style_
+                     , style_
                    ("display:" <> bool "block" "none" (annotationText ann /= "RectA"))] <>
               with htext [ class__ "subtype "
                       , data_ "sumtype" "TextA"
@@ -85,7 +85,7 @@ repAnnotation ann = SharedRep $ do
 
 repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
 repLineStyle s = do
-  w <- slider (Just "width") 0.000 0.2 0.001 (s ^. #width)
+  w <- slider (Just "width") 0.000 0.05 0.001 (s ^. #width)
   c <- colorPicker (Just "color") (s ^. #color)
   o <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
   pure $ LineStyle w c o
@@ -161,15 +161,27 @@ repBar cfg = do
   b <- slider (Just "buffer") 0 0.2 0.01 (cfg ^. #buff)
   pure $ Bar r w b
 
+repAdjustments :: (Monad m) => Adjustments -> SharedRep m Adjustments
+repAdjustments a = do
+  maxx <- slider (Just "maximum x ratio") 0.000 0.2 0.001 (a ^. #maxXRatio)
+  maxy <- slider (Just "maximum y ratio") 0.000 0.2 0.001 (a ^. #maxYRatio)
+  angle <- slider (Just "angle ratio") 0.000 1 0.001 (a ^. #angledRatio)
+  diag <- checkbox (Just "allow diagonal text") (a ^. #allowDiagonal)
+  pure $ Adjustments maxx maxy angle diag
+
 repAxisConfig :: (Monad m) => AxisConfig Double -> SharedRep m (AxisConfig Double)
-repAxisConfig cfg = bimap hmap AxisConfig b <<*>> hauto <<*>> t <<*>> p
+repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
   where
     b =
       maybeRep
       (Just "axis bar")
       (isJust (cfg ^. #abar))
       (repBar (maybe defaultBar identity (cfg ^. #abar)))
-    hauto = checkbox (Just "auto") (cfg^. #hasAuto)
+    adj =
+      maybeRep
+      (Just "adjustments")
+      (isJust (cfg ^. #adjust))
+      (repAdjustments (maybe defaultAdjustments identity (cfg ^. #adjust)))
     t = repTick (cfg ^. #atick)
     p = repPlace (cfg ^. #place)
     hmap b' hauto' t' p' = accordion_ "accaxis" Nothing
@@ -181,7 +193,7 @@ repAxisConfig cfg = bimap hmap AxisConfig b <<*>> hauto <<*>> t <<*>> p
 
 repHudConfig :: (Monad m) => Int -> Int -> AxisConfig Double -> Title Double -> HudConfig -> SharedRep m HudConfig
 repHudConfig naxes ntitles defaxis deftitle cfg =
-  bimap hmap HudConfig can <<*>> ts <<*>> axs <<*>> auto
+  bimap hmap HudConfig can <<*>> ts <<*>> axs
   where
     can = maybeRep (Just "canvas") (isJust (cfg ^. #hudCanvas)) $
       repCanvasConfig (maybe defaultCanvasConfig id (cfg ^. #hudCanvas))
@@ -189,13 +201,11 @@ repHudConfig naxes ntitles defaxis deftitle cfg =
       ntitles deftitle (cfg ^. #hudTitles)
     axs = listifyMaybe' (Just "axes") "axz" (checkbox Nothing) repAxisConfig
       naxes defaxis (cfg ^. #hudAxes)
-    auto = checkbox (Just "auto") (cfg ^. #hudAuto)
-    hmap can' ts' axs' auto' =
+    hmap can' ts' axs' =
       accordion_ "accc" Nothing
       [ ("Axes", axs')
       , ("Canvas", can')
       , ("Titles", ts')
-      , ("Auto", auto')
       ]
 
 repChartSvgStyle :: (Monad m) => ChartSvgStyle -> SharedRep m ChartSvgStyle
@@ -336,14 +346,22 @@ repTickStyle cfg =
       _ -> True
 
 repTick :: (Monad m) => Tick Double -> SharedRep m (Tick Double)
-repTick cfg = bimap hmap Tick gs <<*>> txts <<*>> b <<*>> tb <<*>> ticks
+repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
   where
-    gs = repGlyphStyle (cfg ^. #gstyle)
-    txts = repTextStyle (cfg ^. #textStyle)
-    b = slider (Just "buffer") 0 0.05 0.001 (cfg ^. #buff)
-    tb = slider (Just "text buffer") 0 0.05 0.001 (cfg ^. #textBuff)
-    ticks = repTickStyle (cfg ^. #tstyle)
-    hmap gs' txts' b' tb' ticks' = accordion_ "acctick" Nothing [("glyph", gs'), ("text", txts'), ("buffer", b'), ("text buffer", tb'), ("ticks", ticks')]
+    ts = repTickStyle (cfg ^. #tstyle)
+    gt = maybeRep Nothing (isJust (cfg ^. #gtick)) $ bimap (<>) (,) (repGlyphStyle (maybe defaultGlyphTick fst (cfg ^. #gtick))) <<*>>
+      slider (Just "buffer") 0 0.05 0.001 (maybe 0.05 snd (cfg ^. #gtick))
+    tt = maybeRep Nothing (isJust (cfg ^. #ttick)) $ bimap (<>) (,) (repTextStyle (maybe defaultTextTick fst (cfg ^. #ttick))) <<*>>
+      slider (Just "buffer") 0 0.05 0.001 (maybe 0.05 snd (cfg ^. #ttick))
+    lt = maybeRep Nothing (isJust (cfg ^. #ltick)) $ bimap (<>) (,) (repLineStyle (maybe defaultLineTick fst (cfg ^. #ltick))) <<*>>
+      slider (Just "buffer") -0.1 0.1 0.001 (maybe 0 snd (cfg ^. #ltick))
+    hmap ts' gt' tt' lt' =
+      accordion_ "acctick" Nothing
+      [ ("style", ts')
+      , ("glyph", gt')
+      , ("text", tt')
+      , ("line", lt')
+      ]
 
 repPoint :: (Monad m) => Point (Range Double) -> Point Double -> Point Double -> SharedRep m (Point Double)
 repPoint (Point (Range xmin xmax) (Range ymin ymax)) (Point xstep ystep) (Point x y) =

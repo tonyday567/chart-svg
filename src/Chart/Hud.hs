@@ -55,33 +55,6 @@ layer (Hud h1) (Hud h2) =
 layers :: Chartable a => [[Hud a]] -> Hud a
 layers hss = foldl layer mempty $ mconcat <$> hss
 
-hudSvg :: (Chartable a) =>
-  ViewBox a -> [[Hud a]] -> [Chart a] -> ChartSvg a
-hudSvg asp hss cs =
-  hudSvgWith asp (dataArea cs) (mconcat <$> hss) cs
-{-
-  chartSvg_
-  (ViewBox (styleBoxes (cs' <> h vbStyle (ViewBox xs) xs)))
-  (cs' <> h vbStyle (ViewBox xs) xs)
-  where
-    (Hud h) = layers hss
-    cs' = projectSpots asp cs
-    vbStyle = ViewBox $ styleBoxes cs'
-    xs = dataArea cs
-    xs' = dataArea cs'
--}
-
-hudSvgWith :: (Chartable a) =>
-  ViewBox a -> Area a -> [Hud a] -> [Chart a] -> ChartSvg a
-hudSvgWith asp@(ViewBox vb) vborig hs cs =
-  chartSvg_
-  (ViewBox (vb <> styleBoxes (cs' <> h vbStyle asp vborig)))
-  (cs' <> h vbStyle asp vborig)
-  where
-    (Hud h) = foldl layer mempty hs
-    cs' = projectSpotsWith vb vborig cs
-    vbStyle = ViewBox $ vb <> styleBoxes cs'
-
 -- | Orientation for an element.  Watch this space for curvature!
 data Orientation
   = Hori
@@ -181,7 +154,7 @@ title :: (Chartable a, FromInteger a) => Title a -> DrawAttributes -> Hud a
 title t das =
   Hud $ \(ViewBox a) _ _ -> (:[]) $
     Chart (TextA style' [t ^. #text])
-    (das <> translateDA (placePos a + alignPos a) <> rotateDA (rot :: Double)) [zero]
+    (das <> translateDA (placePos' a + alignPos a) <> rotateDA (rot :: Double)) [zero]
       where
         style'
           | t ^. #anchor == AnchorStart =
@@ -193,7 +166,7 @@ title t das =
           | t ^. #place == PlaceRight = 90.0
           | t ^. #place == PlaceLeft = -90.0
           | otherwise = 0
-        placePos (Area x z y w) = case t ^. #place of
+        placePos' (Area x z y w) = case t ^. #place of
           PlaceTop -> Point ((x+z)/2.0) (w + (t ^. #buff))
           PlaceBottom -> Point ((x+z)/2.0)
             (y - (t ^. #buff) -
@@ -224,15 +197,37 @@ title t das =
           | otherwise = Point 0 0
 
 data Tick a = Tick
-  { gstyle :: GlyphStyle
-  , textStyle :: TextStyle
-  , buff :: a
-  , textBuff :: a
-  , tstyle :: TickStyle a
+  { tstyle :: TickStyle a
+  , gtick :: Maybe (GlyphStyle, a)
+  , ttick :: Maybe (TextStyle, a)
+  , ltick :: Maybe (LineStyle, a)
   } deriving (Show, Eq, Generic)
 
+defaultGlyphTick :: GlyphStyle
+defaultGlyphTick =
+  defaultGlyphStyle &
+  #borderOpacity .~ 1 &
+  #borderColor .~ grey &
+  #shape .~ VLineGlyph 0.005
+
+defaultTextTick :: TextStyle
+defaultTextTick =
+  defaultTextStyle & #size .~ 0.05
+
+defaultLineTick :: LineStyle
+defaultLineTick =
+  defaultLineStyle &
+  #color .~ PixelRGB8 168 229 238 &
+  #width .~ 5.0e-3 &
+  #opacity .~ 0.3
+
 defaultTick :: (FromRational a) => Tick a
-defaultTick = Tick (#borderOpacity .~ 1 $ #borderColor .~ grey $ #shape .~ VLineGlyph 0.005 $ defaultGlyphStyle) (#size .~ 0.05 $ defaultTextStyle) 0.03 0.05 (TickRound TickFormatDefault 8 TickExtend)
+defaultTick =
+  Tick
+  (TickRound TickFormatDefault 8 TickExtend)
+  (Just (defaultGlyphTick, 0.03))
+  (Just (defaultTextTick, 0.05))
+  (Just (defaultLineTick, 0.0))
 
 data TickFormat
   = TickFormatDefault
@@ -334,58 +329,102 @@ precision f n0 xs
 
 type Tickable a = (Chartable a, FromIntegral a Integer, FromRational a, Epsilon a, QuotientField a Integer, ExpField a, RealFloat a, FromInteger a)
 
--- | Create tick labels and marks for an axis
+placePos :: (Chartable a) => Place a -> a -> Area a -> Point a
+placePos pl b (Area x z y w) = case pl of
+  PlaceTop -> Point zero (w + b)
+  PlaceBottom -> Point zero (y - b)
+  PlaceLeft -> Point (x - b) zero
+  PlaceRight -> Point (z + b) zero
+  PlaceAbsolute p -> p
+
+textPos :: (Chartable a) => Place a -> TextStyle -> a -> Point a
+textPos pl tt b = case pl of
+  PlaceTop -> Point zero b
+  PlaceBottom -> Point zero (-b + -0.5 * fromRational' (tt ^. #vsize) * fromRational' (tt ^. #size))
+  PlaceLeft -> Point (-b)
+    (fromRational' (tt ^. #nudge1) * fromRational' (tt ^. #vsize) * fromRational' (tt ^. #size))
+  PlaceRight -> Point b
+    (fromRational' (tt ^. #nudge1) * fromRational' (tt ^. #vsize) * fromRational' (tt ^. #size))
+  PlaceAbsolute p -> p
+
+placeRot :: (Chartable a) => Place a -> a
+placeRot pl = case pl of
+  PlaceRight -> -90.0
+  PlaceLeft -> -90.0
+  _ -> zero
+
+placeRange :: Place a -> Area a -> Range a
+placeRange pl (Area x z y w) = case pl of
+  PlaceRight -> Range y w
+  PlaceLeft -> Range y w
+  _ -> Range x z
+
+placeOrigin :: (Chartable a) => Place a -> a -> Point a
+placeOrigin pl x
+  | pl `elem` [PlaceTop, PlaceBottom] = Point x zero
+  | otherwise = Point zero x
+
+placeTextAnchor :: (Chartable a) => Place a -> (TextStyle -> TextStyle)
+placeTextAnchor pl
+  | pl `elem` [PlaceLeft] = #anchor .~ AnchorEnd
+  | pl `elem` [PlaceRight] = #anchor .~ AnchorStart
+  | otherwise = id
+
+placeGridLines :: (Chartable a) => Place a -> Area a -> a -> a -> [Spot a]
+placeGridLines pl (Area x z y w) a b
+  | pl `elem` [PlaceTop, PlaceBottom] = [SP a (y - b), SP a (w + b)]
+  | otherwise = [SP (x - b) a, SP (z + b) a]
+
+placeGridLines' :: (Chartable a) => Place a -> Area a -> a -> [Spot a]
+placeGridLines' pl (Area x z y w) a
+  | pl `elem` [PlaceTop, PlaceBottom] = [SP a y, SP a w]
+  | otherwise = [SP x a, SP z a]
+
+tickGlyph :: (Tickable a) =>
+  Place a -> Tick a -> DrawAttributes -> Hud a
+tickGlyph pl t das = Hud $ \(ViewBox a) (ViewBox d) xs ->
+  maybe [] (\(g, b) -> [ Chart (GlyphA g)
+    (das <> translateDA (placePos pl b a) <> rotateDA (placeRot pl))
+    (SpotPoint <$> (\x -> Point x 0) <$>
+     fst
+       (computeTicks (t ^. #tstyle) (placeRange pl d) (placeRange pl xs)))
+  ]) (t ^. #gtick)
+
+tickText :: (Tickable a) =>
+  Place a -> Tick a -> DrawAttributes -> Hud a
+tickText pl t das = Hud $ \(ViewBox a) (ViewBox d) xs ->
+  maybe [] (\(tt, b) ->
+              zipWith
+             (\txt sp ->
+                Chart (TextA (placeTextAnchor pl tt) [txt])
+               (das <> translateDA (placePos pl b a + textPos pl tt b)) [SpotPoint sp])
+             (snd (computeTicks (t ^. #tstyle) (placeRange pl d) (placeRange pl xs)))
+             (placeOrigin pl <$> fst
+              (computeTicks (t ^. #tstyle) (placeRange pl d) (placeRange pl xs)))
+           )
+  (t ^. #ttick)
+
+
+-- let darea = Area 0.0 6.283185307179586 -0.9945218953682734 0.9945218953682734
+-- let vbStyle = ViewBox (Area -0.8664999999999999 0.8664999999999999 -0.5165 0.5165)
+-- let hc = HudConfig Nothing [] [AxisConfig Nothing Nothing (Tick (TickRound TickFormatDefault 8 TickExtend) Nothing Nothing (Just (defaultLineTick, 0.02))) PlaceBottom]
+-- let (Hud h) = foldl layer mempty $ mconcat <$> (hudsWith hc)
+-- let ss = spots <$> h vbStyle (aspect 1.7) (dataArea c2)
+-- spots <$> unhud (tickLine PlaceBottom (Tick (TickRound TickFormatDefault 8 TickExtend) Nothing Nothing (Just (defaultLineTick, 0.02))) mempty) vbStyle (aspect 1.7) darea
+-- let ts = [-0.85,-0.5794365967437779,-0.3088731934875558,-3.830979023133374e-2,0.23225361302488834,0.5028170162811104,0.7733804195373325,1.0439438227935547]
+
+tickLine :: (Tickable a) =>
+  Place a -> Tick a -> DrawAttributes -> Hud a
+tickLine pl t das = Hud $ \_ (ViewBox d) xs ->
+  maybe [] (\(l, b) -> Chart (LineA l) das <$>
+    ((\x -> placeGridLines pl d x b) <$> fst
+       (computeTicks (t ^. #tstyle) (placeRange pl d) (placeRange pl xs))))
+  (t ^. #ltick)
+
+-- | Create tick glyphs (marks), lines (grid) and text (labels)
 tick :: (Tickable a) =>
   Place a -> Tick a -> DrawAttributes -> Hud a
-tick pl t das =
-  Hud $ \(ViewBox a) (ViewBox d) xs ->
-  [ Chart (GlyphA (t ^. #gstyle))
-    (das <> translateDA (placePos a) <> rotateDA (rot :: Double))
-    (SpotPoint <$> ps' (ra d) (ra xs))
-  ] <>
-  zipWith
-  (\txt sp ->
-      Chart (TextA (ta (t ^. #textStyle)) [txt])
-       (das <> translateDA (placePos a + textPos)) [SpotPoint sp])
-  (snd (ts (ra d) (ra xs)))
-  (ps (ra d) (ra xs))
-      where
-        ps a xs
-          | pl `elem` [PlaceTop, PlaceBottom] =
-            (\x -> Point x 0) <$> fst (ts a xs)
-          | otherwise =
-            (\y -> Point 0 y) <$> fst (ts a xs)
-        ps' a xs
-          | pl `elem` [PlaceTop, PlaceBottom] =
-            (\x -> Point x 0) <$> fst (ts a xs)
-          | otherwise =
-            (\x -> Point x 0) <$> fst (ts a xs)
-        ra (Area x z y w)
-          | pl `elem` [PlaceTop, PlaceBottom] = Range x z
-          | otherwise = Range y w
-        ts a xs = computeTicks (t ^. #tstyle) a xs
-        rot
-          | pl == PlaceRight = -90.0
-          | pl == PlaceLeft = -90.0
-          | otherwise = 0
-        placePos (Area x z y w) = case pl of
-          PlaceTop -> Point 0 (w + (t ^. #buff))
-          PlaceBottom -> Point 0 (y - (t ^. #buff))
-          PlaceLeft -> Point (x - (t ^. #buff)) 0
-          PlaceRight -> Point (z + (t ^. #buff)) 0
-          PlaceAbsolute p -> p
-        textPos = case pl of
-          PlaceTop -> Point 0 (t ^. #buff)
-          PlaceBottom -> Point 0 ((-t^. #textBuff) + -0.5 * fromRational' (t ^. #textStyle ^. #vsize) * fromRational' (t ^. #textStyle ^. #size))
-          PlaceLeft -> Point (- (t ^. #textBuff)) (fromRational' (t ^. #textStyle ^. #nudge1) * fromRational' (t ^. #textStyle ^. #vsize) * fromRational' (t ^. #textStyle ^. #size))
-          PlaceRight -> Point (t ^. #buff) (fromRational' (t ^. #textStyle ^. #nudge1) * fromRational' (t ^. #textStyle ^. #vsize) * fromRational' (t ^. #textStyle ^. #size))
-          PlaceAbsolute p -> p
-        ta s = case pl of
-          PlaceBottom -> s
-          PlaceTop -> s
-          PlaceLeft -> (#anchor .~ AnchorEnd :: TextStyle -> TextStyle) s
-          PlaceRight -> (#anchor .~ AnchorStart :: TextStyle -> TextStyle) s
-          PlaceAbsolute _ -> s
+tick pl t das = mconcat [tickGlyph pl t das, tickText pl t das, tickLine pl t das]
 
 -- | compute an extension to the Range if a tick went over the data bounding box
 computeTickExtension :: (Epsilon a, FromInteger a, RealFloat a, ExpField a, QuotientField a Integer, Chartable a) => TickStyle a -> Range a -> Maybe (Range a)
@@ -420,34 +459,35 @@ tickExtended pl t xs =
 
 
 -- | options for prettifying axis decorations
-data AutoOptions =
-  AutoOptions
+data Adjustments =
+  Adjustments
   { maxXRatio :: Double
   , maxYRatio :: Double
   , angledRatio :: Double
   , allowDiagonal :: Bool
   } deriving (Show, Eq, Generic) 
 
-defaultAutoOptions :: AutoOptions
-defaultAutoOptions = AutoOptions 0.08 0.06 0.12 True
+defaultAdjustments :: Adjustments
+defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 
 -- | adjust Tick for sane font sizes etc
-adjustTick :: (Tickable a) => AutoOptions -> ViewBox a -> Area a -> Place a -> (Tick a, DrawAttributes) -> (Tick a, DrawAttributes)
-adjustTick (AutoOptions mrx ma mry ad) vb cs pl (t, das)
+adjustTick :: (Tickable a) => Adjustments -> ViewBox a -> Area a -> Place a -> DrawAttributes ->
+  Tick a -> Tick a
+adjustTick (Adjustments mrx ma mry ad) vb cs pl das t
   | pl `elem` [PlaceBottom, PlaceTop] = case ad of
-      False -> ((#textStyle %~ (#size %~ (/adjustSizeX))) t, das)
+      False -> t & #ttick . _Just . _1 . #size %~ (/adjustSizeX)
       True ->
         case adjustSizeX > one of
           True ->
-            ((case pl of
-                PlaceBottom -> #textStyle . #anchor .~ AnchorEnd
-                PlaceTop -> #textStyle . #anchor .~ AnchorStart
-                _ -> #textStyle . #anchor .~ AnchorEnd) $
-             (#textStyle . #size %~ (/adjustSizeA)) $
-             (#textStyle . #rotation .~ Just (-45)) t, das)
-          False -> ((#textStyle . #size %~ (/adjustSizeA)) t, das)
+            (case pl of
+                PlaceBottom -> #ttick . _Just . _1 . #anchor .~ AnchorEnd
+                PlaceTop -> #ttick . _Just . _1 . #anchor .~ AnchorStart
+                _ -> #ttick . _Just . _1 . #anchor .~ AnchorEnd) $
+             (#ttick . _Just . _1 . #size %~ (/adjustSizeA)) $
+             (#ttick . _Just . _1 . #rotation .~ Just (-45)) t
+          False -> (#ttick . _Just . _1 . #size %~ (/adjustSizeA)) t
   | pl `elem` [PlaceLeft, PlaceRight] =
-    ((#textStyle . #size %~ (/adjustSizeY)) t, das)
+    (#ttick . _Just . _1 . #size %~ (/adjustSizeY)) t
   where
     ra (Area x z y w)
       | pl `elem` [PlaceTop, PlaceBottom] = Range x z
@@ -455,18 +495,23 @@ adjustTick (AutoOptions mrx ma mry ad) vb cs pl (t, das)
     asp = ra (vbArea vb)
     r = ra cs
     tickl = snd (computeTicks (t ^. #tstyle) asp r)
+    maxWidth :: Double
     maxWidth =
-          maybe one identity (maximum' $
+          maybe one (\tt -> maybe one id $ maximum' $
           (\(Area x z _ _) -> z - x)
-              <$> styleBoxText (t ^. #textStyle) das <$> tickl)
+              <$> styleBoxText (fst tt) das <$> tickl) (t ^. #ttick)
     maxHeight =
-      maybe one identity
-          (maximum' $
+      maybe one 
+          (\tt -> maybe one id $ maximum' $
           (\(Area _ _ y w) -> w - y)
-              <$> styleBoxText (t ^. #textStyle) das <$> tickl)
-    adjustSizeX = maybe one identity (maximum' [(maxWidth / fromRational' (upper asp - lower asp)) / mrx, one])
-    adjustSizeY = maybe one identity (maximum' [(maxHeight / fromRational' (upper asp - lower asp)) / mry, one])
-    adjustSizeA = maybe one identity (maximum' [(maxHeight / fromRational' (upper asp - lower asp)) / ma, one])
+              <$> styleBoxText (fst tt) das <$> tickl) (t ^. #ttick)
+    adjustSizeX :: Double
+    adjustSizeX =
+      maybe one identity (maximum' [(maxWidth / fromRational' (upper asp - lower asp)) / mrx, one])
+    adjustSizeY =
+      maybe one identity (maximum' [(maxHeight / fromRational' (upper asp - lower asp)) / mry, one])
+    adjustSizeA =
+      maybe one identity (maximum' [(maxHeight / fromRational' (upper asp - lower asp)) / ma, one])
 
 data CanvasConfig = CanvasConfig
   { color :: PixelRGB8
@@ -478,19 +523,18 @@ defaultCanvasConfig  = CanvasConfig grey 0.03
 
 data AxisConfig a = AxisConfig
   { abar :: Maybe (Bar a)
-  , hasAuto :: Bool
+  , adjust :: Maybe Adjustments
   , atick :: Tick a
   , place :: Place Double
   } deriving (Eq, Show, Generic)
 
 defaultAxisConfig :: AxisConfig Double
-defaultAxisConfig = AxisConfig (Just (Bar (RectStyle 0 grey 0 (PixelRGB8 95 3 145) 0.5) 0.005 0.01)) True defaultTick PlaceBottom
+defaultAxisConfig = AxisConfig (Just (Bar (RectStyle 0 grey 0 (PixelRGB8 95 3 145) 0.5) 0.005 0.01)) (Just defaultAdjustments) defaultTick PlaceBottom
 
 data HudConfig = HudConfig
   { hudCanvas :: Maybe CanvasConfig
   , hudTitles :: [Title Double]
   , hudAxes ::  [AxisConfig Double]
-  , hudAuto :: Bool
   } deriving (Eq, Show, Generic)
 
 defaultHudConfig :: HudConfig
@@ -501,22 +545,32 @@ defaultHudConfig =
   [ defaultAxisConfig
   , defaultAxisConfig & #place .~ PlaceLeft
   ]
-  False
 
--- let cs = [Chart (TextA defaultTextStyle ["test1", "test2"]) mempty [SP 0 0, SP 1 1]] :: [Chart Double]
+hudSvg :: (Chartable a) =>
+  ViewBox a -> [[Hud a]] -> [Chart a] -> ChartSvg a
+hudSvg asp hss cs =
+  hudSvgWith asp (dataArea cs) (mconcat <$> hss) cs
+
+hudSvgWith :: (Chartable a) =>
+  ViewBox a -> Area a -> [Hud a] -> [Chart a] -> ChartSvg a
+hudSvgWith asp@(ViewBox vb) vborig hs cs =
+  chartSvg_
+  (ViewBox (vb <> styleBoxes (cs' <> h vbStyle asp vborig)))
+  (cs' <> h vbStyle asp vborig)
+  where
+    (Hud h) = foldl layer mempty hs
+    cs' = projectSpotsWith vb vborig cs
+    vbStyle = ViewBox $ vb <> styleBoxes cs'
 
 hud :: HudConfig -> ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud cfg asp cs =
-  hudSvgWith asp
-  (dataArea $ cs <> exts)
-  (mconcat <$> hudsWith cfg)
-  (cs <> exts)
+  hudSvg asp (hudsWith cfg) (cs <> exts)
   where
     exts =
       mconcat $
       (\c -> tickExtended (c ^. #place) (c ^. #atick) (dataArea cs)) <$>
       (cfg ^. #hudAxes)
- 
+
 hudsWith :: HudConfig -> [[Hud Double]]
 hudsWith cfg =
   [[can]] <> [axes] <> ((:[]) <$> titles)
@@ -527,16 +581,18 @@ hudsWith cfg =
        (cfg' ^. #opacity)) mempty)
       (cfg ^. #hudCanvas)
     titles = (`title` mempty) <$> (cfg ^. #hudTitles)
-    autoTick c =
-      Hud $ \vb' d a ->
-        let (ts',das') =
-              adjustTick defaultAutoOptions vb' a (c ^. #place)
-              (c ^. #atick, mempty) in
-        let (Hud h) = tick (c ^. #place) ts' das' in
-          h vb' d a
-    axes = (\x -> autoTick x <>
+    axes = (\x -> adjustedTickHud x <>
              maybe mempty (\a -> bar (x ^. #place) a mempty) (x ^. #abar)) <$>
            (cfg ^. #hudAxes)
+
+adjustedTickHud :: AxisConfig Double -> Hud Double
+adjustedTickHud c = Hud $ \vb d xs ->
+  let adjTick =
+        maybe
+        (c ^. #atick)
+        (\x -> adjustTick x vb xs (c ^. #place) mempty (c ^. #atick))
+        (c ^. #adjust) in
+  let (Hud h) = tick (c ^. #place) adjTick mempty in h vb d xs
 
 renderChartWith :: ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
 renderChartWith scfg hcfg cs =
