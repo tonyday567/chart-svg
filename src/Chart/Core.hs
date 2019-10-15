@@ -28,13 +28,13 @@ module Chart.Core
   , border
   , TextStyle(..)
   , defaultTextStyle
-  , anchorToString
-  , stringToAnchor
+  , Anchor(..)
+  , fromAnchor
+  , toAnchor
+  , toTextAnchor
   , GlyphStyle(..)
   , defaultGlyphStyle
   , GlyphShape(..)
-  , toGlyphShape
-  , fromGlyphShape
   , toGlyph
   , fromGlyph
   , LineStyle(..)
@@ -46,12 +46,14 @@ module Chart.Core
   , daText
   , daGlyph
   , daLine
+  , dataArea
   , styleBox
   , styleBoxes
   , projectWithStyle
   , projectWithStyles
   , showOrigin
   , showOriginWith
+  , defaultOrigin
   , blue
   , grey
   , red
@@ -87,6 +89,7 @@ data Chart a = Chart
 type Chartable a =
   ( ToRatio a Integer
   , FromRatio a Integer
+  , FromRational a
   , Subtractive a
   , Field a
   , BoundedJoinSemiLattice a
@@ -99,6 +102,7 @@ data Annotation
   | TextA TextStyle [Text.Text]
   | GlyphA GlyphStyle
   | LineA LineStyle
+  | BlankA
   deriving (Eq, Show, Generic)
 
 annotationText :: Annotation -> Text
@@ -106,13 +110,14 @@ annotationText (RectA _) = "RectA"
 annotationText TextA{} = "TextA"
 annotationText (GlyphA _) = "GlyphA"
 annotationText (LineA _) = "LineA"
+annotationText BlankA = "BlankA"
 
 -- * transformations
 -- | rotate a Chart by x degrees. This does not touch the underlying data but instead adds a draw attribute to the styling.
 -- Multiple rotations will expand the bounding box conservatively.
 rotateChart :: (ToRatio a Integer) => a -> Chart a -> Chart a
-rotateChart r c = c & #drawatts %~ (<> rot (fromRational r))
-  where 
+rotateChart r c = c & #drawatts %~ (<> rot (fromRational' r))
+  where
     rot r' = mempty & transform .~ Just [Rotate r' Nothing]
 
 -- | translate a Chart by a Point
@@ -122,7 +127,7 @@ translateChart p c =
   #drawatts %~
   (<> (mempty & transform .~ Just [Translate x (-y)]))
   where
-   (Pair x y) = fromRational <$> p 
+   (Pair x y) = fromRational' <$> p
 
 -- | Rectangle styling
 data RectStyle = RectStyle
@@ -135,16 +140,16 @@ data RectStyle = RectStyle
 
 -- | the official style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.005 grey 0.5 blue 0.5
+defaultRectStyle = RectStyle 0.005 grey 0.5 red 0.5
 
 daRect :: RectStyle -> DrawAttributes
 daRect o =
   mempty &
-  (strokeWidth .~ Last (Just $ Num (fromRational $ o ^. #borderSize))) .
+  (strokeWidth .~ Last (Just $ Num (fromRational' $ o ^. #borderSize))) .
   (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #borderColor))) .
-  (strokeOpacity .~ Just (fromRational $ o ^. #borderOpacity)) .
+  (strokeOpacity .~ Just (fromRational' $ o ^. #borderOpacity)) .
   (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (fillOpacity .~ Just (fromRational $ o ^. #opacity)) 
+  (fillOpacity .~ Just (fromRational' $ o ^. #opacity)) 
 
 -- | solid rectangle, no border
 blob :: PixelRGB8 -> Double -> RectStyle
@@ -163,28 +168,35 @@ data TextStyle = TextStyle
   { size :: Double
   , color :: PixelRGB8
   , opacity :: Double
-  , alignH :: TextAnchor 
+  , anchor :: Anchor 
   , hsize :: Double
   , vsize :: Double
   , nudge1 :: Double
   , rotation :: Maybe Double
   } deriving (Show, Eq, Generic)
 
-anchorToString :: (IsString s) => TextAnchor -> s
-anchorToString TextAnchorMiddle = "Middle"
-anchorToString TextAnchorStart = "Start"
-anchorToString TextAnchorEnd = "End"
+data Anchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
 
-stringToAnchor :: (Eq s, IsString s) => s -> TextAnchor
-stringToAnchor "Middle" = TextAnchorMiddle
-stringToAnchor "Start" = TextAnchorStart
-stringToAnchor "End" = TextAnchorEnd
-stringToAnchor _ = TextAnchorMiddle
+fromAnchor :: (IsString s) => Anchor -> s
+fromAnchor AnchorMiddle = "Middle"
+fromAnchor AnchorStart = "Start"
+fromAnchor AnchorEnd = "End"
+
+toAnchor :: (Eq s, IsString s) => s -> Anchor
+toAnchor "Middle" = AnchorMiddle
+toAnchor "Start" = AnchorStart
+toAnchor "End" = AnchorEnd
+toAnchor _ = AnchorMiddle
+
+toTextAnchor :: Anchor -> TextAnchor
+toTextAnchor AnchorMiddle = TextAnchorMiddle
+toTextAnchor AnchorStart = TextAnchorStart
+toTextAnchor AnchorEnd = TextAnchorEnd
 
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 grey 1.0 TextAnchorMiddle 0.45 1.1 (-0.25) Nothing
+  TextStyle 0.08 grey 1.0 AnchorMiddle 0.5 1.45 (-0.4) Nothing
 
 -- | doesn't include the rotation text style which needs to be specified in the same layer as the placement.
 daText :: TextStyle -> DrawAttributes
@@ -194,24 +206,24 @@ daText o =
   (strokeWidth .~ Last (Just $ Num 0)) .
   (strokeColor .~ Last (Just FillNone)) .
   (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (fillOpacity .~ Just (fromRational $ o ^. #opacity)) .
-  (textAnchor .~ Last (Just (o ^. #alignH)))
+  (fillOpacity .~ Just (fromRational' $ o ^. #opacity)) .
+  (textAnchor .~ Last (Just (toTextAnchor $ o ^. #anchor)))
   -- maybe identity (\x -> transform .~ Just [Rotate x Nothing]) (o ^. #rotation)
 
 -- | the extra area from text styling
 styleBoxText :: (FromRatio a Integer) =>
   TextStyle -> DrawAttributes -> Text.Text -> Area a
-styleBoxText o das t = fromRational <$> maybe flat (\r -> rotateArea r flat) (o ^. #rotation)
+styleBoxText o das t = fromRational' <$> maybe flat (\r -> rotateArea r flat) (o ^. #rotation)
     where
       flat = Area ((-x'/two) + x'*origx) (x'/two + x'*origx) ((-y'/two) - n1') (y'/two - n1')
       das' = das <> daText o
       s = case getLast (das' ^. fontSize) of
-        Just (Num n) -> fromRational n
+        Just (Num n) -> fromRational' n
         _ -> 0.0
       h = o ^. #hsize
       v = o ^. #vsize
       n1 = o ^. #nudge1
-      x' = s * h * fromRational (Text.length t)
+      x' = s * h * fromRational' (Text.length t)
       y' = s * v
       n1' = s * n1
       origx = case das' ^. textAnchor of
@@ -233,7 +245,9 @@ data GlyphStyle = GlyphStyle
 
 -- | the offical circle style
 defaultGlyphStyle :: GlyphStyle
-defaultGlyphStyle = GlyphStyle 0.03 blue 0.3 grey 0.3 0.015 CircleGlyph
+defaultGlyphStyle =
+  GlyphStyle 0.03 (PixelRGB8 217 151 33) 0.8 (PixelRGB8 44 66 157) 0.4 0.003
+  SquareGlyph
 
 -- | glyph shapes
 data GlyphShape
@@ -248,31 +262,7 @@ data GlyphShape
   | SmileyGlyph
   deriving (Show, Eq, Generic)
 
-fromGlyphShape :: (IsString s) => GlyphShape -> (s, [Double])
-fromGlyphShape CircleGlyph = ("Circle", [])
-fromGlyphShape SquareGlyph = ("Square", [])
-fromGlyphShape (EllipseGlyph n) = ("Ellipse", [n])
-fromGlyphShape (RectSharpGlyph n) = ("RectSharp", [n])
-fromGlyphShape (RectRoundedGlyph n1 n2 n3) = ("RectRounded", [n1,n2,n3])
-fromGlyphShape (TriangleGlyph (Point x1 y1) (Point x2 y2) (Point x3 y3)) =
-  ("Triangle", [x1, y1, x2, y2, x3, y3])
-fromGlyphShape (VLineGlyph n) = ("VLine", [n])
-fromGlyphShape (HLineGlyph n) = ("HLine", [n])
-fromGlyphShape SmileyGlyph = ("Smiley", [])
-
-toGlyphShape :: (IsString s, Eq s) => (s, [Double]) -> GlyphShape
-toGlyphShape ("Circle", _) = CircleGlyph
-toGlyphShape ("Square", _) = SquareGlyph
-toGlyphShape ("Ellipse", n:_) = EllipseGlyph n
-toGlyphShape ("RectSharp", n:_) = RectSharpGlyph n
-toGlyphShape ("RectRounded", n1:n2:n3:_) = RectRoundedGlyph n1 n2 n3
-toGlyphShape ("Triangle", x1:y1:x2:y2:x3:y3:_) = TriangleGlyph (Point x1 y1) (Point x2 y2) (Point x3 y3)
-toGlyphShape ("VLine", n:_) = VLineGlyph n
-toGlyphShape ("HLine", n:_) = HLineGlyph n
-toGlyphShape ("Smiley", _) = SmileyGlyph
-toGlyphShape _ = SmileyGlyph
-
-toGlyph :: (Eq a, IsString a) => a -> GlyphShape
+toGlyph :: Text -> GlyphShape
 toGlyph sh =
   case sh of
     "Circle" -> CircleGlyph
@@ -286,36 +276,37 @@ toGlyph sh =
     "Smiley Face" -> SmileyGlyph
     _ -> CircleGlyph
 
-fromGlyph :: (IsString a) => GlyphShape -> a
+fromGlyph :: GlyphShape -> Text
 fromGlyph sh =
   case sh of
     CircleGlyph -> "Circle"
     SquareGlyph -> "Square"
-    TriangleGlyph _ _ _ -> "Triangle"
+    TriangleGlyph {} -> "Triangle"
     EllipseGlyph _ -> "Ellipse"
-    RectSharpGlyph _ -> "Rectangle"
-    RectRoundedGlyph _ _ _ -> "Rounded Rectangle"
-    VLineGlyph _ -> "Verticle Line"
-    HLineGlyph _ -> "Horizontal Line"
-    SmileyGlyph -> "Smiley Face"
+    RectSharpGlyph _ -> "RectSharp"
+    RectRoundedGlyph {} -> "RectRounded"
+    VLineGlyph _ -> "VLine"
+    HLineGlyph _ -> "HLine"
+    SmileyGlyph -> "Smiley"
 
 daGlyph :: GlyphStyle -> DrawAttributes
 daGlyph o =
   mempty &
   (strokeWidth .~ Last (Just $ Num (o ^. #borderSize))) .
   (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #borderColor))) .
-  (strokeOpacity .~ Just (fromRational $ o ^. #borderOpacity)) .
+  (strokeOpacity .~ Just (fromRational' $ o ^. #borderOpacity)) .
   (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (fillOpacity .~ Just (fromRational $ o ^. #opacity))
+  (fillOpacity .~ Just (fromRational' $ o ^. #opacity))
 
 -- | the extra area from glyph styling
 styleBoxGlyph :: (Chartable a) => GlyphStyle -> Area a
-styleBoxGlyph s = fromRational <$> case sh of
+styleBoxGlyph s = fromRational' <$> case sh of
   EllipseGlyph a -> scale (Point sz (a*sz)) one
   RectSharpGlyph a -> scale (Point sz (a*sz)) one
   RectRoundedGlyph a _ _ -> scale (Point sz (a*sz)) one
   VLineGlyph a -> scale (Point (a*sz) sz) one
   HLineGlyph a -> scale (Point sz (a*sz)) one
+  TriangleGlyph a b c -> (sz*) <$> fold (toArea . SpotPoint <$> [a,b,c] :: [Area Double])
   _ -> (sz*) <$> one
   where
     sh = s ^. #shape 
@@ -337,12 +328,12 @@ daLine o =
   mempty &
   (strokeWidth .~ Last (Just $ Num (o ^. #width))) .
   (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (strokeOpacity .~ Just (fromRational $ o ^. #opacity)) .
+  (strokeOpacity .~ Just (fromRational' $ o ^. #opacity)) .
   (fillColor .~ Last (Just FillNone))
 
 -- | the extra area from the stroke element of an svg style attribute
 styleBoxStroke :: (FromRatio a Integer) => DrawAttributes -> Area a
-styleBoxStroke das = fromRational <$> Area (-x/2) (x/2) (-x/2) (x/2)
+styleBoxStroke das = fromRational' <$> Area (-x/2) (x/2) (-x/2) (x/2)
   where
     x = case das ^. Svg.strokeWidth & getLast of
       Just (Num x') -> x'
@@ -351,8 +342,8 @@ styleBoxStroke das = fromRational <$> Area (-x/2) (x/2) (-x/2) (x/2)
 -- | the extra geometric dimensions of a 'DrawAttributes'
 -- only handles stroke width and transformations
 styleBoxDA :: (ToRatio a Integer, FromRatio a Integer, Subtractive a) => DrawAttributes -> Area a -> Area a
-styleBoxDA da r = fromRational <$> r' where
-  r' = foldr tr (fromRational <$> styleBoxStroke da + r)
+styleBoxDA da r = fromRational' <$> r' where
+  r' = foldr tr (fromRational' <$> styleBoxStroke da + r)
     (da ^. transform & maybe [] identity)
   tr a x = case a of
     Translate x' y' -> translateArea (Point x' (-y')) x
@@ -366,6 +357,17 @@ styleBoxDA da r = fromRational <$> r' where
     SkewY _ -> throw (NumHaskException "SkewY transformation not yet implemented")
     TransformUnknown -> x
 
+-- | includes guards against singleton dimensions
+dataArea :: Chartable a => [Chart a] -> Area a
+dataArea [] = Area -0.5 0.5 -0.5 0.5
+dataArea cs
+  | mconcat (spots <$> cs) == [] = Area -0.5 0.5 -0.5 0.5
+  | x == z && y == w = Area (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
+  | x == z = Area (x - 0.5) (x + 0.5) y w
+  | y == w = Area x z (y - 0.5) (y + 0.5)
+  | otherwise = Area x z y w
+  where (Area x z y w) = toArea $ fold $ fold (spots <$> cs)
+
 -- | the extra geometric dimensions of a Chart (from both style and draw attributes)
 styleBox :: (Chartable a) => Chart a -> Area a
 styleBox (Chart (TextA s ts) das xs) = fold $ zipWith (\t x ->
@@ -376,10 +378,12 @@ styleBox (Chart (RectA s) das xs) = fold
   (styleBoxDA (das <> daRect s) . toArea <$> xs)
 styleBox (Chart (LineA s) das xs) = fold
   (styleBoxDA (das <> daLine s) . toArea <$> xs)
+styleBox (Chart BlankA das xs) = fold
+  (styleBoxDA das . toArea <$> xs)
 
 -- | the extra geometric dimensions of a [Chart]
 styleBoxes :: (Chartable a) => [Chart a] -> Area a
-styleBoxes xss = fold $ styleBox <$> xss
+styleBoxes xss = dataArea xss <> fold (styleBox <$> xss)
 
 -- | project data to a ViewBox based on style effects
 projectWithStyle :: (Chartable a) =>
@@ -398,20 +402,19 @@ projectWithStyles vb chs =
     xss = (\(Chart _ _ xs) -> xs) <$> chs
 
 -- | include a circle at the origin with size and color
-showOriginWith :: forall a. (Chartable a) => Double -> PixelRGB8 -> Chart a
-showOriginWith s c =
+showOriginWith :: forall a. (Chartable a) => GlyphStyle -> Chart a
+showOriginWith c =
   Chart
-  (GlyphA $
-    #borderSize .~ 0.0 $
-    #size .~ s $
-    #color .~ c $
-    defaultGlyphStyle)
+  (GlyphA c)
   mempty
   [SP zero zero]
 
+defaultOrigin :: GlyphStyle
+defaultOrigin = GlyphStyle 0.05 red 0.5 grey 0 0 CircleGlyph
+
 -- | include a red circle at the origin
 showOrigin :: (Chartable a) => Chart a
-showOrigin = showOriginWith 0.1 red
+showOrigin = showOriginWith defaultOrigin
 
 -- * color
 -- | the official chart-unit blue

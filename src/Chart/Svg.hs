@@ -53,6 +53,7 @@ module Chart.Svg
   , placedLabel
   , ChartSvgStyle(ChartSvgStyle)
   , defaultChartSvgStyle
+  , defaultSvgFrame
   , renderChartSvg
   ) where
 
@@ -107,14 +108,14 @@ treeRect a =
   rectHeight .~ Num (w-y) $
   defaultSvg
   where
-    (Area x z y w) = fromRational <$> a
+    (Area x z y w) = fromRational' <$> a
 
 -- | Text svg
 treeText :: (ToRational a) => P.Text -> Point a -> Tree
 treeText t p =
   TextTree Nothing (textAt (Num x, Num (-y)) t)
   where
-    (Point x y) = fromRational <$> p
+    (Point x y) = fromRational' <$> p
 
 -- | Text svg with rotation
 treeTextRotate :: (ToRational a) => P.Text -> a -> Point a -> Tree
@@ -122,27 +123,27 @@ treeTextRotate t rot p =
   TextTree Nothing (textAt (Num x, Num (-y)) t) &
   drawAttr .~ rotatePDA rot p
   where
-    (Point x y) = fromRational <$> p
+    (Point x y) = fromRational' <$> p
 
 -- | GlyphShape to svg primitive
 treeShape :: GlyphShape -> Double -> Point Double -> Tree
 treeShape CircleGlyph s p =
-  CircleTree $ Circle mempty (Num x, Num (-y)) (Num (fromRational s/2))
+  CircleTree $ Circle mempty (Num x, Num (-y)) (Num (fromRational' s/2))
   where
-    (Point x y) = fromRational <$> p
+    (Point x y) = fromRational' <$> p
 treeShape SquareGlyph s p = treeRect (translateArea p ((s*) <$> one))
 treeShape (RectSharpGlyph x') s p =
   treeRect (translateArea p (scale (Point s (x'*s)) one))
 treeShape (RectRoundedGlyph x'' rx ry) s p  =
   RectangleTree $
   rectUpperLeftCorner .~ (Num (x+x'), Num (-(w+y'))) $
-  rectWidth .~ Num (fromRational z-fromRational x) $
-  rectHeight .~ Num (fromRational w-fromRational y) $
-  rectCornerRadius .~ (Num (fromRational rx), Num (fromRational ry)) $
+  rectWidth .~ Num (fromRational' z-fromRational' x) $
+  rectHeight .~ Num (fromRational' w-fromRational' y) $
+  rectCornerRadius .~ (Num (fromRational' rx), Num (fromRational' ry)) $
   defaultSvg
   where
-    (Area x z y w) = fromRational <$> scale (Point s (x''*s)) one
-    (Point x' y') = fromRational <$> p
+    (Area x z y w) = fromRational' <$> scale (Point s (x''*s)) one
+    (Point x' y') = fromRational' <$> p
 treeShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p  =
   PolygonTree $
   polygonPoints .~ rps $
@@ -154,37 +155,37 @@ treeShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p  =
       , V2 (s*xb) (-s*yb)
       , V2 (s*xc) (-s*yc)
       ]
-    (Point x' y') = fromRational <$> p
+    (Point x' y') = fromRational' <$> p
 treeShape (EllipseGlyph x') s (Point x y) =
-  EllipseTree $ Ellipse mempty (Num (fromRational x), Num (-(fromRational y)))
-  (Num $ fromRational s/two) (Num $ (fromRational x'*fromRational s)/two)
+  EllipseTree $ Ellipse mempty (Num (fromRational' x), Num (-(fromRational' y)))
+  (Num $ fromRational' s/two) (Num $ (fromRational' x'*fromRational' s)/two)
 treeShape (VLineGlyph x') s (Point x y) =
-  LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num (fromRational x'))))
-  (Num (fromRational x), Num (fromRational $ y - s/two))
-  (Num (fromRational x), Num (fromRational $ y + s/two))
+  LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num (fromRational' x'))))
+  (Num (fromRational' x), Num (fromRational' $ y - s/two))
+  (Num (fromRational' x), Num (fromRational' $ y + s/two))
 treeShape (HLineGlyph x') s (Point x y) =
-  LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num $ fromRational x')))
-  (Num (fromRational $ x - s/two), Num $ fromRational y)
-  (Num (fromRational $ x + s/two), Num (fromRational y))
+  LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num $ fromRational' x')))
+  (Num (fromRational' $ x - s/two), Num $ fromRational' y)
+  (Num (fromRational' $ x + s/two), Num (fromRational' y))
 treeShape SmileyGlyph s' p =
   groupTrees mempty
   [ CircleTree
     $ defaultSvg
     & drawAttr . fillColor .~ (Last $ Just $ ColorRef $ PixelRGBA8 255 255 0 255)
-    & circleCenter .~ (Num (0.5 * fromRational s), Num (0.5 * fromRational s))
-    & circleRadius .~ Num (0.5 * fromRational s)
+    & circleCenter .~ (Num (0.5 * fromRational' s), Num (0.5 * fromRational' s))
+    & circleRadius .~ Num (0.5 * fromRational' s)
   , EllipseTree
     $ defaultSvg
     & drawAttr . fillColor .~ (Last $ Just $ ColorRef $ PixelRGBA8 255 255 255 255)
-    & ellipseCenter .~ (Num (0.35 * fromRational s), Num (0.3 * fromRational s))
-    & ellipseXRadius .~ Num (0.05 * fromRational s)
-    & ellipseYRadius .~ Num (0.1 * fromRational s)
+    & ellipseCenter .~ (Num (0.35 * fromRational' s), Num (0.3 * fromRational' s))
+    & ellipseXRadius .~ Num (0.05 * fromRational' s)
+    & ellipseYRadius .~ Num (0.1 * fromRational' s)
   , EllipseTree
     $ defaultSvg
     & drawAttr . fillColor .~ (Last $ Just $ ColorRef $ PixelRGBA8 255 255 255 255)
-    & ellipseCenter .~ (Num (0.65 * fromRational s), Num (0.3 * fromRational s))
-    & ellipseXRadius .~ Num (0.05 * fromRational s)
-    & ellipseYRadius .~ Num (0.1 * fromRational s)
+    & ellipseCenter .~ (Num (0.65 * fromRational' s), Num (0.3 * fromRational' s))
+    & ellipseXRadius .~ Num (0.05 * fromRational' s)
+    & ellipseYRadius .~ Num (0.1 * fromRational' s)
   , GroupTree $
     defaultSvg &
     groupChildren .~
@@ -197,14 +198,14 @@ treeShape SmileyGlyph s' p =
       & drawAttr . fillColor .~ (Last $ Just FillNone)
       & drawAttr . strokeColor .~ (Last $ Just $ ColorRef $
                                    PixelRGBA8 0 0 0 255)
-      & drawAttr . strokeWidth .~ Last (Just (Num (fromRational s * 0.03)))
+      & drawAttr . strokeWidth .~ Last (Just (Num (fromRational' s * 0.03)))
       & drawAttr . transform .~ Just [Translate (0.18*s) (0.65*s)]
     ]
   ]
-  & drawAttr . transform .~ Just [Translate (x - s/2) (y - s/2)]
+  & drawAttr . transform .~ Just [Translate (x - s/2) (-y - s/2)]
   where
-    s = fromRational s'
-    (Point x y) = fromRational <$> p
+    s = fromRational' s'
+    (Point x y) = fromRational' <$> p
 
 -- | GlyphStyle to svg primitive
 treeGlyph :: GlyphStyle -> Point Double -> Tree
@@ -215,7 +216,7 @@ treeGlyph s =
 treeLine :: (Chartable a) => [Point a] -> Tree
 treeLine xs =
   PolyLineTree $
-  polyLinePoints .~ ((\(Point x y) -> V2 x (-y)) . fmap fromRational <$> xs) $
+  polyLinePoints .~ ((\(Point x y) -> V2 x (-y)) . fmap fromRational' <$> xs) $
   defaultSvg
 
 -- | convert a Chart to svg
@@ -223,13 +224,15 @@ tree :: (Chartable a) => Chart a -> Tree
 tree (Chart (TextA s ts) das xs) =
   groupTrees (das <> daText s) (zipWith treeText' ts (toPoint <$> xs))
   where
-    treeText' = maybe treeText (\r txt p -> treeTextRotate txt (fromRational r) p) (s ^. #rotation)
+    treeText' = maybe treeText (\r txt p -> treeTextRotate txt (fromRational' r) p) (s ^. #rotation)
 tree (Chart (GlyphA s) das xs) =
-  groupTrees (das <> daGlyph s) (treeGlyph s <$> (toPoint . fmap fromRational <$> xs))
+  groupTrees (das <> daGlyph s) (treeGlyph s <$> (toPoint . fmap fromRational' <$> xs))
 tree (Chart (LineA s) das xs) =
   groupTrees (das <> daLine s) [treeLine (toPoint <$> xs)]
 tree (Chart (RectA s) das xs) =
   groupTrees (das <> daRect s) (treeRect <$> (toArea <$> xs))
+tree (Chart BlankA das _) =
+  groupTrees das []
 
 -- | add drawing attributes as a group svg wrapping a [Tree]
 groupTrees :: DrawAttributes -> [Tree] -> Tree
@@ -301,9 +304,9 @@ defaultFrame ch = frame (border 0.01 blue 1.0) ch <> ch
 renderXmlWith :: (ToRational a) => Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
 renderXmlWith (Point wid hei) defs desc css fp (ChartSvg (ViewBox vb) ts) =
   Document
-  ((\(Area x z y w) -> Just (x,-w,z-x,w-y)) $ fromRational <$> vb)
-  (Just (Num (fromRational wid)))
-  (Just (Num (fromRational hei)))
+  ((\(Area x z y w) -> Just (x,-w,z-x,w-y)) $ fromRational' <$> vb)
+  (Just (Num (fromRational' wid)))
+  (Just (Num (fromRational' hei)))
   ts (Map.mapKeys Text.unpack defs) (Text.unpack desc) css fp
 
 -- | render a ChartSvg to an xml Document with the supplied size
@@ -325,18 +328,18 @@ write fp p = writeWith fp p Map.empty "" []
 -- * transformations
 -- | A DrawAttributes to rotate by x degrees.
 rotateDA :: (ToRational a) => a -> DrawAttributes
-rotateDA r = mempty & transform .~ Just [Rotate (fromRational r) Nothing]
+rotateDA r = mempty & transform .~ Just [Rotate (fromRational' r) Nothing]
 
 -- | A DrawAttributes to rotate around a point by x degrees.
 rotatePDA :: (ToRational a) => a -> Point a -> DrawAttributes
-rotatePDA r p = mempty & transform .~ Just [Rotate (fromRational r) (Just (x,-y))]
+rotatePDA r p = mempty & transform .~ Just [Rotate (fromRational' r) (Just (x,-y))]
   where
-    (Point x y) = fromRational <$> p
+    (Point x y) = fromRational' <$> p
 
 -- | A DrawAttributes to translate by a Point.
 translateDA :: (ToRational a) => Point a -> DrawAttributes
 translateDA (Point x y) = mempty & transform .~ Just
-  [Translate (fromRational x) (-fromRational y)]
+  [Translate (fromRational' x) (-fromRational' y)]
 
 -- | Rotate a ChartSvg expanding the ViewBox as necessary.
 -- Multiple rotations will expand the bounding box conservatively.
@@ -362,11 +365,12 @@ data ScratchStyle = ScratchStyle
   , outerPad :: Double
   , innerPad :: Double
   , frame' :: ChartSvg Double -> ChartSvg Double
-  , maybeOrig :: Maybe (Double, PixelRGB8)
+  , maybeOrig :: Maybe GlyphStyle
   } deriving (Generic)
 
 defaultScratchStyle :: ScratchStyle
-defaultScratchStyle  = ScratchStyle "other/scratchpad.svg" 200 1.5 1.05 1.05 defaultFrame (Just (0.04, red))
+defaultScratchStyle  =
+  ScratchStyle "other/scratchpad.svg" 200 1.5 1.05 1.05 defaultFrame Nothing
 
 clearScratchStyle :: ScratchStyle
 clearScratchStyle  = ScratchStyle "other/scratchpad.svg" 400 1 1 1 defaultFrame Nothing
@@ -400,7 +404,7 @@ scratchWith s x =
   (orig' <> x) where
   orig' = case s ^. #maybeOrig of
     Nothing -> mempty
-    Just (n,c) -> [showOriginWith n c]
+    Just g -> [showOriginWith g]
 
 placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
 placedLabel p d t =
@@ -415,11 +419,14 @@ data ChartSvgStyle = ChartSvgStyle
   , outerPad :: Maybe Double
   , innerPad :: Maybe Double
   , chartFrame :: Maybe RectStyle
-  , orig :: Maybe (Double, PixelRGB8)
-  } deriving (Generic)
+  , orig :: Maybe GlyphStyle
+  } deriving (Generic, Show)
 
 defaultChartSvgStyle :: ChartSvgStyle
-defaultChartSvgStyle = ChartSvgStyle 600 400 1.5 (Just 1.05) (Just 1.05) (Just $ border 0.01 blue 1.0) (Just (0.04, red))
+defaultChartSvgStyle = ChartSvgStyle 800 600 1.7 (Just 1.02) Nothing Nothing Nothing
+
+defaultSvgFrame :: RectStyle
+defaultSvgFrame = border 0.01 blue 1.0
 
 renderChartSvg :: Double -> Double -> ChartSvg Double -> Text.Text
 renderChartSvg x y =

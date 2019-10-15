@@ -17,7 +17,6 @@ Notes, testing and code for chart-svg develoment.
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
@@ -31,7 +30,6 @@ import Data.Generics.Labels ()
 import Chart.Hud
 import Chart.Core
 import Chart.Spot
-import Graphics.Svg.Types as Svg hiding (Point, Text)
 
 \end{code}
 
@@ -141,7 +139,7 @@ The canvas has to take into account the data area and the physical representatio
 
 \begin{code}
 
-can2 :: (ToRational a, FromRational a, Subtractive a, Field a, BoundedLattice a) => ViewBox a -> [Chart a] -> ChartSvg a
+can2 :: (Chartable a) => ViewBox a -> [Chart a] -> ChartSvg a
 can2 (ViewBox asp) cs =
   chartSvg_ (ViewBox asp') (cs' <> [canvas'])
   where
@@ -183,30 +181,30 @@ The `foldl layer mempty` fold of the Huds effectively forgets what is the chart 
 
 \begin{code}
 
-b1 :: [Bar Double]
+b1 :: [(Place Double, Bar Double)]
 b1 =
-  [ Bar PlaceTop defaultRectStyle 0.05 0.02
-  , Bar PlaceRight defaultRectStyle 0.05 0.02
-  , Bar PlaceBottom defaultRectStyle 0.05 0.02
-  , Bar PlaceLeft defaultRectStyle 0.05 0.02
+  [ (PlaceTop, Bar defaultRectStyle 0.05 0.02)
+  , (PlaceRight, Bar defaultRectStyle 0.05 0.02)
+  , (PlaceBottom, Bar defaultRectStyle 0.05 0.02)
+  , (PlaceLeft, Bar defaultRectStyle 0.05 0.02)
   ]
 
 t1 :: [Title Double]
 t1 = (\a p -> (#place .~ p :: Title Double -> Title Double) $
-        #align .~ a $
+        #anchor .~ a $
         defaultTitle (show a <> ":" <> show p)) <$>
-      [TextAnchorStart, TextAnchorMiddle, TextAnchorEnd] <*>
+      [AnchorStart, AnchorMiddle, AnchorEnd] <*>
       [PlaceBottom, PlaceTop, PlaceLeft, PlaceRight]
 
 hud1 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud1 vb cs =
-  hudSvg vb [c, b, t] cs
+  hudSvg vb [[c], [b], [t]] cs
   where
     c = canvas (blob grey 0.2) mempty
-    b = mconcat $ (\x -> bar x mempty) <$> b1
+    b = mconcat $ (\(p, x) -> bar p x mempty) <$> b1
     t = foldl layer mempty $ (\x -> title x mempty) <$>
-      (((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double) $
-      defaultTitle "PlaceAbsolute") : t1)
+      ((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double)
+      (defaultTitle "PlaceAbsolute") : t1)
 
 \end{code}
 
@@ -220,13 +218,13 @@ hud1 vb cs =
 \begin{code}
 hud2 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud2 vb cs =
-  hudSvg vb [c, b, t] cs
+  hudSvg vb [[c], [b], [t]] cs
   where
     c = canvas (blob grey 0.2) mempty
-    b = mconcat $ (\x -> bar x mempty) <$> b1
+    b = mconcat $ (\(p,x) -> bar p x mempty) <$> b1
     t = fold $ (\x -> title x mempty) <$>
-      (((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double) $
-      defaultTitle "PlaceAbsolute") : t1)
+      ((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double)
+      (defaultTitle "PlaceAbsolute") : t1)
 \end{code}
 
 ![](other/hud2.svg)
@@ -240,13 +238,13 @@ Tick marks is an example of computing and placing Hud elements according to the 
 
 hud3a :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud3a vb cs =
-  hudSvg vb ([c, (bBot <> tBot <> bLeft <> tLeft)]) cs
+  hudSvg vb [[c], [bBot, tBot, bLeft, tLeft]] cs
   where
     c = canvas (blob grey 0.2) mempty
-    bBot = bar (Bar PlaceBottom defaultRectStyle 0.005 0.01) mempty
-    bLeft = bar (Bar PlaceLeft defaultRectStyle 0.005 0.01) mempty
-    tBot = tick defaultTick mempty
-    tLeft = tick ((#place .~ PlaceLeft :: Tick Double -> Tick Double) $ defaultTick) mempty
+    bBot = bar PlaceBottom (Bar defaultRectStyle 0.005 0.01) mempty
+    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) mempty
+    tBot = tick PlaceBottom defaultTick mempty
+    tLeft = tick PlaceLeft defaultTick mempty
 
 \end{code}
 
@@ -256,17 +254,18 @@ hud3a vb cs =
 
 hud3 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud3 vb cs =
-  hudSvg vb ([c, (bBot <> tBot <> bLeft <> tLeft <> bTop <> tTop <> bRight <> tRight)] <> t') cs
+  hudSvg vb
+  [[c], [bBot, tBot, bLeft, tLeft, bTop, tTop, bRight, tRight], t'] cs
   where
     c = canvas (blob grey 0.2) mempty
-    bBot = bar (Bar PlaceBottom defaultRectStyle 0.005 0.01) mempty
-    bLeft = bar (Bar PlaceLeft defaultRectStyle 0.005 0.01) mempty
-    bTop = bar (Bar PlaceTop defaultRectStyle 0.005 0.01) mempty
-    bRight = bar (Bar PlaceRight defaultRectStyle 0.005 0.01) mempty
-    tBot = tick defaultTick mempty
-    tLeft = tick ((#place .~ PlaceLeft :: Tick Double -> Tick Double) $ defaultTick) mempty
-    tTop = tick ((#place .~ PlaceTop :: Tick Double -> Tick Double) $ defaultTick) mempty
-    tRight = tick ((#place .~ PlaceRight :: Tick Double -> Tick Double) $ defaultTick) mempty
+    bBot = bar  PlaceBottom (Bar defaultRectStyle 0.005 0.01) mempty
+    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) mempty
+    bTop = bar PlaceTop (Bar defaultRectStyle 0.005 0.01) mempty
+    bRight = bar PlaceRight (Bar defaultRectStyle 0.005 0.01) mempty
+    tBot = tick PlaceBottom defaultTick mempty
+    tLeft = tick PlaceLeft defaultTick mempty
+    tTop = tick PlaceTop defaultTick mempty
+    tRight = tick PlaceRight defaultTick mempty
     t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "tick marks") mempty) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
 
@@ -285,21 +284,21 @@ Getting ticks to display sensibly can be labor intensive.  Starting with some lo
 
 hud4 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
 hud4 vb cs =
-  hudSvg vb ([c, (bBot <> tBot <> bLeft <> tLeft <> bTop <> tTop <> bRight <> tRight)] <> t') cs
+  hudSvg vb [[c], [bBot, tBot, bLeft, tLeft, bTop, tTop, bRight, tRight], t'] cs
   where
     labels = ["tick labels", "often need to be", "manipulated", "by text anchoring", ", by rotation", "and by adjustments to font size"] :: [Text]
-    ts = (#tstyle .~ TickLabels labels :: Tick Double -> Tick Double) $ defaultTick
+    ts = (#tstyle .~ TickLabels labels :: Tick Double -> Tick Double) defaultTick
     c = canvas (blob grey 0.2) mempty
-    bBot = bar (Bar PlaceBottom defaultRectStyle 0.005 0.01) mempty
-    bLeft = bar (Bar PlaceLeft defaultRectStyle 0.005 0.01) mempty
-    bTop = bar (Bar PlaceTop defaultRectStyle 0.005 0.01) mempty
-    bRight = bar (Bar PlaceRight defaultRectStyle 0.005 0.01) mempty
+    bBot = bar PlaceBottom (Bar defaultRectStyle 0.005 0.01) mempty
+    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) mempty
+    bTop = bar PlaceTop (Bar defaultRectStyle 0.005 0.01) mempty
+    bRight = bar PlaceRight (Bar defaultRectStyle 0.005 0.01) mempty
     tBot :: Hud Double
-    tBot = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a (ts, mempty) in let (Hud hud') = tick ts' das' in hud' vb' d a
-    tLeft = tick ((#place .~ PlaceLeft :: Tick Double -> Tick Double) $ ts) mempty
+    tBot = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a PlaceBottom (ts, mempty) in let (Hud hud') = tick PlaceBottom ts' das' in hud' vb' d a
+    tLeft = tick PlaceLeft ts mempty
     tTop :: Hud Double
-    tTop = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a ((#place .~ PlaceTop :: Tick Double -> Tick Double) $ ts, mempty) in let (Hud hud') = tick ts' das' in hud' vb' d a
-    tRight = tick ((#place .~ PlaceRight :: Tick Double -> Tick Double) $ ts) mempty
+    tTop = Hud $ \vb' d a -> let (ts',das') = adjustTick defaultAutoOptions vb' a PlaceTop (ts, mempty) in let (Hud hud') = tick PlaceTop ts' das' in hud' vb' d a
+    tRight = tick PlaceRight ts mempty
     t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "automated tick style") mempty) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
 \end{code}
@@ -316,7 +315,7 @@ main = do
     #ratioAspect .~ 1.5) glyphs
   write "other/canvas1.svg" (Point 200 200) can1
   write "other/canvas2.svg" (Point 200 200) (can2 one (corners 0.2))
-  write "other/canvas3.svg" (Point 200 200) (hudSvg one [canvas3] (corners 0.25))
+  write "other/canvas3.svg" (Point 200 200) (hudSvg one [[canvas3]] (corners 0.25))
   write "other/hud1.svg" (Point 400 400) $ hud1 (aspect 1.5) glyphs
   write "other/hud2.svg" (Point 400 400) $ hud2 (aspect 1.5) glyphs
   write "other/hud3.svg" (Point 400 400) $ hud3 (aspect 1.5) glyphs
