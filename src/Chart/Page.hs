@@ -29,47 +29,43 @@ import qualified Data.Text as Text
 import Data.Biapplicative
 import Data.List
 
+subtype :: With a => a -> Text -> Text -> a
+subtype h origt t =
+  with h
+  [ class__ "subtype "
+  , data_ "sumtype" t
+  , style_ ("display:" <> bool "block" "none" (origt /= t))
+  ]
+
 repChart :: (Monad m) => Chart a -> SharedRep m (Chart a)
 repChart c = do
   ann <- repAnnotation (c ^. #annotation)
   pure $ Chart ann (c ^. #drawatts) (c ^. #spots)
 
 repAnnotation :: (Monad m) => Annotation -> SharedRep m Annotation
-repAnnotation ann = SharedRep $ do
-  (Rep hrect frect) <- unrep $ repRectStyle defRect
-  (Rep htext ftext) <- unrep $ repTextStyle defText
-  (Rep hglyph fglyph) <- unrep $ repGlyphStyle defGlyph
-  (Rep hline fline) <- unrep $ repLineStyle defLine
-  (Rep ha fa) <- unrep $ dropdownSum takeText id (Just "Chart Annotation")
-    ["RectA", "TextA", "GlyphA", "LineA", "BlankA"]
-    (annotationText ann)
-  pure $ Rep (ha <>
-              with hrect [ class__ "subtype "
-                      , data_ "sumtype" "RectA"
-                     , style_
-                   ("display:" <> bool "block" "none" (annotationText ann /= "RectA"))] <>
-              with htext [ class__ "subtype "
-                      , data_ "sumtype" "TextA"
-                      , style_
-                   ("display:" <> bool "block" "none" (annotationText ann /= "TextA"))] <>
-              with hglyph [ class__ "subtype "
-                      , data_ "sumtype" "GlyphA"
-                      , style_
-                   ("display:" <> bool "block" "none" (annotationText ann /= "GlyphA"))] <>
-              with hline [ class__ "subtype "
-                      , data_ "sumtype" "LineA"
-                      , style_
-                   ("display:" <> bool "block" "none" (annotationText ann /= "LineA"))])
-    (\m -> let (m', c) = fa m in
-            case c of
-              Left e -> (m', Left e)
-              Right "RectA" -> second (second RectA) (frect m')
-              Right "TextA" -> second (second (\x -> TextA x texts)) (ftext m')
-              Right "GlyphA" -> second (second GlyphA) (fglyph m')
-              Right "LineA" -> second (second LineA) (fline m')
-              Right "BlankA" -> (m', Right BlankA)
-              Right _ -> (m', Left "bad sumtype text"))
+repAnnotation ann = bimap hmap mmap a <<*>> rs <<*>> ts <<*>> gs <<*>> ls
   where
+    a = dropdownSum takeText id (Just "Chart Annotation")
+      ["RectA", "TextA", "GlyphA", "LineA", "BlankA"]
+      (annotationText ann)
+    rs = repRectStyle defRect
+    ts = repTextStyle defText
+    gs = repGlyphStyle defGlyph
+    ls = repLineStyle defLine
+    hmap ann' rs' ts' gs' ls' =
+      ann' <>
+      subtype rs' (annotationText ann) "RectA" <>
+      subtype ts' (annotationText ann) "TextA" <>
+      subtype gs' (annotationText ann) "GlyphA" <>
+      subtype ls' (annotationText ann) "LineA"
+    mmap ann' rs' ts' gs' ls' =
+      case ann' of
+        "RectA" -> RectA rs'
+        "TextA" -> TextA ts' texts
+        "GlyphA" -> GlyphA gs'
+        "LineA" -> LineA ls'
+        "BlankA" -> BlankA
+        _ -> BlankA
     defRect = case ann of
       RectA s -> s
       _ -> defaultRectStyle
@@ -255,7 +251,11 @@ repTickFormat :: (Monad m) => TickFormat -> SharedRep m TickFormat
 repTickFormat tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
   where
     tformat = dropdownSum takeText id (Just "Tick Format")
-      ["TickFormatDefault", "TickFormatCommas", "TickFormatFixed", "TickFormatDollars"]
+      [ "TickFormatDefault"
+      , "TickFormatCommas"
+      , "TickFormatFixed"
+      , "TickFormatDollars"
+      ]
       (tickFormatText tf)
     tcommas = sliderI (Just "prec") 0 8 1 (defInt tf)
     tfixed = sliderI (Just "prec") 0 8 1 (defInt tf)
@@ -266,16 +266,9 @@ repTickFormat tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
     hmap tformat' tcommas' tfixed' =
       div_
       (tformat' <>
-      with tcommas' [ class__ "subtype "
-              , data_ "sumtype" "TickFormatCommas"
-              , style_
-                ("display:" <> bool "block" "none"
-                 (tickFormatText tf /= "TickFormatCommas"))] <>
-      with tfixed' [ class__ "subtype "
-              , data_ "sumtype" "TickFormatFixed"
-              , style_
-                ("display:" <> bool "block" "none"
-                 (tickFormatText tf /= "TickFormatFixed"))])
+       subtype tcommas' (tickFormatText tf) "TickFormatCommas" <>
+       subtype tfixed' (tickFormatText tf) "TickFormatFixed"
+      )
     mmap tformat' tcommas' tfixed' = case tformat' of
       "TickFormatDefault" -> TickFormatDefault
       "TickFormatCommas" -> TickFormatCommas tcommas'
@@ -303,22 +296,11 @@ repTickStyle cfg =
     hmap ts' ls' tr' te' tplaced' =
       div_
       (ts' <>
-      with ls' [ class__ "subtype "
-              , data_ "sumtype" "TickLabels"
-              , style_
-                ("display:" <> bool "block" "none" (tickStyleText cfg /= "TickLabels"))] <>
-      with tr' [ class__ "subtype "
-              , data_ "sumtype" "TickRound"
-              , style_
-                ("display:" <> bool "block" "none" (tickStyleText cfg /= "TickRound"))] <>
-      with te' [ class__ "subtype "
-              , data_ "sumtype" "TickExact"
-              , style_
-                ("display:" <> bool "block" "none" (tickStyleText cfg /= "TickExact"))] <>
-      with tplaced' [ class__ "subtype "
-              , data_ "sumtype" "TickPlaced"
-              , style_
-                ("display:" <> bool "block" "none" (tickStyleText cfg /= "TickPlaced"))])
+       subtype ls' (tickStyleText cfg) "TickLabels" <>
+       subtype tr' (tickStyleText cfg) "TickRound" <>
+       subtype te' (tickStyleText cfg) "TickExact" <>
+       subtype tplaced' (tickStyleText cfg) "TickPlaced"
+      )
     mmap ts' ls' (tri,trf,tre) (tei,tef) tplaced' = case ts' of
       "TickNone" -> TickNone
       "TickLabels" -> TickLabels ls'
@@ -381,76 +363,61 @@ repTriple (a,b,c) sr =
   bimap (\a' b' c' -> a' <> b' <> c') (,,) (sr a) <<*>> sr b <<*>> sr c
 
 repGlyphShape :: (Monad m) => GlyphShape -> SharedRep m GlyphShape
-repGlyphShape sh = SharedRep $ do
-  (Rep hellipse fellipse) <- unrep $ slider Nothing 0.5 2 0.01 defRatio
-  (Rep hrectsharp frectsharp) <- unrep $ slider Nothing 0.5 2 0.01 defRatio
-  (Rep hvline fvline) <- unrep $ slider Nothing 0.001 0.1 0.0001 defLine
-  (Rep hhline fhline) <- unrep $ slider Nothing 0.001 0.1 0.0001 defLine
-  (Rep hrectrounded frectrounded) <- unrep $ repRounded defRounded
-  (Rep htriangle ftriangle) <- unrep $ repTriple defTriangle (repPoint (Point (Range 0 1) (Range 0 1)) (Point 0.001 0.001))
-  (Rep hdb fdb) <- unrep $ dropdownSum takeText id Nothing
-    [ "Circle"
-    , "Square"
-    , "Triangle"
-    , "Ellipse"
-    , "RectSharp"
-    , "RectRounded"
-    , "VLine"
-    , "HLine"
-    , "Smiley"
-    ]
-    (fromGlyph sh)
-  pure $ Rep (hdb <>
-              subtype hellipse "Ellipse" <>
-              subtype hrectsharp "RectSharp" <>
-              subtype hvline "VLine" <>
-              subtype hhline "HLine" <>
-              subtype hrectrounded "RectRounded" <>
-              subtype htriangle "Triangle")
-    (\m -> let (m', db) = fdb m in
-            case db of
-              Left e -> (m', Left e)
-              Right g ->
-                (m',
-                  case g of
-                    "Circle" -> Right CircleGlyph
-                    "Square" -> Right SquareGlyph
-                    "Ellipse" -> EllipseGlyph <$> snd (fellipse m')
-                    "RectSharp" -> RectSharpGlyph <$>
-                      snd (frectsharp m')
-                    "RectRounded" -> (\(a,b,c) -> RectRoundedGlyph a b c) <$>
-                      snd (frectrounded m')
-                    "Triangle" -> (\(a,b,c) -> TriangleGlyph a b c) <$>
-                      snd (ftriangle m')
-                    "VLine" -> VLineGlyph <$> snd (fvline m')
-                    "HLine" -> HLineGlyph <$> snd (fhline m')
-                    "Smiley" -> Right SmileyGlyph
-                    _ -> Right SmileyGlyph
-                )
-    )
-
-    where
-      subtype h t =
-        with h [ class__ "subtype "
-               , data_ "sumtype" t
-               , style_
-                 ("display:" <> bool "block" "none"
-                  (fromGlyph sh /= t))]
-
-      defRatio = case sh of
-        EllipseGlyph r -> r
-        RectSharpGlyph r -> r
-        _ -> 1.5
-      defLine = case sh of
-        VLineGlyph r -> r
-        HLineGlyph r -> r
-        _ -> 0.05
-      defRounded = case sh of
-        RectRoundedGlyph a b c -> (a,b,c)
-        _ -> (0.884, 2.7e-2, 5.0e-2)
-      defTriangle = case sh of
-        TriangleGlyph a b c -> (a,b,c)
-        _ -> (Point 0.0 0.0, Point 1 1, Point 1 0)
+repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl <<*>> rround <<*>> tri
+  where
+    sha = dropdownSum takeText id Nothing
+      [ "Circle"
+      , "Square"
+      , "Triangle"
+      , "Ellipse"
+      , "RectSharp"
+      , "RectRounded"
+      , "VLine"
+      , "HLine"
+      , "Smiley"
+      ]
+      (fromGlyph sh)
+    ell = slider Nothing 0.5 2 0.01 defRatio
+    rsharp = slider Nothing 0.5 2 0.01 defRatio
+    vl = slider Nothing 0.001 0.1 0.0001 defLine
+    hl = slider Nothing 0.001 0.1 0.0001 defLine
+    rround = repRounded defRounded
+    tri = repTriple defTriangle (repPoint (Point (Range 0 1) (Range 0 1))
+                                 (Point 0.001 0.001))
+    hmap sha' ell' rsharp' vl' hl' rround' tri' =
+      sha' <>
+      subtype ell' (fromGlyph sh) "Ellipse" <>
+      subtype rsharp' (fromGlyph sh) "RectSharp" <>
+      subtype vl' (fromGlyph sh) "VLine" <>
+      subtype hl' (fromGlyph sh) "HLine" <>
+      subtype rround' (fromGlyph sh) "RectRounded" <>
+      subtype tri' (fromGlyph sh) "Triangle"
+    mmap sha' ell' rsharp' vl' hl' rround' tri' =
+      case sha' of
+        "Circle" -> CircleGlyph
+        "Square" -> SquareGlyph
+        "Ellipse" -> EllipseGlyph ell'
+        "RectSharp" -> RectSharpGlyph rsharp'
+        "RectRounded" -> (\(a,b,c) -> RectRoundedGlyph a b c) rround'
+        "Triangle" -> (\(a,b,c) -> TriangleGlyph a b c) tri'
+        "VLine" -> VLineGlyph vl'
+        "HLine" -> HLineGlyph hl'
+        "Smiley" -> SmileyGlyph
+        _ -> SmileyGlyph
+    defRatio = case sh of
+      EllipseGlyph r -> r
+      RectSharpGlyph r -> r
+      _ -> 1.5
+    defLine = case sh of
+      VLineGlyph r -> r
+      HLineGlyph r -> r
+      _ -> 0.05
+    defRounded = case sh of
+      RectRoundedGlyph a b c -> (a,b,c)
+      _ -> (0.884, 2.7e-2, 5.0e-2)
+    defTriangle = case sh of
+      TriangleGlyph a b c -> (a,b,c)
+      _ -> (Point 0.0 0.0, Point 1 1, Point 1 0)
 
 repChoice :: (Monad m) => Int -> [(Text, SharedRep m (Text, Text))] -> SharedRep m (Text, Text)
 repChoice initt xs = bimap hmap mmap dd <<*>>
@@ -460,12 +427,8 @@ repChoice initt xs = bimap hmap mmap dd <<*>>
     cs = snd <$> xs
     dd = dropdownSum takeText id (Just "Chart Family") ts t0
     t0 = maybe "Bad Init" id (atMay ts initt)
-    hmap dd' cs' = div_ (dd' <> mconcat (zipWith subtype cs' ts))
+    hmap dd' cs' =
+      div_ (dd' <>
+      mconcat (zipWith (\c t -> subtype c t0 t) cs' ts))
     mmap dd' cs' = maybe (Data.List.head cs') (cs'!!) (elemIndex dd' ts)
-    subtype h t =
-        with h [ class__ "subtype "
-               , data_ "sumtype" t
-               , style_
-                 ("display:" <> bool "block" "none"
-                  (t0 /= t))]
 
