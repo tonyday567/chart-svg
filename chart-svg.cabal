@@ -44,6 +44,7 @@ library
     , linear
     , lucid
     , lens
+    , mtl
     , numhask
     , numhask-prelude
     , numhask-space

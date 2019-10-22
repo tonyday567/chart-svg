@@ -1,6 +1,7 @@
 :set -XDataKinds
 :set -XOverloadedLists
 :set -XOverloadedStrings
+:set -XOverloadedLabels
 :set -XExtendedDefaultRules
 :set -XFlexibleContexts
 :set -XTypeFamilies

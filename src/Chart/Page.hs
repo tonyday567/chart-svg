@@ -120,11 +120,73 @@ repTextStyle s = do
     (slider (Just "rotation") (-180) 180 10 (maybe 0 identity (s ^. #rotation)))
   pure $ TextStyle ts tc to' ta th tv tn trc
 
-repPlace :: (Monad m) => Place a -> SharedRep m (Place a)
-repPlace p = toPlace <$>
+repPlace :: (Monad m) => Place Double -> SharedRep m (Place Double)
+repPlace p = bimap hmap mmap splace <<*>> sp
+  where
+    splace =
+      dropdownSum takeText id (Just "Placement")
+      [ "Bottom"
+      , "Left"
+      , "Top"
+      , "Right"
+      , "Absolute"
+      ] 
+      (fromPlaceText p)
+    sp = repPoint (Point (Range 0 1) (Range 0 1)) (Point 0.01 0.01) (defPoint p)
+    defPoint p'' = case p'' of
+      PlaceAbsolute p' -> p'
+      _ -> Point 0.0 0.0
+    hmap splace' sp' =
+      div_
+      (splace' <>
+       subtype sp' (fromPlaceText p) "Absolute"
+      )
+    mmap splace' sp' = case splace' of
+      "Top" -> PlaceTop
+      "Bottom" -> PlaceBottom
+      "Left" -> PlaceLeft
+      "Right" -> PlaceRight
+      "Absolute" -> PlaceAbsolute sp'
+      _ -> PlaceBottom
+
+{-
+  toPlace <$>
   dropdown takeText id (Just "Placement")
   (fromPlace <$> [PlaceTop, PlaceBottom, PlaceLeft, PlaceRight])
   (fromPlace p)
+-}
+
+{-
+    tformat = dropdownSum takeText id (Just "Tick Format")
+      [ "TickFormatDefault"
+      , "TickFormatCommas"
+      , "TickFormatFixed"
+      , "TickFormatDollars"
+      ]
+      (tickFormatText tf)
+    tcommas = sliderI (Just "prec") 0 8 1 (defInt tf)
+    tfixed = sliderI (Just "prec") 0 8 1 (defInt tf)
+    defInt tf' = case tf' of
+      TickFormatCommas n -> n
+      TickFormatFixed n -> n
+      _ -> 3
+    hmap tformat' tcommas' tfixed' =
+      div_
+      (tformat' <>
+       subtype tcommas' (tickFormatText tf) "TickFormatCommas" <>
+       subtype tfixed' (tickFormatText tf) "TickFormatFixed"
+      )
+    mmap tformat' tcommas' tfixed' = case tformat' of
+      "TickFormatDefault" -> TickFormatDefault
+      "TickFormatCommas" -> TickFormatCommas tcommas'
+      "TickFormatFixed" -> TickFormatFixed tfixed'
+      "TickFormatDollars" -> TickFormatDollars
+      _ -> TickFormatDefault
+
+-}
+
+
+
 
 repAnchor :: (Monad m) => Anchor -> SharedRep m Anchor
 repAnchor a = toAnchor <$>
@@ -134,12 +196,6 @@ repAnchor a = toAnchor <$>
     (Just "Anchor")
     (fromAnchor <$> [AnchorStart, AnchorMiddle, AnchorEnd])
     (fromAnchor a)
-
-repCanvasConfig :: (Monad m) => CanvasConfig -> SharedRep m CanvasConfig
-repCanvasConfig cfg = do
-  canvasc <- colorPicker (Just "Canvas Color") (cfg ^. #color)
-  canvaso <- slider (Just "Canvas Opacity") 0 0.2 0.01 (cfg ^. #opacity)
-  pure $ CanvasConfig canvasc canvaso
 
 repRectStyle :: (Monad m) => RectStyle -> SharedRep m RectStyle
 repRectStyle s = do
@@ -187,21 +243,25 @@ repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
       , ("Place", p')
       ]
 
-repHudConfig :: (Monad m) => Int -> Int -> AxisConfig Double -> Title Double -> HudConfig -> SharedRep m HudConfig
-repHudConfig naxes ntitles defaxis deftitle cfg =
-  bimap hmap HudConfig can <<*>> ts <<*>> axs
+repHudConfig :: (Monad m) => Int -> Int -> AxisConfig Double -> Title Double -> LegendOptions Double ->
+  HudConfig -> SharedRep m HudConfig
+repHudConfig naxes ntitles defaxis deftitle deflegend cfg =
+  bimap hmap HudConfig can <<*>> ts <<*>> axs <<*>> ls
   where
     can = maybeRep (Just "canvas") (isJust (cfg ^. #hudCanvas)) $
-      repCanvasConfig (maybe defaultCanvasConfig id (cfg ^. #hudCanvas))
+      repRectStyle (maybe defaultCanvas id (cfg ^. #hudCanvas))
     ts = listifyMaybe' (Just "titles") "tz" (checkbox Nothing) repTitle
       ntitles deftitle (cfg ^. #hudTitles)
     axs = listifyMaybe' (Just "axes") "axz" (checkbox Nothing) repAxisConfig
       naxes defaxis (cfg ^. #hudAxes)
-    hmap can' ts' axs' =
+    ls = listifyMaybe' (Just "legends") "lz" (checkbox Nothing) repLegend
+      naxes deflegend (cfg ^. #hudLegends)
+    hmap can' ts' axs' ls' =
       accordion_ "accc" Nothing
       [ ("Axes", axs')
       , ("Canvas", can')
       , ("Titles", ts')
+      , ("Legends", ls')
       ]
 
 repChartSvgStyle :: (Monad m) => ChartSvgStyle -> SharedRep m ChartSvgStyle
@@ -351,6 +411,17 @@ repPoint (Point (Range xmin xmax) (Range ymin ymax)) (Point xstep ystep) (Point 
   (slider (Just "x") xmin xmax xstep x) <<*>>
   slider (Just "y") ymin ymax ystep y
 
+repArea :: (Monad m) => Area (Range Double) -> Area Double -> Area Double -> SharedRep m (Area Double)
+repArea (Area (Range xmin xmax) (Range zmin zmax) (Range ymin ymax) (Range wmin wmax)) (Area xstep zstep ystep wstep) (Area x z y w) =
+  bimap (\a b c d -> a <> b <> c <> d) Area
+  (slider (Just "x") xmin xmax xstep x) <<*>>
+  slider (Just "z") zmin zmax zstep z <<*>>
+  slider (Just "y") ymin ymax ystep y <<*>>
+  slider (Just "w") wmin wmax wstep w
+
+repAreaOne :: (Monad m) => Area Double -> SharedRep m (Area Double)
+repAreaOne a = repArea (Area (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 1)) (Area 0.01 0.01 0.01 0.01) a
+
 repRounded :: (Monad m) => (Double, Double, Double) -> SharedRep m (Double, Double, Double)
 repRounded (a,b,c) =
   bimap (\a' b' c' -> a' <> b' <> c') (,,)
@@ -431,4 +502,39 @@ repChoice initt xs = bimap hmap mmap dd <<*>>
       div_ (dd' <>
       mconcat (zipWith (\c t -> subtype c t0 t) cs' ts))
     mmap dd' cs' = maybe (Data.List.head cs') (cs'!!) (elemIndex dd' ts)
+
+repLegend :: (Monad m) => LegendOptions Double -> SharedRep m (LegendOptions Double)
+repLegend initl = LegendOptions <$> lcharts' <*> lsize' <*> hgap' <*> vgap' <*> ltext' <*> lmax' <*> innerPad' <*> outerPad' <*> legendFrame' <*> lplace' <*> scale'
+  where
+    -- lentry :: (Annotation, Text) -> SharedRep m (Annotation, Text)
+    lentry (a, t) = (,) <$> repAnnotation a <*> textbox Nothing t
+    -- lcharts :: SharedRep m [(Annotation, Text)]
+    lcharts' =
+      listifyMaybe' (Just "legends") "lz" (checkbox Nothing)
+      lentry
+      (initl ^. #lmax)
+      (BlankA, "") (initl ^. #lcharts)
+    lsize' = slider (Just "size") 0.000 0.1 0.001 (initl ^. #lsize)
+    hgap' = slider (Just "horizontal gap") 0.000 0.1 0.001 (initl ^. #hgap)
+    vgap' = slider (Just "vertical gap") 0.000 0.1 0.001 (initl ^. #vgap)
+    ltext' = repTextStyle (initl ^. #ltext)
+    lmax' = sliderI (Just "max entries") 0 10 1 (initl ^. #lmax)
+    -- orig = maybeRep (Just "origin") (maybe False (const True) (s ^. #orig))
+    --   (repGlyphStyle (maybe defaultOrigin id (s ^. #orig)))
+    innerPad' =
+      maybeRep Nothing (maybe False (const True) (initl ^. #innerPad))
+      (slider (Just "inner padding") 1 1.2 0.001
+       (maybe 1 id (initl ^. #innerPad)))
+    outerPad' =
+      maybeRep Nothing (maybe False (const True) (initl ^. #outerPad))
+      (slider (Just "outer padding") 1 1.2 0.001
+       (maybe 1 id (initl ^. #outerPad)))
+    legendFrame' =
+      maybeRep (Just "frame") (maybe False (const True) (initl ^. #legendFrame))
+      (repRectStyle (maybe defaultSvgFrame id (initl ^. #legendFrame)))
+    lplace' = repPlace (initl ^. #lplace)
+    scale' = slider (Just "scale") 0.01 1 0.001 (initl ^. #scale)
+
+
+
 

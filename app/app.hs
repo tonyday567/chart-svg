@@ -24,6 +24,10 @@ import NumHask.Prelude hiding (Text, rotate)
 import qualified Data.Map as Map
 import qualified Data.Text as Text
 
+
+-- writeFile "t1.svg" (renderChartWith defaultChartSvgStyle defaultHudConfig [])
+
+
 ropts :: [RectStyle]
 ropts =
   [ blob (PixelRGB8 93 165 218) 0.5

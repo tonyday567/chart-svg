@@ -160,7 +160,7 @@ So the introduction of a hud to a chart requires a different api to chartSvg.  T
 
 \begin{code}
 
-canvas3 :: Hud a
+canvas3 :: (Tickable a) => Hud a
 canvas3 = canvas (blob grey 0.2) mempty
 
 \end{code}
@@ -202,7 +202,7 @@ hud1 vb cs =
   where
     c = canvas (blob grey 0.2) mempty
     b = mconcat $ (\(p, x) -> bar p x mempty) <$> b1
-    t = foldl layer mempty $ (\x -> title x mempty) <$>
+    t = mconcat $ (\x -> title x mempty) <$>
       ((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double)
       (defaultTitle "PlaceAbsolute") : t1)
 

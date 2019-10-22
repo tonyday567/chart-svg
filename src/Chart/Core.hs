@@ -47,6 +47,8 @@ module Chart.Core
   , daGlyph
   , daLine
   , dataArea
+  , dataAreaDef
+  , dataAreaNoSingleton
   , styleBox
   , styleBoxes
   , projectWithStyle
@@ -61,6 +63,8 @@ module Chart.Core
   , white
   , blend
   , pixelate
+  , boxes
+  , scaleAnn
   ) where
 
 import Codec.Picture.Types
@@ -168,7 +172,7 @@ data TextStyle = TextStyle
   { size :: Double
   , color :: PixelRGB8
   , opacity :: Double
-  , anchor :: Anchor 
+  , anchor :: Anchor
   , hsize :: Double
   , vsize :: Double
   , nudge1 :: Double
@@ -357,11 +361,29 @@ styleBoxDA da r = fromRational' <$> r' where
     SkewY _ -> throw (NumHaskException "SkewY transformation not yet implemented")
     TransformUnknown -> x
 
--- | includes guards against singleton dimensions
+-- | may be mempty
 dataArea :: Chartable a => [Chart a] -> Area a
-dataArea [] = Area -0.5 0.5 -0.5 0.5
-dataArea cs
-  | mconcat (spots <$> cs) == [] = Area -0.5 0.5 -0.5 0.5
+dataArea cs = toArea $ fold $ fold (spots <$> cs)
+
+-- | with a default in case of mempty
+dataAreaDef :: Chartable a => Area a -> [Chart a] -> Area a
+dataAreaDef def [] = def
+dataAreaDef def cs = bool (dataArea cs) def (mconcat (spots <$> cs) == [])
+
+{-
+  | mconcat (spots <$> cs) == [] = def
+  | x == z && y == w = Area (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
+  | x == z = Area (x - 0.5) (x + 0.5) y w
+  | y == w = Area x z (y - 0.5) (y + 0.5)
+  | otherwise = Area x z y w
+  where (Area x z y w) = toArea $ fold $ fold (spots <$> cs)
+
+-}
+
+-- | with a default in case of mempty, or singleton dimension
+dataAreaNoSingleton :: Chartable a => Area a -> [Chart a] -> Area a
+dataAreaNoSingleton def cs
+  | mconcat (spots <$> cs) == [] = def
   | x == z && y == w = Area (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
   | x == z = Area (x - 0.5) (x + 0.5) y w
   | y == w = Area x z (y - 0.5) (y + 0.5)
@@ -452,3 +474,19 @@ pixelate f r g c0 c1 = (\(x,y) -> (x, blend y c0 c1)) <$> ps'
     rs' = project (space1 rs :: Range Double) (Range 0 1) <$> rs
     ps' = zip (fst <$> ps) rs'
 
+
+-- deconstruct a chart into a chart for every spot
+decons :: Chart a -> [Chart a]
+decons (Chart (TextA ts txts) das spts) = zipWith (\t s -> Chart (TextA ts [t]) das [s]) txts spts
+decons (Chart ann das spts) = (\s -> Chart ann das [s]) <$> spts
+
+-- take a chart and produce a RectA chart of all the bounding style boxes of each point
+boxes :: (Chartable a) => RectStyle -> [Chart a] -> [Chart a]
+boxes rs cs = mconcat $ fmap (Chart (RectA rs) mempty . (:[]) . SpotArea . styleBox) . decons <$> cs
+
+scaleAnn :: Double -> Annotation -> Annotation
+scaleAnn x (LineA a) = LineA $ a & #width %~ (*x)
+scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (*x)
+scaleAnn x (TextA a txs) = TextA (a & #size %~ (*x)) txs
+scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (*x))
+scaleAnn _ BlankA = BlankA

@@ -38,7 +38,7 @@ pattern Point a b = Point' (Pair a b)
 -- | a rectangular area on the xy-plane
 newtype Area a = Area'
   { getRect :: Rect a
-  } deriving (Eq, Show, Functor, Space, Semigroup, Monoid)
+  } deriving (Eq, Show, Functor, Space, Semigroup, Monoid, Distributive, Semiring)
 
 instance (Lattice a, Field a, Subtractive a, FromInteger a) => FieldSpace (Area a) where
   type (Grid (Area a)) = Pair Int
@@ -123,8 +123,10 @@ instance (BoundedLattice a) => Monoid (Spot a) where
   mempty = SpotArea (Area' mempty)
 
 -- | project a Spot from one Area to another, preserving relative position.
-projectOn :: (Lattice a, Field a, Subtractive a) => Area a -> Area a -> Spot a -> Spot a
+projectOn :: (BoundedLattice a, Lattice a, Field a, Subtractive a) => Area a -> Area a -> Spot a -> Spot a
 projectOn new old@(Area x z y w) po@(SP px py)
+  | new == mempty = po
+  | old == mempty = po
   | x==z && y==w = po
   | x==z = SP px py'
   | y==w = SP px' py
@@ -132,6 +134,8 @@ projectOn new old@(Area x z y w) po@(SP px py)
   where
     (Pair px' py') = project old new (getPair $ toPoint po)
 projectOn new old@(Area x z y w) ao@(SA ox oz oy ow)
+  | new == mempty = ao
+  | old == mempty = ao
   | x==z && y==w = ao
   | x==z = SA ox oz ny nw
   | y==w = SA nx nz oy ow
