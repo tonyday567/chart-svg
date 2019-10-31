@@ -8,6 +8,7 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -46,13 +47,12 @@ module Chart.Core
   , daText
   , daGlyph
   , daLine
-  , dataArea
-  , dataAreaDef
-  , dataAreaNoSingleton
+  , dataBox
   , styleBox
+  , addChartBox
   , styleBoxes
+  , addChartBoxes
   , projectWithStyle
-  , projectWithStyles
   , showOrigin
   , showOriginWith
   , defaultOrigin
@@ -72,11 +72,15 @@ import Control.Exception
 import Data.Generics.Labels ()
 import Graphics.Svg as Svg hiding (Point, toPoint, Text)
 import Control.Lens hiding (transform)
-import NumHask.Data.Pair
-import NumHask.Prelude as P hiding (Group)
+import NumHask.Point
+import NumHask.Range
+import NumHask.Rect
+import NumHask.Space
 import qualified Data.Text as Text
-import Data.List (zipWith3)
 import Chart.Spot
+import Protolude
+import GHC.Exts
+import Control.Category (id)
 
 -- * Chart
 -- | A `Chart` consists of
@@ -91,13 +95,7 @@ data Chart a = Chart
 
 -- | the aspects a number needs to be to form the data for a chart
 type Chartable a =
-  ( ToRatio a Integer
-  , FromRatio a Integer
-  , FromRational a
-  , Subtractive a
-  , Field a
-  , BoundedJoinSemiLattice a
-  , BoundedMeetSemiLattice a)
+  ( Real a, Fractional a, Spaceable a, RealFrac a, RealFloat a)
 
 -- | a piece of chart structure
 -- | The use of #rowName with these Annotation collection doesn't seem to mesh well with polymorphism, so a switch to concrete types (which fit it with svg-tree methods) occurs at this layer, and the underlying data structure is a lot of Doubles
@@ -119,19 +117,19 @@ annotationText BlankA = "BlankA"
 -- * transformations
 -- | rotate a Chart by x degrees. This does not touch the underlying data but instead adds a draw attribute to the styling.
 -- Multiple rotations will expand the bounding box conservatively.
-rotateChart :: (ToRatio a Integer) => a -> Chart a -> Chart a
-rotateChart r c = c & #drawatts %~ (<> rot (fromRational' r))
+rotateChart :: (Real a) => a -> Chart a -> Chart a
+rotateChart r c = c & #drawatts %~ (<> rot (realToFrac r))
   where
-    rot r' = mempty & transform .~ Just [Rotate r' Nothing]
+    rot r' = mempty & transform ?~ [Rotate r' Nothing]
 
 -- | translate a Chart by a Point
-translateChart :: (ToRatio a Integer) => Pair a -> Chart a -> Chart a
+translateChart :: (Real a) => Point a -> Chart a -> Chart a
 translateChart p c =
   c &
   #drawatts %~
-  (<> (mempty & transform .~ Just [Translate x (-y)]))
+  (<> (mempty & transform ?~ [Translate x (-y)]))
   where
-   (Pair x y) = fromRational' <$> p
+   (Point x y) = realToFrac <$> p
 
 -- | Rectangle styling
 data RectStyle = RectStyle
@@ -149,23 +147,23 @@ defaultRectStyle = RectStyle 0.005 grey 0.5 red 0.5
 daRect :: RectStyle -> DrawAttributes
 daRect o =
   mempty &
-  (strokeWidth .~ Last (Just $ Num (fromRational' $ o ^. #borderSize))) .
+  (strokeWidth .~ Last (Just $ Num (realToFrac $ o ^. #borderSize))) .
   (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #borderColor))) .
-  (strokeOpacity .~ Just (fromRational' $ o ^. #borderOpacity)) .
+  (strokeOpacity ?~ realToFrac (o ^. #borderOpacity)) .
   (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (fillOpacity .~ Just (fromRational' $ o ^. #opacity)) 
+  (fillOpacity ?~ realToFrac (o ^. #opacity)) 
 
 -- | solid rectangle, no border
 blob :: PixelRGB8 -> Double -> RectStyle
-blob = RectStyle zero black zero
+blob = RectStyle 0 black 0
 
 -- | clear and utrans rect
 clear :: RectStyle
-clear = RectStyle zero black zero black zero
+clear = RectStyle 0 black 0 black 0
 
 -- | transparent rectangle, with border
 border :: Double -> PixelRGB8 -> Double -> RectStyle
-border s c o = RectStyle s c o black zero
+border s c o = RectStyle s c o black 0
 
 -- | Text styling
 data TextStyle = TextStyle
@@ -210,24 +208,24 @@ daText o =
   (strokeWidth .~ Last (Just $ Num 0)) .
   (strokeColor .~ Last (Just FillNone)) .
   (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (fillOpacity .~ Just (fromRational' $ o ^. #opacity)) .
+  (fillOpacity ?~ realToFrac (o ^. #opacity)) .
   (textAnchor .~ Last (Just (toTextAnchor $ o ^. #anchor)))
   -- maybe identity (\x -> transform .~ Just [Rotate x Nothing]) (o ^. #rotation)
 
 -- | the extra area from text styling
-styleBoxText :: (FromRatio a Integer) =>
-  TextStyle -> DrawAttributes -> Text.Text -> Area a
-styleBoxText o das t = fromRational' <$> maybe flat (\r -> rotateArea r flat) (o ^. #rotation)
+styleBoxText :: (Fractional a) =>
+  TextStyle -> DrawAttributes -> Text.Text -> Rect a
+styleBoxText o das t = realToFrac <$> maybe flat (`rotateRect` flat) (realToFrac <$> o ^. #rotation)
     where
-      flat = Area ((-x'/two) + x'*origx) (x'/two + x'*origx) ((-y'/two) - n1') (y'/two - n1')
+      flat = Rect ((-x'/2) + x'*origx) (x'/2 + x'*origx) ((-y'/2) - n1') (y'/2 - n1')
       das' = das <> daText o
       s = case getLast (das' ^. fontSize) of
-        Just (Num n) -> fromRational' n
+        Just (Num n) -> realToFrac n
         _ -> 0.0
       h = o ^. #hsize
       v = o ^. #vsize
       n1 = o ^. #nudge1
-      x' = s * h * fromRational' (Text.length t)
+      x' = s * h * realToFrac (Text.length t)
       y' = s * v
       n1' = s * n1
       origx = case das' ^. textAnchor of
@@ -298,20 +296,20 @@ daGlyph o =
   mempty &
   (strokeWidth .~ Last (Just $ Num (o ^. #borderSize))) .
   (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #borderColor))) .
-  (strokeOpacity .~ Just (fromRational' $ o ^. #borderOpacity)) .
+  (strokeOpacity ?~ realToFrac (o ^. #borderOpacity)) .
   (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (fillOpacity .~ Just (fromRational' $ o ^. #opacity))
+  (fillOpacity ?~ realToFrac (o ^. #opacity))
 
 -- | the extra area from glyph styling
-styleBoxGlyph :: (Chartable a) => GlyphStyle -> Area a
-styleBoxGlyph s = fromRational' <$> case sh of
-  EllipseGlyph a -> scale (Point sz (a*sz)) one
-  RectSharpGlyph a -> scale (Point sz (a*sz)) one
-  RectRoundedGlyph a _ _ -> scale (Point sz (a*sz)) one
-  VLineGlyph a -> scale (Point (a*sz) sz) one
-  HLineGlyph a -> scale (Point sz (a*sz)) one
-  TriangleGlyph a b c -> (sz*) <$> fold (toArea . SpotPoint <$> [a,b,c] :: [Area Double])
-  _ -> (sz*) <$> one
+styleBoxGlyph :: (Chartable a) => GlyphStyle -> Rect a
+styleBoxGlyph s = realToFrac <$> case sh of
+  EllipseGlyph a -> scale (Point sz (a*sz)) unitRect
+  RectSharpGlyph a -> scale (Point sz (a*sz)) unitRect
+  RectRoundedGlyph a _ _ -> scale (Point sz (a*sz)) unitRect
+  VLineGlyph a -> scale (Point (a*sz) sz) unitRect
+  HLineGlyph a -> scale (Point sz (a*sz)) unitRect
+  TriangleGlyph a b c -> (sz*) <$> sconcat (toRect . SpotPoint <$> (a :| [b,c]) :: NonEmpty (Rect Double))
+  _ -> (sz*) <$> unitRect
   where
     sh = s ^. #shape 
     sz = s ^. #size
@@ -332,96 +330,71 @@ daLine o =
   mempty &
   (strokeWidth .~ Last (Just $ Num (o ^. #width))) .
   (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (strokeOpacity .~ Just (fromRational' $ o ^. #opacity)) .
+  (strokeOpacity ?~ realToFrac (o ^. #opacity)) .
   (fillColor .~ Last (Just FillNone))
 
 -- | the extra area from the stroke element of an svg style attribute
-styleBoxStroke :: (FromRatio a Integer) => DrawAttributes -> Area a
-styleBoxStroke das = fromRational' <$> Area (-x/2) (x/2) (-x/2) (x/2)
+styleBoxStroke :: (Fractional a) => DrawAttributes -> Rect a
+styleBoxStroke das = realToFrac <$> Rect (-x/2) (x/2) (-x/2) (x/2)
   where
     x = case das ^. Svg.strokeWidth & getLast of
       Just (Num x') -> x'
       _ -> 0
 
+data ChartException = NotYetImplementedException deriving Show
+
+instance Exception ChartException
+
 -- | the extra geometric dimensions of a 'DrawAttributes'
 -- only handles stroke width and transformations
-styleBoxDA :: (ToRatio a Integer, FromRatio a Integer, Subtractive a) => DrawAttributes -> Area a -> Area a
-styleBoxDA da r = fromRational' <$> r' where
-  r' = foldr tr (fromRational' <$> styleBoxStroke da + r)
+styleBoxDA :: (Fractional a, Real a) => DrawAttributes -> Rect a -> Rect a
+styleBoxDA da r = realToFrac <$> r' where
+  r' = foldr tr (realToFrac <$> styleBoxStroke da `addRect` r)
     (da ^. transform & maybe [] identity)
   tr a x = case a of
-    Translate x' y' -> translateArea (Point x' (-y')) x
+    Translate x' y' -> translateRect (Point x' (-y')) x
     TransformMatrix{} ->
-      throw (NumHaskException "TransformMatrix transformation not yet implemented")
+      throw NotYetImplementedException
     Scale s Nothing -> (s*) <$> x
     Scale sx (Just sy) -> scale (Point sx sy) x
-    Rotate d Nothing -> rotateArea d x
-    Rotate d (Just (x',y')) -> rotateArea d (translateArea (Point x' y') x)
-    SkewX _ -> throw (NumHaskException "SkewX transformation not yet implemented")
-    SkewY _ -> throw (NumHaskException "SkewY transformation not yet implemented")
+    Rotate d Nothing -> rotateRect d x
+    Rotate d (Just (x',y')) -> rotateRect d (translateRect (Point x' y') x)
+    SkewX _ -> throw NotYetImplementedException
+    SkewY _ -> throw NotYetImplementedException
     TransformUnknown -> x
 
--- | may be mempty
-dataArea :: Chartable a => [Chart a] -> Area a
-dataArea cs = toArea $ fold $ fold (spots <$> cs)
-
--- | with a default in case of mempty
-dataAreaDef :: Chartable a => Area a -> [Chart a] -> Area a
-dataAreaDef def [] = def
-dataAreaDef def cs = bool (dataArea cs) def (mconcat (spots <$> cs) == [])
-
-{-
-  | mconcat (spots <$> cs) == [] = def
-  | x == z && y == w = Area (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
-  | x == z = Area (x - 0.5) (x + 0.5) y w
-  | y == w = Area x z (y - 0.5) (y + 0.5)
-  | otherwise = Area x z y w
-  where (Area x z y w) = toArea $ fold $ fold (spots <$> cs)
-
--}
-
--- | with a default in case of mempty, or singleton dimension
-dataAreaNoSingleton :: Chartable a => Area a -> [Chart a] -> Area a
-dataAreaNoSingleton def cs
-  | mconcat (spots <$> cs) == [] = def
-  | x == z && y == w = Area (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
-  | x == z = Area (x - 0.5) (x + 0.5) y w
-  | y == w = Area x z (y - 0.5) (y + 0.5)
-  | otherwise = Area x z y w
-  where (Area x z y w) = toArea $ fold $ fold (spots <$> cs)
+-- |
+dataBox :: Chartable a => [Chart a] -> Maybe (Rect a)
+dataBox cs = foldRect $ mconcat $ fmap toRect <$> (spots <$> cs)
 
 -- | the extra geometric dimensions of a Chart (from both style and draw attributes)
-styleBox :: (Chartable a) => Chart a -> Area a
-styleBox (Chart (TextA s ts) das xs) = fold $ zipWith (\t x ->
-  (styleBoxDA (das <> daText s) . translateArea (toPoint x) $ styleBoxText s das t)) ts xs
-styleBox (Chart (GlyphA s) das xs) = fold
-  (styleBoxDA (das <> daGlyph s) . flip translateArea (styleBoxGlyph s) . toPoint <$> xs)
-styleBox (Chart (RectA s) das xs) = fold
-  (styleBoxDA (das <> daRect s) . toArea <$> xs)
-styleBox (Chart (LineA s) das xs) = fold
-  (styleBoxDA (das <> daLine s) . toArea <$> xs)
-styleBox (Chart BlankA das xs) = fold
-  (styleBoxDA das . toArea <$> xs)
+styleBox :: (Chartable a) => Chart a -> Maybe (Rect a)
+styleBox (Chart (TextA s ts) das xs) = foldRect $ zipWith (\t x ->
+  styleBoxDA (das <> daText s) . translateRect (toPoint x) $ styleBoxText s das t) ts xs
+styleBox (Chart (GlyphA s) das xs) = foldRect
+  (styleBoxDA (das <> daGlyph s) . flip translateRect (styleBoxGlyph s) . toPoint <$> xs)
+styleBox (Chart (RectA s) das xs) = foldRect
+  (styleBoxDA (das <> daRect s) . toRect <$> xs)
+styleBox (Chart (LineA s) das xs) = foldRect
+  (styleBoxDA (das <> daLine s) . toRect <$> xs)
+styleBox (Chart BlankA das xs) = foldRect
+  (styleBoxDA das . toRect <$> xs)
+
+addChartBox :: (Chartable a) => Chart a -> Rect a -> Rect a
+addChartBox c r = sconcat (r :| maybeToList (styleBox c))
 
 -- | the extra geometric dimensions of a [Chart]
-styleBoxes :: (Chartable a) => [Chart a] -> Area a
-styleBoxes xss = dataArea xss <> fold (styleBox <$> xss)
+styleBoxes :: (Chartable a) => [Chart a] -> Maybe (Rect a)
+styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
 
--- | project data to a ViewBox based on style effects
+addChartBoxes :: (Chartable a) => [Chart a] -> Rect a -> Rect a
+addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
+
+-- | project data to a box based on style effects
 projectWithStyle :: (Chartable a) =>
-  Area a -> Chart a -> Chart a
+  Rect a -> Chart a -> Chart a
 projectWithStyle vb ch@(Chart s das xs) =
-  Chart s das (projectOn vb (styleBox ch) <$> xs)
-
--- | project data to a ViewBox based on style effects
-projectWithStyles :: (Chartable a) =>
-  Area a -> [Chart a] -> [Chart a]
-projectWithStyles vb chs =
-  zipWith3 Chart ss dass (fmap (projectOn vb (styleBoxes chs)) <$> xss)
-  where
-    ss = (\(Chart s _ _) -> s) <$> chs
-    dass = (\(Chart _ s _) -> s) <$> chs
-    xss = (\(Chart _ _ xs) -> xs) <$> chs
+  Chart s das (maybe id (projectOn vb) (styleBox ch) <$> xs)
 
 -- | include a circle at the origin with size and color
 showOriginWith :: forall a. (Chartable a) => GlyphStyle -> Chart a
@@ -429,7 +402,7 @@ showOriginWith c =
   Chart
   (GlyphA c)
   mempty
-  [SP zero zero]
+  [SP 0 0]
 
 defaultOrigin :: GlyphStyle
 defaultOrigin = GlyphStyle 0.05 red 0.5 grey 0 0 CircleGlyph
@@ -459,14 +432,14 @@ white = PixelRGB8 255 255 255
 red :: PixelRGB8
 red = PixelRGB8 255 0 0
 
--- | interpolate between two colors
+-- | interpolate between 2 colors
 blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
 blend c = mixWithAlpha f (f 0) where
   f _ x0 x1 = fromIntegral (round (fromIntegral x0 + c * (fromIntegral x1 - fromIntegral x0)) :: Integer)
 
 -- | create pixel data from a function on a Point
-pixelate :: (Lattice a, Field a, Subtractive a, FromInteger a) =>
-  (Point a -> Double) -> Area a -> Grid (Area a) -> PixelRGB8 -> PixelRGB8 -> [(Area a, PixelRGB8)]
+pixelate :: (Chartable a) =>
+  (Point a -> Double) -> Rect a -> Grid (Rect a) -> PixelRGB8 -> PixelRGB8 -> [(Rect a, PixelRGB8)]
 pixelate f r g c0 c1 = (\(x,y) -> (x, blend y c0 c1)) <$> ps'
   where
     ps = areaF f r g
@@ -482,7 +455,7 @@ decons (Chart ann das spts) = (\s -> Chart ann das [s]) <$> spts
 
 -- take a chart and produce a RectA chart of all the bounding style boxes of each point
 boxes :: (Chartable a) => RectStyle -> [Chart a] -> [Chart a]
-boxes rs cs = mconcat $ fmap (Chart (RectA rs) mempty . (:[]) . SpotArea . styleBox) . decons <$> cs
+boxes rs cs = mconcat $ fmap (Chart (RectA rs) mempty . maybeToList . fmap SpotRect . styleBox) . decons <$> cs
 
 scaleAnn :: Double -> Annotation -> Annotation
 scaleAnn x (LineA a) = LineA $ a & #width %~ (*x)

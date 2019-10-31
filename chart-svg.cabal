@@ -41,12 +41,11 @@ library
     , formatting
     , generic-lens
     , javascript-bridge
+    , lattices
     , linear
     , lucid
     , lens
     , mtl
-    , numhask
-    , numhask-prelude
     , numhask-space
     , protolude
     , scientific
@@ -72,8 +71,6 @@ executable chart-svg
     , containers
     , generic-lens
     , lens
-    , numhask
-    , numhask-prelude
     , numhask-space
     , protolude
     , svg-tree
@@ -101,8 +98,7 @@ executable chart-hud
     , chart-svg
     , generic-lens
     , lens
-    , numhask
-    , numhask-prelude
+    , numhask-space
     , protolude
     , svg-tree
     , text
@@ -124,8 +120,6 @@ executable style-page
     , lens
     , lucid
     , javascript-bridge
-    , numhask
-    , numhask-prelude
     , numhask-space
     , protolude
     , scotty

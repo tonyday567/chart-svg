@@ -1,10 +1,7 @@
 <?xml version='1.0' ?>
-<svg viewBox="-0.1786268711450639 -1.649358977288528 1.827985848433592 1.8279858484335918" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0">
+<svg viewBox="0.3740832194292916 -1.6711716145666473 1.2970883951373557 1.2970883951373555" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0">
   <g stroke-width="1.0e-2" stroke="#5DA5DA" fill="#000000" fill-opacity="0.0" stroke-opacity="1.0">
-    <rect width="1.6618053167578108" height="1.6618053167578106" x="-9.553660530717328e-2" y="-1.5662687114506373" />
-  </g>
-  <g stroke-width="0.0" stroke="#666666" fill="#FF0000" fill-opacity="0.3" stroke-opacity="0.3">
-    <circle r="2.0e-2" />
+    <rect width="1.1791712683066868" height="1.1791712683066868" x="0.433041782844626" y="-1.6122130511513129" />
   </g>
   <g stroke-width="0.0" stroke="none" fill="#666666" transform="translate(1.0, -1.0) rotate(45.0)" fill-opacity="1.0" font-size="8.0e-2" text-anchor="middle">
     <text x="0.0" y="-0.0">text at (1,1) rotated by 45 degrees</text>

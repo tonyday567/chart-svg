@@ -3,31 +3,28 @@
   <g stroke-width="1.0e-2" stroke="#5DA5DA" fill="#000000" fill-opacity="0.0" stroke-opacity="1.0">
     <rect width="3.531" height="0.23100000000000004" x="-1.7655" y="-0.11550000000000002" />
   </g>
-  <g stroke-width="0.0" stroke="#666666" fill="#FF0000" fill-opacity="0.3" stroke-opacity="0.3">
-    <circle cx="-1.5" r="2.0e-2" />
-  </g>
-  <g stroke-width="1.0e-2" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+  <g stroke-width="1.0e-2" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4">
     <circle cx="-1.5" r="0.1" />
   </g>
-  <g stroke-width="1.0e-2" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+  <g stroke-width="1.0e-2" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4">
     <rect width="0.20000000000000007" height="0.2" x="-1.1714285714285715" y="-0.1" />
   </g>
-  <g stroke-width="1.0e-2" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+  <g stroke-width="1.0e-2" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4">
     <rect width="0.19999999999999996" height="0.15000000000000002" x="-0.7428571428571429" y="-7.500000000000001e-2" />
   </g>
-  <g stroke-width="1.0e-2" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+  <g stroke-width="1.0e-2" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4">
     <rect width="0.2" height="0.15000000000000002" x="-0.3142857142857144" y="-7.500000000000001e-2" rx="1.0e-2" ry="1.0e-2" />
   </g>
-  <g stroke-width="0.0" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+  <g stroke-width="0.0" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4">
     <ellipse cx="0.2142857142857142" rx="0.1" ry="7.500000000000001e-2" />
   </g>
-  <g stroke-width="0.0" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+  <g stroke-width="0.0" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4">
     <line stroke-width="2.0e-2" x1="0.6428571428571423" y1="-0.1" x2="0.6428571428571423" y2="0.1" />
   </g>
-  <g stroke-width="0.0" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+  <g stroke-width="0.0" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4">
     <line stroke-width="2.0e-2" x1="0.9714285714285712" x2="1.1714285714285713" />
   </g>
-  <g stroke-width="1.0e-2" stroke="#666666" fill="#5DA5DA" fill-opacity="0.3" stroke-opacity="0.3">
+  <g stroke-width="1.0e-2" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4">
     <g transform="translate(1.4, -0.1)">
       <circle fill="#FFFF00" cx="0.1" cy="0.1" r="0.1" />
       <ellipse fill="#FFFFFF" cx="6.999999999999999e-2" cy="6.0e-2" rx="1.0000000000000002e-2" ry="2.0000000000000004e-2" />

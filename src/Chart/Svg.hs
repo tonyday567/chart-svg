@@ -4,10 +4,10 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -15,8 +15,7 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Svg
-  ( ViewBox(..)
-  , aspect
+  ( aspect
   , ratio
   , ChartSvg(..)
   , treeRect
@@ -41,7 +40,7 @@ module Chart.Svg
   , writeWith
   , rotateDA
   , translateDA
-  , rotate
+  , Chart.Svg.rotate
   , translate
   , ScratchStyle(ScratchStyle)
   , defaultScratchStyle
@@ -65,42 +64,41 @@ import Graphics.Svg as Svg hiding (Point, toPoint)
 import Graphics.Svg.CssTypes as Svg hiding (Point)
 import Control.Lens hiding (transform)
 import Linear.V2
-import NumHask.Data.Rect
-import NumHask.Prelude as P hiding (Group, rotate, Element)
+import NumHask.Point
+import NumHask.Rect
 import Text.XML.Light.Output
 import qualified Data.Map as Map
 import qualified Data.Text as Text
+import Protolude as P
+import GHC.Exts
+import Algebra.Lattice
 
 -- * Svg
--- | An Svg ViewBox
-newtype ViewBox a = ViewBox
-  { vbArea :: Area a
-  } deriving (Show, Eq, Semigroup, Functor, Multiplicative)
 
 -- | convert a ratio of x-plane : y-plane to a ViewBox with a height of one.
-aspect :: (FromRational a, Multiplicative a) => a -> ViewBox a
-aspect a = ViewBox $ Area (a * (-0.5)) (a * 0.5) (-0.5) 0.5
+aspect :: (Fractional a) => a -> Rect a
+aspect a = Rect (a * (-0.5)) (a * 0.5) (-0.5) 0.5
 
--- | convert a ViewBox to a ratio
-ratio :: (Divisive a, Subtractive a) => ViewBox a -> a
-ratio (ViewBox (Area x z y w)) = (z-x)/(w-y)
+-- | convert a Rect to a ratio
+ratio :: (Fractional a) => Rect a -> a
+ratio (Rect x z y w) = (z-x)/(w-y)
 
 -- | Svg of a Chart consists of
--- An Svg `Tree` list and a ViewBox
+-- An Svg `Tree` list and a Rect
 data ChartSvg a = ChartSvg
-  { vbox :: ViewBox a
+  { vbox :: Rect a
   , chartTrees :: [Tree]
   } deriving (Eq, Show)
 
-instance (BoundedLattice a) => Semigroup (ChartSvg a) where
+instance (Lattice a, Eq a) => Semigroup (ChartSvg a) where
   (ChartSvg a b) <> (ChartSvg a' b') = ChartSvg (a<>a') (b<>b')
 
 instance (Chartable a) => Monoid (ChartSvg a) where
-  mempty = ChartSvg one mempty
+  mempty = ChartSvg unitRect mempty
 
 -- * svg primitives
 -- | Rectange svg
-treeRect :: (ToRational a) => Area a -> Tree
+treeRect :: (Real a) => Rect a -> Tree
 treeRect a =
   RectangleTree $
   rectUpperLeftCorner .~ (Num x, Num (-w)) $
@@ -108,46 +106,46 @@ treeRect a =
   rectHeight .~ Num (w-y) $
   defaultSvg
   where
-    (Area x z y w) = fromRational' <$> a
+    (Rect x z y w) = realToFrac <$> a
 
 -- | Text svg
-treeText :: (ToRational a) => P.Text -> Point a -> Tree
+treeText :: (Chartable a) => P.Text -> Point a -> Tree
 treeText t p =
   TextTree Nothing (textAt (Num x, Num (-y)) t)
   where
-    (Point x y) = fromRational' <$> p
+    (Point x y) = realToFrac <$> p
 
 -- | Text svg with rotation
-treeTextRotate :: (ToRational a) => P.Text -> a -> Point a -> Tree
+treeTextRotate :: (Chartable a) => P.Text -> a -> Point a -> Tree
 treeTextRotate t rot p =
   TextTree Nothing (textAt (Num x, Num (-y)) t) &
   drawAttr .~ rotatePDA rot p
   where
-    (Point x y) = fromRational' <$> p
+    (Point x y) = realToFrac <$> p
 
 -- | GlyphShape to svg primitive
 treeShape :: GlyphShape -> Double -> Point Double -> Tree
 treeShape CircleGlyph s p =
-  CircleTree $ Circle mempty (Num x, Num (-y)) (Num (fromRational' s/2))
+  CircleTree $ Circle mempty (Num x, Num (-y)) (Num (realToFrac s/2))
   where
-    (Point x y) = fromRational' <$> p
-treeShape SquareGlyph s p = treeRect (translateArea p ((s*) <$> one))
+    (Point x y) = realToFrac <$> p
+treeShape SquareGlyph s p = treeRect (translateRect p ((s*) <$> unitRect))
 treeShape (RectSharpGlyph x') s p =
-  treeRect (translateArea p (scale (Point s (x'*s)) one))
+  treeRect (translateRect p (scale (Point s (x'*s)) unitRect))
 treeShape (RectRoundedGlyph x'' rx ry) s p  =
   RectangleTree $
   rectUpperLeftCorner .~ (Num (x+x'), Num (-(w+y'))) $
-  rectWidth .~ Num (fromRational' z-fromRational' x) $
-  rectHeight .~ Num (fromRational' w-fromRational' y) $
-  rectCornerRadius .~ (Num (fromRational' rx), Num (fromRational' ry)) $
+  rectWidth .~ Num (realToFrac z-realToFrac x) $
+  rectHeight .~ Num (realToFrac w-realToFrac y) $
+  rectCornerRadius .~ (Num (realToFrac rx), Num (realToFrac ry)) $
   defaultSvg
   where
-    (Area x z y w) = fromRational' <$> scale (Point s (x''*s)) one
-    (Point x' y') = fromRational' <$> p
+    (Rect x z y w) = realToFrac <$> scale (Point s (x''*s)) unitRect
+    (Point x' y') = realToFrac <$> p
 treeShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p  =
   PolygonTree $
   polygonPoints .~ rps $
-  drawAttr . transform .~ Just [Translate x' (-y')] $
+  drawAttr . transform ?~ [Translate x' (-y')] $
   defaultSvg
   where
     rps =
@@ -155,37 +153,37 @@ treeShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p  =
       , V2 (s*xb) (-s*yb)
       , V2 (s*xc) (-s*yc)
       ]
-    (Point x' y') = fromRational' <$> p
+    (Point x' y') = realToFrac <$> p
 treeShape (EllipseGlyph x') s (Point x y) =
-  EllipseTree $ Ellipse mempty (Num (fromRational' x), Num (-(fromRational' y)))
-  (Num $ fromRational' s/two) (Num $ (fromRational' x'*fromRational' s)/two)
+  EllipseTree $ Ellipse mempty (Num (realToFrac x), Num (-(realToFrac y)))
+  (Num $ realToFrac s/2) (Num $ (realToFrac x'*realToFrac s)/2)
 treeShape (VLineGlyph x') s (Point x y) =
-  LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num (fromRational' x'))))
-  (Num (fromRational' x), Num (fromRational' $ y - s/two))
-  (Num (fromRational' x), Num (fromRational' $ y + s/two))
+  LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num (realToFrac x'))))
+  (Num (realToFrac x), Num (realToFrac $ y - s/2))
+  (Num (realToFrac x), Num (realToFrac $ y + s/2))
 treeShape (HLineGlyph x') s (Point x y) =
-  LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num $ fromRational' x')))
-  (Num (fromRational' $ x - s/two), Num $ fromRational' y)
-  (Num (fromRational' $ x + s/two), Num (fromRational' y))
+  LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num $ realToFrac x')))
+  (Num (realToFrac $ x - s/2), Num $ realToFrac y)
+  (Num (realToFrac $ x + s/2), Num (realToFrac y))
 treeShape SmileyGlyph s' p =
   groupTrees mempty
   [ CircleTree
     $ defaultSvg
     & drawAttr . fillColor .~ (Last $ Just $ ColorRef $ PixelRGBA8 255 255 0 255)
-    & circleCenter .~ (Num (0.5 * fromRational' s), Num (0.5 * fromRational' s))
-    & circleRadius .~ Num (0.5 * fromRational' s)
+    & circleCenter .~ (Num (0.5 * realToFrac s), Num (0.5 * realToFrac s))
+    & circleRadius .~ Num (0.5 * realToFrac s)
   , EllipseTree
     $ defaultSvg
     & drawAttr . fillColor .~ (Last $ Just $ ColorRef $ PixelRGBA8 255 255 255 255)
-    & ellipseCenter .~ (Num (0.35 * fromRational' s), Num (0.3 * fromRational' s))
-    & ellipseXRadius .~ Num (0.05 * fromRational' s)
-    & ellipseYRadius .~ Num (0.1 * fromRational' s)
+    & ellipseCenter .~ (Num (0.35 * realToFrac s), Num (0.3 * realToFrac s))
+    & ellipseXRadius .~ Num (0.05 * realToFrac s)
+    & ellipseYRadius .~ Num (0.1 * realToFrac s)
   , EllipseTree
     $ defaultSvg
     & drawAttr . fillColor .~ (Last $ Just $ ColorRef $ PixelRGBA8 255 255 255 255)
-    & ellipseCenter .~ (Num (0.65 * fromRational' s), Num (0.3 * fromRational' s))
-    & ellipseXRadius .~ Num (0.05 * fromRational' s)
-    & ellipseYRadius .~ Num (0.1 * fromRational' s)
+    & ellipseCenter .~ (Num (0.65 * realToFrac s), Num (0.3 * realToFrac s))
+    & ellipseXRadius .~ Num (0.05 * realToFrac s)
+    & ellipseYRadius .~ Num (0.1 * realToFrac s)
   , GroupTree $
     defaultSvg &
     groupChildren .~
@@ -198,14 +196,14 @@ treeShape SmileyGlyph s' p =
       & drawAttr . fillColor .~ (Last $ Just FillNone)
       & drawAttr . strokeColor .~ (Last $ Just $ ColorRef $
                                    PixelRGBA8 0 0 0 255)
-      & drawAttr . strokeWidth .~ Last (Just (Num (fromRational' s * 0.03)))
-      & drawAttr . transform .~ Just [Translate (0.18*s) (0.65*s)]
+      & drawAttr . strokeWidth .~ Last (Just (Num (realToFrac s * 0.03)))
+      & drawAttr . transform ?~ [Translate (0.18*s) (0.65*s)]
     ]
   ]
-  & drawAttr . transform .~ Just [Translate (x - s/2) (-y - s/2)]
+  & drawAttr . transform ?~ [Translate (x - s/2) (-y - s/2)]
   where
-    s = fromRational' s'
-    (Point x y) = fromRational' <$> p
+    s = realToFrac s'
+    (Point x y) = realToFrac <$> p
 
 -- | GlyphStyle to svg primitive
 treeGlyph :: GlyphStyle -> Point Double -> Tree
@@ -216,7 +214,7 @@ treeGlyph s =
 treeLine :: (Chartable a) => [Point a] -> Tree
 treeLine xs =
   PolyLineTree $
-  polyLinePoints .~ ((\(Point x y) -> V2 x (-y)) . fmap fromRational' <$> xs) $
+  polyLinePoints .~ ((\(Point x y) -> V2 x (-y)) . fmap realToFrac <$> xs) $
   defaultSvg
 
 -- | convert a Chart to svg
@@ -224,13 +222,13 @@ tree :: (Chartable a) => Chart a -> Tree
 tree (Chart (TextA s ts) das xs) =
   groupTrees (das <> daText s) (zipWith treeText' ts (toPoint <$> xs))
   where
-    treeText' = maybe treeText (\r txt p -> treeTextRotate txt (fromRational' r) p) (s ^. #rotation)
+    treeText' = maybe treeText (\r txt p -> treeTextRotate txt (realToFrac r) p) (s ^. #rotation)
 tree (Chart (GlyphA s) das xs) =
-  groupTrees (das <> daGlyph s) (treeGlyph s <$> (toPoint . fmap fromRational' <$> xs))
+  groupTrees (das <> daGlyph s) (treeGlyph s <$> (toPoint . fmap realToFrac <$> xs))
 tree (Chart (LineA s) das xs) =
   groupTrees (das <> daLine s) [treeLine (toPoint <$> xs)]
 tree (Chart (RectA s) das xs) =
-  groupTrees (das <> daRect s) (treeRect <$> (toArea <$> xs))
+  groupTrees (das <> daRect s) (treeRect <$> (toRect <$> xs))
 tree (Chart BlankA das _) =
   groupTrees das []
 
@@ -242,14 +240,12 @@ groupTrees da' tree' =
   groupChildren .~ tree' &
   GroupTree
 
--- | create a ChartSvg from a [Chart] and a ViewBox
+-- | create a ChartSvg from a [Chart] and a Rect
 chartSvg_ :: (Chartable a) =>
-  ViewBox a -> [Chart a] -> ChartSvg a
-chartSvg_ (ViewBox a) cs = ChartSvg
-  (ViewBox a)
-  (tree <$> cs)
+  Rect a -> [Chart a] -> ChartSvg a
+chartSvg_ a cs = ChartSvg a (tree <$> cs)
 
-projectSpots :: (Chartable a) => Area a -> [Chart a] -> [Chart a]
+projectSpots :: (Chartable a) => Rect a -> [Chart a] -> [Chart a]
 projectSpots a cs = cs'
   where
     xss = projectTo2 a (spots <$> cs)
@@ -257,60 +253,60 @@ projectSpots a cs = cs'
     dass = drawatts <$> cs
     cs' = zipWith3 Chart ss dass xss
 
-projectSpotsWith :: (Chartable a) => Area a -> Area a -> [Chart a] -> [Chart a]
+projectSpotsWith :: (Chartable a) => Rect a -> Rect a -> [Chart a] -> [Chart a]
 projectSpotsWith new old cs = cs'
   where
-    xss = fmap (projectOn new old) <$> spots <$> cs
+    xss = fmap (projectOn new old) . spots <$> cs
     ss = annotation <$> cs
     dass = drawatts <$> cs
     cs' = zipWith3 Chart ss dass xss
 
--- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied ViewBox, and expanding the ViewBox for chart style if necessary
+-- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied Rect, and expanding the Rect for chart style if necessary
 chartSvg :: (Chartable a) =>
-  ViewBox a -> [Chart a] -> ChartSvg a
-chartSvg (ViewBox a) cs = chartSvg_ (ViewBox $ styleBoxes cs') cs'
+  Rect a -> [Chart a] -> ChartSvg a
+chartSvg a cs = chartSvg_ (defRect $ styleBoxes cs') cs'
   where
     cs' = projectSpots a cs
 
--- | convert a [Chart] to a ChartSvg, projecting Chart data from a specified Area range to the supplied ViewBox, and expanding the ViewBox for chart style if necessary
+-- | convert a [Chart] to a ChartSvg, projecting Chart data from a specified Rect range to the supplied Rect, and expanding the Rect for chart style if necessary
 chartSvgWith :: (Chartable a) =>
-  ViewBox a -> Area a -> [Chart a] -> ChartSvg a
-chartSvgWith (ViewBox new) old cs = chartSvg_ (ViewBox $ new <> styleBoxes cs') cs'
+  Rect a -> Rect a -> [Chart a] -> ChartSvg a
+chartSvgWith new old cs = chartSvg_ (addToRect new (styleBoxes cs')) cs'
   where
     cs' = projectSpotsWith new old cs
 
--- | convert a [Chart] to a ChartSvg, setting the ViewBox equal to the Chart data area
+-- | convert a [Chart] to a ChartSvg, setting the Rect equal to the Chart data area
 fittedSvg :: (Chartable a) =>
   [Chart a] -> ChartSvg a
 fittedSvg cs =
-  chartSvg (ViewBox $ styleBoxes cs) cs
+  chartSvg (defRect $ styleBoxes cs) cs
 
--- | widen a ChartSvg ViewBox by a fraction of the size.
+-- | widen a ChartSvg Rect by a fraction of the size.
 pad :: (Chartable a) => a -> ChartSvg a -> ChartSvg a
-pad p (ChartSvg (ViewBox vb) s) = ChartSvg (ViewBox (widenProp p vb)) s
+pad p (ChartSvg vb s) = ChartSvg (widenProp p vb) s
 
 -- | add an enclosing fitted frame to a ChartSvg
 frame :: (Chartable a) => RectStyle -> ChartSvg a -> ChartSvg a
-frame o (ChartSvg (ViewBox vb) _) =
+frame o (ChartSvg vb _) =
   ChartSvg
-  (ViewBox vb)
-  ((:[]) . tree $ Chart (RectA o) mempty [SpotArea vb])
+  vb
+  ((:[]) . tree $ Chart (RectA o) mempty [SpotRect vb])
 
 -- | a default frame
 defaultFrame :: (Chartable a) => ChartSvg a -> ChartSvg a
 defaultFrame ch = frame (border 0.01 blue 1.0) ch <> ch
 
 -- | render a ChartSvg to an xml Document with the supplied size and various bits and pieces
-renderXmlWith :: (ToRational a) => Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
-renderXmlWith (Point wid hei) defs desc css fp (ChartSvg (ViewBox vb) ts) =
+renderXmlWith :: (Real a) => Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
+renderXmlWith (Point wid hei) defs desc css fp (ChartSvg vb ts) =
   Document
-  ((\(Area x z y w) -> Just (x,-w,z-x,w-y)) $ fromRational' <$> vb)
-  (Just (Num (fromRational' wid)))
-  (Just (Num (fromRational' hei)))
+  ((\(Rect x z y w) -> Just (x,-w,z-x,w-y)) $ realToFrac <$> vb)
+  (Just (Num (realToFrac wid)))
+  (Just (Num (realToFrac hei)))
   ts (Map.mapKeys Text.unpack defs) (Text.unpack desc) css fp
 
 -- | render a ChartSvg to an xml Document with the supplied size
-renderXml :: (ToRational a) => Point a -> ChartSvg a -> Document
+renderXml :: (Real a) => Point a -> ChartSvg a -> Document
 renderXml p = renderXmlWith p Map.empty "" [] ""
 
 -- | render an xml document to Text
@@ -318,42 +314,42 @@ xmlToText :: Document -> P.Text
 xmlToText = Text.pack . ppcElement defaultConfigPP . xmlOfDocument
 
 -- | write a ChartSvg to a svg file with various Document attributes.
-writeWith :: (ToRational a) => FilePath -> Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
+writeWith :: (Real a) => FilePath -> Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
 writeWith fp p defs desc css c = saveXmlFile fp (renderXmlWith p defs desc css fp c)
 
 -- | write a ChartSvg to an svg file.
-write :: (ToRational a) => FilePath -> Point a -> ChartSvg a -> IO ()
+write :: (Real a) => FilePath -> Point a -> ChartSvg a -> IO ()
 write fp p = writeWith fp p Map.empty "" []
 
 -- * transformations
 -- | A DrawAttributes to rotate by x degrees.
-rotateDA :: (ToRational a) => a -> DrawAttributes
-rotateDA r = mempty & transform .~ Just [Rotate (fromRational' r) Nothing]
+rotateDA :: (Real a) => a -> DrawAttributes
+rotateDA r = mempty & transform ?~ [Rotate (realToFrac r) Nothing]
 
 -- | A DrawAttributes to rotate around a point by x degrees.
-rotatePDA :: (ToRational a) => a -> Point a -> DrawAttributes
-rotatePDA r p = mempty & transform .~ Just [Rotate (fromRational' r) (Just (x,-y))]
+rotatePDA :: (Real a) => a -> Point a -> DrawAttributes
+rotatePDA r p = mempty & transform ?~ [Rotate (realToFrac r) (Just (x,-y))]
   where
-    (Point x y) = fromRational' <$> p
+    (Point x y) = realToFrac <$> p
 
 -- | A DrawAttributes to translate by a Point.
-translateDA :: (ToRational a) => Point a -> DrawAttributes
-translateDA (Point x y) = mempty & transform .~ Just
-  [Translate (fromRational' x) (-fromRational' y)]
+translateDA :: (Real a) => Point a -> DrawAttributes
+translateDA (Point x y) = mempty & transform ?~
+  [Translate (realToFrac x) (-realToFrac y)]
 
--- | Rotate a ChartSvg expanding the ViewBox as necessary.
+-- | Rotate a ChartSvg expanding the Rect as necessary.
 -- Multiple rotations will expand the bounding box conservatively.
-rotate :: (Chartable a, FromInteger a, TrigField a) => a -> ChartSvg a -> ChartSvg a
-rotate r (ChartSvg (ViewBox vb) c) = 
+rotate :: (Chartable a, Floating a) => a -> ChartSvg a -> ChartSvg a
+rotate r (ChartSvg vb c) = 
   ChartSvg
-  (ViewBox $ rotateArea r vb)
+  (rotateRect r vb)
   [groupTrees (rotateDA r) c]
 
--- | Translate a ChartSvg also moving the ViewBox
-translate :: (Additive a, ToRational a) => Point a -> ChartSvg a -> ChartSvg a
-translate p (ChartSvg (ViewBox vb) c) = 
+-- | Translate a ChartSvg also moving the Rect
+translate :: (Chartable a) => Point a -> ChartSvg a -> ChartSvg a
+translate p (ChartSvg vb c) = 
   ChartSvg
-  (ViewBox $ translateArea p vb)
+  (translateRect p vb)
   [groupTrees (translateDA p) c]
 
 -- * development helpers
@@ -410,7 +406,7 @@ placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
 placedLabel p d t =
   Chart (TextA defaultTextStyle [t])
   (mempty <> translateDA p <> rotateDA d)
-  [zero]
+  [SP 0 0]
 
 data ChartSvgStyle = ChartSvgStyle
   { sizex :: Double

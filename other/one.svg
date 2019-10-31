@@ -1,6 +1,6 @@
 <?xml version='1.0' ?>
 <svg viewBox="-0.603 -0.603 1.206 1.206" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0">
-  <g stroke-width="5.0e-3" stroke="#666666" fill="#5DA5DA" fill-opacity="0.5" stroke-opacity="0.5">
+  <g stroke-width="5.0e-3" stroke="#666666" fill="#FF0000" fill-opacity="0.5" stroke-opacity="0.5">
     <rect width="1.0" height="1.0" x="-0.5" y="-0.5" />
   </g>
 </svg>

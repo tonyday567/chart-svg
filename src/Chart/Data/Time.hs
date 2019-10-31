@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
@@ -21,12 +20,12 @@ module Chart.Data.Time
 
 import Data.Time
 import GHC.Base (String)
-import NumHask.Prelude
--- import NumHask.Analysis.Space
 
 import qualified Control.Foldl as L
 import qualified Data.Text as Text
-import qualified Protolude as P
+import Protolude as P
+import NumHask.Space
+-- import Prelude
 
 -- | parse text as per iso8601
 --
@@ -293,7 +292,7 @@ sensibleTimeGrid p n (l, u) = (grain, ts)
 
 -- come up with a sensible step for a grid over a Field
 stepSensible ::
-     (Fractional a, Ord a, FromInteger a, QuotientField a Integer, ExpField a)
+     (Fractional a, RealFrac a, Floating a)
   => Pos
   -> a
   -> Int
@@ -301,8 +300,8 @@ stepSensible ::
 stepSensible tp span n =
   step +
   if tp == MidPos
-    then step / (one + one)
-    else zero
+    then step / 2
+    else 0
   where
     step' = 10 ^^ (floor (logBase 10 (span / fromIntegral n)) :: Integer)
     err = fromIntegral n / span * step'
@@ -315,7 +314,7 @@ stepSensible tp span n =
 -- come up with a sensible step for a grid over a Field, where sensible means the 18th century
 -- practice of using multiples of 3 to round
 stepSensible3 ::
-     (Fractional a, Ord a, FromInteger a, QuotientField a Integer, ExpField a)
+     (Fractional a, Floating a, RealFrac a)
   => Pos
   -> a
   -> Int
@@ -323,8 +322,8 @@ stepSensible3 ::
 stepSensible3 tp span n =
   step +
   if tp == MidPos
-    then step / (one + one)
-    else zero
+    then step / 2
+    else 0
   where
     step' = 10 ^^ (floor (logBase 10 (span / fromIntegral n)) :: Integer)
     err = fromIntegral n / span * step'

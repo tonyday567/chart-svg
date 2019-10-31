@@ -20,10 +20,13 @@ import Control.Lens
 import Data.Generics.Labels()
 import Data.List ((!!))
 import Graphics.Svg.CssTypes hiding (Point)
-import NumHask.Prelude hiding (Text, rotate)
 import qualified Data.Map as Map
 import qualified Data.Text as Text
-
+import Protolude hiding (rotate)
+import NumHask.Rect
+import NumHask.Point
+import NumHask.Range
+import GHC.Exts
 
 -- writeFile "t1.svg" (renderChartWith defaultChartSvgStyle defaultHudConfig [])
 
@@ -34,7 +37,7 @@ ropts =
   , blob (PixelRGB8 120 80 60) 0.5
   ]
 
-rss :: [[Area Double]]
+rss :: [[Rect Double]]
 rss =
   [ areaXY (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50
   , areaXY (\x -> 0.5 * exp (-(x ** 2) / 8)) (Range -5 5) 50
@@ -47,29 +50,29 @@ rs' :: RectStyle
 rs' = rs &  #opacity .~ 0.1 & #borderOpacity .~ 0.1
 
 oneChart :: Chart Double
-oneChart = Chart (RectA rs) mempty [one]
+oneChart = Chart (RectA rs) mempty [SpotRect unitRect]
 
 oneChart' :: Chart Double
-oneChart' = Chart (RectA rs') mempty [one]
+oneChart' = Chart (RectA rs') mempty [SpotRect unitRect]
 
 rotateOne :: ChartSvg Double
 rotateOne = defaultFrame $
-  chartSvg one [showOrigin] <>
-  chartSvg one [oneChart'] <>
-  rotate 30 (chartSvg one [oneChart])
+  chartSvg unitRect [showOrigin] <>
+  chartSvg unitRect [oneChart'] <>
+  rotate 30 (chartSvg unitRect [oneChart])
 
 translateOne :: ChartSvg Double
 translateOne = defaultFrame $
-  chartSvg one [showOrigin] <>
-  chartSvg one [oneChart'] <>
-  translate (Point 1 1) (rotate 30 (chartSvg one [oneChart]))
+  chartSvg unitRect [showOrigin] <>
+  chartSvg unitRect [oneChart'] <>
+  translate (Point 1 1) (rotate 30 (chartSvg unitRect [oneChart]))
 
 rectChart :: Chart Double
-rectChart = Chart (RectA $ ropts!!0) mempty (SpotArea <$> rss!!0)
+rectChart = Chart (RectA $ ropts!!0) mempty (SpotRect <$> rss!!0)
 
 rectCharts :: [Chart Double]
 rectCharts =
-  zipWith (\s xs -> Chart (RectA s) mempty (SpotArea <$> xs)) ropts rss
+  zipWith (\s xs -> Chart (RectA s) mempty (SpotRect <$> xs)) ropts rss
 
 -- * text
 ts :: [(Text.Text, Point Double)]
@@ -82,7 +85,7 @@ textChart =
   Chart
   (TextA (defaultTextStyle & #size .~ (1.0 :: Double)) ["abcdefghij"])
   mempty
-  [zero]
+  [SP 0 0]
 
 textsChart :: Chart Double
 textsChart =
@@ -102,7 +105,7 @@ circle' =
         #size .~ 1 &
         #borderSize .~ 0.2))
       mempty
-      [zero]
+      [SP 0 0]
 
 smiley :: Chart Double
 smiley =
@@ -112,7 +115,7 @@ smiley =
         #borderSize .~ (0.02 :: Double) &
         #shape .~ SmileyGlyph))
       mempty
-      [zero]
+      [SP 0 0]
 
 glyphs :: [Chart Double]
 glyphs = zipWith
@@ -160,22 +163,22 @@ glyphsChart = zipWith (\d s -> Chart (GlyphA s) mempty (SpotPoint <$> d)) gdata 
 -- textual
 boundText :: [Chart Double]
 boundText =
-  [ Chart (RectA defaultRectStyle) mempty (SpotArea . styleBox <$> cs)
+  [ Chart (RectA defaultRectStyle) mempty (SpotRect <$> (catMaybes $ styleBox <$> cs))
   , Chart a1 mempty ps
   ]
   where
   t1 = fst <$> ts
-  ps = projectTo (vbArea $ aspect 3) $ SpotPoint . snd <$> ts
+  ps = projectTo (aspect 3) $ SpotPoint . snd <$> ts
   t1s = TextA (defaultTextStyle & #size .~ 0.2) . (:[]) <$> t1
   cs = zipWith (\x y -> Chart x mempty y) t1s ((:[]) <$> ps)
   a1 = TextA (defaultTextStyle & #size .~ 0.2) t1
 
 pixel' :: (Point Double -> Double) -> [Chart Double]
 pixel' f =
-  (\(r,c) -> Chart (RectA (RectStyle 0 black 0 c 1)) mempty [SpotArea r]) <$>
-  pixelate f (fmap (pi*) one) (Pair 100 100) blue grey
+  (\(r,c) -> Chart (RectA (RectStyle 0 black 0 c 1)) mempty [SpotRect r]) <$>
+  pixelate f (fmap (pi*) unitRect) (Point 100 100) blue grey
 
-f1 :: TrigField a => Point a -> a
+f1 :: (Floating a) => Point a -> a
 f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 
 cssCrisp :: CssRule
@@ -255,15 +258,16 @@ main :: IO ()
 main = do
   writeFile "other/mempty.md" (code $ xmlToText $ renderXml (Point (200.0 :: Double) 200.0) mempty)
 
-  write "other/one.svg" (Point 200 200)
-    (pad 1.1 $ chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]])
+  write "other/one.svg" (Point 200.0 200.0)
+    (pad 1.1 $ chartSvg unitRect [Chart (RectA defaultRectStyle) mempty
+                                  [SpotRect (unitRect :: Rect Double)]])
   write "other/rotateOne.svg" (Point 200.0 200.0) rotateOne
   write "other/translateOne.svg" (Point 200.0 200.0) translateOne
   scratchWith (defaultScratchStyle & #fileName .~ "other/rectChart.svg")
     [rectChart]
   scratchWith (defaultScratchStyle & #fileName .~ "other/rectCharts.svg")
     rectCharts
-  writeWith "other/pixel.svg" (Point 200.0 200.0) Map.empty "" [cssCrisp] (chartSvg one (pixel' f1))
+  writeWith "other/pixel.svg" (Point 200.0 200.0) Map.empty "" [cssCrisp] (chartSvg unitRect (pixel' f1))
   scratchWith
     (defaultScratchStyle &
      #fileName .~ "other/textChart.svg" &

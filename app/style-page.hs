@@ -21,14 +21,14 @@ import Data.HashMap.Strict
 import qualified Data.Text.Lazy as Lazy
 import Network.JavaScript
 import Network.Wai.Middleware.Static (addBase, noDots, staticPolicy, (>->))
--- import NumHask.Data.Range
 import Protolude hiding (replace, Rep, (<<*>>))
 import Data.Biapplicative
 import Web.Page
 import Web.Scotty
 import Lucid.Base
 import Lucid hiding (b_)
-import NumHask.Data.Range
+import NumHask.Range
+import NumHask.Point
 
 chartStyler :: Bool -> Page
 chartStyler doDebug =

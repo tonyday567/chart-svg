@@ -16,6 +16,8 @@ import Chart.Core
 import Chart.Hud
 import Chart.Svg
 import Chart.Spot
+import NumHask.Rect
+import NumHask.Point
 import Control.Category (id)
 import Control.Lens
 import Data.Attoparsec.Text
@@ -24,7 +26,7 @@ import Lucid
 import Protolude hiding ((<<*>>))
 import Web.Page
 import qualified Box ()
-import NumHask.Data.Range
+import NumHask.Range
 import qualified Data.Text as Text
 import Data.Biapplicative
 import Data.List
@@ -303,7 +305,7 @@ repData d = do
           "line" -> SpotPoint <$> uncurry Point <$>
             [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)]
           "one" -> [SA 0 1 0 1]
-          "dist" -> SpotArea <$> areaXY (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50
+          "dist" -> SpotRect <$> areaXY (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50
           _ -> SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30
        )
 
@@ -411,16 +413,16 @@ repPoint (Point (Range xmin xmax) (Range ymin ymax)) (Point xstep ystep) (Point 
   (slider (Just "x") xmin xmax xstep x) <<*>>
   slider (Just "y") ymin ymax ystep y
 
-repArea :: (Monad m) => Area (Range Double) -> Area Double -> Area Double -> SharedRep m (Area Double)
-repArea (Area (Range xmin xmax) (Range zmin zmax) (Range ymin ymax) (Range wmin wmax)) (Area xstep zstep ystep wstep) (Area x z y w) =
-  bimap (\a b c d -> a <> b <> c <> d) Area
+repRect :: (Monad m) => Rect (Range Double) -> Rect Double -> Rect Double -> SharedRep m (Rect Double)
+repRect (Rect (Range xmin xmax) (Range zmin zmax) (Range ymin ymax) (Range wmin wmax)) (Rect xstep zstep ystep wstep) (Rect x z y w) =
+  bimap (\a b c d -> a <> b <> c <> d) Rect
   (slider (Just "x") xmin xmax xstep x) <<*>>
   slider (Just "z") zmin zmax zstep z <<*>>
   slider (Just "y") ymin ymax ystep y <<*>>
   slider (Just "w") wmin wmax wstep w
 
-repAreaOne :: (Monad m) => Area Double -> SharedRep m (Area Double)
-repAreaOne a = repArea (Area (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 1)) (Area 0.01 0.01 0.01 0.01) a
+repRectOne :: (Monad m) => Rect Double -> SharedRep m (Rect Double)
+repRectOne a = repRect (Rect (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 1)) (Rect 0.01 0.01 0.01 0.01) a
 
 repRounded :: (Monad m) => (Double, Double, Double) -> SharedRep m (Double, Double, Double)
 repRounded (a,b,c) =

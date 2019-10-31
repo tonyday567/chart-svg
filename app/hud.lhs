@@ -22,7 +22,6 @@ Notes, testing and code for chart-svg develoment.
 {-# OPTIONS_GHC -Wall #-}
 
 import Chart.Svg
-import NumHask.Prelude
 import Control.Lens
 import Codec.Picture.Types
 
@@ -30,6 +29,10 @@ import Data.Generics.Labels ()
 import Chart.Hud
 import Chart.Core
 import Chart.Spot
+import NumHask.Point
+import NumHask.Rect
+import Protolude
+import GHC.Exts
 
 \end{code}
 
@@ -128,7 +131,7 @@ corners s =
   [SP (-0.5) (-0.5), SP (-0.5) 0.5, SP 0.5 (-0.5), SP 0.5 0.5]]
 
 can1 :: ChartSvg Double
-can1 = chartSvg one (corners 0.1 <> [Chart (RectA (blob grey 0.2)) mempty [one]])
+can1 = chartSvg unitRect (Main.corners 0.1 <> [Chart (RectA (blob grey 0.2)) mempty [SpotRect unitRect]])
 
 \end{code}
 <br>
@@ -139,14 +142,14 @@ The canvas has to take into account the data area and the physical representatio
 
 \begin{code}
 
-can2 :: (Chartable a) => ViewBox a -> [Chart a] -> ChartSvg a
-can2 (ViewBox asp) cs =
-  chartSvg_ (ViewBox asp') (cs' <> [canvas'])
+can2 :: (Chartable a) => Rect a -> [Chart a] -> ChartSvg a
+can2 asp cs =
+  chartSvg_ asp' (cs' <> [canvas'])
   where
     cs' = projectSpots asp cs
-    asp' = styleBoxes cs'
+    asp' = defRect $ styleBoxes cs'
     canvas' = Chart (RectA (blob grey 0.2)) mempty
-      [SpotArea asp']
+      [SpotRect asp']
 
 \end{code}
 
@@ -160,7 +163,7 @@ So the introduction of a hud to a chart requires a different api to chartSvg.  T
 
 \begin{code}
 
-canvas3 :: (Tickable a) => Hud a
+canvas3 :: (Chartable a) => Hud a
 canvas3 = canvas (blob grey 0.2) mempty
 
 \end{code}
@@ -196,7 +199,7 @@ t1 = (\a p -> (#place .~ p :: Title Double -> Title Double) $
       [AnchorStart, AnchorMiddle, AnchorEnd] <*>
       [PlaceBottom, PlaceTop, PlaceLeft, PlaceRight]
 
-hud1 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud1 :: Rect Double -> [Chart Double] -> ChartSvg Double
 hud1 vb cs =
   hudSvg vb [[c], [b], [t]] cs
   where
@@ -216,7 +219,7 @@ hud1 vb cs =
 `fold` ignores the other Hud elements
 
 \begin{code}
-hud2 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud2 :: Rect Double -> [Chart Double] -> ChartSvg Double
 hud2 vb cs =
   hudSvg vb [[c], [b], [t]] cs
   where
@@ -236,7 +239,7 @@ Tick marks is an example of computing and placing Hud elements according to the 
 
 \begin{code}
 
-hud3a :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud3a :: Rect Double -> [Chart Double] -> ChartSvg Double
 hud3a vb cs =
   hudSvg vb [[c], [bBot, tBot, bLeft, tLeft]] cs
   where
@@ -252,7 +255,7 @@ hud3a vb cs =
 
 \begin{code}
 
-hud3 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud3 :: Rect Double -> [Chart Double] -> ChartSvg Double
 hud3 vb cs =
   hudSvg vb
   [[c], [bBot, tBot, bLeft, tLeft, bTop, tTop, bRight, tRight], t'] cs
@@ -282,7 +285,7 @@ Getting ticks to display sensibly can be labor intensive.  Starting with some lo
 
 \begin{code}
 
-hud4 :: ViewBox Double -> [Chart Double] -> ChartSvg Double
+hud4 :: Rect Double -> [Chart Double] -> ChartSvg Double
 hud4 vb cs =
   hudSvg vb [[c], [bBot, tBot, bLeft, tLeft, bTop, tTop, bRight, tRight], t'] cs
   where
@@ -314,8 +317,8 @@ main = do
     #fileName .~ "other/glyphs_.svg" &
     #ratioAspect .~ 1.5) glyphs
   write "other/canvas1.svg" (Point 200 200) can1
-  write "other/canvas2.svg" (Point 200 200) (can2 one (corners 0.2))
-  write "other/canvas3.svg" (Point 200 200) (hudSvg one [[canvas3]] (corners 0.25))
+  write "other/canvas2.svg" (Point 200 200) (can2 unitRect (Main.corners 0.2))
+  write "other/canvas3.svg" (Point 200 200) (hudSvg unitRect [[canvas3]] (Main.corners 0.25))
   write "other/hud1.svg" (Point 400 400) $ hud1 (aspect 1.5) glyphs
   write "other/hud2.svg" (Point 400 400) $ hud2 (aspect 1.5) glyphs
   write "other/hud3.svg" (Point 400 400) $ hud3 (aspect 1.5) glyphs

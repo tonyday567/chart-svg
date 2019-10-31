@@ -1,25 +1,17 @@
-resolver: lts-13.29
+resolver: lts-14.11
 
 packages:
   - .
-  - ../numhask/numhask
-  - ../numhask/numhask-prelude
-  - ../numhask/numhask-space
+  - ../numhask-space
+  - ../box
   - ../web-rep
 
 extra-deps:
   - lucid-svg-0.7.1
-  - git: https://github.com/ku-fpg/javascript-bridge.git
-    commit: d9320209806d72c71969786739ed03f9d3394881
-    # bb72dbb7d2f6376353f67aec6c251271ffb055d5
-  - box-0.0.1.1
-  #- git: https://github.com/tonyday567/web-rep.git
-  #  commit: 88ccf754aee018cd3355aa44ce65e111cfe31a4b
-  #- git: https://github.com/tonyday567/numhask.git
-  #  commit: 91df824544709bbec7e5cc7e437897eb551a5a1a
-  #  subdirs:
-  #    - numhask
-  #    - numhask-prelude
-  #    - numhask-space
+  - javascript-bridge-0.2.0
+  #- git: https://github.com/ku-fpg/javascript-bridge.git
+  #  commit: d9320209806d72c71969786739ed03f9d3394881
+  #  # bb72dbb7d2f6376353f67aec6c251271ffb055d5
+  #- box-0.0.1.1
 
 allow-newer: true

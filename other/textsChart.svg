@@ -1,10 +1,7 @@
 <?xml version='1.0' ?>
-<svg viewBox="-1.86945 -0.7881000000000001 3.7388999999999997 1.4762000000000004" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600.0" height="200.0">
+<svg viewBox="-1.8755000000000002 -0.8604500000000002 3.751 1.5609000000000002" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600.0" height="200.0">
   <g stroke-width="1.0e-2" stroke="#5DA5DA" fill="#000000" fill-opacity="0.0" stroke-opacity="1.0">
-    <rect width="3.3989999999999996" height="1.342" x="-1.6995" y="-0.7210000000000001" />
-  </g>
-  <g stroke-width="0.0" stroke="#666666" fill="#FF0000" fill-opacity="0.3" stroke-opacity="0.3">
-    <circle cx="-1.5" cy="0.5" r="2.0e-2" />
+    <rect width="3.4099999999999997" height="1.419" x="-1.705" y="-0.7895000000000001" />
   </g>
   <g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="0.2" text-anchor="middle">
     <text x="-1.5" y="0.5">a</text>
