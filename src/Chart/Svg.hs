@@ -40,8 +40,8 @@ module Chart.Svg
   , writeWith
   , rotateDA
   , translateDA
-  , Chart.Svg.rotate
-  , translate
+  , rotateSvg
+  , translateSvg
   , ScratchStyle(ScratchStyle)
   , defaultScratchStyle
   , clearScratchStyle
@@ -59,7 +59,6 @@ module Chart.Svg
 import Chart.Core
 import Chart.Spot
 import Codec.Picture.Types
-import Data.List (zipWith3)
 import Graphics.Svg as Svg hiding (Point, toPoint)
 import Graphics.Svg.CssTypes as Svg hiding (Point)
 import Control.Lens hiding (transform)
@@ -70,6 +69,7 @@ import Text.XML.Light.Output
 import qualified Data.Map as Map
 import qualified Data.Text as Text
 import Protolude as P
+import Control.Category (id)
 import GHC.Exts
 import Algebra.Lattice
 
@@ -97,55 +97,47 @@ instance (Chartable a) => Monoid (ChartSvg a) where
   mempty = ChartSvg unitRect mempty
 
 -- * svg primitives
+ 
+-- | convert a point to the svg co-ordinate system
+-- The svg coordinate system has the y-axis going from top to bottom.
+pointSvg :: (Real a) => Point a -> (Number, Number)
+pointSvg (Point x y) = (Num (realToFrac x), Num (-(realToFrac y)))
+
+-- | convert a Rect to the svg co-ordinate system
+rectSvg :: (Real a, HasRectangle s) => Rect a -> s -> s
+rectSvg r =
+  (rectUpperLeftCorner .~ (Num x, Num (-w))) .
+  (rectWidth .~ Num (z-x)) .
+  (rectHeight .~ Num (w-y))
+  where
+    (Rect  x z y w) = realToFrac <$> r
+
 -- | Rectange svg
 treeRect :: (Real a) => Rect a -> Tree
 treeRect a =
-  RectangleTree $
-  rectUpperLeftCorner .~ (Num x, Num (-w)) $
-  rectWidth .~ Num (z-x) $
-  rectHeight .~ Num (w-y) $
-  defaultSvg
-  where
-    (Rect x z y w) = realToFrac <$> a
+  RectangleTree $ rectSvg a defaultSvg
 
 -- | Text svg
-treeText :: (Chartable a) => P.Text -> Point a -> Tree
-treeText t p =
-  TextTree Nothing (textAt (Num x, Num (-y)) t)
-  where
-    (Point x y) = realToFrac <$> p
-
--- | Text svg with rotation
-treeTextRotate :: (Chartable a) => P.Text -> a -> Point a -> Tree
-treeTextRotate t rot p =
-  TextTree Nothing (textAt (Num x, Num (-y)) t) &
-  drawAttr .~ rotatePDA rot p
-  where
-    (Point x y) = realToFrac <$> p
+treeText :: (Chartable a) => TextStyle -> P.Text -> Point a -> Tree
+treeText s t p =
+  TextTree Nothing (textAt (pointSvg p) t) &
+  maybe id (\x -> drawAttr %~ rotatePDA x p) (realToFrac <$> s ^. #rotation)
 
 -- | GlyphShape to svg primitive
 treeShape :: GlyphShape -> Double -> Point Double -> Tree
 treeShape CircleGlyph s p =
-  CircleTree $ Circle mempty (Num x, Num (-y)) (Num (realToFrac s/2))
-  where
-    (Point x y) = realToFrac <$> p
+  CircleTree $ Circle mempty (pointSvg p) (Num (realToFrac s/2))
 treeShape SquareGlyph s p = treeRect (translateRect p ((s*) <$> unitRect))
 treeShape (RectSharpGlyph x') s p =
   treeRect (translateRect p (scale (Point s (x'*s)) unitRect))
 treeShape (RectRoundedGlyph x'' rx ry) s p  =
-  RectangleTree $
-  rectUpperLeftCorner .~ (Num (x+x'), Num (-(w+y'))) $
-  rectWidth .~ Num (realToFrac z-realToFrac x) $
-  rectHeight .~ Num (realToFrac w-realToFrac y) $
+  RectangleTree $ rectSvg (addPoint p $ scale (Point s (x''*s)) unitRect) $
   rectCornerRadius .~ (Num (realToFrac rx), Num (realToFrac ry)) $
   defaultSvg
-  where
-    (Rect x z y w) = realToFrac <$> scale (Point s (x''*s)) unitRect
-    (Point x' y') = realToFrac <$> p
 treeShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p  =
   PolygonTree $
-  polygonPoints .~ rps $
-  drawAttr . transform ?~ [Translate x' (-y')] $
+  (polygonPoints .~ rps) $
+  (drawAttr %~ translateDA p)
   defaultSvg
   where
     rps =
@@ -153,18 +145,17 @@ treeShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p  =
       , V2 (s*xb) (-s*yb)
       , V2 (s*xc) (-s*yc)
       ]
-    (Point x' y') = realToFrac <$> p
-treeShape (EllipseGlyph x') s (Point x y) =
-  EllipseTree $ Ellipse mempty (Num (realToFrac x), Num (-(realToFrac y)))
+treeShape (EllipseGlyph x') s p =
+  EllipseTree $ Ellipse mempty (pointSvg p)
   (Num $ realToFrac s/2) (Num $ (realToFrac x'*realToFrac s)/2)
 treeShape (VLineGlyph x') s (Point x y) =
   LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num (realToFrac x'))))
-  (Num (realToFrac x), Num (realToFrac $ y - s/2))
-  (Num (realToFrac x), Num (realToFrac $ y + s/2))
+  (pointSvg (Point x (y - s/2)))
+  (pointSvg (Point x (y + s/2)))
 treeShape (HLineGlyph x') s (Point x y) =
   LineTree $ Line (mempty & strokeWidth .~ Last (Just (Num $ realToFrac x')))
-  (Num (realToFrac $ x - s/2), Num $ realToFrac y)
-  (Num (realToFrac $ x + s/2), Num (realToFrac y))
+  (pointSvg (Point (x - s/2) y))
+  (pointSvg (Point (x + s/2) y))
 treeShape SmileyGlyph s' p =
   groupTrees mempty
   [ CircleTree
@@ -206,9 +197,10 @@ treeShape SmileyGlyph s' p =
     (Point x y) = realToFrac <$> p
 
 -- | GlyphStyle to svg primitive
-treeGlyph :: GlyphStyle -> Point Double -> Tree
-treeGlyph s =
-  treeShape (s ^. #shape) (s ^. #size)
+treeGlyph :: (Fractional a, Real a) => GlyphStyle -> Point a -> Tree
+treeGlyph s p =
+  treeShape (s ^. #shape) (s ^. #size) (realToFrac <$> p) &
+  maybe id (\x -> drawAttr %~ rotatePDA x p) (realToFrac <$> s ^. #rotation)
 
 -- | line svg
 treeLine :: (Chartable a) => [Point a] -> Tree
@@ -219,18 +211,16 @@ treeLine xs =
 
 -- | convert a Chart to svg
 tree :: (Chartable a) => Chart a -> Tree
-tree (Chart (TextA s ts) das xs) =
-  groupTrees (das <> daText s) (zipWith treeText' ts (toPoint <$> xs))
-  where
-    treeText' = maybe treeText (\r txt p -> treeTextRotate txt (realToFrac r) p) (s ^. #rotation)
-tree (Chart (GlyphA s) das xs) =
-  groupTrees (das <> daGlyph s) (treeGlyph s <$> (toPoint . fmap realToFrac <$> xs))
-tree (Chart (LineA s) das xs) =
-  groupTrees (das <> daLine s) [treeLine (toPoint <$> xs)]
-tree (Chart (RectA s) das xs) =
-  groupTrees (das <> daRect s) (treeRect <$> (toRect <$> xs))
-tree (Chart BlankA das _) =
-  groupTrees das []
+tree (Chart (TextA s ts) xs) =
+  groupTrees (dagText s) (zipWith (treeText s) ts (toPoint <$> xs))
+tree (Chart (GlyphA s) xs) =
+  groupTrees (dagGlyph s) (treeGlyph s . toPoint <$> xs)
+tree (Chart (LineA s) xs) =
+  groupTrees (dagLine s) [treeLine (toPoint <$> xs)]
+tree (Chart (RectA s) xs) =
+  groupTrees (dagRect s) (treeRect <$> (toRect <$> xs))
+tree (Chart BlankA _) =
+  groupTrees mempty []
 
 -- | add drawing attributes as a group svg wrapping a [Tree]
 groupTrees :: DrawAttributes -> [Tree] -> Tree
@@ -250,16 +240,14 @@ projectSpots a cs = cs'
   where
     xss = projectTo2 a (spots <$> cs)
     ss = annotation <$> cs
-    dass = drawatts <$> cs
-    cs' = zipWith3 Chart ss dass xss
+    cs' = zipWith Chart ss xss
 
 projectSpotsWith :: (Chartable a) => Rect a -> Rect a -> [Chart a] -> [Chart a]
 projectSpotsWith new old cs = cs'
   where
     xss = fmap (projectOn new old) . spots <$> cs
     ss = annotation <$> cs
-    dass = drawatts <$> cs
-    cs' = zipWith3 Chart ss dass xss
+    cs' = zipWith Chart ss xss
 
 -- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied Rect, and expanding the Rect for chart style if necessary
 chartSvg :: (Chartable a) =>
@@ -290,7 +278,7 @@ frame :: (Chartable a) => RectStyle -> ChartSvg a -> ChartSvg a
 frame o (ChartSvg vb _) =
   ChartSvg
   vb
-  ((:[]) . tree $ Chart (RectA o) mempty [SpotRect vb])
+  ((:[]) . tree $ Chart (RectA o) [SpotRect vb])
 
 -- | a default frame
 defaultFrame :: (Chartable a) => ChartSvg a -> ChartSvg a
@@ -323,34 +311,36 @@ write fp p = writeWith fp p Map.empty "" []
 
 -- * transformations
 -- | A DrawAttributes to rotate by x degrees.
-rotateDA :: (Real a) => a -> DrawAttributes
-rotateDA r = mempty & transform ?~ [Rotate (realToFrac r) Nothing]
+rotateDA :: (Real a, HasDrawAttributes s) => a -> s -> s
+rotateDA a s = s & transform %~ (Just . maybe r (<>r)) where
+  r = [ Rotate (realToFrac a) Nothing ]
 
 -- | A DrawAttributes to rotate around a point by x degrees.
-rotatePDA :: (Real a) => a -> Point a -> DrawAttributes
-rotatePDA r p = mempty & transform ?~ [Rotate (realToFrac r) (Just (x,-y))]
-  where
-    (Point x y) = realToFrac <$> p
+rotatePDA :: (Real a, HasDrawAttributes s) => a -> Point a -> s -> s
+rotatePDA a (Point x y) s = s & transform %~ (Just . maybe r (<>r)) where
+  r = [ Rotate (realToFrac a) (Just (realToFrac x,-realToFrac y)) ]
 
 -- | A DrawAttributes to translate by a Point.
-translateDA :: (Real a) => Point a -> DrawAttributes
-translateDA (Point x y) = mempty & transform ?~
-  [Translate (realToFrac x) (-realToFrac y)]
+translateDA :: (Real a, HasDrawAttributes s) => Point a -> s -> s
+translateDA p = transform %~
+  (\x -> Just $ maybe [ Translate x' (-y')] (<> [ Translate x' (-y')]) x)
+  where
+    Point x' y' = realToFrac <$> p
 
 -- | Rotate a ChartSvg expanding the Rect as necessary.
 -- Multiple rotations will expand the bounding box conservatively.
-rotate :: (Chartable a, Floating a) => a -> ChartSvg a -> ChartSvg a
-rotate r (ChartSvg vb c) = 
+rotateSvg :: (Chartable a) => a -> ChartSvg a -> ChartSvg a
+rotateSvg r (ChartSvg vb c) =
   ChartSvg
   (rotateRect r vb)
-  [groupTrees (rotateDA r) c]
+  [groupTrees (rotateDA r mempty) c]
 
 -- | Translate a ChartSvg also moving the Rect
-translate :: (Chartable a) => Point a -> ChartSvg a -> ChartSvg a
-translate p (ChartSvg vb c) = 
+translateSvg :: (Chartable a) => Point a -> ChartSvg a -> ChartSvg a
+translateSvg p (ChartSvg vb c) = 
   ChartSvg
   (translateRect p vb)
-  [groupTrees (translateDA p) c]
+  [groupTrees (translateDA p mempty) c]
 
 -- * development helpers
 
@@ -404,8 +394,8 @@ scratchWith s x =
 
 placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
 placedLabel p d t =
-  Chart (TextA defaultTextStyle [t])
-  (mempty <> translateDA p <> rotateDA d)
+  Chart (TextA (defaultTextStyle & #translate ?~ (realToFrac <$> p) &
+                #rotation ?~ realToFrac d) [t])
   [SP 0 0]
 
 data ChartSvgStyle = ChartSvgStyle

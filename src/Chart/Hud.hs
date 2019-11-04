@@ -32,7 +32,6 @@ import NumHask.Range
 import NumHask.Rect
 import NumHask.Point
 import NumHask.Space
-import GHC.Exts
 
 maximum' :: (Ord a) => [a] -> Maybe a
 maximum' [] = Nothing
@@ -86,51 +85,51 @@ data Bar a = Bar
 defaultBar :: (Chartable a) => Bar a
 defaultBar = Bar (RectStyle 0 grey 0 (PixelRGB8 95 3 145) 0.5) 0.005 0.01
 
-canvas :: (Monad m, Chartable a) => RectStyle -> DrawAttributes -> HudT m a
-canvas s das = Hud $ \cs -> do
+canvas :: (Monad m, Chartable a) => RectStyle -> HudT m a
+canvas s = Hud $ \cs -> do
   a <- use #canvasDim
-  let c = Chart (RectA s) das [SpotRect a]
+  let c = Chart (RectA s) [SpotRect a]
   #canvasDim .= addToRect a (styleBox c)
   pure $ c:cs
 
-bar_ :: (Chartable a) => Place a -> Bar a -> DrawAttributes -> Rect a -> Rect a -> Chart a
-bar_ pl b das (Rect x z y w) (Rect x' z' y' w') =
+bar_ :: (Chartable a) => Place a -> Bar a ->  Rect a -> Rect a -> Chart a
+bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
   case pl of
     PlaceTop ->
-      Chart (RectA (rstyle b)) das
+      Chart (RectA (rstyle b))
       [SA x z
        (w' + b ^. #buff)
         (w' + b ^. #buff + b ^. #wid)
       ]
     PlaceBottom ->
-      Chart (RectA (rstyle b)) das
+      Chart (RectA (rstyle b))
       [SA x z
        (y' - b ^. #wid - b ^. #buff)
        (y' - b ^. #buff)]
     PlaceLeft ->
-      Chart (RectA (rstyle b)) das
+      Chart (RectA (rstyle b))
       [SA
        (x' - b ^. #wid - b ^. #buff)
        (x' - b ^. #buff) y w]
     PlaceRight ->
-      Chart (RectA (rstyle b)) das
+      Chart (RectA (rstyle b))
       [SA (z' + (b ^. #buff))
         (z' + (b ^. #buff) + (b ^. #wid)) y w]
     PlaceAbsolute (Point x'' _) ->
-      Chart (RectA (rstyle b)) das
+      Chart (RectA (rstyle b))
       [SA (x'' + (b ^. #buff))
         (x'' + (b ^. #buff) + (b ^. #wid)) y w]
 
-bar :: (Monad m, Chartable a) => Place a -> Bar a -> DrawAttributes -> HudT m a
-bar pl b das = Hud $ \cs -> do
+bar :: (Monad m, Chartable a) => Place a -> Bar a -> HudT m a
+bar pl b = Hud $ \cs -> do
   da <- use #chartDim
   ca <- use #canvasDim
-  let c = bar_ pl b das ca da
-  #chartDim .= sconcat (da :| (maybeToList (styleBox c)))
+  let c = bar_ pl b ca da
+  #chartDim .= addChartBox c da
   pure $ c:cs
 
-bars :: (Monad m, Chartable a) => Place a -> [Bar a] -> DrawAttributes -> HudT m a
-bars pl bs das = mconcat ((\b -> bar pl b das) <$> bs)
+bars :: (Monad m, Chartable a) => Place a -> [Bar a] ->  HudT m a
+bars pl bs = mconcat ((\b -> bar pl b) <$> bs)
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 data Title a = Title
@@ -152,10 +151,13 @@ defaultTitle txt =
     AnchorMiddle
     0.04
 
-title_ :: (Chartable a) => Title a -> DrawAttributes -> Rect a -> Chart a
-title_ t das a =
-    Chart (TextA style' [t ^. #text])
-    (das <> translateDA (placePos' a + alignPos a) <> rotateDA (rot :: Double)) [SP 0 0]
+title_ :: (Chartable a) => Title a ->  Rect a -> Chart a
+title_ t a =
+    Chart (TextA (style' &
+      #translate ?~ (realToFrac <$> (placePos' a + alignPos a)) &
+      #rotation ?~ rot
+                 ) [t ^. #text])
+    [SP 0 0]
       where
         style'
           | t ^. #anchor == AnchorStart =
@@ -171,8 +173,8 @@ title_ t das a =
           PlaceTop -> Point ((x+z)/2.0) (w + (t ^. #buff))
           PlaceBottom -> Point ((x+z)/2.0)
             (y - (t ^. #buff) -
-              0.5 * realToFrac (t ^. #style ^. #vsize) *
-              realToFrac (t ^. #style ^. #size))
+              0.5 * realToFrac (t ^. #style . #vsize) *
+              realToFrac (t ^. #style . #size))
           PlaceLeft -> Point (x - (t ^. #buff)) ((y+w)/2.0)
           PlaceRight -> Point (z + (t ^. #buff)) ((y+w)/2.0)
           PlaceAbsolute p -> p
@@ -181,28 +183,28 @@ title_ t das a =
             t ^. #place `elem` [PlaceTop, PlaceBottom] =
             Point ((x-z)/ 2.0) 0.0
           | t ^. #anchor == AnchorStart &&
-            t ^. #place `elem` [PlaceLeft] =
+            t ^. #place == PlaceLeft =
             Point 0.0 ((y-w)/2.0)
           | t ^. #anchor == AnchorStart &&
-            t ^. #place `elem` [PlaceRight] =
+            t ^. #place == PlaceRight =
             Point 0.0 ((w-y)/2.0)
           | t ^. #anchor == AnchorEnd &&
             t ^. #place `elem` [PlaceTop, PlaceBottom] =
             Point ((-x+z)/2.0) 0.0
           | t ^. #anchor == AnchorEnd &&
-            t ^. #place `elem` [PlaceLeft] =
+            t ^. #place == PlaceLeft =
             Point 0.0 ((-y+w)/2.0)
           | t ^. #anchor == AnchorEnd &&
-            t ^. #place `elem` [PlaceRight] =
+            t ^. #place == PlaceRight =
             Point 0.0 ((y-w)/2.0)
           | otherwise = Point 0.0 0.0
 
 -- | Add a title to a chart. The logic used to work out placement is flawed due to being able to freely specify text rotation.  It works for specific rotations (Top, Bottom at 0, Left at 90, Right @ 270)
-title :: (Monad m, Chartable a) => Title a -> DrawAttributes -> HudT m a
-title t das = Hud $ \cs -> do
+title :: (Monad m, Chartable a) => Title a ->  HudT m a
+title t = Hud $ \cs -> do
   ca <- use #chartDim
-  let c = title_ t das ca
-  #chartDim .= sconcat (ca :| maybeToList (styleBox c))
+  let c = title_ t ca
+  #chartDim .= addChartBox c ca
   pure $ c:cs
 
 -- writeFile "t1.svg" (renderChartWith (defaultChartSvgStyle & #sizex .~ 400 & #sizey .~ 400) (defaultHudConfig & #hudAxes .~ [AxisConfig (Just defaultBar) Nothing ((defaultTick :: Tick Double) & #tstyle .~ (TickRound TickFormatDefault 3 TickExtend :: TickStyle Double)) PlaceBottom]) [Chart BlankA mempty [SpotRect (Rect 0 2.2 0 2.5)]])
@@ -335,6 +337,12 @@ placePos pl b (Rect x z y w) = case pl of
   PlaceRight -> Point (z + b) 0
   PlaceAbsolute p -> p
 
+placeRot :: (Chartable a) => Place a -> Maybe a
+placeRot pl = case pl of
+  PlaceRight -> Just (-90.0)
+  PlaceLeft -> Just (-90.0)
+  _ -> Nothing
+
 textPos :: (Chartable a) => Place a -> TextStyle -> a -> Point a
 textPos pl tt b = case pl of
   PlaceTop -> Point 0 b
@@ -344,12 +352,6 @@ textPos pl tt b = case pl of
   PlaceRight -> Point b
     (realToFrac (tt ^. #nudge1) * realToFrac (tt ^. #vsize) * realToFrac (tt ^. #size))
   PlaceAbsolute p -> p
-
-placeRot :: (Chartable a) => Place a -> a
-placeRot pl = case pl of
-  PlaceRight -> -90.0
-  PlaceLeft -> -90.0
-  _ -> 0
 
 placeRange :: Place a -> Rect a -> Range a
 placeRange pl (Rect x z y w) = case pl of
@@ -364,8 +366,8 @@ placeOrigin pl x
 
 placeTextAnchor :: (Chartable a) => Place a -> (TextStyle -> TextStyle)
 placeTextAnchor pl
-  | pl `elem` [PlaceLeft] = #anchor .~ AnchorEnd
-  | pl `elem` [PlaceRight] = #anchor .~ AnchorStart
+  | pl == PlaceLeft = #anchor .~ AnchorEnd
+  | pl == PlaceRight = #anchor .~ AnchorStart
   | otherwise = id
 
 placeGridLines :: (Chartable a) => Place a -> Rect a -> a -> a -> [Spot a]
@@ -395,61 +397,57 @@ ticksR s d r =
 ticksA :: (Chartable a) => TickStyle a -> Place a -> Rect a -> Rect a -> [(a, Text)]
 ticksA ts pl d xs = ticksR ts (placeRange pl d) (placeRange pl xs)
 
-tickGlyph_ :: (Chartable a) => Place a -> (GlyphStyle, a) -> TickStyle a -> DrawAttributes -> Rect a -> Rect a -> Rect a -> Chart a
-tickGlyph_ pl (g,b) ts das a d xs =
-   Chart (GlyphA g)
-    (das <> translateDA (placePos pl b a) <> rotateDA (placeRot pl))
-    (SpotPoint <$> (\x -> Point x 0) <$> fst <$> ticksA ts pl d xs)
+tickGlyph_ :: (Chartable a) => Place a -> (GlyphStyle, a) -> TickStyle a -> Rect a -> Rect a -> Rect a -> Chart a
+tickGlyph_ pl (g,b) ts ca da xs =
+   Chart (GlyphA (g & #rotation .~ (realToFrac <$> placeRot pl)))
+    (SpotPoint . (placePos pl b ca +) . placeOrigin pl . fst <$> ticksA ts pl da xs)
 
 tickGlyph :: (Monad m, Chartable a) =>
-  Place a -> (GlyphStyle, a) -> TickStyle a -> DrawAttributes -> HudT m a
-tickGlyph pl (g, b) ts das = Hud $ \cs -> do
+  Place a -> (GlyphStyle, a) -> TickStyle a ->  HudT m a
+tickGlyph pl (g, b) ts = Hud $ \cs -> do
   a <- use #chartDim
   d <- use #canvasDim
   xs <- use #dataDim
-  let c = tickGlyph_ pl (g,b) ts das a d xs
+  let c = tickGlyph_ pl (g,b) ts a d xs
   #chartDim .= addToRect a (styleBox c)
   pure $ c:cs
 
-
--- FIXME: remove das logic and create a single chart
-tickText_ :: (Chartable a) => Place a -> (TextStyle, a) -> TickStyle a -> DrawAttributes ->
+tickText_ :: (Chartable a) => Place a -> (TextStyle, a) -> TickStyle a -> 
   Rect a -> Rect a -> Rect a -> [Chart a]
-tickText_ pl (txts, b) ts das ca da xs =
-  zipWith
-        (\txt sp ->
-                Chart (TextA (placeTextAnchor pl txts) [txt])
-               (das <> translateDA (placePos pl b ca + textPos pl txts b)) [SpotPoint sp])
+tickText_ pl (txts, b) ts ca da xs =
+  zipWith (\txt sp ->
+    Chart (TextA
+      ( placeTextAnchor pl txts) [txt])
+                [SpotPoint sp])
              (snd <$> ticksA ts pl da xs)
-             (placeOrigin pl <$> fst <$> ticksA ts pl da xs)
+             ((placePos pl b ca + textPos pl txts b +) . placeOrigin pl . fst <$> ticksA ts pl da xs)
 
 tickText :: (Monad m, Chartable a) =>
-  Place a -> (TextStyle, a) -> TickStyle a -> DrawAttributes -> HudT m a
-tickText pl (txts, b) ts das = Hud $ \cs -> do
+  Place a -> (TextStyle, a) -> TickStyle a ->  HudT m a
+tickText pl (txts, b) ts = Hud $ \cs -> do
   ca <- use #chartDim
   da <- use #canvasDim
   xs <- use #dataDim
-  let c = tickText_ pl (txts, b) ts das ca da xs
+  let c = tickText_ pl (txts, b) ts ca da xs
   #chartDim .= addChartBoxes c ca
   pure $ c <> cs
 
 tickLine :: (Monad m, Chartable a) =>
-  Place a -> (LineStyle, a) -> TickStyle a -> DrawAttributes -> HudT m a
-tickLine pl (ls, b) ts das = Hud $ \cs -> do
-  ca <- use #chartDim
+  Place a -> (LineStyle, a) -> TickStyle a ->  HudT m a
+tickLine pl (ls, b) ts = Hud $ \cs -> do
   da <- use #canvasDim
   xs <- use #dataDim
-  let c = Chart (LineA ls) das <$> (\x -> placeGridLines pl da x b) <$> fst <$> ticksA ts pl da xs
+  let c = Chart (LineA ls) . (\x -> placeGridLines pl da x b) . fst <$> ticksA ts pl da xs
   #chartDim %= addChartBoxes c
   pure $ c <> cs
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
 tick :: (Monad m, Chartable a) =>
-  Place a -> Tick a -> DrawAttributes -> HudT m a
-tick pl t das =
-  maybe mempty (\x -> tickGlyph pl x (t ^. #tstyle) das) (t ^. #gtick) <>
-  maybe mempty (\x -> tickText pl x (t ^. #tstyle) das) (t ^. #ttick) <>
-  maybe mempty (\x -> tickLine pl x (t ^. #tstyle) das) (t ^. #ltick) <>
+  Place a -> Tick a ->  HudT m a
+tick pl t =
+  maybe mempty (\x -> tickGlyph pl x (t ^. #tstyle)) (t ^. #gtick) <>
+  maybe mempty (\x -> tickText pl x (t ^. #tstyle)) (t ^. #ttick) <>
+  maybe mempty (\x -> tickLine pl x (t ^. #tstyle)) (t ^. #ltick) <>
   extendData pl t
 
 -- | compute an extension to the Range if a tick went over the data bounding box
@@ -501,9 +499,9 @@ defaultAdjustments :: Adjustments
 defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 
 -- | adjust Tick for sane font sizes etc
-adjustTick :: (Chartable a) => Adjustments -> Rect a -> Rect a -> Place a -> DrawAttributes ->
+adjustTick :: (Chartable a) => Adjustments -> Rect a -> Rect a -> Place a -> 
   Tick a -> Tick a
-adjustTick (Adjustments mrx ma mry ad) vb cs pl das t
+adjustTick (Adjustments mrx ma mry ad) vb cs pl t
   | pl `elem` [PlaceBottom, PlaceTop] = case ad of
       False -> t & #ttick . _Just . _1 . #size %~ (/adjustSizeX)
       True ->
@@ -514,7 +512,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl das t
                 PlaceTop -> #ttick . _Just . _1 . #anchor .~ AnchorStart
                 _ -> #ttick . _Just . _1 . #anchor .~ AnchorEnd) $
              (#ttick . _Just . _1 . #size %~ (/adjustSizeA)) $
-             (#ttick . _Just . _1 . #rotation .~ Just (-45)) t
+             (#ttick . _Just . _1 . #rotation ?~ (-45)) t
           False -> (#ttick . _Just . _1 . #size %~ (/adjustSizeA)) t
   | pl `elem` [PlaceLeft, PlaceRight] =
     (#ttick . _Just . _1 . #size %~ (/adjustSizeY)) t
@@ -527,14 +525,14 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl das t
     tickl = snd <$> ticksR (t ^. #tstyle) asp r
     maxWidth :: Double
     maxWidth =
-          maybe 1 (\tt -> maybe 1 id $ maximum' $
+          maybe 1 (\tt -> fromMaybe 1 $ maximum' $
           (\(Rect x z _ _) -> z - x)
-              <$> styleBoxText (fst tt) das <$> tickl) (t ^. #ttick)
+              . (\x -> styleBoxText (fst tt) x (Point 0 0)) <$> tickl) (t ^. #ttick)
     maxHeight =
       maybe 1
-          (\tt -> maybe 1 id $ maximum' $
+          (\tt -> fromMaybe 1 $ maximum' $
           (\(Rect _ _ y w) -> w - y)
-              <$> styleBoxText (fst tt) das <$> tickl) (t ^. #ttick)
+              . (\x -> styleBoxText (fst tt) x (Point 0 0)) <$> tickl) (t ^. #ttick)
     adjustSizeX :: Double
     adjustSizeX =
       maybe 1 identity (maximum' [(maxWidth / realToFrac (upper asp - lower asp)) / mrx, 1])
@@ -550,9 +548,9 @@ adjustedTickHud c = Hud $ \cs -> do
   let adjTick =
         maybe
         (c ^. #atick)
-        (\x -> adjustTick x vb xs (c ^. #place) mempty (c ^. #atick))
+        (\x -> adjustTick x vb xs (c ^. #place) (c ^. #atick))
         (c ^. #adjust)
-  unhud (tick (c ^. #place) adjTick mempty) cs
+  unhud (tick (c ^. #place) adjTick) cs
 
 data AxisConfig a = AxisConfig
   { abar :: Maybe (Bar a)
@@ -602,9 +600,7 @@ hudSvg ca hss cs =
   hudSvgWith ca (defRect $ dataBox cs) (mconcat <$> hss) cs
 
 hudChartWith :: (Chartable a) => Rect a -> Rect a -> [Hud a] -> [Chart a] -> [Chart a]
-hudChartWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ do
-  cs'' <- (unhud $ mconcat hs) cs'
-  pure cs''
+hudChartWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ (unhud $ mconcat hs) cs'
   where
     xs' = defRectS $ dataBox cs
     da' = defRect $ dataBox cs'
@@ -612,9 +608,7 @@ hudChartWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ do
     cs' = projectSpotsWith ca xs cs
 
 hudChart :: (Chartable a) => Rect a -> [Hud a] -> [Chart a] -> [Chart a]
-hudChart ca hs cs = flip evalState (ChartDims ca' da' xs') $ do
-  cs'' <- (unhud $ mconcat hs) cs'
-  pure cs''
+hudChart ca hs cs = flip evalState (ChartDims ca' da' xs') $ (unhud $ mconcat hs) cs'
   where
     xs' = defRectS $ dataBox cs
     da' = defRect $ dataBox cs'
@@ -645,10 +639,10 @@ hudsWith :: HudConfig -> [[Hud Double]]
 hudsWith cfg =
   [axes] <> [[can]] <> ((:[]) <$> titles)
   where
-    can = maybe mempty (\x -> canvas x mempty) (cfg ^. #hudCanvas)
-    titles = (`title` mempty) <$> (cfg ^. #hudTitles)
+    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
+    titles = title <$> (cfg ^. #hudTitles)
     axes = (\x ->
-             maybe mempty (\a -> bar (x ^. #place) a mempty) (x ^. #abar) <>
+             maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <>
              adjustedTickHud x) <$>
            (cfg ^. #hudAxes)
 
@@ -656,14 +650,13 @@ hudsWithExtend :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
 hudsWithExtend xs cfg =
   (haxes <> [can] <> titles <> ls, [xsext])
   where
-    can = maybe mempty (\x -> canvas x mempty) (cfg ^. #hudCanvas)
-    titles = (`title` mempty) <$> (cfg ^. #hudTitles)
-    -- ticks' = adjustedTickHud <$> (cfg ^. #hudAxes)
+    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
+    titles = title <$> (cfg ^. #hudTitles)
     axes = xyzzy xs <$> cfg ^. #hudAxes
     axes' = fst <$> axes
-    xsext = Chart BlankA mempty (SpotRect <$> catMaybes (snd <$> axes))
+    xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> axes))
     haxes = (\x ->
-             maybe mempty (\a -> bar (x ^. #place) a mempty) (x ^. #abar) <>
+             maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <>
              adjustedTickHud x) <$> axes'
     ls = legend <$> (cfg ^. #hudLegends)
 
@@ -770,7 +763,7 @@ legend l = Hud $ \cs -> do
         (#annotation %~ scaleAnn (realToFrac $ l ^. #scale)) <$>
         projectSpots (fmap (* l ^. #scale) ca') (makeLegend l)
       movedleg ca' leg =
-        maybe id (move . SpotPoint . placel (l ^. #lplace) ca') (styleBoxes leg) $ leg
+        maybe id (move . SpotPoint . placel (l ^. #lplace) ca') (styleBoxes leg) leg
       placel pl (Rect x z y w) (Rect x' z' y' w') =
         case pl of
           PlaceTop -> Point ((x+z)/2.0) (w + (w' - y')/2.0)
@@ -782,8 +775,8 @@ legend l = Hud $ \cs -> do
 legendEntry :: (Chartable a) =>
   LegendOptions a -> Annotation -> Text -> (Chart a, Chart a)
 legendEntry l a t =
-  ( Chart ann mempty sps
-  , Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) mempty [SP 0 0]
+  ( Chart ann sps
+  , Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) [SP 0 0]
   )
   where
     (ann, sps) = case a of
@@ -838,19 +831,20 @@ l1 = [ (GlyphA defaultGlyphStyle, "glyph")
 makeLegend :: (Chartable a) => LegendOptions a -> [Chart a]
 makeLegend l = cs'
   where
-    es = reverse $ (\(a,t) -> legendEntry l a t) <$> (l ^. #lcharts)
-    twidth = maybe 1 (\(Rect _ z _ _) -> z) $ foldRect $ catMaybes $ styleBox <$> snd <$> es
+    es = reverse $ uncurry (legendEntry l) <$> (l ^. #lcharts)
+    twidth = maybe 1 (\(Rect _ z _ _) -> z) $ foldRect $ catMaybes (styleBox . snd <$> es)
     as = move (SP (twidth * l ^. #lsize) 0.0) (fst <$> es)
     hs = zipWith (\a t -> hori (l ^. #vgap) [[t], [a]]) as (snd <$> es)
     vs = vert (l ^. #hgap) hs
     cs = vs <>
-      (maybe [] (\x -> [Chart (RectA x) mempty
-              (maybeToList (SpotRect <$> (widenProp (maybe 1 id
-                                    (realToFrac <$> l ^. #innerPad)) <$> (styleBoxes vs))))])
-         (l ^. #legendFrame))
-    cs' = cs <> [Chart BlankA mempty
-                 (maybeToList (SpotRect <$> widenProp (maybe 1 id
-                                        (realToFrac <$> l ^. #outerPad)) <$> (styleBoxes cs)))]
+      maybe [] (\x -> [Chart (RectA x)
+        (maybeToList (SpotRect <$> (widenProp (maybe 1 realToFrac
+        (l ^. #innerPad)) <$> styleBoxes vs)))])
+      (l ^. #legendFrame)
+    cs' =
+      cs <>
+      [Chart BlankA (maybeToList (SpotRect . widenProp (maybe 1 realToFrac (l ^. #outerPad)) <$>
+       styleBoxes cs))]
 
 
 

@@ -88,7 +88,7 @@ and this is enough to create a chart:
 \begin{code}
 
 glyphs :: [Chart Double]
-glyphs = zipWith (\d s -> Chart (GlyphA s) mempty (SpotPoint <$> d)) ls gopts
+glyphs = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) ls gopts
 
 \end{code}
 
@@ -127,11 +127,10 @@ corners s =
    #borderSize .~ 0 $
     #size .~ s $
     defaultGlyphStyle)
-  mempty
   [SP (-0.5) (-0.5), SP (-0.5) 0.5, SP 0.5 (-0.5), SP 0.5 0.5]]
 
 can1 :: ChartSvg Double
-can1 = chartSvg unitRect (Main.corners 0.1 <> [Chart (RectA (blob grey 0.2)) mempty [SpotRect unitRect]])
+can1 = chartSvg unitRect (Main.corners 0.1 <> [Chart (RectA (blob grey 0.2)) [SpotRect unitRect]])
 
 \end{code}
 <br>
@@ -148,7 +147,7 @@ can2 asp cs =
   where
     cs' = projectSpots asp cs
     asp' = defRect $ styleBoxes cs'
-    canvas' = Chart (RectA (blob grey 0.2)) mempty
+    canvas' = Chart (RectA (blob grey 0.2)) 
       [SpotRect asp']
 
 \end{code}
@@ -164,7 +163,7 @@ So the introduction of a hud to a chart requires a different api to chartSvg.  T
 \begin{code}
 
 canvas3 :: (Chartable a) => Hud a
-canvas3 = canvas (blob grey 0.2) mempty
+canvas3 = canvas (blob grey 0.2) 
 
 \end{code}
 
@@ -203,9 +202,9 @@ hud1 :: Rect Double -> [Chart Double] -> ChartSvg Double
 hud1 vb cs =
   hudSvg vb [[c], [b], [t]] cs
   where
-    c = canvas (blob grey 0.2) mempty
-    b = mconcat $ (\(p, x) -> bar p x mempty) <$> b1
-    t = mconcat $ (\x -> title x mempty) <$>
+    c = canvas (blob grey 0.2) 
+    b = mconcat $ (\(p, x) -> bar p x ) <$> b1
+    t = mconcat $ (\x -> title x ) <$>
       ((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double)
       (defaultTitle "PlaceAbsolute") : t1)
 
@@ -223,9 +222,9 @@ hud2 :: Rect Double -> [Chart Double] -> ChartSvg Double
 hud2 vb cs =
   hudSvg vb [[c], [b], [t]] cs
   where
-    c = canvas (blob grey 0.2) mempty
-    b = mconcat $ (\(p,x) -> bar p x mempty) <$> b1
-    t = fold $ (\x -> title x mempty) <$>
+    c = canvas (blob grey 0.2) 
+    b = mconcat $ (\(p,x) -> bar p x ) <$> b1
+    t = fold $ (\x -> title x ) <$>
       ((#place .~ PlaceAbsolute (Point 0 0) :: Title Double -> Title Double)
       (defaultTitle "PlaceAbsolute") : t1)
 \end{code}
@@ -243,11 +242,11 @@ hud3a :: Rect Double -> [Chart Double] -> ChartSvg Double
 hud3a vb cs =
   hudSvg vb [[c], [bBot, tBot, bLeft, tLeft]] cs
   where
-    c = canvas (blob grey 0.2) mempty
-    bBot = bar PlaceBottom (Bar defaultRectStyle 0.005 0.01) mempty
-    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) mempty
-    tBot = tick PlaceBottom defaultTick mempty
-    tLeft = tick PlaceLeft defaultTick mempty
+    c = canvas (blob grey 0.2) 
+    bBot = bar PlaceBottom (Bar defaultRectStyle 0.005 0.01) 
+    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) 
+    tBot = tick PlaceBottom defaultTick 
+    tLeft = tick PlaceLeft defaultTick 
 
 \end{code}
 
@@ -260,16 +259,16 @@ hud3 vb cs =
   hudSvg vb
   [[c], [bBot, tBot, bLeft, tLeft, bTop, tTop, bRight, tRight], t'] cs
   where
-    c = canvas (blob grey 0.2) mempty
-    bBot = bar  PlaceBottom (Bar defaultRectStyle 0.005 0.01) mempty
-    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) mempty
-    bTop = bar PlaceTop (Bar defaultRectStyle 0.005 0.01) mempty
-    bRight = bar PlaceRight (Bar defaultRectStyle 0.005 0.01) mempty
-    tBot = tick PlaceBottom defaultTick mempty
-    tLeft = tick PlaceLeft defaultTick mempty
-    tTop = tick PlaceTop defaultTick mempty
-    tRight = tick PlaceRight defaultTick mempty
-    t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "tick marks") mempty) <$>
+    c = canvas (blob grey 0.2) 
+    bBot = bar  PlaceBottom (Bar defaultRectStyle 0.005 0.01) 
+    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) 
+    bTop = bar PlaceTop (Bar defaultRectStyle 0.005 0.01) 
+    bRight = bar PlaceRight (Bar defaultRectStyle 0.005 0.01) 
+    tBot = tick PlaceBottom defaultTick 
+    tLeft = tick PlaceLeft defaultTick 
+    tTop = tick PlaceTop defaultTick 
+    tRight = tick PlaceRight defaultTick 
+    t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "tick marks") ) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
 
 \end{code}
@@ -291,18 +290,18 @@ hud4 vb cs =
   where
     labels = ["tick labels", "often need to be", "manipulated", "by text anchoring", ", by rotation", "and by adjustments to font size"] :: [Text]
     ts = (#tstyle .~ TickLabels labels :: Tick Double -> Tick Double) defaultTick
-    c = canvas (blob grey 0.2) mempty
-    bBot = bar PlaceBottom (Bar defaultRectStyle 0.005 0.01) mempty
-    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) mempty
-    bTop = bar PlaceTop (Bar defaultRectStyle 0.005 0.01) mempty
-    bRight = bar PlaceRight (Bar defaultRectStyle 0.005 0.01) mempty
+    c = canvas (blob grey 0.2) 
+    bBot = bar PlaceBottom (Bar defaultRectStyle 0.005 0.01) 
+    bLeft = bar PlaceLeft (Bar defaultRectStyle 0.005 0.01) 
+    bTop = bar PlaceTop (Bar defaultRectStyle 0.005 0.01) 
+    bRight = bar PlaceRight (Bar defaultRectStyle 0.005 0.01) 
     tBot :: Hud Double
     tBot = adjustedTickHud (AxisConfig Nothing (Just defaultAdjustments) ts PlaceBottom)
-    tLeft = tick PlaceLeft ts mempty
+    tLeft = tick PlaceLeft ts 
     tTop :: Hud Double
     tTop = adjustedTickHud (AxisConfig Nothing (Just defaultAdjustments) ts PlaceTop)
-    tRight = tick PlaceRight ts mempty
-    t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "automated tick style") mempty) <$>
+    tRight = tick PlaceRight ts 
+    t' = (\x -> title ((#place .~ x  :: Title Double -> Title Double) $ defaultTitle "automated tick style") ) <$>
       ([PlaceRight, PlaceLeft, PlaceTop, PlaceBottom] :: [Place Double])
 \end{code}
 

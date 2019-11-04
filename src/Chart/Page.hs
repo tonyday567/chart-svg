@@ -42,7 +42,7 @@ subtype h origt t =
 repChart :: (Monad m) => Chart a -> SharedRep m (Chart a)
 repChart c = do
   ann <- repAnnotation (c ^. #annotation)
-  pure $ Chart ann (c ^. #drawatts) (c ^. #spots)
+  pure $ Chart ann (c ^. #spots)
 
 repAnnotation :: (Monad m) => Annotation -> SharedRep m Annotation
 repAnnotation ann = bimap hmap mmap a <<*>> rs <<*>> ts <<*>> gs <<*>> ls
@@ -50,7 +50,7 @@ repAnnotation ann = bimap hmap mmap a <<*>> rs <<*>> ts <<*>> gs <<*>> ls
     a = dropdownSum takeText id (Just "Chart Annotation")
       ["RectA", "TextA", "GlyphA", "LineA", "BlankA"]
       (annotationText ann)
-    rs = repRectStyle defRect
+    rs = repRectStyle defRectStyle
     ts = repTextStyle defText
     gs = repGlyphStyle defGlyph
     ls = repLineStyle defLine
@@ -68,7 +68,7 @@ repAnnotation ann = bimap hmap mmap a <<*>> rs <<*>> ts <<*>> gs <<*>> ls
         "LineA" -> LineA ls'
         "BlankA" -> BlankA
         _ -> BlankA
-    defRect = case ann of
+    defRectStyle = case ann of
       RectA s -> s
       _ -> defaultRectStyle
     (defText, texts) = case ann of
@@ -98,7 +98,12 @@ repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Noth
   bsz <- slider (Just "Border Size") 0 0.02 0.001 (gs ^. #borderSize)
   gbc <- colorPicker (Just "Border Color") (gs ^. #borderColor)
   gbo <- slider (Just "Border Opacity") 0 1 0.1 (gs ^. #borderOpacity)
-  pure (GlyphStyle sz gc go gbc gbo bsz sh)
+  tr <- maybeRep (Just "rotation") (isJust (gs ^. #rotation))
+    (slider (Just "rotation") (-180) 180 10 (maybe 0 identity (gs ^. #rotation)))
+  tt <- maybeRep (Just "translate") (isJust (gs ^. #translate))
+    (repPoint (Point (Range 0 1) (Range 0 1))
+                                 (Point 0.001 0.001) (Point 0 0))
+  pure (GlyphStyle sz gc go gbc gbo bsz sh tr tt)
 
 repTitle :: (Monad m) => Title Double -> SharedRep m (Title Double)
 repTitle cfg = do
@@ -118,9 +123,12 @@ repTextStyle s = do
   th <- slider (Just "hsize") 0.2 1 0.05 (s ^. #hsize)
   tv <- slider (Just "vsize") 0.5 2 0.05 (s ^. #vsize)
   tn <- slider (Just "nudge1") (-0.5) 0.5 0.05 (s ^. #nudge1)
-  trc <- maybeRep (Just "rotation") (maybe False  (const True) (s ^. #rotation))
-    (slider (Just "rotation") (-180) 180 10 (maybe 0 identity (s ^. #rotation)))
-  pure $ TextStyle ts tc to' ta th tv tn trc
+  tr <- maybeRep (Just "rotation") (isJust (s ^. #rotation))
+    (slider (Just "rotation") (-180) 180 10 (fromMaybe 0 (s ^. #rotation)))
+  tt <- maybeRep (Just "translate") (isJust (s ^. #translate))
+    (repPoint (Point (Range 0 1) (Range 0 1))
+                                 (Point 0.001 0.001) (Point 0 0))
+  pure $ TextStyle ts tc to' ta th tv tn tr tt
 
 repPlace :: (Monad m) => Place Double -> SharedRep m (Place Double)
 repPlace p = bimap hmap mmap splace <<*>> sp
@@ -201,7 +209,7 @@ repAnchor a = toAnchor <$>
 
 repRectStyle :: (Monad m) => RectStyle -> SharedRep m RectStyle
 repRectStyle s = do
-  bs <- slider (Just "border size") 0.02 0.3 0.01 (s ^. #borderSize)
+  bs <- slider (Just "border size") 0.0 0.1 0.001 (s ^. #borderSize)
   bc <- colorPicker (Just "border color") (s ^. #borderColor)
   bo <- slider (Just "border opacity") 0 1 0.1 (s ^. #borderOpacity)
   c <- colorPicker (Just "color") (s ^. #color)
@@ -251,7 +259,7 @@ repHudConfig naxes ntitles defaxis deftitle deflegend cfg =
   bimap hmap HudConfig can <<*>> ts <<*>> axs <<*>> ls
   where
     can = maybeRep (Just "canvas") (isJust (cfg ^. #hudCanvas)) $
-      repRectStyle (maybe defaultCanvas id (cfg ^. #hudCanvas))
+      repRectStyle (fromMaybe defaultCanvas (cfg ^. #hudCanvas))
     ts = listifyMaybe' (Just "titles") "tz" (checkbox Nothing) repTitle
       ntitles deftitle (cfg ^. #hudTitles)
     axs = listifyMaybe' (Just "axes") "axz" (checkbox Nothing) repAxisConfig
@@ -275,16 +283,15 @@ repChartSvgStyle s =
     y = slider (Just "sizey") 0 1000 1 (s ^. #sizey)
     a = slider (Just "aspect") 0.2 5 0.1 (s ^. #chartAspect)
     op' = maybeRep (Just "outer pad")
-      (maybe False (const True)
-        (s ^. #outerPad))
-      (slider Nothing 1 1.2 0.01 (maybe 1 identity (s ^. #outerPad)))
+      (isJust (s ^. #outerPad))
+      (slider Nothing 1 1.2 0.01 (fromMaybe 1 (s ^. #outerPad)))
     ip = maybeRep (Just "inner pad")
-      (maybe False (const True) (s ^. #innerPad))
-      (slider Nothing 1 1.2 0.01 (maybe 1 identity (s ^. #innerPad)))
-    fr = maybeRep (Just "frame") (maybe False (const True) (s ^. #chartFrame))
-      (repRectStyle (maybe defaultSvgFrame id (s ^. #chartFrame)))
-    orig = maybeRep (Just "origin") (maybe False (const True) (s ^. #orig))
-      (repGlyphStyle (maybe defaultOrigin id (s ^. #orig)))
+      (isJust (s ^. #innerPad))
+      (slider Nothing 1 1.2 0.01 (fromMaybe 1 (s ^. #innerPad)))
+    fr = maybeRep (Just "frame") (isJust (s ^. #chartFrame))
+      (repRectStyle (fromMaybe defaultSvgFrame (s ^. #chartFrame)))
+    orig = maybeRep (Just "origin") (isJust (s ^. #orig))
+      (repGlyphStyle (fromMaybe defaultOrigin (s ^. #orig)))
     hmap x' y' a' op'' ip' fr' orig' = accordion_ "accsvg" Nothing
       [ ("Sizing", x' <> y' <> a')
       , ("Padding", op'' <> ip')
@@ -302,7 +309,7 @@ repData d = do
     ] d
   pure (case a of
           "sin" -> SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30
-          "line" -> SpotPoint <$> uncurry Point <$>
+          "line" -> SpotPoint . uncurry Point <$>
             [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)]
           "one" -> [SA 0 1 0 1]
           "dist" -> SpotRect <$> areaXY (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50
@@ -499,7 +506,7 @@ repChoice initt xs = bimap hmap mmap dd <<*>>
     ts = fst <$> xs
     cs = snd <$> xs
     dd = dropdownSum takeText id (Just "Chart Family") ts t0
-    t0 = maybe "Bad Init" id (atMay ts initt)
+    t0 = fromMaybe "Bad Init" (atMay ts initt)
     hmap dd' cs' =
       div_ (dd' <>
       mconcat (zipWith (\c t -> subtype c t0 t) cs' ts))
@@ -521,19 +528,19 @@ repLegend initl = LegendOptions <$> lcharts' <*> lsize' <*> hgap' <*> vgap' <*> 
     vgap' = slider (Just "vertical gap") 0.000 0.1 0.001 (initl ^. #vgap)
     ltext' = repTextStyle (initl ^. #ltext)
     lmax' = sliderI (Just "max entries") 0 10 1 (initl ^. #lmax)
-    -- orig = maybeRep (Just "origin") (maybe False (const True) (s ^. #orig))
+    -- orig = maybeRep (Just "origin") (isJust (s ^. #orig))
     --   (repGlyphStyle (maybe defaultOrigin id (s ^. #orig)))
     innerPad' =
-      maybeRep Nothing (maybe False (const True) (initl ^. #innerPad))
+      maybeRep Nothing (isJust (initl ^. #innerPad))
       (slider (Just "inner padding") 1 1.2 0.001
-       (maybe 1 id (initl ^. #innerPad)))
+       (fromMaybe 1 (initl ^. #innerPad)))
     outerPad' =
-      maybeRep Nothing (maybe False (const True) (initl ^. #outerPad))
+      maybeRep Nothing (isJust (initl ^. #outerPad))
       (slider (Just "outer padding") 1 1.2 0.001
-       (maybe 1 id (initl ^. #outerPad)))
+       (fromMaybe 1 (initl ^. #outerPad)))
     legendFrame' =
-      maybeRep (Just "frame") (maybe False (const True) (initl ^. #legendFrame))
-      (repRectStyle (maybe defaultSvgFrame id (initl ^. #legendFrame)))
+      maybeRep (Just "frame") (isJust (initl ^. #legendFrame))
+      (repRectStyle (fromMaybe defaultSvgFrame (initl ^. #legendFrame)))
     lplace' = repPlace (initl ^. #lplace)
     scale' = slider (Just "scale") 0.01 1 0.001 (initl ^. #scale)
 

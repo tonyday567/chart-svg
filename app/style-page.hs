@@ -59,7 +59,7 @@ repMain cscfg a hcfg =
       checkbox (Just "show chart svg text" ) False
     mmap cs' ann' d' h' debug' =
       ( renderChartWith cs' h'
-        [Chart ann' mempty d']
+        [Chart ann' d']
       , bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw values</h2>"
@@ -67,7 +67,7 @@ repMain cscfg a hcfg =
       <> bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw chart svg</h2>"
-         , Lazy.toStrict $ renderText $ toHtml (renderChartWith cs' h' [Chart ann' mempty d'])
+         , Lazy.toStrict $ renderText $ toHtml (renderChartWith cs' h' [Chart ann' d'])
          ]) (snd debug')
       )
     hmap cs' ann' d' h' debug' =
@@ -79,16 +79,14 @@ repMain cscfg a hcfg =
       , ("Debug", debug')
       ]
 
-
--- let cs = (\tps -> [Chart (TextA defaultTextStyle (fst <$> tps)) mempty (snd <$> tps)]) [("text1", SP 0 0),("text2", SP 1 1)] :: [Chart Double]
--- writeFile "c2.svg" $ renderChartWith defaultChartSvgStyle defaultHudConfig cs
+--  writeFile "bb.svg" $ renderChartWith defaultChartSvgStyle defaultHudConfig $ (\tps -> let cs = [Chart (TextA defaultTextStyle (fst <$> tps)) (snd <$> tps)] in cs <> boxes defaultRectStyle cs) [("text1", SP 0 0),("text2", SP 1 1)]
 repTextBB :: (Monad m) => ChartSvgStyle -> SharedRep m (Text, Text)
 repTextBB cscfg =
   bimap hmap mmap cs <<*>> txtstyle <<*>> bb <<*>> tps <<*>> debug
   where
     cs = repChartSvgStyle cscfg
     txtstyle = repTextStyle defaultTextStyle
-    bb = repRectStyle (border 0.01 grey 0.01)
+    bb = repRectStyle (border 0.002 (PixelRGB8 115 36 163) 0.5)
     tps = second (fmap (second SpotPoint)) $
       listifyMaybe' (Just "text examples") "te" (checkbox Nothing)
       repTextPoint 5 ("another example", Point 0 0 ) [("test1", Point 0 0), ("test2", Point 1 1)]
@@ -98,7 +96,7 @@ repTextBB cscfg =
       (checkbox (Just "show style values" ) True) <<*>>
       checkbox (Just "show chart svg text" ) False
     txtchart tstyle' tps' =
-      [Chart (TextA tstyle' (fst <$> tps')) mempty (snd <$> tps')]
+      [Chart (TextA tstyle' (fst <$> tps')) (snd <$> tps')]
     chartsvg cs' tstyle' tps' bb' =
       renderChartWith cs' defaultHudConfig
       (txtchart tstyle' tps' <>
@@ -140,7 +138,7 @@ repLegendT cscfg a hcfg =
       checkbox (Just "show chart svg text" ) False
     mmap cs' ann' d' h' debug' =
       ( renderChartWith cs' h'
-        [Chart ann' mempty d']
+        [Chart ann' d']
       , bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw values</h2>"
@@ -148,7 +146,7 @@ repLegendT cscfg a hcfg =
       <> bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw chart svg</h2>"
-         , Lazy.toStrict $ renderText $ toHtml (renderChartWith cs' h' [Chart ann' mempty d'])
+         , Lazy.toStrict $ renderText $ toHtml (renderChartWith cs' h' [Chart ann' d'])
          ]) (snd debug')
       )
     hmap cs' ann' d' h' debug' =

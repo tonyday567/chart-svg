@@ -7,6 +7,7 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
@@ -24,6 +25,7 @@ import NumHask.Space
 import Protolude
 import Algebra.Lattice
 import Control.Category (id)
+import GHC.Exts (fromListN)
 
 instance Lattice Double where
   (\/) = min
@@ -100,7 +102,7 @@ projectTo2 vb xss = fmap (maybe id (projectOn vb) (fold $ foldRect . fmap toRect
 scale :: (Num a) => Point a -> Rect a -> Rect a
 scale (Point x' y') (Rect x z y w) = Rect (x*x') (z*x') (y*y') (w*y')
 
--- | widen an area by an amount
+-- | widen a Rect by a scalar amount
 widen :: (Fractional a) => a -> Rect a -> Rect a
 widen a (Rect x z y w) = Rect (x-a/2) (z+a/2) (y-a/2) (w+a/2)
 

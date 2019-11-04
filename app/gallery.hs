@@ -8,7 +8,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
@@ -21,13 +20,10 @@ import Chart.Hud
 import Chart.Core
 import Chart.Spot
 import Data.List (zipWith3)
-import Graphics.Svg.Types (TextAnchor(..))
 import Protolude
 import NumHask.Point
 import NumHask.Rect
-import NumHask.Range
 import GHC.Exts
-import Control.Category (id)
 
 tri1 :: Int -> Int -> Double -> [Chart Double]
 tri1 a b s =
@@ -38,8 +34,8 @@ tri1 a b s =
         (Point (fromIntegral a) 0)
         (Point (fromIntegral a) (fromIntegral b)) &
         #borderSize .~ 0.01 &
-        #size .~ s))
-    (translateDA c)
+        #size .~ s &
+        #translate ?~ c))
     [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
   ]
   where
@@ -54,14 +50,14 @@ tri2 a b s gap bs txts =
         #shape .~ TriangleGlyph (Point 0 0)
         (Point (fromIntegral a) 0)
         (Point (fromIntegral a) (fromIntegral b)) &
-        #borderSize .~ bs & #size .~ s))
-    (translateDA c)
+        #borderSize .~ bs &
+        #size .~ s &
+        #translate ?~ c))
     [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
   ] <>
   zipWith3
   (\side bump ts' -> Chart
-    (TextA ts' (show <$> [side]))
-    (translateDA $ c + bump)
+    (TextA (ts' & #translate ?~ c + bump) (show <$> [side]))
     [SpotPoint $ Point (fromIntegral a) (fromIntegral b)])
   [a,b,h]
   [ Point (s * fromIntegral a / 2) ((-gap) -
@@ -69,11 +65,11 @@ tri2 a b s gap bs txts =
               realToFrac (ts ^. #vsize) *
               realToFrac (ts ^. #size))
   , Point (s * fromIntegral a + gap) (s * fromIntegral b / 2)
-  , Point (s * fromIntegral a / 2 - gap * ((fromIntegral b) ** (2.0 :: Double) / (fromIntegral h) ** (2 :: Double))) (s * fromIntegral b / 2 + gap * ((fromIntegral a) ** (2.0 :: Double) / (fromIntegral h) ** (2 :: Double)))
+  , Point (s * fromIntegral a / 2 - gap * (fromIntegral b ** 2.0 / fromIntegral h ** 2)) (s * fromIntegral b / 2 + gap * (fromIntegral a ** 2.0 / fromIntegral h ** 2))
   ]
   [ ts
   , ts & #anchor .~ AnchorStart
-  , ts & #rotation .~ Just (-(atan (fromIntegral b/fromIntegral a)) * (180 / pi))
+  , ts & #rotation ?~ (- atan (fromIntegral b/fromIntegral a) * (180 / pi))
   ]
   where
     c :: Point Double
@@ -90,14 +86,13 @@ tri3 a b s gap bs txts =
         #shape .~ TriangleGlyph (Point 0 0)
         (Point (fromIntegral a / ns) 0)
         (Point (fromIntegral a / ns) (fromIntegral b / ns)) &
-        #borderSize .~ bs & #size .~ s))
-    (translateDA ((/ns) <$> c))
+        #borderSize .~ bs & #size .~ s &
+        #translate ?~ ((/ns) <$> c)))
     [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
   ] <>
   zipWith3
   (\side bump ts' -> Chart
-    (TextA ts' (show <$> [side]))
-    (translateDA $ (/ns) <$> (c + bump))
+    (TextA (ts' & #translate ?~ ((/ns) <$> (c + bump))) (show <$> [side]))
     [SpotPoint $ Point (fromIntegral a) (fromIntegral b)])
   [a,b,h]
   [ Point (s * fromIntegral a / 2) ((-gap) -
@@ -105,11 +100,11 @@ tri3 a b s gap bs txts =
               realToFrac (ts ^. #vsize) *
               realToFrac (ts ^. #size))
   , Point (s * fromIntegral a + gap) (s * fromIntegral b / 2)
-  , Point (s * fromIntegral a / 2 - gap * ((fromIntegral b) ** (2.0 :: Double) / (fromIntegral h) ** (2 :: Double))) (s * fromIntegral b / 2 + gap * ((fromIntegral a) ** (2.0 :: Double) / (fromIntegral h) ** (2 :: Double)))
+  , Point (s * fromIntegral a / 2 - gap * (fromIntegral b ** 2.0 / fromIntegral h ** 2)) (s * fromIntegral b / 2 + gap * (fromIntegral a ** 2.0 / fromIntegral h ** 2))
   ]
   [ ts
   , ts & #anchor .~ AnchorStart
-  , ts & #rotation .~ Just (-(atan (fromIntegral b/fromIntegral a)) * (180 / pi))
+  , ts & #rotation ?~ (- atan (fromIntegral b/fromIntegral a) * (180 / pi))
   ]
   where
     c :: Point Double
@@ -129,7 +124,11 @@ tri2ss s gap bs txts r n =
   where
     ps = euclid n <> ((\(a,b) -> (a,-b)) <$> euclid n)
     psf = maybe ps (\(Rect x z y w) -> filter (\(a,b) -> fromIntegral a >= x && fromIntegral a <= z && fromIntegral b >= y && fromIntegral b <= w) ps) r
-    area = maybe (foldRect $ toRect <$> (\(a,b) -> SpotPoint (Point (fromIntegral a) (fromIntegral b))) <$> ps) Just r
+    area = r <|>
+      foldRect 
+       (toRect .
+         (\ (a, b) -> SpotPoint (Point (fromIntegral a) (fromIntegral b)))
+         <$> ps)
 
 tri3s :: Double -> Double -> Double -> Double -> [(Integer,Integer)] -> [Chart Double]
 tri3s s gap bs txts ab =
@@ -141,7 +140,12 @@ tri3ss s gap bs txts r n =
   where
     ps = euclid n <> ((\(a,b) -> (a,-b)) <$> euclid n)
     psf = maybe ps (\(Rect x z y w) -> filter (\(a,b) -> fromIntegral a >= x && fromIntegral a <= z && fromIntegral b >= y && fromIntegral b <= w) ps) r
-    area = maybe (foldRect $ toRect <$> (\(a,b) -> SpotPoint (Point (fromIntegral a) (fromIntegral b))) <$> ps) Just r
+    area =
+      r <|>
+      foldRect
+       (toRect .
+         (\ (a, b) -> SpotPoint (Point (fromIntegral a) (fromIntegral b)))
+         <$> ps)
 
 corners :: Rect Double -> Double -> [Chart Double]
 corners (Rect x z y w) s =
@@ -150,13 +154,12 @@ corners (Rect x z y w) s =
    #borderSize .~ 0 $
     #size .~ s $
     defaultGlyphStyle)
-  mempty
   [SP x y, SP x w, SP z y, SP z w]]
 
 hud1 :: [Hud Double]
 hud1 =
-  [ tick PlaceBottom defaultTick mempty <>
-    tick PlaceLeft defaultTick mempty
+  [ tick PlaceBottom defaultTick <>
+    tick PlaceLeft defaultTick
   ]
 
 euclid :: Integer -> [(Integer,Integer)]

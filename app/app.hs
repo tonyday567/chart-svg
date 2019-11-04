@@ -15,6 +15,7 @@
 import Chart.Core
 import Chart.Spot
 import Chart.Svg
+import Chart.Hud
 import Codec.Picture.Types
 import Control.Lens
 import Data.Generics.Labels()
@@ -50,29 +51,30 @@ rs' :: RectStyle
 rs' = rs &  #opacity .~ 0.1 & #borderOpacity .~ 0.1
 
 oneChart :: Chart Double
-oneChart = Chart (RectA rs) mempty [SpotRect unitRect]
+oneChart = Chart (RectA rs) [SpotRect unitRect]
 
 oneChart' :: Chart Double
-oneChart' = Chart (RectA rs') mempty [SpotRect unitRect]
+oneChart' = Chart (RectA rs') [SpotRect unitRect]
+
 
 rotateOne :: ChartSvg Double
 rotateOne = defaultFrame $
   chartSvg unitRect [showOrigin] <>
   chartSvg unitRect [oneChart'] <>
-  rotate 30 (chartSvg unitRect [oneChart])
+  rotateSvg 30 (chartSvg unitRect [oneChart])
 
 translateOne :: ChartSvg Double
 translateOne = defaultFrame $
   chartSvg unitRect [showOrigin] <>
   chartSvg unitRect [oneChart'] <>
-  translate (Point 1 1) (rotate 30 (chartSvg unitRect [oneChart]))
+  translateSvg (Point 1 1) (rotateSvg 30 (chartSvg unitRect [oneChart]))
 
 rectChart :: Chart Double
-rectChart = Chart (RectA $ ropts!!0) mempty (SpotRect <$> rss!!0)
+rectChart = Chart (RectA $ ropts!!0) (SpotRect <$> rss!!0)
 
 rectCharts :: [Chart Double]
 rectCharts =
-  zipWith (\s xs -> Chart (RectA s) mempty (SpotRect <$> xs)) ropts rss
+  zipWith (\s xs -> Chart (RectA s) (SpotRect <$> xs)) ropts rss
 
 -- * text
 ts :: [(Text.Text, Point Double)]
@@ -84,7 +86,6 @@ textChart :: Chart Double
 textChart =
   Chart
   (TextA (defaultTextStyle & #size .~ (1.0 :: Double)) ["abcdefghij"])
-  mempty
   [SP 0 0]
 
 textsChart :: Chart Double
@@ -95,7 +96,6 @@ textsChart =
     #size .~ 0.2)
     (fst <$> ts)
   )
-  mempty
   (SpotPoint . snd <$> ts)
 
 circle' :: Chart Double
@@ -104,7 +104,6 @@ circle' =
       ( GlyphA (defaultGlyphStyle &
         #size .~ 1 &
         #borderSize .~ 0.2))
-      mempty
       [SP 0 0]
 
 smiley :: Chart Double
@@ -114,7 +113,6 @@ smiley =
         #size .~ 1 &
         #borderSize .~ (0.02 :: Double) &
         #shape .~ SmileyGlyph))
-      mempty
       [SP 0 0]
 
 glyphs :: [Chart Double]
@@ -125,7 +123,6 @@ glyphs = zipWith
                     #size .~ (0.2 :: Double) &
                     #borderSize .~ bs &
                     #shape .~ sh))
-         mempty
          [p])
      [ (CircleGlyph, 0.01 :: Double)
      , (SquareGlyph, 0.01)
@@ -158,24 +155,24 @@ gopts =
   ]
 
 glyphsChart :: [Chart Double]
-glyphsChart = zipWith (\d s -> Chart (GlyphA s) mempty (SpotPoint <$> d)) gdata gopts
+glyphsChart = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) gdata gopts
 
 -- textual
 boundText :: [Chart Double]
 boundText =
-  [ Chart (RectA defaultRectStyle) mempty (SpotRect <$> (catMaybes $ styleBox <$> cs))
-  , Chart a1 mempty ps
+  [ Chart (RectA defaultRectStyle) (SpotRect <$> (catMaybes $ styleBox <$> cs))
+  , Chart a1 ps
   ]
   where
   t1 = fst <$> ts
   ps = projectTo (aspect 3) $ SpotPoint . snd <$> ts
   t1s = TextA (defaultTextStyle & #size .~ 0.2) . (:[]) <$> t1
-  cs = zipWith (\x y -> Chart x mempty y) t1s ((:[]) <$> ps)
+  cs = zipWith (\x y -> Chart x y) t1s ((:[]) <$> ps)
   a1 = TextA (defaultTextStyle & #size .~ 0.2) t1
 
 pixel' :: (Point Double -> Double) -> [Chart Double]
 pixel' f =
-  (\(r,c) -> Chart (RectA (RectStyle 0 black 0 c 1)) mempty [SpotRect r]) <$>
+  (\(r,c) -> Chart (RectA (RectStyle 0 black 0 c 1)) [SpotRect r]) <$>
   pixelate f (fmap (pi*) unitRect) (Point 100 100) blue grey
 
 f1 :: (Floating a) => Point a -> a
@@ -186,7 +183,7 @@ cssCrisp = CssRule [] [CssDeclaration "shape-rendering" [[CssString "crispEdges"
 
 label :: [Chart Double]
 label =
-  [placedLabel (Point (1.0 :: Double) 1.0) (45.0 :: Double) "text at (1,1) rotated by 45 degrees"]
+  [ placedLabel (Point (1.0 :: Double) 1.0) (45.0 :: Double) "text at (1,1) rotated by 45 degrees"]
 
 -- * lines
 ls :: [[Point Double]]
@@ -207,7 +204,7 @@ lopts =
   ]
 
 lines :: [Chart Double]
-lines = zipWith (\d s -> Chart (LineA s) mempty (SpotPoint <$> d)) ls lopts
+lines = zipWith (\d s -> Chart (LineA s) (SpotPoint <$> d)) ls lopts
 
 -- gline
 gopts3 :: [GlyphStyle]
@@ -228,8 +225,8 @@ gopts3 =
 
 glines :: [Chart Double]
 glines = cs <> gs where
-  cs = zipWith (\d s -> Chart (LineA s) mempty (SpotPoint <$> d)) ls lopts
-  gs = zipWith (\d s -> Chart (GlyphA s) mempty (SpotPoint <$> d)) ls gopts3
+  cs = zipWith (\d s -> Chart (LineA s) (SpotPoint <$> d)) ls lopts
+  gs = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) ls gopts3
 
 lgdata :: [(Text.Text, Point Double)]
 lgdata =
@@ -240,7 +237,8 @@ lglyph :: [Chart Double]
 lglyph = txt <> gly where
   txt = (\(t, p) -> Chart (TextA
     ( defaultTextStyle &
-      #opacity .~ 0.2) [t]) (translateDA (Point ( 0 :: Double) 0.04))
+      #opacity .~ 0.2 &
+      #translate .~ Just (Point 0 0.04)) [t])
     (SpotPoint <$> [p]))
     <$> lgdata
   gly = (\d -> Chart (GlyphA
@@ -248,18 +246,13 @@ lglyph = txt <> gly where
       #size .~ 0.01 &
       #borderSize .~ 0 &
       #color .~ black))
-      mempty
       (SpotPoint <$> [d])) <$> (snd <$> lgdata)
 
-code :: (Semigroup a, IsString a) => a -> a
-code x = "\n```\n" <> x <> "\n```\n"
 
 main :: IO ()
 main = do
-  writeFile "other/mempty.md" (code $ xmlToText $ renderXml (Point (200.0 :: Double) 200.0) mempty)
-
   write "other/one.svg" (Point 200.0 200.0)
-    (pad 1.1 $ chartSvg unitRect [Chart (RectA defaultRectStyle) mempty
+    (pad 1.1 $ chartSvg unitRect [Chart (RectA defaultRectStyle)
                                   [SpotRect (unitRect :: Rect Double)]])
   write "other/rotateOne.svg" (Point 200.0 200.0) rotateOne
   write "other/translateOne.svg" (Point 200.0 200.0) translateOne
@@ -342,3 +335,5 @@ main = do
     (lglyph <> glines)
   putStrLn (" 👍" :: Text.Text)
 
+
+-- write "t1.svg" (Point 600 600) (hudSvg unitRect [] [Chart BlankA [SpotRect unitRect]])
