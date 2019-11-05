@@ -98,6 +98,7 @@ executable style-page
     , scotty
     , svg-tree
     , text
+    , transformers
     , unordered-containers
     , wai-middleware-static
     , web-rep

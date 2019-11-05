@@ -2,31 +2,28 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
 
-import Chart.Core
-import Chart.Hud hiding (title_)
-import Chart.Page
-import Chart.Types
-import Control.Category (id)
+import Prelude
+import Control.Monad.Trans.State.Lazy
+import Control.Monad (void)
+import Chart hiding (title_)
 import Control.Lens
-import Data.HashMap.Strict
 import qualified Data.Text.Lazy as Lazy
+import Data.Text (Text)
+import qualified Data.Text as Text
 import Network.JavaScript
 import Network.Wai.Middleware.Static (addBase, noDots, staticPolicy, (>->))
-import Protolude hiding (replace, Rep, (<<*>>))
 import Data.Biapplicative
 import Web.Page
 import Web.Scotty
 import Lucid.Base
 import Lucid hiding (b_)
-import NumHask.Range
-import NumHask.Point
+import Data.Bool
 
 chartStyler :: Bool -> Page
 chartStyler doDebug =
@@ -46,7 +43,8 @@ repMain :: (Monad m) => ChartSvgStyle -> Annotation -> HudConfig -> SharedRep m 
 repMain cscfg a hcfg =
   bimap hmap mmap cs <<*>> ann <<*>> d <<*>> h <<*>> debug
   where
-    h = repHudConfig 2 3 defaultAxisConfig (defaultTitle "example title") defaultLegendOptions hcfg
+    h = repHudConfig 2 3 defaultAxisConfig (defaultTitle "example title")
+      defaultLegendOptions hcfg
     cs = repChartSvgStyle cscfg
     ann = repAnnotation a
     d = repData "sin"
@@ -59,7 +57,8 @@ repMain cscfg a hcfg =
       , bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw values</h2>"
-         , show cs', show ann', show h']) (fst debug')
+         , (Text.pack . show) cs', (Text.pack . show) ann',
+           (Text.pack . show) h']) (fst debug')
       <> bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw chart svg</h2>"
@@ -101,7 +100,10 @@ repTextBB cscfg =
       , bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw values</h2>"
-         , show cs', show tstyle', show bb', show tps']) (fst debug')
+         , (Text.pack . show) cs'
+         , (Text.pack . show) tstyle'
+         , (Text.pack . show) bb'
+         , (Text.pack . show) tps']) (fst debug')
       <> bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw chart svg</h2>"
@@ -114,39 +116,6 @@ repTextBB cscfg =
       , ("Style", tstyle')
       , ("Box", bb')
       , ("Example Text", tps')
-      , ("Debug", debug')
-      ]
-
-repLegendT :: (Monad m) => ChartSvgStyle -> Annotation -> HudConfig -> SharedRep m (Text, Text)
-repLegendT cscfg a hcfg =
-  bimap hmap mmap cs <<*>> ann <<*>> d <<*>> h <<*>> debug
-  where
-    h = repHudConfig 2 3 defaultAxisConfig (defaultTitle "example title") defaultLegendOptions hcfg
-    cs = repChartSvgStyle cscfg
-    ann = repAnnotation a
-    d = repData "sin"
-    debug = bimap (<>) (,)
-      (checkbox (Just "show style values" ) True) <<*>>
-      checkbox (Just "show chart svg text" ) False
-    mmap cs' ann' d' h' debug' =
-      ( renderHudChartWith cs' h'
-        [Chart ann' d']
-      , bool mempty
-        (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
-         [ "<h2>raw values</h2>"
-         , show cs', show ann', show h']) (fst debug')
-      <> bool mempty
-        (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
-         [ "<h2>raw chart svg</h2>"
-         , Lazy.toStrict $ renderText $ toHtml (renderHudChartWith cs' h' [Chart ann' d'])
-         ]) (snd debug')
-      )
-    hmap cs' ann' d' h' debug' =
-      accordion_ "acca" Nothing
-      [ ("Svg", cs')
-      , ("Annotation", ann')
-      , ("Data", d')
-      , ("Hud", h')
       , ("Debug", debug')
       ]
 
@@ -197,7 +166,7 @@ main =
          repMain defaultChartSvgStyle (GlyphA defaultGlyphStyle)
          defaultHudConfig),
          ("bounding box", repTextBB defaultChartSvgStyle),
-         ("legend test", repLegendT defaultChartSvgStyle
+         ("legend test", repMain defaultChartSvgStyle
            (GlyphA defaultGlyphStyle)
            (defaultHudConfig & #hudLegends .~ [defaultLegendOptions & #lcharts .~ l1]))
         ]))

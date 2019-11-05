@@ -377,34 +377,35 @@ ticksR s d r =
             ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])) ls
       TickPlaced xs -> zip (project r d . fst <$> xs) (snd <$> xs)
 
--- | compute tick values and labels given options, ranges and formatting
-ticksR' :: (Chartable a) => TickStyle a -> Range a -> ([(a, Text)], Maybe (Range a))
-ticksR' s r =
+data TickComponents a = TickComponents { positions :: [a], labels :: [Text], extension :: Maybe (Range a) } deriving (Eq, Show, Generic)
+
+-- | compute tick components given style, ranges and formatting
+makeTicks :: (Chartable a) => TickStyle a -> Range a -> TickComponents a
+makeTicks s r =
     case s of
-      TickNone -> ([], Nothing)
-      TickRound f n e -> (zip ticks0 (toFormat f ticks0),
-                         bool (Just $ space1 ticks0) Nothing (e==NoTickExtend))
+      TickNone -> TickComponents [] [] Nothing
+      TickRound f n e ->
+        TickComponents ticks0 (toFormat f ticks0)
+          (bool (Just $ space1 ticks0) Nothing (e==NoTickExtend))
         where ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
-      TickExact f n -> (zip ticks0 (toFormat f ticks0), Nothing)
+      TickExact f n -> TickComponents ticks0 (toFormat f ticks0) Nothing
         where ticks0 = grid OuterPos r n
       TickLabels ls ->
-          (zip (project (Range 0 (fromIntegral $ length ls)) r <$>
-            ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])) ls, Nothing)
-      TickPlaced xs -> (xs, Nothing)
+          TickComponents (project (Range 0 (fromIntegral $ length ls)) r <$>
+            ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])) ls Nothing
+      TickPlaced xs -> TickComponents (fst <$> xs) (snd <$> xs) Nothing
 
--- | compute tick values given placement
-ticksA :: (Chartable a) => TickStyle a -> Place a -> Rect a -> Rect a -> [(a, Text)]
-ticksA ts pl d xs = ticksR ts (placeRange pl d) (placeRange pl xs)
-
-ticksA' :: (Chartable a) => TickStyle a -> Place a -> Rect a -> ([(a, Text)], Maybe (Rect a))
-ticksA' ts pl xs = (tr, maybe Nothing (\x -> Just $ replaceRange pl x xs) ma)
+-- | compute tick values given placement, canvas dimension & data range
+ticksPlaced :: (Chartable a) => TickStyle a -> Place a -> Rect a -> Rect a -> TickComponents a
+ticksPlaced ts pl d xs = TickComponents (project (placeRange pl xs) (placeRange pl d) <$> ps) ls ext
   where
-    (tr, ma) = ticksR' ts (placeRange pl xs)
+    (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)
 
 tickGlyph_ :: (Chartable a) => Place a -> (GlyphStyle, a) -> TickStyle a -> Rect a -> Rect a -> Rect a -> Chart a
 tickGlyph_ pl (g,b) ts ca da xs =
    Chart (GlyphA (g & #rotation .~ (realToFrac <$> placeRot pl)))
-    (SpotPoint . (placePos pl b ca +) . placeOrigin pl . fst <$> ticksA ts pl da xs)
+    (SpotPoint . (placePos pl b ca +) . placeOrigin pl <$> positions
+     (ticksPlaced ts pl da xs))
 
 -- | aka marks
 tickGlyph :: (Monad m, Chartable a) =>
@@ -424,8 +425,9 @@ tickText_ pl (txts, b) ts ca da xs =
     Chart (TextA
       ( placeTextAnchor pl txts) [txt])
                 [SpotPoint sp])
-             (snd <$> ticksA ts pl da xs)
-             ((placePos pl b ca + textPos pl txts b +) . placeOrigin pl . fst <$> ticksA ts pl da xs)
+             (labels $ ticksPlaced ts pl da xs)
+             ((placePos pl b ca + textPos pl txts b +) . placeOrigin pl <$>
+              positions (ticksPlaced ts pl da xs))
 
 -- | aka tick labels
 tickText :: (Monad m, Chartable a) =>
@@ -444,7 +446,8 @@ tickLine :: (Monad m, Chartable a) =>
 tickLine pl (ls, b) ts = Hud $ \cs -> do
   da <- use #canvasDim
   xs <- use #dataDim
-  let c = Chart (LineA ls) . (\x -> placeGridLines pl da x b) . fst <$> ticksA ts pl da xs
+  let c = Chart (LineA ls) . (\x -> placeGridLines pl da x b) <$>
+        positions (ticksPlaced ts pl da xs)
   #chartDim %= addChartBoxes c
   pure $ c <> cs
 
@@ -563,24 +566,26 @@ adjustedTickHud c = Hud $ \cs -> do
 -- $combination
 -- the complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc creates a new set of ticks different to the original.
 
+initDims :: (Chartable a) => [Chart a] -> [Chart a] -> ChartDims a
+initDims cs cs' = ChartDims ca' da' xs'
+  where
+    ca' = defRect $ styleBoxes cs'
+    da' = defRect $ dataBox cs'
+    xs' = defRectS $ dataBox cs
+
 -- | combine huds and charts to form a new [Chart] using the supplied canvas and data dimensions.  Note that styling parameters such as #transition do not scale with combination, so results can be not what you expect.
 hudChartWith :: (Chartable a) => Rect a -> Rect a -> [Hud a] -> [Chart a] -> [Chart a]
-hudChartWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $
+hudChartWith ca xs hs cs = flip evalState (initDims cs cs') $
   (unhud $ mconcat hs) cs'
   where
-    xs' = defRectS $ dataBox cs
-    da' = defRect $ dataBox cs'
-    ca' = defRect $ styleBoxes cs'
     cs' = projectSpotsWith ca xs cs
 
 -- | combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
 hudChart :: (Chartable a) => Rect a -> [Hud a] -> [Chart a] -> [Chart a]
-hudChart ca hs cs = flip evalState (ChartDims ca' da' xs') $
+hudChart ca hs cs = flip evalState (initDims cs cs') $
   (unhud $ mconcat hs) cs'
   where
     xs' = defRectS $ dataBox cs
-    da' = defRect $ dataBox cs'
-    ca' = defRect $ styleBoxes cs'
     cs' = projectSpotsWith ca xs' cs
 
 -- | combine huds and charts to form a ChartSvg using the supplied canvas and data dimensions
@@ -628,9 +633,9 @@ hudsWithExtend xs cfg =
 
 -- | convert TickRound to TickPlaced
 freezeTicks :: (Chartable a) => Place a -> Rect a -> TickStyle a -> (TickStyle a, Maybe (Rect a))
-freezeTicks pl xs ts@TickRound{} = maybe (ts, Nothing) (\x -> (TickPlaced ta, Just x)) ma
+freezeTicks pl xs ts@TickRound{} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs) <$> ext)
   where
-    (ta, ma) = ticksA' ts pl xs
+    (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)
 freezeTicks _ _ ts = (ts, Nothing)
 
 replaceRange :: Place a -> Range a -> Rect a -> Rect a
