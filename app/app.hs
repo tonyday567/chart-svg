@@ -13,13 +13,12 @@
 {-# OPTIONS_GHC -Wall #-}
 
 import Chart.Core
-import Chart.Spot
 import Chart.Svg
+import Chart.Types
 import Chart.Hud
 import Codec.Picture.Types
 import Control.Lens
 import Data.Generics.Labels()
-import Data.List ((!!))
 import Graphics.Svg.CssTypes hiding (Point)
 import qualified Data.Map as Map
 import qualified Data.Text as Text
@@ -29,9 +28,6 @@ import NumHask.Point
 import NumHask.Range
 import GHC.Exts
 
--- writeFile "t1.svg" (renderChartWith defaultChartSvgStyle defaultHudConfig [])
-
-
 ropts :: [RectStyle]
 ropts =
   [ blob (PixelRGB8 93 165 218) 0.5
@@ -40,8 +36,8 @@ ropts =
 
 rss :: [[Rect Double]]
 rss =
-  [ areaXY (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50
-  , areaXY (\x -> 0.5 * exp (-(x ** 2) / 8)) (Range -5 5) 50
+  [ gridR (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50
+  , gridR (\x -> 0.5 * exp (-(x ** 2) / 8)) (Range -5 5) 50
   ]
 
 rs :: RectStyle
@@ -69,8 +65,8 @@ translateOne = defaultFrame $
   chartSvg unitRect [oneChart'] <>
   translateSvg (Point 1 1) (rotateSvg 30 (chartSvg unitRect [oneChart]))
 
-rectChart :: Chart Double
-rectChart = Chart (RectA $ ropts!!0) (SpotRect <$> rss!!0)
+rectChart :: [Chart Double]
+rectChart = take 1 rectCharts
 
 rectCharts :: [Chart Double]
 rectCharts =
@@ -86,7 +82,7 @@ textChart :: Chart Double
 textChart =
   Chart
   (TextA (defaultTextStyle & #size .~ (1.0 :: Double)) ["abcdefghij"])
-  [SP 0 0]
+  [p0]
 
 textsChart :: Chart Double
 textsChart =
@@ -104,7 +100,7 @@ circle' =
       ( GlyphA (defaultGlyphStyle &
         #size .~ 1 &
         #borderSize .~ 0.2))
-      [SP 0 0]
+      [p0]
 
 smiley :: Chart Double
 smiley =
@@ -113,7 +109,7 @@ smiley =
         #size .~ 1 &
         #borderSize .~ (0.02 :: Double) &
         #shape .~ SmileyGlyph))
-      [SP 0 0]
+      [p0]
 
 glyphs :: [Chart Double]
 glyphs = zipWith
@@ -138,8 +134,8 @@ glyphs = zipWith
 
 gdata :: [[Point Double]]
 gdata =
-  [ dataXY sin (Range 0 (2*pi)) 30
-  , dataXY cos (Range 0 (2*pi)) 30
+  [ gridP sin (Range 0 (2*pi)) 30
+  , gridP cos (Range 0 (2*pi)) 30
   ]
 
 gopts :: [GlyphStyle]
@@ -160,7 +156,7 @@ glyphsChart = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) gdata gopts
 -- textual
 boundText :: [Chart Double]
 boundText =
-  [ Chart (RectA defaultRectStyle) (SpotRect <$> (catMaybes $ styleBox <$> cs))
+  [ Chart (RectA defaultRectStyle) (SpotRect <$> catMaybes (styleBox <$> cs))
   , Chart a1 ps
   ]
   where
@@ -230,7 +226,7 @@ glines = cs <> gs where
 
 lgdata :: [(Text.Text, Point Double)]
 lgdata =
-  (\(p@(Point x y)) -> (show x <> "," <> show y, fromIntegral <$> p)) <$>
+  (\p@(Point x y) -> (show x <> "," <> show y, fromIntegral <$> p)) <$>
     (Point <$> [0 .. 5] <*> [0 .. 5] :: [Point Int])
 
 lglyph :: [Chart Double]
@@ -238,7 +234,7 @@ lglyph = txt <> gly where
   txt = (\(t, p) -> Chart (TextA
     ( defaultTextStyle &
       #opacity .~ 0.2 &
-      #translate .~ Just (Point 0 0.04)) [t])
+      #translate ?~ Point 0 0.04) [t])
     (SpotPoint <$> [p]))
     <$> lgdata
   gly = (\d -> Chart (GlyphA
@@ -248,92 +244,56 @@ lglyph = txt <> gly where
       #color .~ black))
       (SpotPoint <$> [d])) <$> (snd <$> lgdata)
 
+def :: Text
+def =
+  renderHudChartWith
+  defaultChartSvgStyle
+  defaultHudConfig
+  [Chart (GlyphA defaultGlyphStyle) (SpotPoint <$> gridP sin (Range 0 (2*pi)) 30)]
+
+bb :: Text
+bb =
+  renderHudChartWith
+  defaultChartSvgStyle
+  defaultHudConfig $
+  (\tps -> let cs = [Chart (TextA defaultTextStyle (fst <$> tps)) (snd <$> tps)] in
+      cs <> boxes defaultRectStyle cs) [("text1", SP 0 0),("text2", SP 1 1)]
+
+leg :: ChartSvg Double
+leg = hudChartSvg (aspect 1) [[l]] [Chart (LineA defaultLineStyle) [SP 0 0, SP 1 1]]
+  where
+    l = legend (defaultLegendOptions & #lcharts .~ l1)
+    l1 = [ (GlyphA defaultGlyphStyle, "glyph")
+         , (RectA defaultRectStyle, "rect")
+         , (TextA (defaultTextStyle & #anchor .~ AnchorStart) ["content"], "text")
+         , (LineA defaultLineStyle, "line")
+         , (BlankA, "blank")
+         ]
 
 main :: IO ()
 main = do
-  write "other/one.svg" (Point 200.0 200.0)
-    (pad 1.1 $ chartSvg unitRect [Chart (RectA defaultRectStyle)
-                                  [SpotRect (unitRect :: Rect Double)]])
-  write "other/rotateOne.svg" (Point 200.0 200.0) rotateOne
-  write "other/translateOne.svg" (Point 200.0 200.0) translateOne
-  scratchWith (defaultScratchStyle & #fileName .~ "other/rectChart.svg")
-    [rectChart]
-  scratchWith (defaultScratchStyle & #fileName .~ "other/rectCharts.svg")
-    rectCharts
-  writeWith "other/pixel.svg" (Point 200.0 200.0) Map.empty "" [cssCrisp] (chartSvg unitRect (pixel' f1))
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/textChart.svg" &
-     #ratioAspect .~ 3
-    )
-    [textChart]
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/textsChart.svg" &
-     #ratioAspect .~ 3
-    )
-    [textsChart]
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/boundText.svg" &
-     #ratioAspect .~ 3
-    )
-    boundText
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/label.svg" &
-     #ratioAspect .~ 1
-    )
-    label
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/circle.svg" &
-     #ratioAspect .~ 1
-    )
-    [circle']
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/glyphs.svg" &
-     #ratioAspect .~ 3
-    )
-    glyphs
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/smiley.svg" &
-     #ratioAspect .~ 1
-    )
-    [smiley]
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/glyphsChart.svg" &
-     #ratioAspect .~ 3
-    )
-    glyphsChart
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/lglyph.svg" &
-     #ratioAspect .~ 1.5
-    )
-    lglyph
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/lines.svg" &
-     #ratioAspect .~ 1.5
-    )
-    lines
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/glines.svg" &
-     #ratioAspect .~ 1.5
-    )
-    glines
-  scratchWith
-    (defaultScratchStyle &
-     #fileName .~ "other/compound.svg" &
-     #ratioAspect .~ 1.5
-    )
-    (lglyph <> glines)
+  writeChart "other/one.svg"
+    [Chart (RectA defaultRectStyle)
+     [SpotRect (unitRect :: Rect Double)]]
+  writeChartSvg "other/rotateOne.svg" (Point 200 200) rotateOne
+  writeChartSvg "other/translateOne.svg" (Point 200 200) translateOne
+  writeChart "other/rectChart.svg" rectChart
+  writeChart "other/rectCharts.svg" rectCharts
+  writeWithXml "other/pixel.svg" (Point 200.0 200.0)
+    Map.empty "" [cssCrisp] (chartSvg unitRect (pixel' f1))
+  writeChart "other/textChart.svg" [textChart]
+  writeChart "other/textsChart.svg" [textsChart]
+  writeChart "other/boundText.svg" boundText
+  writeChart "other/label.svg" label
+  writeChart "other/circle.svg" [circle']
+  writeChart "other/glyphs.svg" glyphs
+  writeChart "other/smiley.svg" [smiley]
+  writeChart "other/glyphsChart.svg" glyphsChart
+  writeChart "other/lglyph.svg" lglyph
+  writeChart "other/lines.svg" lines
+  writeChart "other/glines.svg" glines
+  writeChart "other/compound.svg" (lglyph <> glines)
+  writeFile "other/def.svg" def
+  writeFile "other/bb.svg" def
+  writeChartSvg "other/leg.svg" (Point 400 400) leg
   putStrLn (" 👍" :: Text.Text)
-
-
--- write "t1.svg" (Point 600 600) (hudSvg unitRect [] [Chart BlankA [SpotRect unitRect]])

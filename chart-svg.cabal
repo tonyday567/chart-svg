@@ -21,12 +21,12 @@ source-repository head
 
 library
   exposed-modules:
+    Chart
     Chart.Core
     Chart.Hud
-    Chart.Spot
     Chart.Svg
     Chart.Page
-    Chart.Data.Time
+    Chart.Types
   hs-source-dirs:
       src
   default-extensions: NegativeLiterals NoImplicitPrelude OverloadedStrings UnicodeSyntax
@@ -69,33 +69,6 @@ executable chart-svg
     , base >=4.7 && <5
     , chart-svg
     , containers
-    , generic-lens
-    , lens
-    , numhask-space
-    , protolude
-    , svg-tree
-    , text
-  default-language: Haskell2010
-
-executable chart-hud
-  main-is: hud.lhs
-  hs-source-dirs: app
-  default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
-  ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
-  build-depends:
-      JuicyPixels
-    , base >=4.7 && <5
-    , bifunctors
-    , chart-svg
     , generic-lens
     , lens
     , numhask-space

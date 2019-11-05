@@ -10,14 +10,38 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Page
+  ( repChart
+  , repAnnotation
+  , repRectStyle
+  , repTextStyle
+  , repGlyphStyle
+  , repPlace
+  , repAnchor
+  , repBar
+  , repAdjustments
+  , repTitle
+  , repHudConfig
+  , repAxisConfig
+  , repChartSvgStyle
+  , repData
+  , repTickFormat
+  , repTickStyle
+  , repTick
+  , repPoint
+  , repRect
+  , repRectOne
+  , repRounded
+  , repTriple
+  , repGlyphShape
+  , repChoice
+  , repLegend
+  )
   where
 
 import Chart.Core
 import Chart.Hud
-import Chart.Svg
-import Chart.Spot
-import NumHask.Rect
-import NumHask.Point
+import Chart.Types
+import NumHask.Space
 import Control.Category (id)
 import Control.Lens
 import Data.Attoparsec.Text
@@ -26,7 +50,6 @@ import Lucid
 import Protolude hiding ((<<*>>))
 import Web.Page
 import qualified Box ()
-import NumHask.Range
 import qualified Data.Text as Text
 import Data.Biapplicative
 import Data.List
@@ -81,12 +104,16 @@ repAnnotation ann = bimap hmap mmap a <<*>> rs <<*>> ts <<*>> gs <<*>> ls
       LineA s -> s
       _ -> defaultLineStyle
 
-repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
-repLineStyle s = do
-  w <- slider (Just "width") 0.000 0.05 0.001 (s ^. #width)
+repRectStyle :: (Monad m) => RectStyle -> SharedRep m RectStyle
+repRectStyle s = do
+  bs <- slider (Just "border size") 0.0 0.1 0.001 (s ^. #borderSize)
+  bc <- colorPicker (Just "border color") (s ^. #borderColor)
+  bo <- slider (Just "border opacity") 0 1 0.1 (s ^. #borderOpacity)
   c <- colorPicker (Just "color") (s ^. #color)
   o <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
-  pure $ LineStyle w c o
+  pure $ RectStyle bs bc bo c o
+
+
 
 repGlyphStyle :: (Monad m) => GlyphStyle -> SharedRep m GlyphStyle
 repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Nothing (x,[])) $ do
@@ -105,15 +132,6 @@ repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Noth
                                  (Point 0.001 0.001) (Point 0 0))
   pure (GlyphStyle sz gc go gbc gbo bsz sh tr tt)
 
-repTitle :: (Monad m) => Title Double -> SharedRep m (Title Double)
-repTitle cfg = do
-  ttext <- textbox (Just "text") (cfg ^. #text)
-  ts <- repTextStyle (cfg^. #style)
-  tp <- repPlace (cfg ^. #place)
-  ta <- repAnchor (cfg ^. #anchor)
-  b <- slider (Just "buffer") 0 0.2 0.01 (cfg ^. #buff)
-  pure $ Title ttext ts tp ta b
-
 repTextStyle :: (Monad m) => TextStyle -> SharedRep m TextStyle
 repTextStyle s = do
   ts <- slider (Just "size") 0.02 0.3 0.01 (s ^. #size)
@@ -130,6 +148,13 @@ repTextStyle s = do
                                  (Point 0.001 0.001) (Point 0 0))
   pure $ TextStyle ts tc to' ta th tv tn tr tt
 
+repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
+repLineStyle s = do
+  w <- slider (Just "width") 0.000 0.05 0.001 (s ^. #width)
+  c <- colorPicker (Just "color") (s ^. #color)
+  o <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
+  pure $ LineStyle w c o
+
 repPlace :: (Monad m) => Place Double -> SharedRep m (Place Double)
 repPlace p = bimap hmap mmap splace <<*>> sp
   where
@@ -141,7 +166,7 @@ repPlace p = bimap hmap mmap splace <<*>> sp
       , "Right"
       , "Absolute"
       ] 
-      (fromPlaceText p)
+      (placeText p)
     sp = repPoint (Point (Range 0 1) (Range 0 1)) (Point 0.01 0.01) (defPoint p)
     defPoint p'' = case p'' of
       PlaceAbsolute p' -> p'
@@ -149,7 +174,7 @@ repPlace p = bimap hmap mmap splace <<*>> sp
     hmap splace' sp' =
       div_
       (splace' <>
-       subtype sp' (fromPlaceText p) "Absolute"
+       subtype sp' (placeText p) "Absolute"
       )
     mmap splace' sp' = case splace' of
       "Top" -> PlaceTop
@@ -158,44 +183,6 @@ repPlace p = bimap hmap mmap splace <<*>> sp
       "Right" -> PlaceRight
       "Absolute" -> PlaceAbsolute sp'
       _ -> PlaceBottom
-
-{-
-  toPlace <$>
-  dropdown takeText id (Just "Placement")
-  (fromPlace <$> [PlaceTop, PlaceBottom, PlaceLeft, PlaceRight])
-  (fromPlace p)
--}
-
-{-
-    tformat = dropdownSum takeText id (Just "Tick Format")
-      [ "TickFormatDefault"
-      , "TickFormatCommas"
-      , "TickFormatFixed"
-      , "TickFormatDollars"
-      ]
-      (tickFormatText tf)
-    tcommas = sliderI (Just "prec") 0 8 1 (defInt tf)
-    tfixed = sliderI (Just "prec") 0 8 1 (defInt tf)
-    defInt tf' = case tf' of
-      TickFormatCommas n -> n
-      TickFormatFixed n -> n
-      _ -> 3
-    hmap tformat' tcommas' tfixed' =
-      div_
-      (tformat' <>
-       subtype tcommas' (tickFormatText tf) "TickFormatCommas" <>
-       subtype tfixed' (tickFormatText tf) "TickFormatFixed"
-      )
-    mmap tformat' tcommas' tfixed' = case tformat' of
-      "TickFormatDefault" -> TickFormatDefault
-      "TickFormatCommas" -> TickFormatCommas tcommas'
-      "TickFormatFixed" -> TickFormatFixed tfixed'
-      "TickFormatDollars" -> TickFormatDollars
-      _ -> TickFormatDefault
-
--}
-
-
 
 
 repAnchor :: (Monad m) => Anchor -> SharedRep m Anchor
@@ -206,15 +193,6 @@ repAnchor a = toAnchor <$>
     (Just "Anchor")
     (fromAnchor <$> [AnchorStart, AnchorMiddle, AnchorEnd])
     (fromAnchor a)
-
-repRectStyle :: (Monad m) => RectStyle -> SharedRep m RectStyle
-repRectStyle s = do
-  bs <- slider (Just "border size") 0.0 0.1 0.001 (s ^. #borderSize)
-  bc <- colorPicker (Just "border color") (s ^. #borderColor)
-  bo <- slider (Just "border opacity") 0 1 0.1 (s ^. #borderOpacity)
-  c <- colorPicker (Just "color") (s ^. #color)
-  o <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
-  pure $ RectStyle bs bc bo c o
 
 repBar :: (Monad m) => Bar Double -> SharedRep m (Bar Double)
 repBar cfg = do
@@ -230,6 +208,36 @@ repAdjustments a = do
   angle <- slider (Just "angle ratio") 0.000 1 0.001 (a ^. #angledRatio)
   diag <- checkbox (Just "allow diagonal text") (a ^. #allowDiagonal)
   pure $ Adjustments maxx maxy angle diag
+
+repTitle :: (Monad m) => Title Double -> SharedRep m (Title Double)
+repTitle cfg = do
+  ttext <- textbox (Just "text") (cfg ^. #text)
+  ts <- repTextStyle (cfg^. #style)
+  tp <- repPlace (cfg ^. #place)
+  ta <- repAnchor (cfg ^. #anchor)
+  b <- slider (Just "buffer") 0 0.2 0.01 (cfg ^. #buff)
+  pure $ Title ttext ts tp ta b
+
+repHudConfig :: (Monad m) => Int -> Int -> AxisConfig Double -> Title Double -> LegendOptions Double ->
+  HudConfig -> SharedRep m HudConfig
+repHudConfig naxes ntitles defaxis deftitle deflegend cfg =
+  bimap hmap HudConfig can <<*>> ts <<*>> axs <<*>> ls
+  where
+    can = maybeRep (Just "canvas") (isJust (cfg ^. #hudCanvas)) $
+      repRectStyle (fromMaybe defaultCanvas (cfg ^. #hudCanvas))
+    ts = listifyMaybe' (Just "titles") "tz" (checkbox Nothing) repTitle
+      ntitles deftitle (cfg ^. #hudTitles)
+    axs = listifyMaybe' (Just "axes") "axz" (checkbox Nothing) repAxisConfig
+      naxes defaxis (cfg ^. #hudAxes)
+    ls = listifyMaybe' (Just "legends") "lz" (checkbox Nothing) repLegend
+      naxes deflegend (cfg ^. #hudLegends)
+    hmap can' ts' axs' ls' =
+      accordion_ "accc" Nothing
+      [ ("Axes", axs')
+      , ("Canvas", can')
+      , ("Titles", ts')
+      , ("Legends", ls')
+      ]
 
 repAxisConfig :: (Monad m) => AxisConfig Double -> SharedRep m (AxisConfig Double)
 repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
@@ -253,31 +261,11 @@ repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
       , ("Place", p')
       ]
 
-repHudConfig :: (Monad m) => Int -> Int -> AxisConfig Double -> Title Double -> LegendOptions Double ->
-  HudConfig -> SharedRep m HudConfig
-repHudConfig naxes ntitles defaxis deftitle deflegend cfg =
-  bimap hmap HudConfig can <<*>> ts <<*>> axs <<*>> ls
-  where
-    can = maybeRep (Just "canvas") (isJust (cfg ^. #hudCanvas)) $
-      repRectStyle (fromMaybe defaultCanvas (cfg ^. #hudCanvas))
-    ts = listifyMaybe' (Just "titles") "tz" (checkbox Nothing) repTitle
-      ntitles deftitle (cfg ^. #hudTitles)
-    axs = listifyMaybe' (Just "axes") "axz" (checkbox Nothing) repAxisConfig
-      naxes defaxis (cfg ^. #hudAxes)
-    ls = listifyMaybe' (Just "legends") "lz" (checkbox Nothing) repLegend
-      naxes deflegend (cfg ^. #hudLegends)
-    hmap can' ts' axs' ls' =
-      accordion_ "accc" Nothing
-      [ ("Axes", axs')
-      , ("Canvas", can')
-      , ("Titles", ts')
-      , ("Legends", ls')
-      ]
 
 repChartSvgStyle :: (Monad m) => ChartSvgStyle -> SharedRep m ChartSvgStyle
 repChartSvgStyle s =
   bimap hmap ChartSvgStyle x <<*>> y <<*>> a <<*>>
-  op' <<*>> ip <<*>> fr <<*>> orig
+  op' <<*>> ip <<*>> fr <<*>> orig'
   where
     x = slider (Just "sizex") 0 1000 1 (s ^. #sizex)
     y = slider (Just "sizey") 0 1000 1 (s ^. #sizey)
@@ -290,13 +278,13 @@ repChartSvgStyle s =
       (slider Nothing 1 1.2 0.01 (fromMaybe 1 (s ^. #innerPad)))
     fr = maybeRep (Just "frame") (isJust (s ^. #chartFrame))
       (repRectStyle (fromMaybe defaultSvgFrame (s ^. #chartFrame)))
-    orig = maybeRep (Just "origin") (isJust (s ^. #orig))
+    orig' = maybeRep (Just "origin") (isJust (s ^. #orig))
       (repGlyphStyle (fromMaybe defaultOrigin (s ^. #orig)))
-    hmap x' y' a' op'' ip' fr' orig' = accordion_ "accsvg" Nothing
+    hmap x' y' a' op'' ip' fr' orig'' = accordion_ "accsvg" Nothing
       [ ("Sizing", x' <> y' <> a')
       , ("Padding", op'' <> ip')
       , ("Frame", fr')
-      , ("Origin", orig')
+      , ("Origin", orig'')
       ]
 
 repData :: (Monad m) => Text -> SharedRep m [Spot Double]
@@ -308,12 +296,12 @@ repData d = do
     , "dist"
     ] d
   pure (case a of
-          "sin" -> SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30
+          "sin" -> SpotPoint <$> gridP sin (Range 0 (2*pi)) 30
           "line" -> SpotPoint . uncurry Point <$>
             [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)]
-          "one" -> [SA 0 1 0 1]
-          "dist" -> SpotRect <$> areaXY (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50
-          _ -> SpotPoint <$> dataXY sin (Range 0 (2*pi)) 30
+          "one" -> [SR 0 1 0 1]
+          "dist" -> SpotRect <$> gridR (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50
+          _ -> SpotPoint <$> gridP sin (Range 0 (2*pi)) 30
        )
 
 repTickFormat :: (Monad m) => TickFormat -> SharedRep m TickFormat
@@ -456,7 +444,7 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl 
       , "HLine"
       , "Smiley"
       ]
-      (fromGlyph sh)
+      (glyphText sh)
     ell = slider Nothing 0.5 2 0.01 defRatio
     rsharp = slider Nothing 0.5 2 0.01 defRatio
     vl = slider Nothing 0.001 0.1 0.0001 defLine
@@ -466,12 +454,12 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl 
                                  (Point 0.001 0.001))
     hmap sha' ell' rsharp' vl' hl' rround' tri' =
       sha' <>
-      subtype ell' (fromGlyph sh) "Ellipse" <>
-      subtype rsharp' (fromGlyph sh) "RectSharp" <>
-      subtype vl' (fromGlyph sh) "VLine" <>
-      subtype hl' (fromGlyph sh) "HLine" <>
-      subtype rround' (fromGlyph sh) "RectRounded" <>
-      subtype tri' (fromGlyph sh) "Triangle"
+      subtype ell' (glyphText sh) "Ellipse" <>
+      subtype rsharp' (glyphText sh) "RectSharp" <>
+      subtype vl' (glyphText sh) "VLine" <>
+      subtype hl' (glyphText sh) "HLine" <>
+      subtype rround' (glyphText sh) "RectRounded" <>
+      subtype tri' (glyphText sh) "Triangle"
     mmap sha' ell' rsharp' vl' hl' rround' tri' =
       case sha' of
         "Circle" -> CircleGlyph

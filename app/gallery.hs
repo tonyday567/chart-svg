@@ -17,8 +17,8 @@ import Control.Lens
 import qualified Data.Text as Text
 import Data.Generics.Labels()
 import Chart.Hud
-import Chart.Core
 import Chart.Spot
+import Chart.Types
 import Data.List (zipWith3)
 import Protolude
 import NumHask.Point

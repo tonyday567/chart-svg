@@ -1,60 +1,41 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 
 module Chart.Core
-  ( Chart(..)
-  , Chartable
-  , Annotation(..)
-  , annotationText
-  , DrawAttributes(..)
-  -- , rotateChart
-  -- , translateChart
-  , RectStyle(..)
-  , defaultRectStyle
-  , blob
-  , clear
-  , border
-  , TextStyle(..)
-  , defaultTextStyle
-  , Anchor(..)
-  , fromAnchor
-  , toAnchor
-  , toTextAnchor
-  , GlyphStyle(..)
-  , defaultGlyphStyle
-  , GlyphShape(..)
-  , toGlyph
-  , fromGlyph
-  , LineStyle(..)
-  , defaultLineStyle
-  , dagRect
-  , dagText
-  , dagGlyph
-  , dagLine
+  ( renderChartWith
+  , renderChart
+  , writeChartWith
+  , writeChart
+  , chartSvg_
+  , chartSvg
+  , chartSvgWith
+  , fittedSvg
+  , frame
+  , defaultFrame
+  , projectTo
+  , projectSpots
+  , projectSpotsWith
+  , dataBox
   , styleBox
+  , styleBoxes
   , styleBoxText
   , styleBoxGlyph
-  , daBox
-  , dataBox
-  , strokeBox
-  , transformBox
   , addChartBox
-  , styleBoxes
   , addChartBoxes
-  , projectWithStyle
   , showOrigin
   , showOriginWith
   , defaultOrigin
@@ -67,6 +48,12 @@ module Chart.Core
   , pixelate
   , boxes
   , scaleAnn
+  , pad
+  , placedLabel
+  , defRect
+  , defRectS
+  , addToRect
+  , p0
   ) where
 
 import Codec.Picture.Types
@@ -74,226 +61,139 @@ import Control.Exception
 import Data.Generics.Labels ()
 import Graphics.Svg as Svg hiding (Point, toPoint, Text)
 import Control.Lens hiding (transform)
-import NumHask.Point
-import NumHask.Range
-import NumHask.Rect
 import NumHask.Space
 import qualified Data.Text as Text
-import Chart.Spot
-import Protolude
-import GHC.Exts
+import Chart.Svg
+import Chart.Types
+import Protolude hiding (toList)
 import Control.Category (id)
+import GHC.Exts
 
--- * Chart
--- | A `Chart` consists of
--- - a list of spots on the xy-plane, and
--- - specific style of representation for each spot (an Annotation)
-data Chart a = Chart
-  { annotation :: Annotation
-  , spots :: [Spot a]
-  } deriving (Eq, Show, Generic)
+renderChartWith :: ChartSvgStyle -> [Chart Double] -> Text.Text
+renderChartWith scfg cs =
+  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey) $
+  maybe id pad (scfg ^. #outerPad) $
+  maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame) $
+  maybe id pad (scfg ^. #innerPad) $
+  chartSvg (aspect (scfg ^. #chartAspect)) $
+  cs <>
+  maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
 
--- | the aspects a number needs to be to form the data for a chart
-type Chartable a =
-  ( Real a, Fractional a, Spaceable a, RealFrac a, RealFloat a)
+renderChart :: [Chart Double] -> Text.Text
+renderChart = renderChartWith defaultChartSvgStyle
 
--- | a piece of chart structure
--- | The use of #rowName with these Annotation collection doesn't seem to mesh well with polymorphism, so a switch to concrete types (which fit it with svg-tree methods) occurs at this layer, and the underlying data structure is a lot of Doubles
-data Annotation
-  = RectA RectStyle
-  | TextA TextStyle [Text.Text]
-  | GlyphA GlyphStyle
-  | LineA LineStyle
-  | BlankA
-  deriving (Eq, Show, Generic)
+writeChartWith :: FilePath -> ChartSvgStyle -> [Chart Double] -> IO ()
+writeChartWith fp scfg cs = writeFile fp (renderChartWith scfg cs)
 
-annotationText :: Annotation -> Text
-annotationText (RectA _) = "RectA"
-annotationText TextA{} = "TextA"
-annotationText (GlyphA _) = "GlyphA"
-annotationText (LineA _) = "LineA"
-annotationText BlankA = "BlankA"
+-- | write a ChartSvg to an svg file.
+writeChart :: FilePath -> [Chart Double] -> IO ()
+writeChart fp cs = writeChartWith fp defaultChartSvgStyle cs
 
--- | Rectangle styling
-data RectStyle = RectStyle
-  { borderSize :: Double
-  , borderColor :: PixelRGB8
-  , borderOpacity :: Double
-  , color :: PixelRGB8
-  , opacity :: Double
-  } deriving (Show, Eq, Generic)
+-- | create a ChartSvg from a [Chart] and a Rect without any scaling
+chartSvg_ :: (Chartable a) =>
+  Rect a -> [Chart a] -> ChartSvg a
+chartSvg_ a cs = ChartSvg a (tree <$> cs)
 
--- | the official style
-defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.005 grey 0.5 red 0.5
-
-dagRect :: RectStyle -> DrawAttributes
-dagRect o =
-  mempty &
-  (strokeWidth .~ Last (Just $ Num (realToFrac $ o ^. #borderSize))) .
-  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #borderColor))) .
-  (strokeOpacity ?~ realToFrac (o ^. #borderOpacity)) .
-  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (fillOpacity ?~ realToFrac (o ^. #opacity)) 
-
--- | solid rectangle, no border
-blob :: PixelRGB8 -> Double -> RectStyle
-blob = RectStyle 0 black 0
-
--- | clear and utrans rect
-clear :: RectStyle
-clear = RectStyle 0 black 0 black 0
-
--- | transparent rectangle, with border
-border :: Double -> PixelRGB8 -> Double -> RectStyle
-border s c o = RectStyle s c o black 0
-
--- | Text styling
-data TextStyle = TextStyle
-  { size :: Double
-  , color :: PixelRGB8
-  , opacity :: Double
-  , anchor :: Anchor
-  , hsize :: Double
-  , vsize :: Double
-  , nudge1 :: Double
-  , rotation :: Maybe Double
-  , translate :: Maybe (Point Double)
-  } deriving (Show, Eq, Generic)
-
-data Anchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
-
-fromAnchor :: (IsString s) => Anchor -> s
-fromAnchor AnchorMiddle = "Middle"
-fromAnchor AnchorStart = "Start"
-fromAnchor AnchorEnd = "End"
-
-toAnchor :: (Eq s, IsString s) => s -> Anchor
-toAnchor "Middle" = AnchorMiddle
-toAnchor "Start" = AnchorStart
-toAnchor "End" = AnchorEnd
-toAnchor _ = AnchorMiddle
-
-toTextAnchor :: Anchor -> TextAnchor
-toTextAnchor AnchorMiddle = TextAnchorMiddle
-toTextAnchor AnchorStart = TextAnchorStart
-toTextAnchor AnchorEnd = TextAnchorEnd
-
--- | the offical text style
-defaultTextStyle :: TextStyle
-defaultTextStyle =
-  TextStyle 0.08 grey 1.0 AnchorMiddle 0.5 1.45 (-0.4) Nothing Nothing
-
--- | the extra area from text styling
-styleBoxText :: (Fractional a) =>
-  TextStyle -> Text.Text -> Point a -> Rect a
-styleBoxText o t p = translateRect p $ realToFrac <$> maybe flat (`rotateRect` flat) (realToFrac <$> o ^. #rotation)
-    where
-      flat = Rect ((-x'/2) + x'*a') (x'/2 + x'*a') ((-y'/2) - n1') (y'/2 - n1')
-      s = o ^. #size
-      h = o ^. #hsize
-      v = o ^. #vsize
-      n1 = o ^. #nudge1
-      x' = s * h * realToFrac (Text.length t)
-      y' = s * v
-      n1' = s * n1
-      a' = case o ^. #anchor of
-        AnchorStart -> 0.5
-        AnchorEnd -> -0.5
-        AnchorMiddle -> 0.0
-
--- | Glyph styling
-data GlyphStyle = GlyphStyle
-  { size :: Double -- ^ glyph radius
-  , color :: PixelRGB8 -- ^ fill color
-  , opacity :: Double
-  , borderColor :: PixelRGB8 -- ^ stroke color
-  , borderOpacity :: Double
-  , borderSize :: Double -- ^ stroke width (adds a bit to the bounding box)
-  , shape :: GlyphShape
-  , rotation :: Maybe Double
-  , translate :: Maybe (Point Double)
-  } deriving (Show, Eq, Generic)
-
--- | the offical circle style
-defaultGlyphStyle :: GlyphStyle
-defaultGlyphStyle =
-  GlyphStyle 0.03 (PixelRGB8 217 151 33) 0.8 (PixelRGB8 44 66 157) 0.4 0.003
-  SquareGlyph Nothing Nothing
-
--- | glyph shapes
-data GlyphShape
-  = CircleGlyph
-  | SquareGlyph
-  | EllipseGlyph Double
-  | RectSharpGlyph Double
-  | RectRoundedGlyph Double Double Double
-  | TriangleGlyph (Point Double) (Point Double) (Point Double)
-  | VLineGlyph Double
-  | HLineGlyph Double
-  | SmileyGlyph
-  deriving (Show, Eq, Generic)
-
-toGlyph :: Text -> GlyphShape
-toGlyph sh =
-  case sh of
-    "Circle" -> CircleGlyph
-    "Square" -> SquareGlyph
-    "Triangle" -> TriangleGlyph (Point (-1) 0) (Point 1 0) (Point 0 1)
-    "Ellipse" -> EllipseGlyph 1.5
-    "Rectangle" -> RectSharpGlyph 1.5
-    "Rounded Rectangle" -> RectRoundedGlyph 1.5 0.1 0.1
-    "Verticle Line" -> VLineGlyph 0.01
-    "Horizontal Line" -> HLineGlyph 0.01
-    "Smiley Face" -> SmileyGlyph
-    _ -> CircleGlyph
-
-fromGlyph :: GlyphShape -> Text
-fromGlyph sh =
-  case sh of
-    CircleGlyph -> "Circle"
-    SquareGlyph -> "Square"
-    TriangleGlyph {} -> "Triangle"
-    EllipseGlyph _ -> "Ellipse"
-    RectSharpGlyph _ -> "RectSharp"
-    RectRoundedGlyph {} -> "RectRounded"
-    VLineGlyph _ -> "VLine"
-    HLineGlyph _ -> "HLine"
-    SmileyGlyph -> "Smiley"
-
--- | the extra area from glyph styling
-styleBoxGlyph :: (Chartable a) => GlyphStyle -> Rect a
-styleBoxGlyph s = realToFrac <$> case sh of
-  EllipseGlyph a -> scale (Point sz (a*sz)) unitRect
-  RectSharpGlyph a -> scale (Point sz (a*sz)) unitRect
-  RectRoundedGlyph a _ _ -> scale (Point sz (a*sz)) unitRect
-  VLineGlyph a -> scale (Point (a*sz) sz) unitRect
-  HLineGlyph a -> scale (Point sz (a*sz)) unitRect
-  TriangleGlyph a b c -> (sz*) <$> sconcat (toRect . SpotPoint <$> (a :| [b,c]) :: NonEmpty (Rect Double))
-  _ -> (sz*) <$> unitRect
+-- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied Rect, and expanding the Rect for chart style if necessary
+chartSvg :: (Chartable a) =>
+  Rect a -> [Chart a] -> ChartSvg a
+chartSvg a cs = chartSvg_ (defRect $ styleBoxes cs') cs'
   where
-    sh = s ^. #shape 
-    sz = s ^. #size
+    cs' = projectSpots a cs
 
--- | line style
-data LineStyle = LineStyle
-  { width :: Double
-  , color :: PixelRGB8
-  , opacity :: Double
-  } deriving (Show, Eq, Generic)
+-- | convert a [Chart] to a ChartSvg, projecting Chart data from a specified Rect range to the supplied Rect, and expanding the Rect for chart style if necessary
+chartSvgWith :: (Chartable a) =>
+  Rect a -> Rect a -> [Chart a] -> ChartSvg a
+chartSvgWith new old cs = chartSvg_ (addToRect new (styleBoxes cs')) cs'
+  where
+    cs' = projectSpotsWith new old cs
 
--- | the official default line style
-defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.02 blue 0.5
+-- | convert a [Chart] to a ChartSvg, setting the Rect equal to the Chart data area
+fittedSvg :: (Chartable a) =>
+  [Chart a] -> ChartSvg a
+fittedSvg cs =
+  chartSvg (defRect $ styleBoxes cs) cs
 
-data ChartException = NotYetImplementedException deriving Show
+-- | add an enclosing fitted frame to a ChartSvg
+frame :: (Chartable a) => RectStyle -> ChartSvg a -> ChartSvg a
+frame o (ChartSvg vb _) =
+  ChartSvg
+  vb
+  ((:[]) . tree $ Chart (RectA o) [SpotRect vb])
 
-instance Exception ChartException
+-- | a default frame
+defaultFrame :: (Chartable a) => ChartSvg a -> ChartSvg a
+defaultFrame ch = frame (border 0.01 blue 1.0) ch <> ch
+
+
+
+p0 :: (Num a) => Spot a
+p0 = SP 0 0
+
+-- | project a Spot from one Rect to another, preserving relative position.
+projectOn :: (Ord a, Fractional a) => Rect a -> Rect a -> Spot a -> Spot a
+projectOn new old@(Rect x z y w) po@(SP px py)
+  | x==z && y==w = po
+  | x==z = SP px py'
+  | y==w = SP px' py
+  | otherwise = SP px' py'
+  where
+    (Point px' py') = project old new (toPoint po)
+projectOn new old@(Rect x z y w) ao@(SR ox oz oy ow)
+  | x==z && y==w = ao
+  | x==z = SR ox oz ny nw
+  | y==w = SR nx nz oy ow
+  | otherwise = SpotRect a
+  where
+    a@(Rect nx nz ny nw) = projectRect old new (toRect ao)
+
+-- | project a [Spot a] from it's folded space to the given area
+projectTo :: (Ord a, Fractional a) => Rect a -> [Spot a] -> [Spot a]
+projectTo _ [] = []
+projectTo vb (x:xs) = projectOn vb (toRect $ sconcat (x :| xs)) <$> (x:xs)
+
+-- | project a [[Spot a]] from its folded space to the given area
+projectTo2 :: (Ord a, Fractional a) => Rect a -> [[Spot a]] -> [[Spot a]]
+projectTo2 vb xss = fmap (maybe id (projectOn vb) (fold $ foldRect . fmap toRect <$> xss)) <$> xss
+
+defRect :: (Fractional a) => Maybe (Rect a) -> Rect a
+defRect = fromMaybe unitRect
+
+defRectS :: (Eq a, Fractional a) => Maybe (Rect a) -> Rect a
+defRectS r = maybe unitRect singletonUnit r
+  where
+    singletonUnit :: (Eq a, Fractional a) => Rect a -> Rect a
+    singletonUnit (Rect x z y w)
+      | x == z && y == w = Rect (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
+      | x == z = Rect (x - 0.5) (x + 0.5) y w
+      | y == w = Rect x z (y - 0.5) (y + 0.5)
+      | otherwise = Rect x z y w
+
+addToRect :: (Ord a) => Rect a -> Maybe (Rect a) -> Rect a
+addToRect r r' = sconcat $ r :| maybeToList r'
+
+projectSpots :: (Chartable a) => Rect a -> [Chart a] -> [Chart a]
+projectSpots a cs = cs'
+  where
+    xss = projectTo2 a (spots <$> cs)
+    ss = annotation <$> cs
+    cs' = zipWith Chart ss xss
+
+projectSpotsWith :: (Chartable a) => Rect a -> Rect a -> [Chart a] -> [Chart a]
+projectSpotsWith new old cs = cs'
+  where
+    xss = fmap (projectOn new old) . spots <$> cs
+    ss = annotation <$> cs
+    cs' = zipWith Chart ss xss
 
 -- |
 dataBox :: Chartable a => [Chart a] -> Maybe (Rect a)
 dataBox cs = foldRect $ mconcat $ fmap toRect <$> (spots <$> cs)
 
+-- | a Rect that bounds the geometric attributes of a 'DrawAttributes'
+-- only handles stroke width and transformations, referencing a point to calculate relative rotation from
+daBox  :: (Chartable a) => DrawAttributes -> Spot a -> Rect a -> Rect a
+daBox da s r = transformBox s da (strokeBox da r)
 
 -- | the extra Rect from the stroke element of an svg style attribute
 strokeBox :: (Fractional a) => DrawAttributes -> Rect a -> Rect a
@@ -309,49 +209,17 @@ transformBox sp da r = realToFrac <$> foldl' addtr (realToFrac <$> r)
   where
    (Point x y) = realToFrac <$> toPoint sp
    addtr r' t = case t of
-     Translate x' y' -> translateRect (Point x' (-y')) r'
+     Translate x' y' -> move (Point x' (-y')) r'
      TransformMatrix{} ->
        throw NotYetImplementedException
      Scale s Nothing -> (s*) <$> r'
      Scale sx (Just sy) -> scale (Point sx sy) r'
-     Rotate d Nothing -> rotateRect d (realToFrac <$> translateRect (Point (-x) (-y))
+     Rotate d Nothing -> rotateRect d (realToFrac <$> move (Point (-x) (-y))
                                       (realToFrac <$> r'))
-     Rotate d (Just (x',y')) -> rotateRect d (translateRect (Point (x' - x) (y' - y)) (realToFrac <$> r'))
+     Rotate d (Just (x',y')) -> rotateRect d (move (Point (x' - x) (y' - y)) (realToFrac <$> r'))
      SkewX _ -> throw NotYetImplementedException
      SkewY _ -> throw NotYetImplementedException
      TransformUnknown -> r'
-
--- | group draw attributes for TextStyle. rotation is defined by svg relative to a point (or to an origin) and so rotation needs to be dealth with separately.
-dagText :: ( ) => TextStyle -> DrawAttributes
-dagText o =
-  mempty &
-  (fontSize .~ Last (Just $ Num (o ^. #size))) &
-  (strokeWidth .~ Last (Just $ Num 0)) &
-  (strokeColor .~ Last (Just FillNone)) &
-  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) &
-  (fillOpacity ?~ realToFrac (o ^. #opacity)) &
-  (textAnchor .~ Last (Just (toTextAnchor $ o ^. #anchor))) &
-  maybe id (\(Point x y) -> transform ?~ [Translate (realToFrac x) (-realToFrac y)])
-             (o ^. #translate)
-
-dagGlyph :: GlyphStyle -> DrawAttributes
-dagGlyph o =
-  mempty &
-  (strokeWidth .~ Last (Just $ Num (o ^. #borderSize))) &
-  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #borderColor))) &
-  (strokeOpacity ?~ realToFrac (o ^. #borderOpacity)) &
-  (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) &
-  (fillOpacity ?~ realToFrac (o ^. #opacity)) &
-  maybe id (\(Point x y) -> transform ?~ [Translate (realToFrac x) (-realToFrac y)])
-             (o ^. #translate)
-
-dagLine :: LineStyle -> DrawAttributes
-dagLine o =
-  mempty &
-  (strokeWidth .~ Last (Just $ Num (o ^. #width))) .
-  (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color))) .
-  (strokeOpacity ?~ realToFrac (o ^. #opacity)) .
-  (fillColor .~ Last (Just FillNone))
 
 -- | the geometric dimensions of a Chart inclusive of style geometry
 styleBox :: (Real a, Chartable a) => Chart a -> Maybe (Rect a)
@@ -362,7 +230,7 @@ styleBox (Chart (TextA s ts) xs) =
 styleBox (Chart (GlyphA s) xs) =
   foldRect $ (\x ->
     daBox (dagGlyph s) x
-    (translateRect (toPoint x) (styleBoxGlyph s))) <$> xs
+    (move (toPoint x) (styleBoxGlyph s))) <$> xs
 styleBox (Chart (RectA s) xs) = foldRect
   ((\x -> daBox (dagRect s) x (toRect x)) <$> xs)
 styleBox (Chart (LineA s) xs) = foldRect
@@ -370,33 +238,54 @@ styleBox (Chart (LineA s) xs) = foldRect
 styleBox (Chart BlankA xs) = foldRect
   ((\x -> daBox mempty x (toRect x)) <$> xs)
 
--- | a Rect that bounds the geometric attributes of a 'DrawAttributes'
--- only handles stroke width and transformations, referencing a point to calculate relative rotation from
-daBox  :: (Chartable a) => DrawAttributes -> Spot a -> Rect a -> Rect a
-daBox da s r = transformBox s da (strokeBox da r)
+-- | the extra area from text styling
+styleBoxText :: (Ord a, Fractional a) =>
+  TextStyle -> Text.Text -> Point a -> Rect a
+styleBoxText o t p = move p $ realToFrac <$> maybe flat (`rotateRect` flat) (realToFrac <$> o ^. #rotation)
+    where
+      flat = Rect ((-x'/2) + x'*a') (x'/2 + x'*a') ((-y'/2) - n1') (y'/2 - n1')
+      s = o ^. #size
+      h = o ^. #hsize
+      v = o ^. #vsize
+      n1 = o ^. #nudge1
+      x' = s * h * realToFrac (Text.length t)
+      y' = s * v
+      n1' = s * n1
+      a' = case o ^. #anchor of
+        AnchorStart -> 0.5
+        AnchorEnd -> -0.5
+        AnchorMiddle -> 0.0
 
-addChartBox :: (Chartable a) => Chart a -> Rect a -> Rect a
-addChartBox c r = sconcat (r :| maybeToList (styleBox c))
+-- | the extra area from glyph styling
+styleBoxGlyph :: (Chartable a) => GlyphStyle -> Rect a
+styleBoxGlyph s = realToFrac <$> case sh of
+  EllipseGlyph a -> scale (Point sz (a*sz)) unitRect
+  RectSharpGlyph a -> scale (Point sz (a*sz)) unitRect
+  RectRoundedGlyph a _ _ -> scale (Point sz (a*sz)) unitRect
+  VLineGlyph a -> scale (Point (a*sz) sz) unitRect
+  HLineGlyph a -> scale (Point sz (a*sz)) unitRect
+  TriangleGlyph a b c -> (sz*) <$> sconcat (toRect . SpotPoint <$> (a :| [b,c]) :: NonEmpty (Rect Double))
+  _ -> (sz*) <$> unitRect
+  where
+    sh = s ^. #shape 
+    sz = s ^. #size
 
 -- | the extra geometric dimensions of a [Chart]
 styleBoxes :: (Chartable a) => [Chart a] -> Maybe (Rect a)
 styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
 
+addChartBox :: (Chartable a) => Chart a -> Rect a -> Rect a
+addChartBox c r = sconcat (r :| maybeToList (styleBox c))
+
 addChartBoxes :: (Chartable a) => [Chart a] -> Rect a -> Rect a
 addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
-
--- | project data to a box based on style effects
-projectWithStyle :: (Chartable a) =>
-  Rect a -> Chart a -> Chart a
-projectWithStyle vb ch@(Chart s xs) =
-  Chart s (maybe id (projectOn vb) (styleBox ch) <$> xs)
 
 -- | include a circle at the origin with size and color
 showOriginWith :: forall a. (Chartable a) => GlyphStyle -> Chart a
 showOriginWith c =
   Chart
   (GlyphA c)
-  [SP 0 0]
+  [p0]
 
 defaultOrigin :: GlyphStyle
 defaultOrigin = GlyphStyle 0.05 red 0.5 grey 0 0 CircleGlyph Nothing Nothing
@@ -405,26 +294,6 @@ defaultOrigin = GlyphStyle 0.05 red 0.5 grey 0 0 CircleGlyph Nothing Nothing
 showOrigin :: (Chartable a) => Chart a
 showOrigin = showOriginWith defaultOrigin
 
--- * color
--- | the official chart-unit blue
-blue :: PixelRGB8
-blue = PixelRGB8 93 165 218
-
--- | the official chart-unit grey
-grey :: PixelRGB8
-grey = PixelRGB8 102 102 102
-
--- | black
-black :: PixelRGB8
-black = PixelRGB8 0 0 0
-
--- | white
-white :: PixelRGB8
-white = PixelRGB8 255 255 255
-
--- | red
-red :: PixelRGB8
-red = PixelRGB8 255 0 0
 
 -- | interpolate between 2 colors
 blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
@@ -436,7 +305,7 @@ pixelate :: (Chartable a) =>
   (Point a -> Double) -> Rect a -> Grid (Rect a) -> PixelRGB8 -> PixelRGB8 -> [(Rect a, PixelRGB8)]
 pixelate f r g c0 c1 = (\(x,y) -> (x, blend y c0 c1)) <$> ps'
   where
-    ps = areaF f r g
+    ps = gridF f r g
     rs = snd <$> ps
     rs' = project (space1 rs :: Range Double) (Range 0 1) <$> rs
     ps' = zip (fst <$> ps) rs'
@@ -457,3 +326,13 @@ scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (*x)
 scaleAnn x (TextA a txs) = TextA (a & #size %~ (*x)) txs
 scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (*x))
 scaleAnn _ BlankA = BlankA
+
+-- | widen a ChartSvg Rect by a fraction of the size.
+pad :: (Chartable a) => a -> ChartSvg a -> ChartSvg a
+pad p (ChartSvg vb s) = ChartSvg (fmap (p*) vb) s
+
+placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
+placedLabel p d t =
+  Chart (TextA (defaultTextStyle & #translate ?~ (realToFrac <$> p) &
+                #rotation ?~ realToFrac d) [t])
+  [p0]
