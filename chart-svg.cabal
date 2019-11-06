@@ -36,26 +36,18 @@ library
     , attoparsec
     , base >=4.7 && <5
     , bifunctors
-    , box
     , containers
-    , formatting
     , generic-lens
-    , javascript-bridge
-    , lattices
     , linear
     , lucid
     , lens
-    , mtl
     , numhask-space
-    , protolude
     , scientific
     , svg-tree
     , text
-    , unordered-containers
+    , transformers
     , web-rep
     , xml
-    , time
-    , foldl
   default-language: Haskell2010
 
 executable chart-svg
@@ -69,10 +61,8 @@ executable chart-svg
     , base >=4.7 && <5
     , chart-svg
     , containers
-    , generic-lens
     , lens
     , numhask-space
-    , protolude
     , svg-tree
     , text
   default-language: Haskell2010
@@ -88,16 +78,13 @@ executable style-page
     , base >=4.7 && <5
     , bifunctors
     , chart-svg
-    , containers
-    , generic-lens
     , lens
     , lucid
     , javascript-bridge
     , numhask-space
-    , protolude
     , scotty
-    , svg-tree
     , text
+    , transformers
     , unordered-containers
     , wai-middleware-static
     , web-rep

@@ -1,52 +1,27 @@
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
 
-import Chart.Core
-import Chart.Hud hiding (title_)
-import Chart.Page
-import Chart.Types
-import Control.Category (id)
+import Chart
 import Control.Lens
-import Data.HashMap.Strict
-import qualified Data.Text.Lazy as Lazy
-import Network.JavaScript
-import Network.Wai.Middleware.Static (addBase, noDots, staticPolicy, (>->))
-import Protolude hiding (replace, Rep, (<<*>>))
+import Control.Monad (void)
+import Control.Monad.Trans.State.Lazy
 import Data.Biapplicative
+import Data.Bool
+import Data.Text (Text)
+import Network.Wai.Middleware.Static (addBase, noDots, staticPolicy, (>->))
+import Prelude
 import Web.Page
 import Web.Scotty
-import Lucid.Base
-import Lucid hiding (b_)
-import NumHask.Range
-import NumHask.Point
-
-chartStyler :: Bool -> Page
-chartStyler doDebug =
-  bootstrapPage <>
-  bridgePage &
-  #htmlHeader .~ title_ "chart styler" &
-  #htmlBody .~
-    b_ "container"
-    ( b_ "row d-flex justify-content-between"
-      ( sec "col4" "input" <>
-        sec "col8" "output") <>
-      bool mempty (b_ "row" (with div_ [id_ "debug"] mempty)) doDebug)
-  where
-    sec d n = b_ d (with div_ [id_ n] mempty)
+import qualified Data.Text as Text
 
 repMain :: (Monad m) => ChartSvgStyle -> Annotation -> HudConfig -> SharedRep m (Text, Text)
 repMain cscfg a hcfg =
   bimap hmap mmap cs <<*>> ann <<*>> d <<*>> h <<*>> debug
   where
-    h = repHudConfig 2 3 defaultAxisConfig (defaultTitle "example title") defaultLegendOptions hcfg
+    h = repHudConfig 2 3 defaultAxisConfig (defaultTitle "example title")
+      defaultLegendOptions hcfg
     cs = repChartSvgStyle cscfg
     ann = repAnnotation a
     d = repData "sin"
@@ -59,11 +34,12 @@ repMain cscfg a hcfg =
       , bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw values</h2>"
-         , show cs', show ann', show h']) (fst debug')
+         , (Text.pack . show) cs', (Text.pack . show) ann',
+           (Text.pack . show) h']) (fst debug')
       <> bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw chart svg</h2>"
-         , Lazy.toStrict $ renderText $ toHtml (renderHudChartWith cs' h' [Chart ann' d'])
+         , renderHudChartWith cs' h' [Chart ann' d']
          ]) (snd debug')
       )
     hmap cs' ann' d' h' debug' =
@@ -101,11 +77,14 @@ repTextBB cscfg =
       , bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw values</h2>"
-         , show cs', show tstyle', show bb', show tps']) (fst debug')
+         , (Text.pack . show) cs'
+         , (Text.pack . show) tstyle'
+         , (Text.pack . show) bb'
+         , (Text.pack . show) tps']) (fst debug')
       <> bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw chart svg</h2>"
-         , Lazy.toStrict $ renderText $ toHtml (chartsvg cs' tstyle' tps' bb')
+         , chartsvg cs' tstyle' tps' bb'
          ]) (snd debug')
       )
     hmap cs' tstyle' bb' tps' debug' =
@@ -117,39 +96,6 @@ repTextBB cscfg =
       , ("Debug", debug')
       ]
 
-repLegendT :: (Monad m) => ChartSvgStyle -> Annotation -> HudConfig -> SharedRep m (Text, Text)
-repLegendT cscfg a hcfg =
-  bimap hmap mmap cs <<*>> ann <<*>> d <<*>> h <<*>> debug
-  where
-    h = repHudConfig 2 3 defaultAxisConfig (defaultTitle "example title") defaultLegendOptions hcfg
-    cs = repChartSvgStyle cscfg
-    ann = repAnnotation a
-    d = repData "sin"
-    debug = bimap (<>) (,)
-      (checkbox (Just "show style values" ) True) <<*>>
-      checkbox (Just "show chart svg text" ) False
-    mmap cs' ann' d' h' debug' =
-      ( renderHudChartWith cs' h'
-        [Chart ann' d']
-      , bool mempty
-        (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
-         [ "<h2>raw values</h2>"
-         , show cs', show ann', show h']) (fst debug')
-      <> bool mempty
-        (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
-         [ "<h2>raw chart svg</h2>"
-         , Lazy.toStrict $ renderText $ toHtml (renderHudChartWith cs' h' [Chart ann' d'])
-         ]) (snd debug')
-      )
-    hmap cs' ann' d' h' debug' =
-      accordion_ "acca" Nothing
-      [ ("Svg", cs')
-      , ("Annotation", ann')
-      , ("Data", d')
-      , ("Hud", h')
-      , ("Debug", debug')
-      ]
-
 l1 :: [(Annotation, Text)]
 l1 = [ (GlyphA defaultGlyphStyle, "glyph")
      , (RectA defaultRectStyle, "rect")
@@ -158,22 +104,10 @@ l1 = [ (GlyphA defaultGlyphStyle, "glyph")
      , (BlankA, "blank")
      ]
 
-updateChart :: Engine -> Either Text (HashMap Text Text, Either Text (Text, Text)) -> IO ()
-updateChart e (Left err) = append e "debug" ("map error: " <> err)
-updateChart e (Right (_,Left err)) = append e "debug" ("parse error: " <> err)
-updateChart e (Right (_, Right (c,d))) = do
-  replace e "output" c
-  replace e "debug" d
-
-midShared ::
+midChart ::
   SharedRep IO (Text, Text) ->
   Application -> Application
-midShared sr = start $ \e ->
-  void $ runOnEvent
-  sr
-  (zoom _2 . initChartRender e)
-  (updateChart e)
-  (bridge e)
+midChart sr = midShared sr initChartRender updateChart
 
 initChartRender
   :: Engine
@@ -186,18 +120,25 @@ initChartRender e r =
       replace e "output" (either id fst . snd $ fa m)
       replace e "debug" (either id snd . snd $ fa m))
 
+updateChart :: Engine -> Either Text (HashMap Text Text, Either Text (Text, Text)) -> IO ()
+updateChart e (Left err) = append e "debug" ("map error: " <> err)
+updateChart e (Right (_,Left err)) = append e "debug" ("parse error: " <> err)
+updateChart e (Right (_, Right (c,d))) = do
+  replace e "output" c
+  replace e "debug" d
+
 main :: IO ()
 main =
   scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "other")
     middleware
-      (midShared
+      (midChart
        (repChoice 0
         [("main",
          repMain defaultChartSvgStyle (GlyphA defaultGlyphStyle)
          defaultHudConfig),
          ("bounding box", repTextBB defaultChartSvgStyle),
-         ("legend test", repLegendT defaultChartSvgStyle
+         ("legend test", repMain defaultChartSvgStyle
            (GlyphA defaultGlyphStyle)
            (defaultHudConfig & #hudLegends .~ [defaultLegendOptions & #lcharts .~ l1]))
         ]))

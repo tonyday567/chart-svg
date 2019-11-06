@@ -1,32 +1,16 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
 
-import Chart.Core
-import Chart.Svg
-import Chart.Types
-import Chart.Hud
-import Codec.Picture.Types
+import Prelude
+import Chart
 import Control.Lens
-import Data.Generics.Labels()
 import Graphics.Svg.CssTypes hiding (Point)
 import qualified Data.Map as Map
 import qualified Data.Text as Text
-import Protolude hiding (rotate)
-import NumHask.Rect
-import NumHask.Point
-import NumHask.Range
-import GHC.Exts
+import qualified Data.Text.IO as Text
+import Data.Text (Text)
+import Data.Maybe
 
 ropts :: [RectStyle]
 ropts =
@@ -199,8 +183,8 @@ lopts =
   , PixelRGB8 56 42 140
   ]
 
-lines :: [Chart Double]
-lines = zipWith (\d s -> Chart (LineA s) (SpotPoint <$> d)) ls lopts
+lines' :: [Chart Double]
+lines' = zipWith (\d s -> Chart (LineA s) (SpotPoint <$> d)) ls lopts
 
 -- gline
 gopts3 :: [GlyphStyle]
@@ -226,7 +210,7 @@ glines = cs <> gs where
 
 lgdata :: [(Text.Text, Point Double)]
 lgdata =
-  (\p@(Point x y) -> (show x <> "," <> show y, fromIntegral <$> p)) <$>
+  (\p@(Point x y) -> (Text.pack (show x <> "," <> show y), fromIntegral <$> p)) <$>
     (Point <$> [0 .. 5] <*> [0 .. 5] :: [Point Int])
 
 lglyph :: [Chart Double]
@@ -290,10 +274,10 @@ main = do
   writeChart "other/smiley.svg" [smiley]
   writeChart "other/glyphsChart.svg" glyphsChart
   writeChart "other/lglyph.svg" lglyph
-  writeChart "other/lines.svg" lines
+  writeChart "other/lines.svg" lines'
   writeChart "other/glines.svg" glines
   writeChart "other/compound.svg" (lglyph <> glines)
-  writeFile "other/def.svg" def
-  writeFile "other/bb.svg" def
+  Text.writeFile "other/def.svg" def
+  Text.writeFile "other/bb.svg" bb
   writeChartSvg "other/leg.svg" (Point 400 400) leg
-  putStrLn (" 👍" :: Text.Text)
+  putStrLn " 👍"

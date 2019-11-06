@@ -1,16 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Svg
@@ -20,6 +8,8 @@ module Chart.Svg
   , treeShape
   , treeText
   , tree
+  , strokeRect
+  , transformRect
   , dagRect
   , dagText
   , dagGlyph
@@ -38,17 +28,22 @@ module Chart.Svg
 
 import Chart.Types
 import Codec.Picture.Types
-import Graphics.Svg as Svg hiding (Point, toPoint)
-import Graphics.Svg.CssTypes as Svg hiding (Point)
 import Control.Lens hiding (transform)
+import Data.Foldable
+import Data.Generics.Labels ()
+import Data.Maybe
+import Data.Monoid
+import Data.Text (Text)
+import GHC.Exception
+import Graphics.Svg as Svg hiding (Point, toPoint, Text)
+import Graphics.Svg.CssTypes as Svg hiding (Point)
 import Linear.V2
 import NumHask.Space hiding (Element)
+import Prelude hiding (writeFile)
 import Text.XML.Light.Output
 import qualified Data.Map as Map
 import qualified Data.Text as Text
-import Protolude as P
-import Control.Category (id)
-import GHC.Exts
+import qualified Data.Text.IO as Text
 
 -- * Svg
 
@@ -73,7 +68,7 @@ treeRect a =
   RectangleTree $ rectSvg a defaultSvg
 
 -- | Text svg
-treeText :: (Chartable a) => TextStyle -> P.Text -> Point a -> Tree
+treeText :: (Chartable a) => TextStyle -> Text -> Point a -> Tree
 treeText s t p =
   TextTree Nothing (textAt (pointSvg p) t) &
   maybe id (\x -> drawAttr %~ rotatePDA x p) (realToFrac <$> s ^. #rotation)
@@ -185,7 +180,35 @@ groupTrees da' tree' =
   groupChildren .~ tree' &
   GroupTree
 
--- draw attribute computations
+
+-- * DrawAttribute computations
+
+-- | the extra Rect from the stroke element of an svg style attribute
+strokeRect :: (Fractional a) => DrawAttributes -> Rect a -> Rect a
+strokeRect das r = r `addRect` (realToFrac <$> Rect (-x/2) (x/2) (-x/2) (x/2))
+  where
+    x = case das ^. Svg.strokeWidth & getLast of
+      Just (Num x') -> x'
+      _ -> 0
+
+transformRect :: (Chartable a) => Spot a -> DrawAttributes -> Rect a -> Rect a
+transformRect sp da r = realToFrac <$> foldl' addtr (realToFrac <$> r)
+  (fromMaybe [] (da ^. transform))
+  where
+   (Point x y) = realToFrac <$> toPoint sp
+   addtr r' t = case t of
+     Translate x' y' -> move (Point x' (-y')) r'
+     TransformMatrix{} ->
+       throw NotYetImplementedException
+     Scale s Nothing -> (s*) <$> r'
+     Scale sx (Just sy) -> scale (Point sx sy) r'
+     Rotate d Nothing -> rotateRect d (realToFrac <$> move (Point (-x) (-y))
+                                      (realToFrac <$> r'))
+     Rotate d (Just (x',y')) -> rotateRect d (move (Point (x' - x) (y' - y)) (realToFrac <$> r'))
+     SkewX _ -> throw NotYetImplementedException
+     SkewY _ -> throw NotYetImplementedException
+     TransformUnknown -> r'
+
 dagRect :: RectStyle -> DrawAttributes
 dagRect o =
   mempty &
@@ -207,6 +230,11 @@ dagText o =
   (textAnchor .~ Last (Just (toTextAnchor $ o ^. #anchor))) &
   maybe id (\(Point x y) -> transform ?~ [Translate (realToFrac x) (-realToFrac y)])
              (o ^. #translate)
+  where
+    toTextAnchor :: Anchor -> TextAnchor
+    toTextAnchor AnchorMiddle = TextAnchorMiddle
+    toTextAnchor AnchorStart = TextAnchorStart
+    toTextAnchor AnchorEnd = TextAnchorEnd
 
 dagGlyph :: GlyphStyle -> DrawAttributes
 dagGlyph o =
@@ -275,7 +303,7 @@ renderToXml :: (Real a) => Point a -> ChartSvg a -> Document
 renderToXml p = renderToXmlWith p Map.empty "" [] ""
 
 -- | render an xml document to Text
-xmlToText :: Document -> P.Text
+xmlToText :: Document -> Text
 xmlToText = Text.pack . ppcElement defaultConfigPP . xmlOfDocument
 
 renderChartSvg :: Double -> Double -> ChartSvg Double -> Text.Text
@@ -284,8 +312,8 @@ renderChartSvg x y =
 
 -- | write a ChartSvg to a svg file with various Document attributes.
 writeWithXml :: (Real a) => FilePath -> Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
-writeWithXml fp p defs desc css c = writeFile fp (xmlToText $ renderToXmlWith p defs desc css fp c)
+writeWithXml fp p defs desc css c = Text.writeFile fp (xmlToText $ renderToXmlWith p defs desc css fp c)
 
 writeChartSvg :: FilePath -> Point Double -> ChartSvg Double -> IO ()
-writeChartSvg fp (Point x y) cs = writeFile fp (renderChartSvg x y cs)
+writeChartSvg fp (Point x y) cs = Text.writeFile fp (renderChartSvg x y cs)
 

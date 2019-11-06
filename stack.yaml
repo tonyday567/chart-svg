@@ -1,17 +1,13 @@
-resolver: lts-14.11
+resolver: lts-14.13
 
 packages:
   - .
-  - ../numhask-space
-  - ../box
-  - ../web-rep
 
 extra-deps:
   - lucid-svg-0.7.1
   - javascript-bridge-0.2.0
-  #- git: https://github.com/ku-fpg/javascript-bridge.git
-  #  commit: d9320209806d72c71969786739ed03f9d3394881
-  #  # bb72dbb7d2f6376353f67aec6c251271ffb055d5
-  #- box-0.0.1.1
+  - box-0.0.1.5
+  - numhask-space-0.2.0
+  - web-rep-0.1.2
 
 allow-newer: true

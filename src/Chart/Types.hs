@@ -21,8 +21,9 @@ module Chart.Types
   , Chartable
   , Annotation(..)
   , annotationText
+  , Tree(..)
   , DrawAttributes(..)
-  , RectStyle(..)
+  , RectStyle(RectStyle)
   , defaultRectStyle
   , blob
   , clear
@@ -32,7 +33,6 @@ module Chart.Types
   , Anchor(..)
   , fromAnchor
   , toAnchor
-  , toTextAnchor
   , GlyphStyle(..)
   , defaultGlyphStyle
   , GlyphShape(..)
@@ -56,15 +56,16 @@ module Chart.Types
   , pattern SP
   ) where
 
-import NumHask.Space
 import Codec.Picture.Types
 import Control.Exception
 import Data.Generics.Labels ()
-import Graphics.Svg as Svg hiding (Point, toPoint, Text)
-import qualified Data.Text as Text
-import Protolude
+import Data.Text (Text)
 import GHC.Exts
-
+import GHC.Generics
+import Graphics.Svg (Tree(..), DrawAttributes(..))
+import NumHask.Space
+import Prelude
+import qualified Data.Text as Text
 
 data ChartException = NotYetImplementedException deriving Show
 
@@ -150,11 +151,6 @@ toAnchor "Middle" = AnchorMiddle
 toAnchor "Start" = AnchorStart
 toAnchor "End" = AnchorEnd
 toAnchor _ = AnchorMiddle
-
-toTextAnchor :: Anchor -> TextAnchor
-toTextAnchor AnchorMiddle = TextAnchorMiddle
-toTextAnchor AnchorStart = TextAnchorStart
-toTextAnchor AnchorEnd = TextAnchorEnd
 
 -- | the offical text style
 defaultTextStyle :: TextStyle

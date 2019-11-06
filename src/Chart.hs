@@ -10,14 +10,16 @@ module Chart
   , module Chart.Hud
   , module Chart.Page
   , module NumHask.Space
+  , PixelRGB8(..)
   ) where
- 
+
 import Chart.Types
 import Chart.Core
 import Chart.Svg
 import Chart.Hud
 import Chart.Page
 import NumHask.Space
+import Codec.Picture.Types
 
 -- $types
 -- There are some.

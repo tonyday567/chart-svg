@@ -1,33 +1,74 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 
-module Chart.Hud where
+module Chart.Hud
+ ( ChartDims(..)
+ , HudT(..)
+ , Hud
+ , HudConfig(..)
+ , defaultHudConfig
+ , Place(..)
+ , placeText
+ , AxisConfig(..)
+ , defaultAxisConfig
+ , canvas
+ , defaultCanvas
+ , Bar(..)
+ , defaultBar
+ , Title(..)
+ , defaultTitle
+ , title
+ , Tick(..)
+ , defaultGlyphTick
+ , defaultTextTick
+ , defaultLineTick
+ , defaultTick
+ , TickFormat(..)
+ , tickFormatText
+ , toFormat
+ , TickStyle(..)
+ , defaultTickStyle
+ , tickStyleText
+ , TickExtend(..)
+ , tick
+ , precision
+ , Adjustments(..)
+ , defaultAdjustments
+ , adjustTick
+ , LegendOptions(..)
+ , defaultLegendOptions
+ , legend
+ , legendEntry
+ , makeLegend
+ , hudChartWith
+ , hudChart
+ , hudChartSvgWith
+ , hudChartSvg
+ , hud
+ , renderHudChartWith
+ , renderCharts
+ ) where
 
 import Chart.Core
 import Chart.Svg
 import Chart.Types
 import Codec.Picture.Types
-import Control.Category (id)
 import Control.Lens
-import Data.Generics.Labels ()
+import Control.Monad ((>=>))
+import Control.Monad.Trans.State.Lazy
+import Data.Bool
 import Data.List (nub)
+import Data.Maybe
 import Data.Scientific
-import Formatting
-import Protolude
+import Data.Text (Text)
+import qualified Data.Text as Text
+import GHC.Generics
 import NumHask.Space
+import Prelude
+import Text.Printf
 
 data ChartDims a =
   ChartDims
@@ -229,6 +270,8 @@ data Tick a = Tick
   , ltick :: Maybe (LineStyle, a)
   } deriving (Show, Eq, Generic)
 
+type Tickable a = (Chartable a, PrintfArg a)
+
 defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle &
@@ -269,11 +312,41 @@ tickFormatText TickFormatCommas{} = "TickFormatCommas"
 tickFormatText TickFormatFixed{} = "TickFormatFixed"
 tickFormatText TickFormatDollars = "TickFormatDollars"
 
-toFormat :: (Chartable a) => TickFormat -> [a] -> [Text]
+toFormat :: (Tickable a) => TickFormat -> [a] -> [Text]
 toFormat TickFormatDefault = precision commas 0
 toFormat (TickFormatCommas n) = precision commas n
-toFormat (TickFormatFixed n) = precision (fixed n) n
+toFormat (TickFormatFixed n) = precision fixed n
 toFormat TickFormatDollars = fmap ("$" <>) . precision commas 2
+
+commas :: (RealFrac a, PrintfArg a) => Int -> a -> Text
+commas n a
+  | a < 1000 = fixed n a
+  | otherwise = go (floor a) "" where
+      go :: Int -> Text -> Text
+      go x t
+        | x < 0 = "-" <> go (-x) ""
+        | x < 1000 = Text.pack (show x) <> t
+        | otherwise = let (d,m) = divMod x 1000 in
+            go d ("," <> Text.pack (show m))
+
+fixed :: (PrintfArg a) => Int -> a -> Text
+fixed n a = Text.pack $ printf ("%." ++ show n ++ "f") a
+
+-- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
+precision :: (Tickable a) => (Int -> a -> Text) -> Int -> [a] -> [Text]
+precision f n0 xs
+  | foldr max 0 xs < 0.01 =
+    Text.pack <$> precLoop expt' n0 (fromFloatDigits <$> xs)
+  | foldr max 0 xs > 100000 =
+    Text.pack <$> precLoop expt' n0 (fromFloatDigits <$> xs)
+  | otherwise = precLoop f (fromIntegral n0) xs
+  where
+    expt' x = formatScientific Exponent (Just x)
+    precLoop f' n xs' =
+      let s = f' n <$> xs'
+      in if s == nub s
+           then s
+           else precLoop f' (n + 1) xs'
 
 -- | Style of tick marks on an axis.
 data TickStyle a
@@ -296,26 +369,6 @@ tickStyleText TickPlaced{} = "TickPlaced"
 
 data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Generic)
 
--- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
-precision :: (Chartable a) => Format Text (Integer -> Text) -> Int -> [a] -> [Text]
-precision f n0 xs
-  | foldr max 0 xs < 0.01 = precLoop expt' n0 (fromFloatDigits <$> xs)
-  | foldr max 0 xs > 100000 = precLoop expt' n0 (fromFloatDigits <$> xs)
-  | foldr max 0 xs > 1000 =
-    precLoopInt (const f) n0 (floor <$> xs :: [Integer])
-  | otherwise = precLoop fixed n0 xs
-  where
-    expt' x = scifmt Exponent (Just x)
-    precLoop f' n xs' =
-      let s = sformat (f' n) <$> xs'
-      in if s == nub s
-           then s
-           else precLoop f' (n + 1) xs'
-    precLoopInt f' n xs' =
-      let s = sformat (f' n) <$> xs'
-      in if s == nub s
-           then s
-           else precLoopInt f' (n + 1) xs'
 
 placePos :: (Chartable a) => Place a -> a -> Rect a -> Point a
 placePos pl b (Rect x z y w) = case pl of
@@ -364,7 +417,7 @@ placeGridLines pl (Rect x z y w) a b
   | otherwise = [SP (x - b) a, SP (z + b) a]
 
 -- | compute tick values and labels given options, ranges and formatting
-ticksR :: (Chartable a) => TickStyle a -> Range a -> Range a -> [(a, Text)]
+ticksR :: (Tickable a) => TickStyle a -> Range a -> Range a -> [(a, Text)]
 ticksR s d r =
     case s of
       TickNone -> []
@@ -377,37 +430,38 @@ ticksR s d r =
             ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])) ls
       TickPlaced xs -> zip (project r d . fst <$> xs) (snd <$> xs)
 
--- | compute tick values and labels given options, ranges and formatting
-ticksR' :: (Chartable a) => TickStyle a -> Range a -> ([(a, Text)], Maybe (Range a))
-ticksR' s r =
+data TickComponents a = TickComponents { positions :: [a], labels :: [Text], extension :: Maybe (Range a) } deriving (Eq, Show, Generic)
+
+-- | compute tick components given style, ranges and formatting
+makeTicks :: (Tickable a) => TickStyle a -> Range a -> TickComponents a
+makeTicks s r =
     case s of
-      TickNone -> ([], Nothing)
-      TickRound f n e -> (zip ticks0 (toFormat f ticks0),
-                         bool (Just $ space1 ticks0) Nothing (e==NoTickExtend))
+      TickNone -> TickComponents [] [] Nothing
+      TickRound f n e ->
+        TickComponents ticks0 (toFormat f ticks0)
+          (bool (Just $ space1 ticks0) Nothing (e==NoTickExtend))
         where ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
-      TickExact f n -> (zip ticks0 (toFormat f ticks0), Nothing)
+      TickExact f n -> TickComponents ticks0 (toFormat f ticks0) Nothing
         where ticks0 = grid OuterPos r n
       TickLabels ls ->
-          (zip (project (Range 0 (fromIntegral $ length ls)) r <$>
-            ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])) ls, Nothing)
-      TickPlaced xs -> (xs, Nothing)
+          TickComponents (project (Range 0 (fromIntegral $ length ls)) r <$>
+            ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])) ls Nothing
+      TickPlaced xs -> TickComponents (fst <$> xs) (snd <$> xs) Nothing
 
--- | compute tick values given placement
-ticksA :: (Chartable a) => TickStyle a -> Place a -> Rect a -> Rect a -> [(a, Text)]
-ticksA ts pl d xs = ticksR ts (placeRange pl d) (placeRange pl xs)
-
-ticksA' :: (Chartable a) => TickStyle a -> Place a -> Rect a -> ([(a, Text)], Maybe (Rect a))
-ticksA' ts pl xs = (tr, maybe Nothing (\x -> Just $ replaceRange pl x xs) ma)
+-- | compute tick values given placement, canvas dimension & data range
+ticksPlaced :: (Tickable a) => TickStyle a -> Place a -> Rect a -> Rect a -> TickComponents a
+ticksPlaced ts pl d xs = TickComponents (project (placeRange pl xs) (placeRange pl d) <$> ps) ls ext
   where
-    (tr, ma) = ticksR' ts (placeRange pl xs)
+    (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)
 
-tickGlyph_ :: (Chartable a) => Place a -> (GlyphStyle, a) -> TickStyle a -> Rect a -> Rect a -> Rect a -> Chart a
+tickGlyph_ :: (Tickable a) => Place a -> (GlyphStyle, a) -> TickStyle a -> Rect a -> Rect a -> Rect a -> Chart a
 tickGlyph_ pl (g,b) ts ca da xs =
    Chart (GlyphA (g & #rotation .~ (realToFrac <$> placeRot pl)))
-    (SpotPoint . (placePos pl b ca +) . placeOrigin pl . fst <$> ticksA ts pl da xs)
+    (SpotPoint . (placePos pl b ca +) . placeOrigin pl <$> positions
+     (ticksPlaced ts pl da xs))
 
 -- | aka marks
-tickGlyph :: (Monad m, Chartable a) =>
+tickGlyph :: (Monad m, Tickable a) =>
   Place a -> (GlyphStyle, a) -> TickStyle a ->  HudT m a
 tickGlyph pl (g, b) ts = Hud $ \cs -> do
   a <- use #chartDim
@@ -417,18 +471,19 @@ tickGlyph pl (g, b) ts = Hud $ \cs -> do
   #chartDim .= addToRect a (styleBox c)
   pure $ c:cs
 
-tickText_ :: (Chartable a) => Place a -> (TextStyle, a) -> TickStyle a -> 
+tickText_ :: (Tickable a) => Place a -> (TextStyle, a) -> TickStyle a -> 
   Rect a -> Rect a -> Rect a -> [Chart a]
 tickText_ pl (txts, b) ts ca da xs =
   zipWith (\txt sp ->
     Chart (TextA
       ( placeTextAnchor pl txts) [txt])
                 [SpotPoint sp])
-             (snd <$> ticksA ts pl da xs)
-             ((placePos pl b ca + textPos pl txts b +) . placeOrigin pl . fst <$> ticksA ts pl da xs)
+             (labels $ ticksPlaced ts pl da xs)
+             ((placePos pl b ca + textPos pl txts b +) . placeOrigin pl <$>
+              positions (ticksPlaced ts pl da xs))
 
 -- | aka tick labels
-tickText :: (Monad m, Chartable a) =>
+tickText :: (Monad m, Tickable a) =>
   Place a -> (TextStyle, a) -> TickStyle a ->  HudT m a
 tickText pl (txts, b) ts = Hud $ \cs -> do
   ca <- use #chartDim
@@ -439,17 +494,18 @@ tickText pl (txts, b) ts = Hud $ \cs -> do
   pure $ c <> cs
 
 -- | aka grid lines
-tickLine :: (Monad m, Chartable a) =>
+tickLine :: (Monad m, Tickable a) =>
   Place a -> (LineStyle, a) -> TickStyle a ->  HudT m a
 tickLine pl (ls, b) ts = Hud $ \cs -> do
   da <- use #canvasDim
   xs <- use #dataDim
-  let c = Chart (LineA ls) . (\x -> placeGridLines pl da x b) . fst <$> ticksA ts pl da xs
+  let c = Chart (LineA ls) . (\x -> placeGridLines pl da x b) <$>
+        positions (ticksPlaced ts pl da xs)
   #chartDim %= addChartBoxes c
   pure $ c <> cs
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
-tick :: (Monad m, Chartable a) =>
+tick :: (Monad m, Tickable a) =>
   Place a -> Tick a ->  HudT m a
 tick pl t =
   maybe mempty (\x -> tickGlyph pl x (t ^. #tstyle)) (t ^. #gtick) <>
@@ -480,6 +536,7 @@ tickExtended pl t xs =
       PlaceBottom -> rangex xs'
       PlaceLeft -> rangey xs'
       PlaceRight -> rangey xs'
+      PlaceAbsolute _ -> rangex xs'
     rangex (Rect x z _ _) = Range x z
     rangey (Rect _ _ y w) = Range y w
     rangeext (Rect x z y w) (Range a0 a1) = case pl of
@@ -487,6 +544,7 @@ tickExtended pl t xs =
       PlaceBottom -> Rect a0 a1 y w
       PlaceLeft -> Rect x z a0 a1
       PlaceRight -> Rect x z a0 a1
+      PlaceAbsolute _ -> Rect a0 a1 y w
 
 extendData :: (Monad m, Chartable a) => Place a -> Tick a -> HudT m a
 extendData pl t = Hud $ \cs -> do
@@ -506,7 +564,7 @@ defaultAdjustments :: Adjustments
 defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 
 -- | adjust Tick for sane font sizes etc
-adjustTick :: (Chartable a) => Adjustments -> Rect a -> Rect a -> Place a -> 
+adjustTick :: (Tickable a) => Adjustments -> Rect a -> Rect a -> Place a -> 
   Tick a -> Tick a
 adjustTick (Adjustments mrx ma mry ad) vb cs pl t
   | pl `elem` [PlaceBottom, PlaceTop] = case ad of
@@ -521,7 +579,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
              (#ttick . _Just . _1 . #size %~ (/adjustSizeA)) $
              (#ttick . _Just . _1 . #rotation ?~ (-45)) t
           False -> (#ttick . _Just . _1 . #size %~ (/adjustSizeA)) t
-  | pl `elem` [PlaceLeft, PlaceRight] =
+  | otherwise = -- pl `elem` [PlaceLeft, PlaceRight]
     (#ttick . _Just . _1 . #size %~ (/adjustSizeY)) t
   where
     max' [] = 1
@@ -559,105 +617,6 @@ adjustedTickHud c = Hud $ \cs -> do
         (c ^. #adjust)
   unhud (tick (c ^. #place) adjTick) cs
 
-
--- $combination
--- the complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc creates a new set of ticks different to the original.
-
--- | combine huds and charts to form a new [Chart] using the supplied canvas and data dimensions.  Note that styling parameters such as #transition do not scale with combination, so results can be not what you expect.
-hudChartWith :: (Chartable a) => Rect a -> Rect a -> [Hud a] -> [Chart a] -> [Chart a]
-hudChartWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $
-  (unhud $ mconcat hs) cs'
-  where
-    xs' = defRectS $ dataBox cs
-    da' = defRect $ dataBox cs'
-    ca' = defRect $ styleBoxes cs'
-    cs' = projectSpotsWith ca xs cs
-
--- | combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
-hudChart :: (Chartable a) => Rect a -> [Hud a] -> [Chart a] -> [Chart a]
-hudChart ca hs cs = flip evalState (ChartDims ca' da' xs') $
-  (unhud $ mconcat hs) cs'
-  where
-    xs' = defRectS $ dataBox cs
-    da' = defRect $ dataBox cs'
-    ca' = defRect $ styleBoxes cs'
-    cs' = projectSpotsWith ca xs' cs
-
--- | combine huds and charts to form a ChartSvg using the supplied canvas and data dimensions
-hudChartSvgWith :: (Chartable a) => Rect a -> Rect a -> [Hud a] -> [Chart a] -> ChartSvg a
-hudChartSvgWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ do
-  cs'' <- (unhud $ mconcat hs) cs'
-  cd <- use #chartDim
-  pure $ chartSvg_ cd cs''
-  where
-    xs' = defRectS $ dataBox cs
-    da' = defRect $ dataBox cs'
-    ca' = defRect $ styleBoxes cs'
-    cs' = projectSpotsWith ca xs cs
-
--- | combine huds and charts to form a ChartSvg using the supplied canvas dimension and the actual data range
-hudChartSvg :: (Chartable a) =>
-  Rect a -> [[Hud a]] -> [Chart a] -> ChartSvg a
-hudChartSvg ca hss cs =
-  hudChartSvgWith ca (defRect $ dataBox cs) (mconcat <$> hss) cs
-
-
--- | combine a HudConfig and charts to form a ChartSvg using the supplied canvas dimensions, and extended the data range if needed by the huds.
-hud :: HudConfig -> Rect Double -> [Chart Double] -> ChartSvg Double
-hud cfg ca cs =
-  hudChartSvgWith ca (defRect $ dataBox (cs <> cs')) hs (cs <> cs')
-  where
-    (hs, cs') = hudsWithExtend (defRectS $ dataBox cs) cfg
-
--- | compute huds with frozen tick values and a data range extension
-hudsWithExtend :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
-hudsWithExtend xs cfg =
-  (haxes <> [can] <> titles <> ls, [xsext])
-  where
-    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
-    titles = title <$> (cfg ^. #hudTitles)
-    newticks =
-      (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle)) <$>
-      (cfg ^. #hudAxes)
-    axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
-    xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
-    haxes = (\x ->
-             maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <>
-             adjustedTickHud x) <$> axes'
-    ls = legend <$> (cfg ^. #hudLegends)
-
--- | convert TickRound to TickPlaced
-freezeTicks :: (Chartable a) => Place a -> Rect a -> TickStyle a -> (TickStyle a, Maybe (Rect a))
-freezeTicks pl xs ts@TickRound{} = maybe (ts, Nothing) (\x -> (TickPlaced ta, Just x)) ma
-  where
-    (ta, ma) = ticksA' ts pl xs
-freezeTicks _ _ ts = (ts, Nothing)
-
-replaceRange :: Place a -> Range a -> Rect a -> Rect a
-replaceRange pl (Range a0 a1) (Rect x z y w) = case pl of
-  PlaceRight -> Rect x z a0 a1
-  PlaceLeft -> Rect x z a0 a1
-  _ -> Rect a0 a1 y w
-
-renderHudChartWith :: ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
-renderHudChartWith scfg hcfg cs =
-  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey) $
-  maybe id pad (scfg ^. #outerPad) $
-  maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame) $
-  maybe id pad (scfg ^. #innerPad) $
-  hud hcfg (aspect (scfg ^. #chartAspect)) $
-  cs <>
-  maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
-
-renderCharts :: ChartSvgStyle -> [Chart Double] -> Text
-renderCharts scfg cs =
-  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey) $
-  maybe id pad (scfg ^. #outerPad) $
-  maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame) $
-  maybe id pad (scfg ^. #innerPad) $
-  chartSvg (aspect (scfg ^. #chartAspect)) $
-  cs <>
-  maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
 
 -- | Legend options
 data LegendOptions a = LegendOptions
@@ -741,25 +700,6 @@ legendEntry l a t =
         , [SP 0 0]
         )
 
--- horizontally stack a list of list of charts (proceeding to the right) with a gap between
-hori :: Chartable a => a -> [[Chart a]] -> [Chart a]
-hori _ [] = []
-hori gap cs = foldl step [] cs
-  where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 + s)))
-    z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
-
--- vertically stack a list of charts (proceeding upwards)
-vert :: Chartable a => a -> [[Chart a]] -> [Chart a]
-vert _ [] = []
-vert gap cs = foldl step [] cs
-  where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP 0 (w x) + s)))
-    w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
-
-moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
-moveChart sp cs = fmap (#spots %~ fmap (sp+)) cs
-
 makeLegend :: (Chartable a) => LegendOptions a -> [Chart a]
 makeLegend l = cs'
   where
@@ -778,5 +718,104 @@ makeLegend l = cs'
       [Chart BlankA (maybeToList (SpotRect . fmap (* maybe 1 realToFrac (l ^. #outerPad)) <$>
        styleBoxes cs))]
 
+-- $combination
+-- the complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc creates a new set of ticks different to the original.
 
+initDims :: (Chartable a) => [Chart a] -> [Chart a] -> ChartDims a
+initDims cs cs' = ChartDims ca' da' xs'
+  where
+    ca' = defRect $ styleBoxes cs'
+    da' = defRect $ dataBox cs'
+    xs' = defRectS $ dataBox cs
+
+-- | combine huds and charts to form a new [Chart] using the supplied canvas and data dimensions.  Note that styling parameters such as #transition do not scale with combination, so results can be not what you expect.
+hudChartWith :: (Chartable a) => Rect a -> Rect a -> [Hud a] -> [Chart a] -> [Chart a]
+hudChartWith ca xs hs cs = flip evalState (initDims cs cs') $
+  (unhud $ mconcat hs) cs'
+  where
+    cs' = projectSpotsWith ca xs cs
+
+-- | combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
+hudChart :: (Chartable a) => Rect a -> [Hud a] -> [Chart a] -> [Chart a]
+hudChart ca hs cs = flip evalState (initDims cs cs') $
+  (unhud $ mconcat hs) cs'
+  where
+    xs' = defRectS $ dataBox cs
+    cs' = projectSpotsWith ca xs' cs
+
+-- | combine huds and charts to form a ChartSvg using the supplied canvas and data dimensions
+hudChartSvgWith :: (Chartable a) => Rect a -> Rect a -> [Hud a] -> [Chart a] -> ChartSvg a
+hudChartSvgWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ do
+  cs'' <- (unhud $ mconcat hs) cs'
+  cd <- use #chartDim
+  pure $ chartSvg_ cd cs''
+  where
+    xs' = defRectS $ dataBox cs
+    da' = defRect $ dataBox cs'
+    ca' = defRect $ styleBoxes cs'
+    cs' = projectSpotsWith ca xs cs
+
+-- | combine huds and charts to form a ChartSvg using the supplied canvas dimension and the actual data range
+hudChartSvg :: (Chartable a) =>
+  Rect a -> [[Hud a]] -> [Chart a] -> ChartSvg a
+hudChartSvg ca hss cs =
+  hudChartSvgWith ca (defRect $ dataBox cs) (mconcat <$> hss) cs
+
+
+-- | combine a HudConfig and charts to form a ChartSvg using the supplied canvas dimensions, and extended the data range if needed by the huds.
+hud :: HudConfig -> Rect Double -> [Chart Double] -> ChartSvg Double
+hud cfg ca cs =
+  hudChartSvgWith ca (defRect $ dataBox (cs <> cs')) hs (cs <> cs')
+  where
+    (hs, cs') = hudsWithExtend (defRectS $ dataBox cs) cfg
+
+-- | compute huds with frozen tick values and a data range extension
+hudsWithExtend :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
+hudsWithExtend xs cfg =
+  (haxes <> [can] <> titles <> ls, [xsext])
+  where
+    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
+    titles = title <$> (cfg ^. #hudTitles)
+    newticks =
+      (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle)) <$>
+      (cfg ^. #hudAxes)
+    axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
+    xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
+    haxes = (\x ->
+             maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <>
+             adjustedTickHud x) <$> axes'
+    ls = legend <$> (cfg ^. #hudLegends)
+
+-- | convert TickRound to TickPlaced
+freezeTicks :: (Tickable a) => Place a -> Rect a -> TickStyle a -> (TickStyle a, Maybe (Rect a))
+freezeTicks pl xs ts@TickRound{} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs) <$> ext)
+  where
+    (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)
+freezeTicks _ _ ts = (ts, Nothing)
+
+replaceRange :: Place a -> Range a -> Rect a -> Rect a
+replaceRange pl (Range a0 a1) (Rect x z y w) = case pl of
+  PlaceRight -> Rect x z a0 a1
+  PlaceLeft -> Rect x z a0 a1
+  _ -> Rect a0 a1 y w
+
+renderHudChartWith :: ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
+renderHudChartWith scfg hcfg cs =
+  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey) $
+  maybe id pad (scfg ^. #outerPad) $
+  maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame) $
+  maybe id pad (scfg ^. #innerPad) $
+  hud hcfg (aspect (scfg ^. #chartAspect)) $
+  cs <>
+  maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
+
+renderCharts :: ChartSvgStyle -> [Chart Double] -> Text
+renderCharts scfg cs =
+  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey) $
+  maybe id pad (scfg ^. #outerPad) $
+  maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame) $
+  maybe id pad (scfg ^. #innerPad) $
+  chartSvg (aspect (scfg ^. #chartAspect)) $
+  cs <>
+  maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
 
