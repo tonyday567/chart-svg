@@ -36,9 +36,7 @@ library
     , attoparsec
     , base >=4.7 && <5
     , bifunctors
-    , box
     , containers
-    , formatting
     , generic-lens
     , linear
     , lucid

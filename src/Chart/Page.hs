@@ -3,7 +3,8 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Page
-  ( repChart
+  ( chartStyler
+  , repChart
   , repAnnotation
   , repRectStyle
   , repTextStyle
@@ -37,16 +38,29 @@ import Chart.Types
 import NumHask.Space
 import Control.Lens
 import Data.Attoparsec.Text
-import Lucid
+import Lucid hiding (b_)
 import Prelude
 import Web.Page
-import qualified Box ()
 import qualified Data.Text as Text
 import Data.Text (Text)
 import Data.Biapplicative
 import Data.List
 import Data.Bool
 import Data.Maybe
+
+chartStyler :: Bool -> Page
+chartStyler doDebug =
+  bootstrapPage <>
+  bridgePage &
+  #htmlHeader .~ title_ "chart styler" &
+  #htmlBody .~
+    b_ "container"
+    ( b_ "row d-flex justify-content-between"
+      ( sec "col4" "input" <>
+        sec "col8" "output") <>
+      bool mempty (b_ "row" (with div_ [id_ "debug"] mempty)) doDebug)
+  where
+    sec d n = b_ d (with div_ [id_ n] mempty)
 
 subtype :: With a => a -> Text -> Text -> a
 subtype h origt t =

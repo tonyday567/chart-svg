@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
@@ -63,10 +64,11 @@ import Data.List (nub)
 import Data.Maybe
 import Data.Scientific
 import Data.Text (Text)
-import Formatting
+import qualified Data.Text as Text
 import GHC.Generics
 import NumHask.Space
 import Prelude
+import Text.Printf
 
 data ChartDims a =
   ChartDims
@@ -268,6 +270,8 @@ data Tick a = Tick
   , ltick :: Maybe (LineStyle, a)
   } deriving (Show, Eq, Generic)
 
+type Tickable a = (Chartable a, PrintfArg a)
+
 defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle &
@@ -308,11 +312,41 @@ tickFormatText TickFormatCommas{} = "TickFormatCommas"
 tickFormatText TickFormatFixed{} = "TickFormatFixed"
 tickFormatText TickFormatDollars = "TickFormatDollars"
 
-toFormat :: (Chartable a) => TickFormat -> [a] -> [Text]
+toFormat :: (Tickable a) => TickFormat -> [a] -> [Text]
 toFormat TickFormatDefault = precision commas 0
 toFormat (TickFormatCommas n) = precision commas n
-toFormat (TickFormatFixed n) = precision (fixed n) n
+toFormat (TickFormatFixed n) = precision fixed n
 toFormat TickFormatDollars = fmap ("$" <>) . precision commas 2
+
+commas :: (RealFrac a, PrintfArg a) => Int -> a -> Text
+commas n a
+  | a < 1000 = fixed n a
+  | otherwise = go (floor a) "" where
+      go :: Int -> Text -> Text
+      go x t
+        | x < 0 = "-" <> go (-x) ""
+        | x < 1000 = Text.pack (show x) <> t
+        | otherwise = let (d,m) = divMod x 1000 in
+            go d ("," <> Text.pack (show m))
+
+fixed :: (PrintfArg a) => Int -> a -> Text
+fixed n a = Text.pack $ printf ("%." ++ show n ++ "f") a
+
+-- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
+precision :: (Tickable a) => (Int -> a -> Text) -> Int -> [a] -> [Text]
+precision f n0 xs
+  | foldr max 0 xs < 0.01 =
+    Text.pack <$> precLoop expt' n0 (fromFloatDigits <$> xs)
+  | foldr max 0 xs > 100000 =
+    Text.pack <$> precLoop expt' n0 (fromFloatDigits <$> xs)
+  | otherwise = precLoop f (fromIntegral n0) xs
+  where
+    expt' x = formatScientific Exponent (Just x)
+    precLoop f' n xs' =
+      let s = f' n <$> xs'
+      in if s == nub s
+           then s
+           else precLoop f' (n + 1) xs'
 
 -- | Style of tick marks on an axis.
 data TickStyle a
@@ -335,26 +369,6 @@ tickStyleText TickPlaced{} = "TickPlaced"
 
 data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Generic)
 
--- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
-precision :: (Chartable a) => Format Text (Integer -> Text) -> Int -> [a] -> [Text]
-precision f n0 xs
-  | foldr max 0 xs < 0.01 = precLoop expt' n0 (fromFloatDigits <$> xs)
-  | foldr max 0 xs > 100000 = precLoop expt' n0 (fromFloatDigits <$> xs)
-  | foldr max 0 xs > 1000 =
-    precLoopInt (const f) n0 (floor <$> xs :: [Integer])
-  | otherwise = precLoop fixed n0 xs
-  where
-    expt' x = scifmt Exponent (Just x)
-    precLoop f' n xs' =
-      let s = sformat (f' n) <$> xs'
-      in if s == nub s
-           then s
-           else precLoop f' (n + 1) xs'
-    precLoopInt f' n xs' =
-      let s = sformat (f' n) <$> xs'
-      in if s == nub s
-           then s
-           else precLoopInt f' (n + 1) xs'
 
 placePos :: (Chartable a) => Place a -> a -> Rect a -> Point a
 placePos pl b (Rect x z y w) = case pl of
@@ -403,7 +417,7 @@ placeGridLines pl (Rect x z y w) a b
   | otherwise = [SP (x - b) a, SP (z + b) a]
 
 -- | compute tick values and labels given options, ranges and formatting
-ticksR :: (Chartable a) => TickStyle a -> Range a -> Range a -> [(a, Text)]
+ticksR :: (Tickable a) => TickStyle a -> Range a -> Range a -> [(a, Text)]
 ticksR s d r =
     case s of
       TickNone -> []
@@ -419,7 +433,7 @@ ticksR s d r =
 data TickComponents a = TickComponents { positions :: [a], labels :: [Text], extension :: Maybe (Range a) } deriving (Eq, Show, Generic)
 
 -- | compute tick components given style, ranges and formatting
-makeTicks :: (Chartable a) => TickStyle a -> Range a -> TickComponents a
+makeTicks :: (Tickable a) => TickStyle a -> Range a -> TickComponents a
 makeTicks s r =
     case s of
       TickNone -> TickComponents [] [] Nothing
@@ -435,19 +449,19 @@ makeTicks s r =
       TickPlaced xs -> TickComponents (fst <$> xs) (snd <$> xs) Nothing
 
 -- | compute tick values given placement, canvas dimension & data range
-ticksPlaced :: (Chartable a) => TickStyle a -> Place a -> Rect a -> Rect a -> TickComponents a
+ticksPlaced :: (Tickable a) => TickStyle a -> Place a -> Rect a -> Rect a -> TickComponents a
 ticksPlaced ts pl d xs = TickComponents (project (placeRange pl xs) (placeRange pl d) <$> ps) ls ext
   where
     (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)
 
-tickGlyph_ :: (Chartable a) => Place a -> (GlyphStyle, a) -> TickStyle a -> Rect a -> Rect a -> Rect a -> Chart a
+tickGlyph_ :: (Tickable a) => Place a -> (GlyphStyle, a) -> TickStyle a -> Rect a -> Rect a -> Rect a -> Chart a
 tickGlyph_ pl (g,b) ts ca da xs =
    Chart (GlyphA (g & #rotation .~ (realToFrac <$> placeRot pl)))
     (SpotPoint . (placePos pl b ca +) . placeOrigin pl <$> positions
      (ticksPlaced ts pl da xs))
 
 -- | aka marks
-tickGlyph :: (Monad m, Chartable a) =>
+tickGlyph :: (Monad m, Tickable a) =>
   Place a -> (GlyphStyle, a) -> TickStyle a ->  HudT m a
 tickGlyph pl (g, b) ts = Hud $ \cs -> do
   a <- use #chartDim
@@ -457,7 +471,7 @@ tickGlyph pl (g, b) ts = Hud $ \cs -> do
   #chartDim .= addToRect a (styleBox c)
   pure $ c:cs
 
-tickText_ :: (Chartable a) => Place a -> (TextStyle, a) -> TickStyle a -> 
+tickText_ :: (Tickable a) => Place a -> (TextStyle, a) -> TickStyle a -> 
   Rect a -> Rect a -> Rect a -> [Chart a]
 tickText_ pl (txts, b) ts ca da xs =
   zipWith (\txt sp ->
@@ -469,7 +483,7 @@ tickText_ pl (txts, b) ts ca da xs =
               positions (ticksPlaced ts pl da xs))
 
 -- | aka tick labels
-tickText :: (Monad m, Chartable a) =>
+tickText :: (Monad m, Tickable a) =>
   Place a -> (TextStyle, a) -> TickStyle a ->  HudT m a
 tickText pl (txts, b) ts = Hud $ \cs -> do
   ca <- use #chartDim
@@ -480,7 +494,7 @@ tickText pl (txts, b) ts = Hud $ \cs -> do
   pure $ c <> cs
 
 -- | aka grid lines
-tickLine :: (Monad m, Chartable a) =>
+tickLine :: (Monad m, Tickable a) =>
   Place a -> (LineStyle, a) -> TickStyle a ->  HudT m a
 tickLine pl (ls, b) ts = Hud $ \cs -> do
   da <- use #canvasDim
@@ -491,7 +505,7 @@ tickLine pl (ls, b) ts = Hud $ \cs -> do
   pure $ c <> cs
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
-tick :: (Monad m, Chartable a) =>
+tick :: (Monad m, Tickable a) =>
   Place a -> Tick a ->  HudT m a
 tick pl t =
   maybe mempty (\x -> tickGlyph pl x (t ^. #tstyle)) (t ^. #gtick) <>
@@ -550,7 +564,7 @@ defaultAdjustments :: Adjustments
 defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 
 -- | adjust Tick for sane font sizes etc
-adjustTick :: (Chartable a) => Adjustments -> Rect a -> Rect a -> Place a -> 
+adjustTick :: (Tickable a) => Adjustments -> Rect a -> Rect a -> Place a -> 
   Tick a -> Tick a
 adjustTick (Adjustments mrx ma mry ad) vb cs pl t
   | pl `elem` [PlaceBottom, PlaceTop] = case ad of
@@ -773,7 +787,7 @@ hudsWithExtend xs cfg =
     ls = legend <$> (cfg ^. #hudLegends)
 
 -- | convert TickRound to TickPlaced
-freezeTicks :: (Chartable a) => Place a -> Rect a -> TickStyle a -> (TickStyle a, Maybe (Rect a))
+freezeTicks :: (Tickable a) => Place a -> Rect a -> TickStyle a -> (TickStyle a, Maybe (Rect a))
 freezeTicks pl xs ts@TickRound{} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs) <$> ext)
   where
     (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)

@@ -261,7 +261,7 @@ showOrigin = showOriginWith defaultOrigin
 
 -- | interpolate between 2 colors
 blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
-blend c = mixWithAlpha f (f (0 :: Integer)) where
+blend c = mixWithAlpha f (f (0 :: Int)) where
   f _ x0 x1 = fromIntegral (round (fromIntegral x0 + c * (fromIntegral x1 - fromIntegral x0)) :: Integer)
 
 -- | create pixel data from a function on a Point

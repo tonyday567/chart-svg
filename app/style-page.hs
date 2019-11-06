@@ -3,36 +3,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
-import Prelude
-import Control.Monad.Trans.State.Lazy
-import Control.Monad (void)
 import Chart
 import Control.Lens
-import qualified Data.Text.Lazy as Lazy
-import Data.Text (Text)
-import qualified Data.Text as Text
-import Network.JavaScript
-import Network.Wai.Middleware.Static (addBase, noDots, staticPolicy, (>->))
+import Control.Monad (void)
+import Control.Monad.Trans.State.Lazy
 import Data.Biapplicative
+import Data.Bool
+import Data.Text (Text)
+import Network.Wai.Middleware.Static (addBase, noDots, staticPolicy, (>->))
+import Prelude
 import Web.Page
 import Web.Scotty
-import Lucid.Base
-import Lucid hiding (b_)
-import Data.Bool
-
-chartStyler :: Bool -> Page
-chartStyler doDebug =
-  bootstrapPage <>
-  bridgePage &
-  #htmlHeader .~ title_ "chart styler" &
-  #htmlBody .~
-    b_ "container"
-    ( b_ "row d-flex justify-content-between"
-      ( sec "col4" "input" <>
-        sec "col8" "output") <>
-      bool mempty (b_ "row" (with div_ [id_ "debug"] mempty)) doDebug)
-  where
-    sec d n = b_ d (with div_ [id_ n] mempty)
+import qualified Data.Text as Text
 
 repMain :: (Monad m) => ChartSvgStyle -> Annotation -> HudConfig -> SharedRep m (Text, Text)
 repMain cscfg a hcfg =
@@ -57,7 +39,7 @@ repMain cscfg a hcfg =
       <> bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw chart svg</h2>"
-         , Lazy.toStrict $ renderText $ toHtml (renderHudChartWith cs' h' [Chart ann' d'])
+         , renderHudChartWith cs' h' [Chart ann' d']
          ]) (snd debug')
       )
     hmap cs' ann' d' h' debug' =
@@ -102,7 +84,7 @@ repTextBB cscfg =
       <> bool mempty
         (mconcat $ (\x -> "<p>" <> x <> "</p>") <$>
          [ "<h2>raw chart svg</h2>"
-         , Lazy.toStrict $ renderText $ toHtml (chartsvg cs' tstyle' tps' bb')
+         , chartsvg cs' tstyle' tps' bb'
          ]) (snd debug')
       )
     hmap cs' tstyle' bb' tps' debug' =
@@ -122,22 +104,10 @@ l1 = [ (GlyphA defaultGlyphStyle, "glyph")
      , (BlankA, "blank")
      ]
 
-updateChart :: Engine -> Either Text (HashMap Text Text, Either Text (Text, Text)) -> IO ()
-updateChart e (Left err) = append e "debug" ("map error: " <> err)
-updateChart e (Right (_,Left err)) = append e "debug" ("parse error: " <> err)
-updateChart e (Right (_, Right (c,d))) = do
-  replace e "output" c
-  replace e "debug" d
-
-midShared ::
+midChart ::
   SharedRep IO (Text, Text) ->
   Application -> Application
-midShared sr = start $ \e ->
-  void $ runOnEvent
-  sr
-  (zoom _2 . initChartRender e)
-  (updateChart e)
-  (bridge e)
+midChart sr = midShared sr initChartRender updateChart
 
 initChartRender
   :: Engine
@@ -150,12 +120,19 @@ initChartRender e r =
       replace e "output" (either id fst . snd $ fa m)
       replace e "debug" (either id snd . snd $ fa m))
 
+updateChart :: Engine -> Either Text (HashMap Text Text, Either Text (Text, Text)) -> IO ()
+updateChart e (Left err) = append e "debug" ("map error: " <> err)
+updateChart e (Right (_,Left err)) = append e "debug" ("parse error: " <> err)
+updateChart e (Right (_, Right (c,d))) = do
+  replace e "output" c
+  replace e "debug" d
+
 main :: IO ()
 main =
   scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "other")
     middleware
-      (midShared
+      (midChart
        (repChoice 0
         [("main",
          repMain defaultChartSvgStyle (GlyphA defaultGlyphStyle)
