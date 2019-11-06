@@ -7,7 +7,6 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
@@ -58,16 +57,23 @@ module Chart.Core
 
 import Codec.Picture.Types
 import Control.Exception
-import Data.Generics.Labels ()
 import Graphics.Svg as Svg hiding (Point, toPoint, Text)
 import Control.Lens hiding (transform)
 import NumHask.Space
 import qualified Data.Text as Text
 import Chart.Svg
 import Chart.Types
-import Protolude hiding (toList)
-import Control.Category (id)
-import GHC.Exts
+import Prelude
+import qualified Data.Text.IO as Text
+import GHC.OverloadedLabels
+import Data.List.NonEmpty (NonEmpty(..))
+-- import Protolude hiding (toList)
+-- import Control.Category (id)
+-- import GHC.Exts
+import Data.Semigroup hiding (getLast)
+import Data.Foldable
+import Data.Maybe
+import Data.Monoid
 
 renderChartWith :: ChartSvgStyle -> [Chart Double] -> Text.Text
 renderChartWith scfg cs =
@@ -83,7 +89,7 @@ renderChart :: [Chart Double] -> Text.Text
 renderChart = renderChartWith defaultChartSvgStyle
 
 writeChartWith :: FilePath -> ChartSvgStyle -> [Chart Double] -> IO ()
-writeChartWith fp scfg cs = writeFile fp (renderChartWith scfg cs)
+writeChartWith fp scfg cs = Text.writeFile fp (renderChartWith scfg cs)
 
 -- | write a ChartSvg to an svg file.
 writeChart :: FilePath -> [Chart Double] -> IO ()

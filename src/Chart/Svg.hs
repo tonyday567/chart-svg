@@ -1,6 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
@@ -52,6 +51,8 @@ import Data.Text (Text)
 import GHC.Exts
 import GHC.OverloadedLabels
 import Data.Monoid
+import Web.Page ()
+
 -- * Svg
 
 -- * svg primitives

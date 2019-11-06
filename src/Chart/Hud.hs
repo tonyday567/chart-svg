@@ -20,14 +20,18 @@ import Chart.Core
 import Chart.Svg
 import Chart.Types
 import Codec.Picture.Types
-import Control.Category (id)
 import Control.Lens
-import Data.Generics.Labels ()
 import Data.List (nub)
 import Data.Scientific
 import Formatting
-import Protolude
+import Prelude
 import NumHask.Space
+import Control.Monad.Trans.State.Lazy
+import Data.Text (Text)
+import GHC.Generics
+import Control.Monad ((>=>))
+import Data.Maybe
+import Data.Bool
 
 data ChartDims a =
   ChartDims

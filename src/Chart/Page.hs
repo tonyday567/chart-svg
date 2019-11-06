@@ -1,5 +1,4 @@
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
@@ -42,17 +41,18 @@ import Chart.Core
 import Chart.Hud
 import Chart.Types
 import NumHask.Space
-import Control.Category (id)
 import Control.Lens
 import Data.Attoparsec.Text
-import Data.Generics.Labels ()
 import Lucid
-import Protolude hiding ((<<*>>))
+import Prelude
 import Web.Page
 import qualified Box ()
 import qualified Data.Text as Text
+import Data.Text (Text)
 import Data.Biapplicative
 import Data.List
+import Data.Bool
+import Data.Maybe
 
 subtype :: With a => a -> Text -> Text -> a
 subtype h origt t =
@@ -126,7 +126,7 @@ repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Noth
   gbc <- colorPicker (Just "Border Color") (gs ^. #borderColor)
   gbo <- slider (Just "Border Opacity") 0 1 0.1 (gs ^. #borderOpacity)
   tr <- maybeRep (Just "rotation") (isJust (gs ^. #rotation))
-    (slider (Just "rotation") (-180) 180 10 (maybe 0 identity (gs ^. #rotation)))
+    (slider (Just "rotation") (-180) 180 10 (fromMaybe 0 (gs ^. #rotation)))
   tt <- maybeRep (Just "translate") (isJust (gs ^. #translate))
     (repPoint (Point (Range 0 1) (Range 0 1))
                                  (Point 0.001 0.001) (Point 0 0))
@@ -246,12 +246,12 @@ repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
       maybeRep
       (Just "axis bar")
       (isJust (cfg ^. #abar))
-      (repBar (maybe defaultBar identity (cfg ^. #abar)))
+      (repBar (maybe defaultBar id (cfg ^. #abar)))
     adj =
       maybeRep
       (Just "adjustments")
       (isJust (cfg ^. #adjust))
-      (repAdjustments (maybe defaultAdjustments identity (cfg ^. #adjust)))
+      (repAdjustments (maybe defaultAdjustments id (cfg ^. #adjust)))
     t = repTick (cfg ^. #atick)
     p = repPlace (cfg ^. #place)
     hmap b' hauto' t' p' = accordion_ "accaxis" Nothing
@@ -289,7 +289,7 @@ repChartSvgStyle s =
 
 repData :: (Monad m) => Text -> SharedRep m [Spot Double]
 repData d = do
-  a <- dropdown takeText show (Just "type")
+  a <- dropdown takeText id (Just "type")
     [ "sin"
     , "line"
     , "one"
@@ -367,7 +367,7 @@ repTickStyle cfg =
       _ -> TickNone
     dtDef = case cfg of
       TickPlaced x -> x
-      _ -> zip [0..5] (show <$> [0..5::Int])
+      _ -> zip [0..5] (Text.pack . show <$> [0..5::Int])
     dt _ (x, l) = (,) <$> slider (Just "placement") 0 1 0.01 x <*> textbox (Just "label") l
     defLabels = case cfg of
       TickLabels xs -> xs
@@ -494,7 +494,7 @@ repChoice initt xs = bimap hmap mmap dd <<*>>
     ts = fst <$> xs
     cs = snd <$> xs
     dd = dropdownSum takeText id (Just "Chart Family") ts t0
-    t0 = fromMaybe "Bad Init" (atMay ts initt)
+    t0 = ts !! initt
     hmap dd' cs' =
       div_ (dd' <>
       mconcat (zipWith (\c t -> subtype c t0 t) cs' ts))
