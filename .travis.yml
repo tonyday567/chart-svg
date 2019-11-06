@@ -52,7 +52,6 @@ script:
     cabal)
       cabal v2-update
       cabal v2-build all
-      cabal v2-test all --enable-test
       ;;
     stack)
       stack --no-terminal $ARGS test --haddock --no-haddock-deps

@@ -278,6 +278,6 @@ main = do
   writeChart "other/glines.svg" glines
   writeChart "other/compound.svg" (lglyph <> glines)
   Text.writeFile "other/def.svg" def
-  Text.writeFile "other/bb.svg" def
+  Text.writeFile "other/bb.svg" bb
   writeChartSvg "other/leg.svg" (Point 400 400) leg
   putStrLn " 👍"
