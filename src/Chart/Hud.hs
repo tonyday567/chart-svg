@@ -1,37 +1,72 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 
-module Chart.Hud where
+module Chart.Hud
+ ( ChartDims(..)
+ , HudT(..)
+ , Hud
+ , HudConfig(..)
+ , defaultHudConfig
+ , Place(..)
+ , placeText
+ , AxisConfig(..)
+ , defaultAxisConfig
+ , canvas
+ , defaultCanvas
+ , Bar(..)
+ , defaultBar
+ , Title(..)
+ , defaultTitle
+ , title
+ , Tick(..)
+ , defaultGlyphTick
+ , defaultTextTick
+ , defaultLineTick
+ , defaultTick
+ , TickFormat(..)
+ , tickFormatText
+ , toFormat
+ , TickStyle(..)
+ , defaultTickStyle
+ , tickStyleText
+ , TickExtend(..)
+ , tick
+ , precision
+ , Adjustments(..)
+ , defaultAdjustments
+ , adjustTick
+ , LegendOptions(..)
+ , defaultLegendOptions
+ , legend
+ , legendEntry
+ , makeLegend
+ , hudChartWith
+ , hudChart
+ , hudChartSvgWith
+ , hudChartSvg
+ , hud
+ , renderHudChartWith
+ , renderCharts
+ ) where
 
 import Chart.Core
 import Chart.Svg
 import Chart.Types
 import Codec.Picture.Types
 import Control.Lens
-import Data.List (nub)
-import Data.Scientific
-import Formatting
-import Prelude
-import NumHask.Space
-import Control.Monad.Trans.State.Lazy
-import Data.Text (Text)
-import GHC.Generics
 import Control.Monad ((>=>))
-import Data.Maybe
+import Control.Monad.Trans.State.Lazy
 import Data.Bool
+import Data.List (nub)
+import Data.Maybe
+import Data.Scientific
+import Data.Text (Text)
+import Formatting
+import GHC.Generics
+import NumHask.Space
+import Prelude
 
 data ChartDims a =
   ChartDims
@@ -487,6 +522,7 @@ tickExtended pl t xs =
       PlaceBottom -> rangex xs'
       PlaceLeft -> rangey xs'
       PlaceRight -> rangey xs'
+      PlaceAbsolute _ -> rangex xs'
     rangex (Rect x z _ _) = Range x z
     rangey (Rect _ _ y w) = Range y w
     rangeext (Rect x z y w) (Range a0 a1) = case pl of
@@ -494,6 +530,7 @@ tickExtended pl t xs =
       PlaceBottom -> Rect a0 a1 y w
       PlaceLeft -> Rect x z a0 a1
       PlaceRight -> Rect x z a0 a1
+      PlaceAbsolute _ -> Rect a0 a1 y w
 
 extendData :: (Monad m, Chartable a) => Place a -> Tick a -> HudT m a
 extendData pl t = Hud $ \cs -> do
@@ -528,7 +565,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
              (#ttick . _Just . _1 . #size %~ (/adjustSizeA)) $
              (#ttick . _Just . _1 . #rotation ?~ (-45)) t
           False -> (#ttick . _Just . _1 . #size %~ (/adjustSizeA)) t
-  | pl `elem` [PlaceLeft, PlaceRight] =
+  | otherwise = -- pl `elem` [PlaceLeft, PlaceRight]
     (#ttick . _Just . _1 . #size %~ (/adjustSizeY)) t
   where
     max' [] = 1
@@ -566,6 +603,106 @@ adjustedTickHud c = Hud $ \cs -> do
         (c ^. #adjust)
   unhud (tick (c ^. #place) adjTick) cs
 
+
+-- | Legend options
+data LegendOptions a = LegendOptions
+  { lcharts :: [(Annotation, Text)]
+  , lsize :: a
+  , vgap :: a
+  , hgap :: a
+  , ltext :: TextStyle
+  , lmax :: Int
+  , innerPad :: Maybe a
+  , outerPad :: Maybe a
+  , legendFrame :: Maybe RectStyle
+  , lplace :: Place a
+  , scale :: a
+  } deriving (Show, Eq, Generic)
+
+defaultLegendOptions :: (Chartable a) => LegendOptions a
+defaultLegendOptions =
+    LegendOptions
+      []
+      0.1
+      0.2
+      0.1
+      (defaultTextStyle &
+       #size .~ 0.1 &
+       #color .~ grey
+       )
+      10
+      (Just 1.02)
+      (Just 1.10)
+      (Just (border 0.01 (PixelRGB8 55 100 160) 1))
+      PlaceBottom
+      0.2
+
+legend :: (Chartable a) => LegendOptions a -> Hud a
+legend l = Hud $ \cs -> do
+  ca <- use #chartDim
+  let cs' = cs <> movedleg ca (scaledleg ca)
+  #chartDim .= defRect (styleBoxes cs')
+  pure cs'
+    where
+      scaledleg ca' =
+        (#annotation %~ scaleAnn (realToFrac $ l ^. #scale)) <$>
+        projectSpots (fmap (* l ^. #scale) ca') (makeLegend l)
+      movedleg ca' leg =
+        maybe id (moveChart . SpotPoint . placel (l ^. #lplace) ca') (styleBoxes leg) leg
+      placel pl (Rect x z y w) (Rect x' z' y' w') =
+        case pl of
+          PlaceTop -> Point ((x+z)/2.0) (w + (w' - y')/2.0)
+          PlaceBottom -> Point ((x+z)/2.0) (y - (w' - y'/2.0))
+          PlaceLeft -> Point (x - (z' - x')/2.0) ((y+w)/2.0)
+          PlaceRight -> Point (z + (z' - x')/2.0) ((y+w)/2.0)
+          PlaceAbsolute p -> p
+
+legendEntry :: (Chartable a) =>
+  LegendOptions a -> Annotation -> Text -> (Chart a, Chart a)
+legendEntry l a t =
+  ( Chart ann sps
+  , Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) [SP 0 0]
+  )
+  where
+    (ann, sps) = case a of
+      RectA rs ->
+        ( RectA rs
+        , [SR 0 (l ^. #lsize) 0 (l ^. #lsize)]
+        )
+      TextA ts txts ->
+        ( TextA (ts & #size .~ realToFrac (l ^. #lsize)) (take 1 txts)
+        , [SP 0 0]
+        )
+      GlyphA gs ->
+        ( GlyphA (gs & #size .~ realToFrac (l ^. #lsize))
+        , [SP 0 (0.33 * l ^. #lsize)]
+        )
+      LineA ls ->
+        ( LineA ls
+        , [SP 0 (0.33 * l ^. #lsize), SP (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
+        )
+      BlankA ->
+        ( BlankA
+        , [SP 0 0]
+        )
+
+makeLegend :: (Chartable a) => LegendOptions a -> [Chart a]
+makeLegend l = cs'
+  where
+    es = reverse $ uncurry (legendEntry l) <$> (l ^. #lcharts)
+    twidth = maybe 1 (\(Rect _ z _ _) -> z) $ foldRect $ catMaybes (styleBox . snd <$> es)
+    as = moveChart (SP (twidth * l ^. #lsize) 0.0) (fst <$> es)
+    hs = zipWith (\a t -> hori (l ^. #vgap) [[t], [a]]) as (snd <$> es)
+    vs = vert (l ^. #hgap) hs
+    cs = vs <>
+      maybe [] (\x -> [Chart (RectA x)
+        (maybeToList (SpotRect <$> (fmap (* maybe 1 realToFrac
+        (l ^. #innerPad)) <$> styleBoxes vs)))])
+      (l ^. #legendFrame)
+    cs' =
+      cs <>
+      [Chart BlankA (maybeToList (SpotRect . fmap (* maybe 1 realToFrac (l ^. #outerPad)) <$>
+       styleBoxes cs))]
 
 -- $combination
 -- the complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc creates a new set of ticks different to the original.
@@ -667,125 +804,4 @@ renderCharts scfg cs =
   chartSvg (aspect (scfg ^. #chartAspect)) $
   cs <>
   maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
-
--- | Legend options
-data LegendOptions a = LegendOptions
-  { lcharts :: [(Annotation, Text)]
-  , lsize :: a
-  , vgap :: a
-  , hgap :: a
-  , ltext :: TextStyle
-  , lmax :: Int
-  , innerPad :: Maybe a
-  , outerPad :: Maybe a
-  , legendFrame :: Maybe RectStyle
-  , lplace :: Place a
-  , scale :: a
-  } deriving (Show, Eq, Generic)
-
-defaultLegendOptions :: (Chartable a) => LegendOptions a
-defaultLegendOptions =
-    LegendOptions
-      []
-      0.1
-      0.2
-      0.1
-      (defaultTextStyle &
-       #size .~ 0.1 &
-       #color .~ grey
-       )
-      10
-      (Just 1.02)
-      (Just 1.10)
-      (Just (border 0.01 (PixelRGB8 55 100 160) 1))
-      PlaceBottom
-      0.2
-
-legend :: (Chartable a) => LegendOptions a -> Hud a
-legend l = Hud $ \cs -> do
-  ca <- use #chartDim
-  let cs' = cs <> movedleg ca (scaledleg ca)
-  #chartDim .= defRect (styleBoxes cs')
-  pure cs'
-    where
-      scaledleg ca' =
-        (#annotation %~ scaleAnn (realToFrac $ l ^. #scale)) <$>
-        projectSpots (fmap (* l ^. #scale) ca') (makeLegend l)
-      movedleg ca' leg =
-        maybe id (moveChart . SpotPoint . placel (l ^. #lplace) ca') (styleBoxes leg) leg
-      placel pl (Rect x z y w) (Rect x' z' y' w') =
-        case pl of
-          PlaceTop -> Point ((x+z)/2.0) (w + (w' - y')/2.0)
-          PlaceBottom -> Point ((x+z)/2.0) (y - (w' - y'/2.0))
-          PlaceLeft -> Point (x - (z' - x')/2.0) ((y+w)/2.0)
-          PlaceRight -> Point (z + (z' - x')/2.0) ((y+w)/2.0)
-          PlaceAbsolute p -> p
-
-legendEntry :: (Chartable a) =>
-  LegendOptions a -> Annotation -> Text -> (Chart a, Chart a)
-legendEntry l a t =
-  ( Chart ann sps
-  , Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) [SP 0 0]
-  )
-  where
-    (ann, sps) = case a of
-      RectA rs ->
-        ( RectA rs
-        , [SR 0 (l ^. #lsize) 0 (l ^. #lsize)]
-        )
-      TextA ts txts ->
-        ( TextA (ts & #size .~ realToFrac (l ^. #lsize)) (take 1 txts)
-        , [SP 0 0]
-        )
-      GlyphA gs ->
-        ( GlyphA (gs & #size .~ realToFrac (l ^. #lsize))
-        , [SP 0 (0.33 * l ^. #lsize)]
-        )
-      LineA ls ->
-        ( LineA ls
-        , [SP 0 (0.33 * l ^. #lsize), SP (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
-        )
-      BlankA ->
-        ( BlankA
-        , [SP 0 0]
-        )
-
--- horizontally stack a list of list of charts (proceeding to the right) with a gap between
-hori :: Chartable a => a -> [[Chart a]] -> [Chart a]
-hori _ [] = []
-hori gap cs = foldl step [] cs
-  where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 + s)))
-    z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
-
--- vertically stack a list of charts (proceeding upwards)
-vert :: Chartable a => a -> [[Chart a]] -> [Chart a]
-vert _ [] = []
-vert gap cs = foldl step [] cs
-  where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP 0 (w x) + s)))
-    w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
-
-moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
-moveChart sp cs = fmap (#spots %~ fmap (sp+)) cs
-
-makeLegend :: (Chartable a) => LegendOptions a -> [Chart a]
-makeLegend l = cs'
-  where
-    es = reverse $ uncurry (legendEntry l) <$> (l ^. #lcharts)
-    twidth = maybe 1 (\(Rect _ z _ _) -> z) $ foldRect $ catMaybes (styleBox . snd <$> es)
-    as = moveChart (SP (twidth * l ^. #lsize) 0.0) (fst <$> es)
-    hs = zipWith (\a t -> hori (l ^. #vgap) [[t], [a]]) as (snd <$> es)
-    vs = vert (l ^. #hgap) hs
-    cs = vs <>
-      maybe [] (\x -> [Chart (RectA x)
-        (maybeToList (SpotRect <$> (fmap (* maybe 1 realToFrac
-        (l ^. #innerPad)) <$> styleBoxes vs)))])
-      (l ^. #legendFrame)
-    cs' =
-      cs <>
-      [Chart BlankA (maybeToList (SpotRect . fmap (* maybe 1 realToFrac (l ^. #outerPad)) <$>
-       styleBoxes cs))]
-
-
 

@@ -1,25 +1,12 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
 
-import Prelude
 import Chart
 import Control.Applicative
 import Control.Lens 
-import qualified Data.Text as Text
 import Data.List (zipWith3)
-import GHC.OverloadedLabels
-import GHC.Exts
+import Prelude
+import qualified Data.Text as Text
 
 tri1 :: Int -> Int -> Double -> [Chart Double]
 tri1 a b s =

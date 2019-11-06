@@ -13,7 +13,6 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -22,6 +21,7 @@ module Chart.Types
   , Chartable
   , Annotation(..)
   , annotationText
+  , Tree(..)
   , DrawAttributes(..)
   , RectStyle(RectStyle)
   , defaultRectStyle
@@ -58,12 +58,11 @@ module Chart.Types
 
 import Codec.Picture.Types
 import Control.Exception
--- import Data.Generics.Labels ()
-import GHC.OverloadedLabels
+import Data.Generics.Labels ()
 import Data.Text (Text)
 import GHC.Exts
 import GHC.Generics
-import Graphics.Svg as Svg hiding (Point, toPoint, Text)
+import Graphics.Svg (Tree(..), DrawAttributes(..))
 import NumHask.Space
 import Prelude
 import qualified Data.Text as Text

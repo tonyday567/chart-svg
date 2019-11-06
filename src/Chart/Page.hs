@@ -1,10 +1,4 @@
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -246,12 +240,12 @@ repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
       maybeRep
       (Just "axis bar")
       (isJust (cfg ^. #abar))
-      (repBar (maybe defaultBar id (cfg ^. #abar)))
+      (repBar (fromMaybe defaultBar (cfg ^. #abar)))
     adj =
       maybeRep
       (Just "adjustments")
       (isJust (cfg ^. #adjust))
-      (repAdjustments (maybe defaultAdjustments id (cfg ^. #adjust)))
+      (repAdjustments (fromMaybe defaultAdjustments (cfg ^. #adjust)))
     t = repTick (cfg ^. #atick)
     p = repPlace (cfg ^. #place)
     hmap b' hauto' t' p' = accordion_ "accaxis" Nothing

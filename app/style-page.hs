@@ -1,17 +1,12 @@
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
 
 import Prelude
 import Control.Monad.Trans.State.Lazy
 import Control.Monad (void)
-import Chart hiding (title_)
+import Chart
 import Control.Lens
 import qualified Data.Text.Lazy as Lazy
 import Data.Text (Text)

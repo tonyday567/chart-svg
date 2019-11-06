@@ -1,15 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Svg
@@ -19,6 +8,8 @@ module Chart.Svg
   , treeShape
   , treeText
   , tree
+  , strokeRect
+  , transformRect
   , dagRect
   , dagText
   , dagGlyph
@@ -35,23 +26,24 @@ module Chart.Svg
   , renderChartSvg
   ) where
 
-import Prelude hiding (writeFile)
 import Chart.Types
 import Codec.Picture.Types
+import Control.Lens hiding (transform)
+import Data.Foldable
+import Data.Generics.Labels ()
+import Data.Maybe
+import Data.Monoid
+import Data.Text (Text)
+import GHC.Exception
 import Graphics.Svg as Svg hiding (Point, toPoint, Text)
 import Graphics.Svg.CssTypes as Svg hiding (Point)
-import Control.Lens hiding (transform)
 import Linear.V2
 import NumHask.Space hiding (Element)
+import Prelude hiding (writeFile)
 import Text.XML.Light.Output
 import qualified Data.Map as Map
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Data.Text (Text)
-import GHC.Exts
-import GHC.OverloadedLabels
-import Data.Monoid
-import Web.Page ()
 
 -- * Svg
 
@@ -188,7 +180,35 @@ groupTrees da' tree' =
   groupChildren .~ tree' &
   GroupTree
 
--- draw attribute computations
+
+-- * DrawAttribute computations
+
+-- | the extra Rect from the stroke element of an svg style attribute
+strokeRect :: (Fractional a) => DrawAttributes -> Rect a -> Rect a
+strokeRect das r = r `addRect` (realToFrac <$> Rect (-x/2) (x/2) (-x/2) (x/2))
+  where
+    x = case das ^. Svg.strokeWidth & getLast of
+      Just (Num x') -> x'
+      _ -> 0
+
+transformRect :: (Chartable a) => Spot a -> DrawAttributes -> Rect a -> Rect a
+transformRect sp da r = realToFrac <$> foldl' addtr (realToFrac <$> r)
+  (fromMaybe [] (da ^. transform))
+  where
+   (Point x y) = realToFrac <$> toPoint sp
+   addtr r' t = case t of
+     Translate x' y' -> move (Point x' (-y')) r'
+     TransformMatrix{} ->
+       throw NotYetImplementedException
+     Scale s Nothing -> (s*) <$> r'
+     Scale sx (Just sy) -> scale (Point sx sy) r'
+     Rotate d Nothing -> rotateRect d (realToFrac <$> move (Point (-x) (-y))
+                                      (realToFrac <$> r'))
+     Rotate d (Just (x',y')) -> rotateRect d (move (Point (x' - x) (y' - y)) (realToFrac <$> r'))
+     SkewX _ -> throw NotYetImplementedException
+     SkewY _ -> throw NotYetImplementedException
+     TransformUnknown -> r'
+
 dagRect :: RectStyle -> DrawAttributes
 dagRect o =
   mempty &

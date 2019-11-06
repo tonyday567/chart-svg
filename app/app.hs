@@ -1,14 +1,5 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
 
 import Prelude
@@ -19,8 +10,6 @@ import qualified Data.Map as Map
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Text (Text)
-import GHC.Exts
-import GHC.OverloadedLabels
 import Data.Maybe
 
 ropts :: [RectStyle]

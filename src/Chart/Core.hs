@@ -1,18 +1,5 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 
 module Chart.Core
   ( renderChartWith
@@ -53,27 +40,24 @@ module Chart.Core
   , defRectS
   , addToRect
   , p0
+  , hori
+  , vert
+  , moveChart
   ) where
 
-import Codec.Picture.Types
-import Control.Exception
-import Graphics.Svg as Svg hiding (Point, toPoint, Text)
-import Control.Lens hiding (transform)
-import NumHask.Space
-import qualified Data.Text as Text
 import Chart.Svg
 import Chart.Types
-import Prelude
-import qualified Data.Text.IO as Text
-import GHC.OverloadedLabels
-import Data.List.NonEmpty (NonEmpty(..))
--- import Protolude hiding (toList)
--- import Control.Category (id)
--- import GHC.Exts
-import Data.Semigroup hiding (getLast)
+import Codec.Picture.Types
+import Control.Lens hiding (transform)
 import Data.Foldable
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe
 import Data.Monoid
+import Data.Semigroup hiding (getLast)
+import NumHask.Space
+import Prelude
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 
 renderChartWith :: ChartSvgStyle -> [Chart Double] -> Text.Text
 renderChartWith scfg cs =
@@ -199,33 +183,7 @@ dataBox cs = foldRect $ mconcat $ fmap toRect <$> (spots <$> cs)
 -- | a Rect that bounds the geometric attributes of a 'DrawAttributes'
 -- only handles stroke width and transformations, referencing a point to calculate relative rotation from
 daBox  :: (Chartable a) => DrawAttributes -> Spot a -> Rect a -> Rect a
-daBox da s r = transformBox s da (strokeBox da r)
-
--- | the extra Rect from the stroke element of an svg style attribute
-strokeBox :: (Fractional a) => DrawAttributes -> Rect a -> Rect a
-strokeBox das r = r `addRect` (realToFrac <$> Rect (-x/2) (x/2) (-x/2) (x/2))
-  where
-    x = case das ^. Svg.strokeWidth & getLast of
-      Just (Num x') -> x'
-      _ -> 0
-
-transformBox :: (Chartable a) => Spot a -> DrawAttributes -> Rect a -> Rect a
-transformBox sp da r = realToFrac <$> foldl' addtr (realToFrac <$> r)
-  (fromMaybe [] (da ^. transform))
-  where
-   (Point x y) = realToFrac <$> toPoint sp
-   addtr r' t = case t of
-     Translate x' y' -> move (Point x' (-y')) r'
-     TransformMatrix{} ->
-       throw NotYetImplementedException
-     Scale s Nothing -> (s*) <$> r'
-     Scale sx (Just sy) -> scale (Point sx sy) r'
-     Rotate d Nothing -> rotateRect d (realToFrac <$> move (Point (-x) (-y))
-                                      (realToFrac <$> r'))
-     Rotate d (Just (x',y')) -> rotateRect d (move (Point (x' - x) (y' - y)) (realToFrac <$> r'))
-     SkewX _ -> throw NotYetImplementedException
-     SkewY _ -> throw NotYetImplementedException
-     TransformUnknown -> r'
+daBox da s r = transformRect s da (strokeRect da r)
 
 -- | the geometric dimensions of a Chart inclusive of style geometry
 styleBox :: (Real a, Chartable a) => Chart a -> Maybe (Rect a)
@@ -287,7 +245,7 @@ addChartBoxes :: (Chartable a) => [Chart a] -> Rect a -> Rect a
 addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
 
 -- | include a circle at the origin with size and color
-showOriginWith :: forall a. (Chartable a) => GlyphStyle -> Chart a
+showOriginWith :: (Chartable a) => GlyphStyle -> Chart a
 showOriginWith c =
   Chart
   (GlyphA c)
@@ -303,7 +261,7 @@ showOrigin = showOriginWith defaultOrigin
 
 -- | interpolate between 2 colors
 blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
-blend c = mixWithAlpha f (f 0) where
+blend c = mixWithAlpha f (f (0 :: Integer)) where
   f _ x0 x1 = fromIntegral (round (fromIntegral x0 + c * (fromIntegral x1 - fromIntegral x0)) :: Integer)
 
 -- | create pixel data from a function on a Point
@@ -342,3 +300,23 @@ placedLabel p d t =
   Chart (TextA (defaultTextStyle & #translate ?~ (realToFrac <$> p) &
                 #rotation ?~ realToFrac d) [t])
   [p0]
+
+-- horizontally stack a list of list of charts (proceeding to the right) with a gap between
+hori :: Chartable a => a -> [[Chart a]] -> [Chart a]
+hori _ [] = []
+hori gap cs = foldl step [] cs
+  where
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 + s)))
+    z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
+
+-- vertically stack a list of charts (proceeding upwards)
+vert :: Chartable a => a -> [[Chart a]] -> [Chart a]
+vert _ [] = []
+vert gap cs = foldl step [] cs
+  where
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP 0 (w x) + s)))
+    w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
+
+moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
+moveChart sp cs = fmap (#spots %~ fmap (sp+)) cs
+
