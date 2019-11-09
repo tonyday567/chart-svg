@@ -2,12 +2,13 @@ resolver: lts-14.13
 
 packages:
   - .
+  - ../numhask-space
 
 extra-deps:
   - lucid-svg-0.7.1
   - javascript-bridge-0.2.0
   - box-0.0.1.5
-  - numhask-space-0.2.0
   - web-rep-0.1.2
+  # - numhask-space-0.2.0
 
 allow-newer: true
