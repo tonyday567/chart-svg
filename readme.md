@@ -119,9 +119,7 @@ putting it all together
 recipe
 ------
 ```
-stack build --test --exec "$(stack path --local-install-root)/bin/chart-svg" --file-watch --ghc-options -freverse-errors
-
-stack build --exec "$(stack path --local-install-root)/bin/style-page" --file-watch
+stack build --exec "$(stack path --local-install-root)/bin/examples" --file-watch
 ```
 
 reference

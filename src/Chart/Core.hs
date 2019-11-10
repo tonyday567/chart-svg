@@ -2,7 +2,8 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Core
-  ( renderChartWith,
+  ( pShow',
+    renderChartWith,
     renderChart,
     writeChartWith,
     writeChart,
@@ -56,9 +57,15 @@ import Data.Maybe
 import Data.Monoid
 import Data.Semigroup hiding (getLast)
 import qualified Data.Text as Text
+import Data.Text (Text)
+import Data.Text.Lazy (toStrict)
 import qualified Data.Text.IO as Text
 import NumHask.Space
 import Prelude
+import Text.Pretty.Simple (pShowNoColor)
+
+pShow' :: (Show a) => a -> Text
+pShow' = toStrict . pShowNoColor
 
 renderChartWith :: ChartSvgStyle -> [Chart Double] -> Text.Text
 renderChartWith scfg cs =

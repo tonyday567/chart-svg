@@ -20,10 +20,10 @@ import Prelude
 
 data Ex
   = Ex
-      { css :: ChartSvgStyle,
-        hc :: HudConfig,
-        maxcs :: Int,
-        anns :: [Annotation],
+      { excss :: ChartSvgStyle,
+        exhc :: HudConfig,
+        exmaxcs :: Int,
+        exanns :: [Annotation],
         exspots :: [[Spot Double]]
       }
   deriving (Eq, Show, Generic)
@@ -106,8 +106,8 @@ ropts =
 
 rss :: [[Rect Double]]
 rss =
-  [ gridR (\x -> exp (- (x ** 2) / 2)) (Range -5 5) 50,
-    gridR (\x -> 0.5 * exp (- (x ** 2) / 8)) (Range -5 5) 50
+  [ gridR (\x -> exp (- (x ** 2) / 2)) (Range (-5) 5) 50,
+    gridR (\x -> 0.5 * exp (- (x ** 2) / 8)) (Range (-5) 5) 50
   ]
 
 rs :: RectStyle

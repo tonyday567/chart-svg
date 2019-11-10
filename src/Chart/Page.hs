@@ -1,11 +1,13 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Chart.Page
   ( chartStyler,
-    repChart,
+    repChartStaticData,
     repAnnotation,
     repRectStyle,
     repTextStyle,
@@ -31,6 +33,10 @@ module Chart.Page
     repChoice,
     repLegend,
     repLegendRows,
+    repChartsWithSharedData,
+    repChartsWithStaticData,
+    debugHtml,
+    debugFlags
   )
 where
 
@@ -44,11 +50,11 @@ import Data.Bool
 import Data.List
 import Data.Maybe
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Lucid hiding (b_)
 import NumHask.Space
-import Prelude
 import Web.Page
-import qualified Data.Text as Text
+import Prelude
 
 chartStyler :: Bool -> Page
 chartStyler doDebug =
@@ -77,49 +83,49 @@ subtype h origt t =
       style_ ("display:" <> bool "block" "none" (origt /= t))
     ]
 
-repChart :: (Monad m) => Chart a -> SharedRep m (Chart a)
-repChart c = do
+repChartStaticData :: (Monad m) => Chart a -> SharedRep m (Chart a)
+repChartStaticData c = do
   ann <- repAnnotation (c ^. #annotation)
   pure $ Chart ann (c ^. #spots)
 
 repAnnotation :: (Monad m) => Annotation -> SharedRep m Annotation
-repAnnotation ann = bimap hmap mmap a <<*>> rs <<*>> ts <<*>> gs <<*>> ls
+repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls
   where
-    a =
+    rann =
       dropdownSum
         takeText
         id
         (Just "Chart Annotation")
         ["RectA", "TextA", "GlyphA", "LineA", "BlankA"]
-        (annotationText ann)
+        (annotationText initann)
     rs = repRectStyle defRectStyle
     ts = repTextStyle defText
     gs = repGlyphStyle defGlyph
     ls = repLineStyle defLine
-    hmap ann' rs' ts' gs' ls' =
-      ann'
-        <> subtype rs' (annotationText ann) "RectA"
-        <> subtype ts' (annotationText ann) "TextA"
-        <> subtype gs' (annotationText ann) "GlyphA"
-        <> subtype ls' (annotationText ann) "LineA"
-    mmap ann' rs' ts' gs' ls' =
-      case ann' of
-        "RectA" -> RectA rs'
-        "TextA" -> TextA ts' texts
-        "GlyphA" -> GlyphA gs'
-        "LineA" -> LineA ls'
+    hmap ann rs ts gs ls =
+      ann
+        <> subtype rs (annotationText initann) "RectA"
+        <> subtype ts (annotationText initann) "TextA"
+        <> subtype gs (annotationText initann) "GlyphA"
+        <> subtype ls (annotationText initann) "LineA"
+    mmap ann rs ts gs ls =
+      case ann of
+        "RectA" -> RectA rs
+        "TextA" -> TextA ts texts
+        "GlyphA" -> GlyphA gs
+        "LineA" -> LineA ls
         "BlankA" -> BlankA
         _ -> BlankA
-    defRectStyle = case ann of
+    defRectStyle = case initann of
       RectA s -> s
       _ -> defaultRectStyle
-    (defText, texts) = case ann of
+    (defText, texts) = case initann of
       TextA s xs -> (s, xs)
       _ -> (defaultTextStyle, Text.singleton <$> ['a' .. 'z'])
-    defGlyph = case ann of
+    defGlyph = case initann of
       GlyphA s -> s
       _ -> defaultGlyphStyle
-    defLine = case ann of
+    defLine = case initann of
       LineA s -> s
       _ -> defaultLineStyle
 
@@ -193,9 +199,9 @@ repLineStyle s = do
   pure $ LineStyle w c o
 
 repPlace :: (Monad m) => Place Double -> SharedRep m (Place Double)
-repPlace p = bimap hmap mmap splace <<*>> sp
+repPlace initpl = bimap hmap mmap rplace <<*>> rp
   where
-    splace =
+    rplace =
       dropdownSum
         takeText
         id
@@ -206,22 +212,22 @@ repPlace p = bimap hmap mmap splace <<*>> sp
           "Right",
           "Absolute"
         ]
-        (placeText p)
-    sp = repPoint (Point (Range 0 1) (Range 0 1)) (Point 0.01 0.01) (defPoint p)
-    defPoint p'' = case p'' of
-      PlaceAbsolute p' -> p'
+        (placeText initpl)
+    rp = repPoint (Point (Range 0 1) (Range 0 1)) (Point 0.01 0.01) (defPoint initpl)
+    defPoint pl = case pl of
+      PlaceAbsolute p -> p
       _ -> Point 0.0 0.0
-    hmap splace' sp' =
+    hmap rplace rp =
       div_
-        ( splace'
-            <> subtype sp' (placeText p) "Absolute"
+        ( rplace
+            <> subtype rp (placeText initpl) "Absolute"
         )
-    mmap splace' sp' = case splace' of
+    mmap rplace rp = case rplace of
       "Top" -> PlaceTop
       "Bottom" -> PlaceBottom
       "Left" -> PlaceLeft
       "Right" -> PlaceRight
-      "Absolute" -> PlaceAbsolute sp'
+      "Absolute" -> PlaceAbsolute rp
       _ -> PlaceBottom
 
 repAnchor :: (Monad m) => Anchor -> SharedRep m Anchor
@@ -354,7 +360,12 @@ repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
 
 repChartSvgStyle :: (Monad m) => ChartSvgStyle -> SharedRep m ChartSvgStyle
 repChartSvgStyle s =
-  bimap hmap ChartSvgStyle x <<*>> y <<*>> a
+  bimap
+    hmap
+    ChartSvgStyle
+    x
+    <<*>> y
+    <<*>> a
     <<*>> op'
     <<*>> ip
     <<*>> fr
@@ -413,7 +424,7 @@ repData d = do
           SpotPoint . uncurry Point
             <$> [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)]
         "one" -> [SR 0 1 0 1]
-        "dist" -> SpotRect <$> gridR (\x -> exp (- (x ** 2) / 2)) (Range -5 5) 50
+        "dist" -> SpotRect <$> gridR (\x -> exp (- (x ** 2) / 2)) (Range (-5) 5) 50
         _ -> SpotPoint <$> gridP sin (Range 0 (2 * pi)) 30
     )
 
@@ -470,13 +481,15 @@ repTickStyle cfg =
         (defaultListifyLabels (length defLabels))
         defLabels
     tr =
-      (,,) <$> sliderI (Just "Number of ticks") 0 20 1 defTn
+      (,,)
+        <$> sliderI (Just "Number of ticks") 0 20 1 defTn
         <*> repTickFormat defTf
         <*> ( bool NoTickExtend TickExtend
                 <$> checkbox (Just "extend") defExtend
             )
     te =
-      (,) <$> sliderI (Just "Number of ticks") 0 20 1 defTn
+      (,)
+        <$> sliderI (Just "Number of ticks") 0 20 1 defTn
         <*> repTickFormat defTf
     tplaced =
       accordionListify
@@ -526,16 +539,25 @@ repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
     ts = repTickStyle (cfg ^. #tstyle)
     gt =
       maybeRep Nothing (isJust (cfg ^. #gtick)) $
-        bimap (<>) (,) (repGlyphStyle (maybe defaultGlyphTick fst (cfg ^. #gtick)))
+        bimap
+          (<>)
+          (,)
+          (repGlyphStyle (maybe defaultGlyphTick fst (cfg ^. #gtick)))
           <<*>> slider (Just "buffer") 0 0.05 0.001 (maybe 0.05 snd (cfg ^. #gtick))
     tt =
       maybeRep Nothing (isJust (cfg ^. #ttick)) $
-        bimap (<>) (,) (repTextStyle (maybe defaultTextTick fst (cfg ^. #ttick)))
+        bimap
+          (<>)
+          (,)
+          (repTextStyle (maybe defaultTextTick fst (cfg ^. #ttick)))
           <<*>> slider (Just "buffer") 0 0.05 0.001 (maybe 0.05 snd (cfg ^. #ttick))
     lt =
       maybeRep Nothing (isJust (cfg ^. #ltick)) $
-        bimap (<>) (,) (repLineStyle (maybe defaultLineTick fst (cfg ^. #ltick)))
-          <<*>> slider (Just "buffer") -0.1 0.1 0.001 (maybe 0 snd (cfg ^. #ltick))
+        bimap
+          (<>)
+          (,)
+          (repLineStyle (maybe defaultLineTick fst (cfg ^. #ltick)))
+          <<*>> slider (Just "buffer") (-0.1) 0.1 0.001 (maybe 0 snd (cfg ^. #ltick))
     hmap ts' gt' tt' lt' =
       accordion_
         "acctick"
@@ -546,7 +568,12 @@ repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
           ("line", lt')
         ]
 
-repPoint :: (Monad m) => Point (Range Double) -> Point Double -> Point Double -> SharedRep m (Point Double)
+repPoint ::
+  (Monad m) =>
+  Point (Range Double) ->
+  Point Double ->
+  Point Double ->
+  SharedRep m (Point Double)
 repPoint (Point (Range xmin xmax) (Range ymin ymax)) (Point xstep ystep) (Point x y) =
   bimap
     (<>)
@@ -754,3 +781,109 @@ repLegendRows n initlrs defann deflabel =
       "LegendFromChart" -> LegendFromChart labels'
       "LegendManual" -> LegendManual (zip anns' labels')
       _ -> LegendManual (zip anns' labels')
+
+repChartsWithSharedData ::
+  (Monad m) =>
+  ChartSvgStyle ->
+  HudConfig ->
+  Int ->
+  [Chart Double] ->
+  ([[Spot Double]] -> SharedRep m [[Spot Double]]) ->
+  SharedRep m (Text, Text)
+repChartsWithSharedData css' hc' maxcs' cs' sspots =
+  bimap
+    hmap
+    mmap
+    cssr
+    <<*>> annsr
+    <<*>> sspots spots'
+    <<*>> hr
+    <<*>> debugFlags
+  where
+    spots' = view #spots <$> cs'
+    anns' = view #annotation <$> cs'
+    hr =
+      repHudConfig
+        2
+        3
+        defaultAxisConfig
+        (defaultTitle "default")
+        defaultLegendOptions
+        (LegendFromChart ["default"])
+        BlankA
+        ""
+        hc'
+    cssr = repChartSvgStyle css'
+    annsr =
+      listifyMaybe'
+        (Just "Annotations")
+        "annz"
+        (checkbox Nothing)
+        repAnnotation
+        maxcs'
+        BlankA
+        anns'
+    mmap css'' ann' d' h' debug' =
+      let ch = zipWith Chart ann' d'
+       in ( renderHudChartWith css'' h' ch,
+            debugHtml debug' css'' h' ch
+          )
+    hmap css'' ann' _ h' debug' =
+      accordion_
+        "acca"
+        Nothing
+        [ ("Svg", css''),
+          ("Annotations", ann'),
+          ("Hud", h'),
+          ("Debug", debug')
+        ]
+
+repChartsWithStaticData ::
+  (Monad m) =>
+  ChartSvgStyle ->
+  HudConfig ->
+  Int ->
+  [Chart Double] ->
+  SharedRep m (Text, Text)
+repChartsWithStaticData css' hc' maxcs' cs' =
+  repChartsWithSharedData css' hc' maxcs' cs' (bipure mempty)
+
+debugHtml :: (Bool, Bool, Bool) -> ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
+debugHtml debug css hc cs =
+  bool
+    mempty
+    ( mconcat $
+        (\x -> "<p style='white-space: pre'>" <> x <> "</p>")
+          <$> [ "<h2>config values</h2>",
+                pShow' css,
+                pShow' hc
+              ]
+    )
+    ((\(a, _, _) -> a) debug)
+    <> bool
+      mempty
+      ( mconcat $
+          (\x -> "<p style='white-space: pre'>" <> x <> "</p>")
+            <$> [ "<h2>chart svg</h2>",
+                  renderHudChartWith css hc cs
+                ]
+      )
+      ((\(_, a, _) -> a) debug)
+    <> bool
+      mempty
+      ( mconcat $
+          (\x -> "<p style='white-space: pre'>" <> x <> "</p>")
+            <$> [ "<h2>chart value</h2>",
+                  Text.pack $ show cs
+                ]
+      )
+      ((\(_, _, a) -> a) debug)
+
+debugFlags :: (Monad m) => SharedRepF m (Html ()) (Bool, Bool, Bool)
+debugFlags =
+      bimap
+        (\a b c -> a <> b <> c)
+        (,,)
+        (checkbox (Just "show hudConfig values") True)
+        <<*>> checkbox (Just "show chart svg") False
+        <<*>> checkbox (Just "show Chart values") False

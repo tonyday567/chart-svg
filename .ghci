@@ -1,5 +1,4 @@
 :set -XDataKinds
-:set -XOverloadedLists
 :set -XOverloadedStrings
 :set -XOverloadedLabels
 :set -XExtendedDefaultRules

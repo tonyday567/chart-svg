@@ -9,6 +9,4 @@ extra-deps:
   - javascript-bridge-0.2.0
   - box-0.0.1.5
   - web-rep-0.1.2
-  # - numhask-space-0.2.0
-
-allow-newer: true
+  # - numhask-space-0.3.0
