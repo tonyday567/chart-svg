@@ -12,6 +12,7 @@ module Chart.Page
     repRectStyle,
     repTextStyle,
     repGlyphStyle,
+    repLineStyle,
     repPlace,
     repAnchor,
     repBar,
@@ -36,7 +37,8 @@ module Chart.Page
     repChartsWithSharedData,
     repChartsWithStaticData,
     debugHtml,
-    debugFlags
+    debugFlags,
+    repHudConfigDefault,
   )
 where
 
@@ -881,9 +883,22 @@ debugHtml debug css hc cs =
 
 debugFlags :: (Monad m) => SharedRepF m (Html ()) (Bool, Bool, Bool)
 debugFlags =
-      bimap
-        (\a b c -> a <> b <> c)
-        (,,)
-        (checkbox (Just "show hudConfig values") True)
-        <<*>> checkbox (Just "show chart svg") False
-        <<*>> checkbox (Just "show Chart values") False
+  bimap
+    (\a b c -> a <> b <> c)
+    (,,)
+    (checkbox (Just "show hudConfig values") True)
+    <<*>> checkbox (Just "show chart svg") False
+    <<*>> checkbox (Just "show Chart values") False
+
+repHudConfigDefault :: Monad m => HudConfig -> SharedRep m HudConfig
+repHudConfigDefault hc =
+  repHudConfig
+    2
+    3
+    defaultAxisConfig
+    (defaultTitle "default")
+    defaultLegendOptions
+    (LegendFromChart ["default"])
+    BlankA
+    ""
+    hc
