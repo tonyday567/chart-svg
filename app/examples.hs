@@ -1,4 +1,5 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
@@ -25,6 +26,14 @@ repMain css ann hc =
     [Chart ann []]
     (fmap (: []) <$> const (repData "sin"))
 
+repNoData :: (Monad m) => ChartSvgStyle -> Annotation -> HudConfig -> SharedRep m (Text, Text)
+repNoData css ann hc =
+  repChartsWithStaticData
+    css
+    hc
+    10
+    [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]
+
 repTextBB :: (Monad m) => ChartSvgStyle -> SharedRep m (Text, Text)
 repTextBB css =
   bimap hmap mmap rcss <<*>> rtstyle <<*>> rbox <<*>> rtps <<*>> debugFlags
@@ -34,14 +43,14 @@ repTextBB css =
     rbox = repRectStyle (border 0.002 (PixelRGB8 115 36 163) 0.5)
     rtps =
       second (fmap (second SpotPoint)) $
-        listifyMaybe'
+        listRep
           (Just "text examples")
           "te"
           (checkbox Nothing)
           repTextPoint
           5
           ("another example", Point 0 0)
-          [("test1", Point 0 0), ("test2", Point 1 1)]
+          [("12345678901234567890", Point 0 0), ("test2", Point 1 1)]
     repTextPoint (t, p) =
       bimap (<>) (,) (textbox Nothing t)
         <<*>> repPoint (Point (Range 0 1) (Range 0 1)) (Point 0.01 0.01) p
@@ -77,6 +86,11 @@ l1 =
     (TextA (defaultTextStyle & #anchor .~ AnchorStart) ["content"], "text"),
     (LineA defaultLineStyle, "line"),
     (BlankA, "blank")
+  ]
+
+l2 :: [(Annotation, Text)]
+l2 =
+  [ (GlyphA defaultGlyphStyle, "abcdefghijklmnopqrst")
   ]
 
 repEx :: (Monad m) => Ex -> SharedRep m (Text, Text)
@@ -126,13 +140,37 @@ main =
                       ("unit", repEx oneExample),
                       ("rect", repEx normExample),
                       ("text", repEx textExample),
-                      ("glyph", repEx (makeExample mempty glyphs)),
-                      ("glyphChart", repEx (makeExample mempty glyphsChart)),
-                      ("glyphChart", repEx (makeExample mempty glyphsChart)),
-                      ("boundText", repEx (makeExample mempty boundText)),
-                      ("label", repEx (makeExample mempty label)),
-                      ("glines", repEx (makeExample mempty glines)),
-                      ("lglyph", repEx (makeExample mempty lglyph))
+                      ( "glyphs",
+                        repEx
+                          ( makeExample
+                              defaultHudConfig
+                              glyphs
+                          )
+                      ),
+                      ( "glyphsChart",
+                        repEx
+                          ( makeExample
+                              defaultHudConfig
+                              glyphsChart
+                          )
+                      ),
+                      ("boundText", repEx (makeExample defaultHudConfig boundText)),
+                      ( "label",
+                        repEx
+                          ( makeExample
+                              defaultHudConfig
+                              (label <> [Chart BlankA [SP 0 (0 :: Double)]])
+                          )
+                      ),
+                      ("glines", repEx (makeExample defaultHudConfig glines)),
+                      ("lglyph", repEx (makeExample defaultHudConfig lglyph)),
+                      ( "glines <> lglyph",
+                        repEx
+                          ( makeExample
+                              defaultHudConfig
+                              (lglyph <> glines)
+                          )
+                      )
                     ]
                 ),
                 ( "main",
@@ -145,14 +183,35 @@ main =
                   repTextBB defaultChartSvgStyle
                 ),
                 ( "legend test",
-                  repMain
-                    ( defaultChartSvgStyle
-                        & #sizex .~ 450
-                        & #sizey .~ 360
+                  repNoData
+                    defaultChartSvgStyle
+                    BlankA
+                    ( defaultHudConfig
+                        & #hudLegend
+                        .~ Just
+                          ( LegendManual l1,
+                            (defaultLegendOptions :: LegendOptions Double)
+                              & #scale .~ (0.3 :: Double)
+                              & #lplace .~ PlaceAbsolute (Point (0.0 :: Double) 0.0)
+                              & #lsize .~ (0.12 :: Double)
+                              & #ltext . #size .~ 0.16
+                          )
                     )
-                    (GlyphA defaultGlyphStyle)
-                    ( defaultHudConfig & #hudLegends
-                        .~ [(LegendManual l1, defaultLegendOptions)]
+                ),
+                ( "legend row hori bug",
+                  repNoData
+                    defaultChartSvgStyle
+                    BlankA
+                    ( defaultHudConfig
+                        & #hudLegend
+                        .~ Just
+                          ( LegendManual l2,
+                            (defaultLegendOptions :: LegendOptions Double)
+                              & #scale .~ (0.3 :: Double)
+                              & #lplace .~ PlaceAbsolute (Point (0.0 :: Double) 0.0)
+                              & #lsize .~ (0.12 :: Double)
+                              & #ltext . #size .~ 0.16
+                          )
                     )
                 )
               ]
@@ -160,5 +219,5 @@ main =
       )
     servePageWith
       ""
-      defaultPageConfig
+      (defaultPageConfig "default")
       (chartStyler True)

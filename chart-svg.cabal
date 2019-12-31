@@ -41,6 +41,7 @@ library
     , linear
     , lucid
     , lens
+    , mtl
     , numhask-space
     , pretty-simple
     , scientific

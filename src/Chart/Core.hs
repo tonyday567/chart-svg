@@ -341,20 +341,21 @@ placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
 placedLabel p d t =
   Chart
     ( TextA
-        ( defaultTextStyle & #translate ?~ (realToFrac <$> p)
+        (defaultTextStyle
             & #rotation ?~ realToFrac d
         )
         [t]
     )
-    [p0]
+    [SpotPoint p]
 
 -- horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: Chartable a => a -> [[Chart a]] -> [Chart a]
 hori _ [] = []
 hori gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 + s)))
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 - SP (origx x) 0 + s)))
     z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
+    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- vertically stack a list of charts (proceeding upwards)
 vert :: Chartable a => a -> [[Chart a]] -> [Chart a]

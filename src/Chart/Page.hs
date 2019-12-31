@@ -53,7 +53,7 @@ import Data.List
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Lucid hiding (b_)
+import Lucid
 import NumHask.Space
 import Web.Page
 import Prelude
@@ -64,17 +64,17 @@ chartStyler doDebug =
     <> bridgePage
     & #htmlHeader .~ title_ "chart styler"
     & #htmlBody
-      .~ b_
+      .~ divClass_
         "container"
-        ( b_
+        ( divClass_
             "row d-flex justify-content-between"
             ( sec "col4" "input"
                 <> sec "col8" "output"
             )
-            <> bool mempty (b_ "row" (with div_ [id_ "debug"] mempty)) doDebug
+            <> bool mempty (divClass_ "row" (with div_ [id_ "debug"] mempty)) doDebug
         )
   where
-    sec d n = b_ d (with div_ [id_ n] mempty)
+    sec d n = divClass_ d (with div_ [id_ n] mempty)
 
 subtype :: With a => a -> Text -> Text -> a
 subtype h origt t =
@@ -279,17 +279,16 @@ repHudConfig ::
   HudConfig ->
   SharedRep m HudConfig
 repHudConfig naxes ntitles defaxis deftitle deflegend deflrs defann deflabel cfg =
-  bimap hmap (\a b c d e -> HudConfig a b c (zip d e)) can
+  bimap hmap (\a b c d -> HudConfig a b c d) can
     <<*>> ts
     <<*>> axs
-    <<*>> lrs
-    <<*>> ls
+    <<*>> l
   where
     can =
       maybeRep (Just "canvas") (isJust (cfg ^. #hudCanvas)) $
         repRectStyle (fromMaybe defaultCanvas (cfg ^. #hudCanvas))
     ts =
-      listifyMaybe'
+      listRep
         (Just "titles")
         "tz"
         (checkbox Nothing)
@@ -298,7 +297,7 @@ repHudConfig naxes ntitles defaxis deftitle deflegend deflrs defann deflabel cfg
         deftitle
         (cfg ^. #hudTitles)
     axs =
-      listifyMaybe'
+      listRep
         (Just "axes")
         "axz"
         (checkbox Nothing)
@@ -306,33 +305,21 @@ repHudConfig naxes ntitles defaxis deftitle deflegend deflrs defann deflabel cfg
         naxes
         defaxis
         (cfg ^. #hudAxes)
-    ls =
-      listifyMaybe'
-        (Just "legends")
-        "lz"
-        (checkbox Nothing)
-        repLegend
-        naxes
-        deflegend
-        (snd <$> cfg ^. #hudLegends)
-    lrs =
-      listifyMaybe'
-        (Just "legend rows")
-        "lrz"
-        (checkbox Nothing)
-        (\x -> repLegendRows 5 x defann deflabel)
-        naxes
-        deflrs
-        (fst <$> cfg ^. #hudLegends)
-    hmap can' ts' axs' ls' lrs' =
+    l =
+      maybeRep
+        (Just "legend")
+        (isJust $ cfg ^. #hudLegend)
+        ((,) <$>
+         repLegendRows 5 (maybe deflrs fst (cfg ^. #hudLegend)) defann deflabel <*>
+         repLegend (maybe deflegend snd (cfg ^. #hudLegend)))
+    hmap can' ts' axs' l' =
       accordion_
         "accc"
         Nothing
         [ ("Axes", axs'),
           ("Canvas", can'),
           ("Titles", ts'),
-          ("Legend Options", ls'),
-          ("Legend Rows", lrs')
+          ("Legend", l')
         ]
 
 repAxisConfig :: (Monad m) => AxisConfig Double -> SharedRep m (AxisConfig Double)
@@ -475,12 +462,12 @@ repTickStyle cfg =
         ["TickNone", "TickLabels", "TickRound", "TickExact", "TickPlaced"]
         (tickStyleText cfg)
     ls =
-      accordionListify
+      accordionList
         (Just "tick labels")
         "tick-style-labels"
         Nothing
         (textbox . Just)
-        (defaultListifyLabels (length defLabels))
+        (defaultListLabels (length defLabels))
         defLabels
     tr =
       (,,)
@@ -494,12 +481,12 @@ repTickStyle cfg =
         <$> sliderI (Just "Number of ticks") 0 20 1 defTn
         <*> repTickFormat defTf
     tplaced =
-      accordionListify
+      accordionList
         (Just "placed ticks")
         "tick-style-placed"
         Nothing
         dt
-        (defaultListifyLabels (length dtDef))
+        (defaultListLabels (length dtDef))
         dtDef
     hmap ts' ls' tr' te' tplaced' =
       div_
@@ -535,6 +522,7 @@ repTickStyle cfg =
       TickRound _ _ e -> e == TickExtend
       _ -> True
 
+{-
 repTick :: (Monad m) => Tick Double -> SharedRep m (Tick Double)
 repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
   where
@@ -569,6 +557,50 @@ repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
           ("text", tt'),
           ("line", lt')
         ]
+
+-}
+
+
+repTick :: (Monad m) => Tick Double -> SharedRep m (Tick Double)
+repTick cfg = SharedRep $ do
+  (Rep h fa) <-
+    unrep $ bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
+  h' <- zoom _1 h
+  pure (Rep h' fa)
+  where
+    hmap ts' gt' tt' lt' =
+      accordion
+        "acctick"
+        Nothing
+        [ ("style", ts'),
+          ("glyph", gt'),
+          ("text", tt'),
+          ("line", lt')
+        ]
+
+    ts = repTickStyle (cfg ^. #tstyle)
+
+    gt =
+      maybeRep Nothing (isJust (cfg ^. #gtick)) $
+        bimap
+          (<>)
+          (,)
+          (repGlyphStyle (maybe defaultGlyphTick fst (cfg ^. #gtick)))
+          <<*>> slider (Just "buffer") 0 0.05 0.001 (maybe 0.05 snd (cfg ^. #gtick))
+    tt =
+      maybeRep Nothing (isJust (cfg ^. #ttick)) $
+        bimap
+          (<>)
+          (,)
+          (repTextStyle (maybe defaultTextTick fst (cfg ^. #ttick)))
+          <<*>> slider (Just "buffer") 0 0.05 0.001 (maybe 0.05 snd (cfg ^. #ttick))
+    lt =
+      maybeRep Nothing (isJust (cfg ^. #ltick)) $
+        bimap
+          (<>)
+          (,)
+          (repLineStyle (maybe defaultLineTick fst (cfg ^. #ltick)))
+          <<*>> slider (Just "buffer") (-0.1) 0.1 0.001 (maybe 0 snd (cfg ^. #ltick))
 
 repPoint ::
   (Monad m) =>
@@ -694,33 +726,25 @@ repChoice initt xs =
 repLegend :: (Monad m) => LegendOptions Double -> SharedRep m (LegendOptions Double)
 repLegend initl = LegendOptions <$> lsize' <*> hgap' <*> vgap' <*> ltext' <*> lmax' <*> innerPad' <*> outerPad' <*> legendFrame' <*> lplace' <*> scale'
   where
-    lsize' = slider (Just "size") 0.000 0.1 0.001 (initl ^. #lsize)
-    hgap' = slider (Just "horizontal gap") 0.000 0.1 0.001 (initl ^. #hgap)
-    vgap' = slider (Just "vertical gap") 0.000 0.1 0.001 (initl ^. #vgap)
+    lsize' = slider (Just "glyph size") 0.000 0.5 0.001 (initl ^. #lsize)
+    hgap' = slider (Just "horizontal gap") 0.000 0.5 0.001 (initl ^. #hgap)
+    vgap' = slider (Just "vertical gap") 0.000 0.5 0.001 (initl ^. #vgap)
     ltext' = repTextStyle (initl ^. #ltext)
     lmax' = sliderI (Just "max entries") 0 10 1 (initl ^. #lmax)
     innerPad' =
-      maybeRep
-        Nothing
-        (isJust (initl ^. #innerPad))
-        ( slider
+        slider
             (Just "inner padding")
-            1
-            1.2
+            0
+            0.2
             0.001
-            (fromMaybe 1 (initl ^. #innerPad))
-        )
+            (initl ^. #innerPad)
     outerPad' =
-      maybeRep
-        Nothing
-        (isJust (initl ^. #outerPad))
-        ( slider
+         slider
             (Just "outer padding")
-            1
-            1.2
+            0
+            0.2
             0.001
-            (fromMaybe 1 (initl ^. #outerPad))
-        )
+            (initl ^. #outerPad)
     legendFrame' =
       maybeRep
         (Just "frame")
@@ -737,7 +761,7 @@ repLegendRows ::
   Text ->
   SharedRep m LegendRows
 repLegendRows n initlrs defann deflabel =
-  bimap hmap mmap lrows <<*>> labels
+  bimap hmap mmap lrows <<*>> labelsc <<*>> labels
     <<*>> anns
   where
     lrows =
@@ -750,7 +774,7 @@ repLegendRows n initlrs defann deflabel =
         ]
         (legendRowsText initlrs)
     labels =
-      listifyMaybe'
+      listRep
         (Just "labels")
         "labelsz"
         (checkbox Nothing)
@@ -758,8 +782,17 @@ repLegendRows n initlrs defann deflabel =
         n
         deflabel
         (defLabels initlrs)
+    labelsc =
+      listRep
+        (Just "labelsc")
+        "labelscz"
+        (checkbox Nothing)
+        (textbox Nothing)
+        n
+        deflabel
+        (defLabels initlrs)
     anns =
-      listifyMaybe'
+      listRep
         (Just "annotations")
         "annsz"
         (checkbox Nothing)
@@ -773,14 +806,15 @@ repLegendRows n initlrs defann deflabel =
     defAnns lrs'' = case lrs'' of
       LegendFromChart _ -> []
       LegendManual lrs' -> fst <$> lrs'
-    hmap lrows' labels' anns' =
+    hmap lrows' labelsc' labels' anns' =
       div_
         ( lrows'
+            <> subtype labelsc' (legendRowsText initlrs) "LegendFromChart"
             <> subtype labels' (legendRowsText initlrs) "LegendManual"
-            <> subtype anns' (legendRowsText initlrs) "LegendFromChart"
+            <> subtype anns' (legendRowsText initlrs) "LegendManual"
         )
-    mmap lrows' labels' anns' = case lrows' of
-      "LegendFromChart" -> LegendFromChart labels'
+    mmap lrows' labelsc' labels' anns' = case lrows' of
+      "LegendFromChart" -> LegendFromChart labelsc'
       "LegendManual" -> LegendManual (zip anns' labels')
       _ -> LegendManual (zip anns' labels')
 
@@ -817,7 +851,7 @@ repChartsWithSharedData css' hc' maxcs' cs' sspots =
         hc'
     cssr = repChartSvgStyle css'
     annsr =
-      listifyMaybe'
+      listRep
         (Just "Annotations")
         "annz"
         (checkbox Nothing)

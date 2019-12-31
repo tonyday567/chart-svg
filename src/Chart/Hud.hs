@@ -45,6 +45,7 @@ module Chart.Hud
     legend,
     legendEntry,
     makeLegend,
+    makeLegendRows,
     hudChartWith,
     hudChart,
     hudChartSvgWith,
@@ -96,16 +97,16 @@ data HudConfig
       { hudCanvas :: Maybe RectStyle,
         hudTitles :: [Title Double],
         hudAxes :: [AxisConfig Double],
-        hudLegends :: [(LegendRows, LegendOptions Double)]
+        hudLegend :: Maybe (LegendRows, LegendOptions Double)
       }
   deriving (Eq, Show, Generic)
 
 instance Semigroup HudConfig where
   (<>) (HudConfig c t a l) (HudConfig c' t' a' l') =
-    HudConfig (listToMaybe $ catMaybes [c, c']) (t <> t') (a <> a') (l <> l')
+    HudConfig (listToMaybe $ catMaybes [c, c']) (t <> t') (a <> a') (listToMaybe $ catMaybes [l, l'])
 
 instance Monoid HudConfig where
-  mempty = HudConfig Nothing [] [] []
+  mempty = HudConfig Nothing [] [] Nothing
 
 defaultHudConfig :: HudConfig
 defaultHudConfig =
@@ -115,7 +116,7 @@ defaultHudConfig =
     [ defaultAxisConfig,
       defaultAxisConfig & #place .~ PlaceLeft
     ]
-    []
+    Nothing
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place a
@@ -347,8 +348,8 @@ defaultTick =
   Tick
     defaultTickStyle
     (Just (defaultGlyphTick, 0.01))
-    (Just (defaultTextTick, 0.02))
-    (Just (defaultLineTick, 0.0))
+    (Just (defaultTextTick, 0.015))
+    (Just (defaultLineTick, 0.005))
 
 data TickFormat
   = TickFormatDefault
@@ -444,7 +445,7 @@ placeRot pl = case pl of
 textPos :: (Chartable a) => Place a -> TextStyle -> a -> Point a
 textPos pl tt b = case pl of
   PlaceTop -> Point 0 b
-  PlaceBottom -> Point 0 (- b + 0.5 * realToFrac (tt ^. #vsize) * realToFrac (tt ^. #size))
+  PlaceBottom -> Point 0 (- b - 0.5 * realToFrac (tt ^. #vsize) * realToFrac (tt ^. #size))
   PlaceLeft ->
     Point
       (- b)
@@ -760,8 +761,8 @@ data LegendOptions a
         hgap :: a,
         ltext :: TextStyle,
         lmax :: Int,
-        innerPad :: Maybe a,
-        outerPad :: Maybe a,
+        innerPad :: a,
+        outerPad :: a,
         legendFrame :: Maybe RectStyle,
         lplace :: Place a,
         scale :: a
@@ -775,26 +776,26 @@ defaultLegendOptions =
     0.2
     0.1
     ( defaultTextStyle
-        & #size .~ 0.1
+        & #size .~ 0.08
         & #color .~ grey
     )
     10
-    (Just 1.02)
-    (Just 1.10)
-    (Just (border 0.01 (PixelRGB8 55 100 160) 1))
+    0.1
+    0.1
+    (Just (RectStyle 0.02 (PixelRGB8 55 100 160) 0.5 (PixelRGB8 255 255 255) 1))
     PlaceBottom
     0.2
 
-legend :: (Chartable a) => LegendRows -> LegendOptions a -> Hud a
+legend :: (Chartable a) => [(Annotation, Text)] -> LegendOptions a -> Hud a
 legend lrs l = Hud $ \cs -> do
   ca <- use #chartDim
-  let cs' = cs <> movedleg ca (scaledleg ca cs)
+  let cs' = cs <> movedleg ca (scaledleg ca)
   #chartDim .= defRect (styleBoxes cs')
   pure cs'
   where
-    scaledleg ca' csm =
+    scaledleg ca' =
       (#annotation %~ scaleAnn (realToFrac $ l ^. #scale))
-        <$> projectSpots (fmap (* l ^. #scale) ca') (makeLegend l lrs csm)
+        <$> projectSpots (fmap (* l ^. #scale) ca') (makeLegend l lrs)
     movedleg ca' leg =
       maybe id (moveChart . SpotPoint . placel (l ^. #lplace) ca') (styleBoxes leg) leg
     placel pl (Rect x z y w) (Rect x' z' y' w') =
@@ -830,7 +831,7 @@ legendEntry l a t =
           [SP 0 (0.33 * l ^. #lsize)]
         )
       LineA ls ->
-        ( LineA ls,
+        ( LineA (ls & #width %~ (/(realToFrac $ l ^. #scale))),
           [SP 0 (0.33 * l ^. #lsize), SP (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
       BlankA ->
@@ -842,30 +843,32 @@ makeLegendRows :: LegendRows -> [Chart a] -> [(Annotation, Text)]
 makeLegendRows (LegendFromChart ts) cs = zip (view #annotation <$> cs) ts
 makeLegendRows (LegendManual lrs') _ = lrs'
 
-makeLegend :: (Chartable a) => LegendOptions a -> LegendRows -> [Chart a] -> [Chart a]
-makeLegend l lrs m = cs'
+makeLegend :: (Chartable a) => LegendOptions a -> [(Annotation, Text)] -> [Chart a]
+makeLegend l lrs = cs'
   where
-    es = reverse $ uncurry (legendEntry l) <$> makeLegendRows lrs m
-    twidth = maybe 1 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
-    as = moveChart (SP (twidth * l ^. #lsize) 0.0) (fst <$> es)
-    hs = zipWith (\a t -> hori (l ^. #vgap) [[t], [a]]) as (snd <$> es)
+    es = reverse $ uncurry (legendEntry l) <$> lrs
+    twidth = maybe 0 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
+    gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (styleBox t)
+    hs = (\(a,t) -> hori ((l ^. #vgap) + twidth - gapwidth t) [[t], [a]]) <$> es
     vs = vert (l ^. #hgap) hs
     cs =
-      vs
-        <> maybe
+      maybe
           []
           ( \x ->
               [ Chart
                   (RectA x)
                   ( maybeToList
                       ( SpotRect
-                          <$> (fmap (* maybe 1 realToFrac (l ^. #innerPad)) <$> styleBoxes vs)
+                          <$> (padRect (l ^. #innerPad) <$> styleBoxes vs)
                       )
                   )
               ]
           )
-          (l ^. #legendFrame)
-    cs' = cs <> [Chart BlankA (maybeToList (SpotRect . fmap (* maybe 1 realToFrac (l ^. #outerPad)) <$> styleBoxes cs))]
+          (l ^. #legendFrame) <>
+      vs
+    cs' = cs <> [Chart BlankA (maybeToList (SpotRect . padRect (l ^. #outerPad) <$>
+                                            styleBoxes cs))]
+    padRect p (Rect x z y w) = Rect (x-p) (z+p) (y-p) (w+p)
 
 -- $combination
 -- the complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc creates a new set of ticks different to the original.
@@ -919,14 +922,15 @@ hudChartSvg ca hss cs =
 -- | combine a HudConfig and charts to form a ChartSvg using the supplied canvas dimensions, and extended the data range if needed by the huds.
 hud :: HudConfig -> Rect Double -> [Chart Double] -> ChartSvg Double
 hud cfg ca cs =
-  hudChartSvgWith ca (defRect $ dataBox (cs <> cs')) hs (cs <> cs')
+  hudChartSvgWith ca (defRect $ dataBox (cs <> cs')) (hs <> l) (cs <> cs')
   where
     (hs, cs') = hudsWithExtend (defRectS $ dataBox cs) cfg
+    l = maybe [] (\x -> [legend (makeLegendRows (fst x) cs) (snd x)]) (cfg ^. #hudLegend)
 
 -- | compute huds with frozen tick values and a data range extension
 hudsWithExtend :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
 hudsWithExtend xs cfg =
-  (haxes <> [can] <> titles <> ls, [xsext])
+  (haxes <> [can] <> titles, [xsext])
   where
     can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
@@ -941,7 +945,6 @@ hudsWithExtend xs cfg =
             <> adjustedTickHud x
       )
         <$> axes'
-    ls = uncurry legend <$> (cfg ^. #hudLegends)
 
 -- | convert TickRound to TickPlaced
 freezeTicks :: (Tickable a) => Place a -> Rect a -> TickStyle a -> (TickStyle a, Maybe (Rect a))

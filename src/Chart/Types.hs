@@ -163,7 +163,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 grey 1.0 AnchorMiddle 0.5 1.45 (-0.4) Nothing Nothing
+  TextStyle 0.08 grey 1.0 AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing
 
 -- | Glyph styling
 data GlyphStyle

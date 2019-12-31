@@ -122,6 +122,10 @@ recipe
 stack build --exec "$(stack path --local-install-root)/bin/examples" --file-watch
 ```
 
+adhoc:
+
+-- let r = writeChartSvg "t1.svg" (Point 400 400) . chartSvg unitRect
+
 reference
 ---------
 

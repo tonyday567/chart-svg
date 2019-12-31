@@ -48,10 +48,10 @@ exampleHudConfig t1 t2 legends' =
                )
                t2
          )
-    & #hudLegends .~ [legends']
+    & #hudLegend .~ Just legends'
 
-makeExample :: HudConfig -> [Chart a] -> Ex
-makeExample hs cs = Ex defaultChartSvgStyle hs (length cs) (view #annotation <$> glyphs) (view #spots <$> glyphs)
+makeExample :: (Real a) => HudConfig -> [Chart a] -> Ex
+makeExample hs cs = Ex defaultChartSvgStyle hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #spots <$> cs)
 
 -- | line example
 hockey :: Ex
@@ -90,7 +90,7 @@ legopts =
   (defaultLegendOptions :: LegendOptions Double)
     & #lsize .~ (0.2 :: Double)
     & #ltext . #size .~ 0.25
-    & #innerPad ?~ (1.0 :: Double)
+    & #innerPad .~ (0.05 :: Double)
     & #scale .~ (0.25 :: Double)
     & #lplace .~ PlaceAbsolute (Point 0.5 (-0.3 :: Double))
 
@@ -219,13 +219,13 @@ smiley =
     [p0]
 
 glyphs :: [Chart Double]
-glyphs =
+glyphs = 
   zipWith
     ( \(sh, bs) p ->
         Chart
           ( GlyphA
               ( defaultGlyphStyle
-                  & #size .~ (0.2 :: Double)
+                  & #size .~ (0.1 :: Double)
                   & #borderSize .~ bs
                   & #shape .~ sh
               )
@@ -241,7 +241,7 @@ glyphs =
       (HLineGlyph 0.02, 0),
       (SmileyGlyph, 0.01)
     ]
-    [SP x 0 | x <- [0 .. 7]]
+    [SP x 0 | x <- [0 .. (7::Double)]]
 
 glyphsExample :: Ex
 glyphsExample = makeExample mempty glyphs
@@ -265,7 +265,7 @@ gopts =
   ]
 
 glyphsChart :: [Chart Double]
-glyphsChart = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) gdata gopts
+glyphsChart = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) gdata ((#size .~ 0.02) <$> gopts)
 
 -- textual
 boundText :: [Chart Double]
@@ -275,10 +275,10 @@ boundText =
   ]
   where
     t1 = fst <$> ts
-    ps = projectTo (aspect 3) $ SpotPoint . snd <$> ts
-    t1s = TextA (defaultTextStyle & #size .~ 0.2) . (: []) <$> t1
+    ps = projectTo (aspect 1) $ SpotPoint . snd <$> ts
+    t1s = TextA (defaultTextStyle & #size .~ 0.06) . (: []) <$> t1
     cs = zipWith (\x y -> Chart x y) t1s ((: []) <$> ps)
-    a1 = TextA (defaultTextStyle & #size .~ 0.2) t1
+    a1 = TextA (defaultTextStyle & #size .~ 0.06) t1
 
 pixel' :: (Point Double -> Double) -> [Chart Double]
 pixel' f =
@@ -373,7 +373,7 @@ bbExample =
       [("text1", SP 0 0), ("text2", SP 1 1)]
 
 legExample :: Ex
-legExample = makeExample (mempty & #hudLegends .~ [(LegendManual l1, defaultLegendOptions)]) [Chart (LineA defaultLineStyle) [SP 0 0, SP 1 1]]
+legExample = makeExample (mempty & #hudLegend .~ Just (LegendManual l1, defaultLegendOptions)) [Chart (LineA defaultLineStyle) [SP 0 0, SP 1 1]]
   where
     l1 =
       [ (GlyphA defaultGlyphStyle, "glyph"),
