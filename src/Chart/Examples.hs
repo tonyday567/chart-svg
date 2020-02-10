@@ -267,6 +267,28 @@ gopts =
 glyphsChart :: [Chart Double]
 glyphsChart = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) gdata ((#size .~ 0.02) <$> gopts)
 
+sinHudConfig :: HudConfig
+sinHudConfig =
+  defaultHudConfig &
+  (#hudAxes . element 0 . #atick . #tstyle .~ sinXTicks) &
+  (#hudAxes . element 0 . #atick . #ttick . _Just . _1 . #hasMathjax .~ True) &
+  (#hudAxes . element 1 . #atick . #tstyle .~ sinYTicks) &
+  #hudTitles .~
+    [ (defaultTitle "mathjax was here: \\(x \\over \\pi\\)" :: Title Double) & #style . #hasMathjax .~ True & #place .~ PlaceBottom
+    , (defaultTitle "<a xlink:href='https://www.google.com'>google</a>" :: Title Double) & #place .~ PlaceRight & #style . #size .~ 0.06
+    ]
+
+simpleMathjaxConfig :: HudConfig
+simpleMathjaxConfig = mempty &   #hudTitles .~
+    [ (defaultTitle "mathjax was here: \\(x \\over \\pi\\)" :: Title Double) & #style . #hasMathjax .~ True & #place .~ PlaceBottom
+    ]
+
+sinYTicks :: TickStyle Double
+sinYTicks = TickPlaced $ (\x -> (x, Text.pack $ show x)) <$> [-1,-0.5,0,0.5,1]
+
+sinXTicks :: TickStyle Double
+sinXTicks = TickPlaced [(0,"zero"), (pi/2, "π/2"), (pi, "π"), (3 * pi / 2, "3π/2"), (2 * pi, "\\(2 \\pi \\)")]
+
 -- textual
 boundText :: [Chart Double]
 boundText =
@@ -554,8 +576,12 @@ euclid x = filter (\(a, b) -> a /= 0 && b /= 0) $ (\m n -> (m * m - n * n, 2 * m
 writeChartExample :: FilePath -> Ex -> IO ()
 writeChartExample t (Ex css' hc' _ anns' spots') = Text.writeFile t $ renderHudChartWith css' hc' (zipWith Chart anns' spots')
 
+linkExample :: ChartSvg Double
+linkExample = ChartSvg (Rect (-100) 400 (-100) 400) [treeText (defaultTextStyle & #color .~ PixelRGB8 93 165 218) "<a xlink:href='http://www.google.com'>google</a>" (Chart.Point 0 0)]
+
 writeAllExamples :: IO ()
 writeAllExamples = do
+  writeChart "other/mempty.svg" []
   writeChart
     "other/one.svg"
     [ Chart
@@ -605,4 +631,5 @@ writeAllExamples = do
     "other/tri3s.svg"
     (Point 400 400)
     (pad 1.1 (tri3ss 0.0001 0.0001 0 0 (Just (Rect 0 4000 0 4000)) 100))
+  writeChartSvgUnsafe "other/link.svg" (Chart.Point 300 300) linkExample
   putStrLn " 👍"

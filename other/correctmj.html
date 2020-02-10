@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+    <head>
+        <meta charset="utf-8">
+    </head>
+
+    <body>
+        <p>:\(x \over \pi\)</p>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+            <g class="mathjaxsvg"><text x="0" y="200">:\(x \over \pi\)</text></g>
+            <g></g>
+            <rect x="0" y="0" width="300" height="300" fill="none" stroke="green"/>
+    </svg>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js" id="MathJax-script"></script>
+    <script crossorigin="anonymous" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script>
+     window.MathJax = {
+         startup: {
+             ready: () => {
+                 MathJax.startup.defaultReady();
+                 MathJax.startup.promise.then(() => {
+                     $('.mathjaxsvg').each(function() {
+                         var m = $('text>mjx-container>svg');
+                         m.remove();
+                         $(this).append(m.attr({"x":$(this).find("text").attr("x"), "y":$(this).find("text").attr("y")}));
+                     });
+                 });
+             }
+         }
+     };
+                     window.onload = function() {
+                         {};
+                     }
+    </script>
+</body>
+
+</html>

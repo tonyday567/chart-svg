@@ -143,7 +143,8 @@ data TextStyle
         vsize :: Double,
         nudge1 :: Double,
         rotation :: Maybe Double,
-        translate :: Maybe (Point Double)
+        translate :: Maybe (Point Double),
+        hasMathjax :: Bool
       }
   deriving (Show, Eq, Generic)
 
@@ -163,7 +164,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 grey 1.0 AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing
+  TextStyle 0.08 grey 1.0 AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing False
 
 -- | Glyph styling
 data GlyphStyle
@@ -282,12 +283,13 @@ data ChartSvgStyle
         outerPad :: Maybe Double,
         innerPad :: Maybe Double,
         chartFrame :: Maybe RectStyle,
-        orig :: Maybe GlyphStyle
+        orig :: Maybe GlyphStyle,
+        escapeText :: Bool
       }
   deriving (Eq, Show, Generic)
 
 defaultChartSvgStyle :: ChartSvgStyle
-defaultChartSvgStyle = ChartSvgStyle 800 600 1.33 (Just 1.02) Nothing Nothing Nothing
+defaultChartSvgStyle = ChartSvgStyle 800 600 1.33 (Just 1.02) Nothing Nothing Nothing True
 
 defaultSvgFrame :: RectStyle
 defaultSvgFrame = border 0.01 blue 1.0

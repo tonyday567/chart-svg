@@ -60,6 +60,7 @@ import Prelude
 
 chartStyler :: Bool -> Page
 chartStyler doDebug =
+  mathjaxSvgPage "hasmathjax" <>
   bootstrapPage
     <> bridgePage
     & #htmlHeader .~ title_ "chart styler"
@@ -191,7 +192,8 @@ repTextStyle s = do
           (Point 0.001 0.001)
           (Point 0 0)
       )
-  pure $ TextStyle ts tc to' ta th tv tn tr tt
+  tm <- checkbox (Just "mathjax") (s ^. #hasMathjax)
+  pure $ TextStyle ts tc to' ta th tv tn tr tt tm
 
 repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
 repLineStyle s = do
@@ -359,6 +361,7 @@ repChartSvgStyle s =
     <<*>> ip
     <<*>> fr
     <<*>> orig'
+    <<*>> esc
   where
     x = slider (Just "sizex") 0 1000 1 (s ^. #sizex)
     y = slider (Just "sizey") 0 1000 1 (s ^. #sizey)
@@ -383,14 +386,16 @@ repChartSvgStyle s =
         (Just "origin")
         (isJust (s ^. #orig))
         (repGlyphStyle (fromMaybe defaultOrigin (s ^. #orig)))
-    hmap x' y' a' op'' ip' fr' orig'' =
+    esc = checkbox (Just "escape text") (s ^. #escapeText)
+    hmap x' y' a' op'' ip' fr' orig'' esc' =
       accordion_
         "accsvg"
         Nothing
         [ ("Sizing", x' <> y' <> a'),
           ("Padding", op'' <> ip'),
           ("Frame", fr'),
-          ("Origin", orig'')
+          ("Origin", orig''),
+          ("Escape", esc')
         ]
 
 repData :: (Monad m) => Text -> SharedRep m [Spot Double]
@@ -932,7 +937,7 @@ repHudConfigDefault hc =
     defaultAxisConfig
     (defaultTitle "default")
     defaultLegendOptions
-    (LegendFromChart ["default"])
+    (LegendFromChart ["insert names here"])
     BlankA
     ""
     hc

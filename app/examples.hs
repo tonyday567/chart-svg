@@ -147,11 +147,12 @@ main =
                               glyphs
                           )
                       ),
-                      ( "glyphsChart",
+                      ( "mathjax",
                         repEx
                           ( makeExample
-                              defaultHudConfig
-                              glyphsChart
+                              sinHudConfig
+                              glyphsChart &
+                              #excss . #escapeText .~ False
                           )
                       ),
                       ("boundText", repEx (makeExample defaultHudConfig boundText)),
@@ -221,3 +222,5 @@ main =
       ""
       (defaultPageConfig "default")
       (chartStyler True)
+
+-- let (Ex css' hc' _ ann' sp') = makeExample sinHudConfig glyphsChart & #excss . #escapeText .~ False in renderPageHtmlToFile "other/mj2.html" (defaultPageConfig "blank") $ chartStyler False & #htmlBody %~ (<> (p_ "\\(x \\over \\pi \\)") <> (toHtmlRaw $ renderHudChartWith css' hc' (zipWith Chart ann' sp')))

@@ -41,7 +41,6 @@ library
     , linear
     , lucid
     , lens
-    , mtl
     , numhask-space
     , pretty-simple
     , scientific
@@ -65,7 +64,6 @@ executable examples
     , lens
     , javascript-bridge
     , numhask-space
-    , pretty-simple
     , scotty
     , text
     , transformers

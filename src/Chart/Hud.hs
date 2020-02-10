@@ -51,6 +51,7 @@ module Chart.Hud
     hudChartSvgWith,
     hudChartSvg,
     hud,
+    hudsWithExtend,
     renderHudChartWith,
     renderCharts,
   )
@@ -961,7 +962,8 @@ replaceRange pl (Range a0 a1) (Rect x z y w) = case pl of
 
 renderHudChartWith :: ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
 renderHudChartWith scfg hcfg cs =
-  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey)
+  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
+    (scfg ^. #sizex) (scfg ^. #sizey)
     . maybe id pad (scfg ^. #outerPad)
     . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
     . maybe id pad (scfg ^. #innerPad)
@@ -970,7 +972,8 @@ renderHudChartWith scfg hcfg cs =
 
 renderCharts :: ChartSvgStyle -> [Chart Double] -> Text
 renderCharts scfg cs =
-  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey)
+  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
+    (scfg ^. #sizex) (scfg ^. #sizey)
     . maybe id pad (scfg ^. #outerPad)
     . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
     . maybe id pad (scfg ^. #innerPad)

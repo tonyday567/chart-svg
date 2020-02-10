@@ -9,13 +9,16 @@ module Chart.Svg
     treeShape,
     treeText,
     tree,
+    groupTrees,
     strokeRect,
     transformRect,
     dagRect,
     dagText,
     dagGlyph,
     dagLine,
+    pointSvg,
     rotateDA,
+    rotatePDA,
     translateDA,
     rotateSvg,
     translateSvg,
@@ -24,7 +27,9 @@ module Chart.Svg
     xmlToText,
     writeWithXml,
     writeChartSvg,
+    writeChartSvgUnsafe,
     renderChartSvg,
+    renderChartSvgUnsafe,
   )
 where
 
@@ -46,6 +51,8 @@ import Linear.V2
 import NumHask.Space hiding (Element)
 import Text.XML.Light.Output
 import Prelude hiding (writeFile)
+import Text.XML.Light.Types as XML
+import Data.Bool
 
 -- * Svg
 
@@ -73,6 +80,7 @@ treeRect a =
 -- | Text svg
 treeText :: (Chartable a) => TextStyle -> Text -> Point a -> Tree
 treeText s t p =
+  bool id (groupTrees (mempty & attrClass .~ ["hasmathjax"]) . (:[])) (s ^. #hasMathjax) $
   TextTree Nothing (textAt (pointSvg p) t)
     & maybe id (\x -> drawAttr %~ rotatePDA x p) (realToFrac <$> s ^. #rotation)
 
@@ -189,12 +197,17 @@ tree (Chart BlankA _) =
   groupTrees mempty []
 
 -- | add drawing attributes as a group svg wrapping a [Tree]
-groupTrees :: DrawAttributes -> [Tree] -> Tree
-groupTrees da' tree' =
+groupTrees' :: DrawAttributes -> [Tree] -> Tree
+groupTrees' da' tree' =
   defaultSvg
     & drawAttr %~ (da' <>)
     & groupChildren .~ tree'
     & GroupTree
+
+-- | add drawing attributes as a group svg wrapping a [Tree]
+groupTrees :: DrawAttributes -> [Tree] -> Tree
+groupTrees da' tree' =
+  GroupTree (drawAttr %~ (<> da') $ groupChildren .~ tree' $ defaultSvg)
 
 -- * DrawAttribute computations
 
@@ -324,7 +337,7 @@ translateSvg p (ChartSvg vb c) =
 -- * rendering
 
 -- | render a ChartSvg to an xml Document with the supplied size and various bits and pieces
-renderToXmlWith :: (Real a) => Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
+renderToXmlWith :: (Real a) => Point a -> Map.Map Text.Text Svg.Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
 renderToXmlWith (Point wid hei) defs desc css fp (ChartSvg vb ts) =
   Document
     ((\(Rect x z y w) -> Just (x, - w, z - x, w - y)) $ realToFrac <$> vb)
@@ -344,13 +357,32 @@ renderToXml p = renderToXmlWith p Map.empty "" [] ""
 xmlToText :: Document -> Text
 xmlToText = Text.pack . ppcElement defaultConfigPP . xmlOfDocument
 
+-- | render an xml document to Text
+xmlToTextUnsafe :: Document -> Text
+xmlToTextUnsafe = Text.pack . ppcElement defaultConfigPP . unescapeTextElements . xmlOfDocument
+
+unescapeTextElements :: XML.Element -> XML.Element
+unescapeTextElements e = e { elContent = unescape <$> elContent e}
+
+unescape :: Content -> Content
+unescape (Elem e) = Elem (unescapeTextElements e)
+unescape (Text t) = Text (t { cdVerbatim = CDataRaw})
+unescape x = x
+
 renderChartSvg :: Double -> Double -> ChartSvg Double -> Text.Text
 renderChartSvg x y =
   xmlToText . renderToXml (Point x y)
 
+renderChartSvgUnsafe :: Double -> Double -> ChartSvg Double -> Text.Text
+renderChartSvgUnsafe x y =
+  xmlToTextUnsafe . renderToXml (Point x y)
+
 -- | write a ChartSvg to a svg file with various Document attributes.
-writeWithXml :: (Real a) => FilePath -> Point a -> Map.Map Text.Text Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
+writeWithXml :: (Real a) => FilePath -> Point a -> Map.Map Text.Text Svg.Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
 writeWithXml fp p defs desc css c = Text.writeFile fp (xmlToText $ renderToXmlWith p defs desc css fp c)
 
 writeChartSvg :: FilePath -> Point Double -> ChartSvg Double -> IO ()
 writeChartSvg fp (Point x y) cs = Text.writeFile fp (renderChartSvg x y cs)
+
+writeChartSvgUnsafe :: FilePath -> Point Double -> ChartSvg Double -> IO ()
+writeChartSvgUnsafe fp (Point x y) cs = Text.writeFile fp (renderChartSvgUnsafe x y cs)
