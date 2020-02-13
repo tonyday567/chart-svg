@@ -14,6 +14,7 @@ module Chart.Hud
     placeText,
     AxisConfig (..),
     defaultAxisConfig,
+    flipAxis,
     canvas,
     defaultCanvas,
     Bar (..),
@@ -148,6 +149,14 @@ data AxisConfig a
 
 defaultAxisConfig :: AxisConfig Double
 defaultAxisConfig = AxisConfig (Just defaultBar) (Just defaultAdjustments) defaultTick PlaceBottom
+
+flipAxis :: AxisConfig Double -> AxisConfig Double
+flipAxis ac = case ac ^. #place of
+  PlaceBottom -> ac & #place .~ PlaceLeft
+  PlaceTop -> ac & #place .~ PlaceRight
+  PlaceLeft -> ac & #place .~ PlaceBottom
+  PlaceRight -> ac & #place .~ PlaceTop
+  PlaceAbsolute _ -> ac
 
 canvas :: (Monad m, Chartable a) => RectStyle -> HudT m a
 canvas s = Hud $ \cs -> do
@@ -370,22 +379,6 @@ toFormat TickFormatDefault = precision commas 0
 toFormat (TickFormatCommas n) = precision commas n
 toFormat (TickFormatFixed n) = precision fixed n
 toFormat TickFormatDollars = fmap ("$" <>) . precision commas 2
-
-commas :: (RealFrac a, PrintfArg a) => Int -> a -> Text
-commas n a
-  | a < 1000 = fixed n a
-  | otherwise = go (floor a) ""
-  where
-    go :: Int -> Text -> Text
-    go x t
-      | x < 0 = "-" <> go (- x) ""
-      | x < 1000 = Text.pack (show x) <> t
-      | otherwise =
-        let (d, m) = divMod x 1000
-         in go d ("," <> Text.pack (show m))
-
-fixed :: (PrintfArg a) => Int -> a -> Text
-fixed n a = Text.pack $ printf ("%." <> show n <> "f") a
 
 -- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
 precision :: (Tickable a) => (Int -> a -> Text) -> Int -> [a] -> [Text]

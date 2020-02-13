@@ -197,14 +197,6 @@ tree (Chart BlankA _) =
   groupTrees mempty []
 
 -- | add drawing attributes as a group svg wrapping a [Tree]
-groupTrees' :: DrawAttributes -> [Tree] -> Tree
-groupTrees' da' tree' =
-  defaultSvg
-    & drawAttr %~ (da' <>)
-    & groupChildren .~ tree'
-    & GroupTree
-
--- | add drawing attributes as a group svg wrapping a [Tree]
 groupTrees :: DrawAttributes -> [Tree] -> Tree
 groupTrees da' tree' =
   GroupTree (drawAttr %~ (<> da') $ groupChildren .~ tree' $ defaultSvg)

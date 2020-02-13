@@ -5,12 +5,14 @@
 {-# OPTIONS_GHC -Wall #-}
 
 import Chart
+import Chart.Bar
 import Chart.Examples hiding (ts)
 import Control.Lens
 import Control.Monad (void)
 import Control.Monad.Trans.State.Lazy
 import Data.Biapplicative
 import Data.Bool
+import Data.Maybe
 import Data.Text (Text)
 import Network.Wai.Middleware.Static ((>->), addBase, noDots, staticPolicy)
 import Web.Page
@@ -33,6 +35,30 @@ repNoData css ann hc =
     hc
     10
     [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]
+  
+repBarChart :: (Monad m) => ChartSvgStyle -> BarData -> BarOptions -> SharedRep m (Text, Text)
+repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlags
+  where
+    rcss = repChartSvgStyle css
+    rbo = repBarOptions 5 defaultRectStyle defaultTextStyle bo
+    rbd = repBarData bd
+    barchartsvg css' bd' bo' =
+      renderChartSvgWith
+        css'
+        (\x -> barChart x bo' bd')
+    mmap css' bd' bo' debug =
+      ( barchartsvg css' bd' bo',
+        debugHtml debug css' (bo' ^. #barHudConfig) (bars bo' bd')
+      )
+    hmap css' bd' bo' debug =
+      accordion_
+        "accbc"
+        Nothing
+        [ ("Svg", css'),
+          ("Bar Data", bd'),
+          ("Bar Options", bo'),
+          ("Debug", debug)
+        ]
 
 repTextBB :: (Monad m) => ChartSvgStyle -> SharedRep m (Text, Text)
 repTextBB css =
@@ -171,7 +197,8 @@ main =
                               defaultHudConfig
                               (lglyph <> glines)
                           )
-                      )
+                      ),
+                      ("bar", repBarChart defaultChartSvgStyle barDataExample (defaultBarOptions (fromMaybe [] (barDataExample ^. #barColumnLabels))))
                     ]
                 ),
                 ( "main",

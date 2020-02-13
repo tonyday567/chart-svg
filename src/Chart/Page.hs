@@ -23,6 +23,7 @@ module Chart.Page
     repChartSvgStyle,
     repData,
     repTickFormat,
+    repFormatN,
     repTickStyle,
     repTick,
     repPoint,
@@ -39,12 +40,15 @@ module Chart.Page
     debugHtml,
     debugFlags,
     repHudConfigDefault,
+    repBarOptions,
+    repBarData,
   )
 where
 
 import Chart.Core
 import Chart.Hud
 import Chart.Types
+import Chart.Bar
 import Control.Lens
 import Data.Attoparsec.Text
 import Data.Biapplicative
@@ -243,6 +247,16 @@ repAnchor a =
       (Just "Anchor")
       (fromAnchor <$> [AnchorStart, AnchorMiddle, AnchorEnd])
       (fromAnchor a)
+
+repOrientation :: (Monad m) => Orientation -> SharedRep m Orientation
+repOrientation a =
+  toOrientation
+    <$> dropdown
+      takeText
+      id
+      (Just "Orientation")
+      (fromOrientation <$> [Vert, Hori])
+      (fromOrientation a)
 
 repBar :: (Monad m) => Bar Double -> SharedRep m (Bar Double)
 repBar cfg = do
@@ -455,6 +469,37 @@ repTickFormat tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
       "TickFormatDollars" -> TickFormatDollars
       _ -> TickFormatDefault
 
+repFormatN :: (Monad m) => FormatN -> SharedRep m FormatN
+repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
+  where
+    tformat =
+      dropdownSum
+        takeText
+        id
+        (Just "Format")
+        [ "Comma",
+          "Fixed",
+          "None"
+        ]
+        (fromFormatN tf)
+    tcommas = sliderI (Just "prec") 0 8 1 (defInt tf)
+    tfixed = sliderI (Just "prec") 0 8 1 (defInt tf)
+    defInt tf' = case tf' of
+      FormatComma n -> n
+      FormatFixed n -> n
+      _ -> 3
+    hmap tformat' tcommas' tfixed' =
+      div_
+        ( tformat'
+            <> subtype tcommas' (fromFormatN tf) "Comma"
+            <> subtype tfixed' (fromFormatN tf) "Fixed"
+        )
+    mmap tformat' tcommas' tfixed' = case tformat' of
+      "Comma" -> FormatComma tcommas'
+      "Fixed" -> FormatFixed tfixed'
+      "None" -> FormatNone
+      _ -> FormatNone
+
 repTickStyle :: (Monad m) => TickStyle Double -> SharedRep m (TickStyle Double)
 repTickStyle cfg =
   bimap hmap mmap ts <<*>> ls <<*>> tr <<*>> te <<*>> tplaced
@@ -526,45 +571,6 @@ repTickStyle cfg =
     defExtend = case cfg of
       TickRound _ _ e -> e == TickExtend
       _ -> True
-
-{-
-repTick :: (Monad m) => Tick Double -> SharedRep m (Tick Double)
-repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
-  where
-    ts = repTickStyle (cfg ^. #tstyle)
-    gt =
-      maybeRep Nothing (isJust (cfg ^. #gtick)) $
-        bimap
-          (<>)
-          (,)
-          (repGlyphStyle (maybe defaultGlyphTick fst (cfg ^. #gtick)))
-          <<*>> slider (Just "buffer") 0 0.05 0.001 (maybe 0.05 snd (cfg ^. #gtick))
-    tt =
-      maybeRep Nothing (isJust (cfg ^. #ttick)) $
-        bimap
-          (<>)
-          (,)
-          (repTextStyle (maybe defaultTextTick fst (cfg ^. #ttick)))
-          <<*>> slider (Just "buffer") 0 0.05 0.001 (maybe 0.05 snd (cfg ^. #ttick))
-    lt =
-      maybeRep Nothing (isJust (cfg ^. #ltick)) $
-        bimap
-          (<>)
-          (,)
-          (repLineStyle (maybe defaultLineTick fst (cfg ^. #ltick)))
-          <<*>> slider (Just "buffer") (-0.1) 0.1 0.001 (maybe 0 snd (cfg ^. #ltick))
-    hmap ts' gt' tt' lt' =
-      accordion_
-        "acctick"
-        Nothing
-        [ ("style", ts'),
-          ("glyph", gt'),
-          ("text", tt'),
-          ("line", lt')
-        ]
-
--}
-
 
 repTick :: (Monad m) => Tick Double -> SharedRep m (Tick Double)
 repTick cfg = SharedRep $ do
@@ -719,7 +725,7 @@ repChoice initt xs =
   where
     ts = fst <$> xs
     cs = snd <$> xs
-    dd = dropdownSum takeText id (Just "Chart Family") ts t0
+    dd = dropdownSum takeText id Nothing ts t0
     t0 = ts !! initt
     hmap dd' cs' =
       div_
@@ -925,7 +931,7 @@ debugFlags =
   bimap
     (\a b c -> a <> b <> c)
     (,,)
-    (checkbox (Just "show hudConfig values") True)
+    (checkbox (Just "show hudConfig values") False)
     <<*>> checkbox (Just "show chart svg") False
     <<*>> checkbox (Just "show Chart values") False
 
@@ -941,3 +947,91 @@ repHudConfigDefault hc =
     BlankA
     ""
     hc
+
+repBarOptions ::
+  (Monad m) =>
+  Int ->
+  RectStyle ->
+  TextStyle ->
+  BarOptions ->
+  SharedRep m BarOptions
+repBarOptions nrows defrs defts cfg =
+  bimap hmap BarOptions rs
+    <<*>> ts
+    <<*>> og
+    <<*>> ig
+    <<*>> tg
+    <<*>> dv
+    <<*>> fn
+    <<*>> av
+    <<*>> or
+    <<*>> ho
+  where
+    rs =
+      listRep
+        (Just "bar styles")
+        "rs"
+        (checkbox Nothing)
+        repRectStyle
+        nrows
+        defrs
+        (cfg ^. #barRectStyles)
+    ts =
+      listRep
+        (Just "text styles")
+        "ts"
+        (checkbox Nothing)
+        repTextStyle
+        nrows
+        defts
+        (cfg ^. #barTextStyles)
+    og = slider (Just "outer gap") 0.0 1.0 0.001 (cfg ^. #outerGap)
+    ig = slider (Just "inner gap") (-1.0) 1 0.001 (cfg ^. #innerGap)
+    tg = slider (Just "text gap") (-0.05) 0.05 0.001 (cfg ^. #textGap)
+    dv = checkbox (Just "display values") (cfg ^. #displayValues)
+    fn = repFormatN (cfg ^. #valueFormatN)
+    av = checkbox (Just "accumulate values") (cfg ^. #accumulateValues)
+    or = repOrientation (cfg ^. #orientation)
+    ho = repHudConfig
+        2
+        3
+        defaultAxisConfig
+        (defaultTitle "bar options")
+        (maybe defaultLegendOptions snd (cfg ^. #barHudConfig . #hudLegend))
+        (maybe (LegendManual []) fst (cfg ^. #barHudConfig . #hudLegend))
+        BlankA
+        ""
+        (cfg ^. #barHudConfig)
+
+    hmap rs' ts' og' ig' tg' dv' fn' av' or' ho' =
+      accordion_
+        "accbo"
+        Nothing
+        [ ("Bar Styles", rs'),
+          ("Text Styles", ts'),
+          ("Gaps", og' <> ig' <> tg'),
+          ("Style", dv' <> fn' <> av' <> or'),
+          ("Hud", ho')
+        ]
+
+repBarData ::
+  (Monad m) =>
+  BarData ->
+  SharedRep m BarData
+repBarData initbd =
+  bimap hmap BarData bd
+    <<*>> rl
+    <<*>> cl
+  where
+    rl =
+      maybeRep Nothing (isJust (initbd ^. #barRowLabels))
+      (either (const []) id <$>
+       readTextbox (Just "row labels") (fromMaybe [] (initbd ^. #barRowLabels)))
+    cl =
+      maybeRep Nothing (isJust (initbd ^. #barColumnLabels))
+      (either (const []) id <$>
+       readTextbox (Just "column labels") (fromMaybe [] (initbd ^. #barColumnLabels)))
+    bd =
+      either (const (pure [])) id <$>
+      readTextbox (Just "bar data") (initbd ^. #barData)
+    hmap rl' cl' bd' = rl' <> cl' <> bd'

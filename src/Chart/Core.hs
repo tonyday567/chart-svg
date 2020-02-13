@@ -1,12 +1,15 @@
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Core
   ( pShow',
     renderChartWith,
     renderChart,
+    renderChartSvgWith,
     writeChartWith,
     writeChart,
+    writeChartSvgWith,
     chartSvg_,
     chartSvg,
     chartSvgWith,
@@ -44,6 +47,9 @@ module Chart.Core
     hori,
     vert,
     moveChart,
+    fixed,
+    commas,
+    formatN,
   )
 where
 
@@ -63,6 +69,7 @@ import qualified Data.Text.IO as Text
 import NumHask.Space
 import Prelude
 import Text.Pretty.Simple (pShowNoColor)
+import Text.Printf
 
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor
@@ -80,8 +87,21 @@ renderChartWith scfg cs =
 renderChart :: [Chart Double] -> Text.Text
 renderChart = renderChartWith defaultChartSvgStyle
 
+renderChartSvgWith :: ChartSvgStyle -> (Rect Double -> ChartSvg Double) -> Text.Text
+renderChartSvgWith scfg f =
+  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey)
+    . maybe id pad (scfg ^. #outerPad)
+    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
+    . maybe id pad (scfg ^. #innerPad)
+    $ (f (aspect (scfg ^. #chartAspect))
+      <> chartSvg (aspect (scfg ^. #chartAspect))
+       (maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)))
+
 writeChartWith :: FilePath -> ChartSvgStyle -> [Chart Double] -> IO ()
 writeChartWith fp scfg cs = Text.writeFile fp (renderChartWith scfg cs)
+
+writeChartSvgWith :: FilePath -> ChartSvgStyle -> (Rect Double -> ChartSvg Double) -> IO ()
+writeChartSvgWith fp scfg cs = Text.writeFile fp (renderChartSvgWith scfg cs)
 
 -- | write a ChartSvg to an svg file.
 writeChart :: FilePath -> [Chart Double] -> IO ()
@@ -367,3 +387,24 @@ vert gap cs = foldl step [] cs
 
 moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs
+
+commas :: (RealFrac a, PrintfArg a) => Int -> a -> Text
+commas n a
+  | a < 1000 = fixed n a
+  | otherwise = go (floor a) ""
+  where
+    go :: Int -> Text -> Text
+    go x t
+      | x < 0 = "-" <> go (- x) ""
+      | x < 1000 = Text.pack (show x) <> t
+      | otherwise =
+        let (d, m) = divMod x 1000
+         in go d ("," <> Text.pack (show m))
+
+fixed :: (PrintfArg a) => Int -> a -> Text
+fixed n a = Text.pack $ printf ("%." <> show n <> "f") a
+
+formatN :: (PrintfArg a, RealFrac a, Show a) => FormatN -> a -> Text
+formatN (FormatFixed n) x = fixed n x
+formatN (FormatComma n) x = commas n x
+formatN FormatNone x = Text.pack (show x)

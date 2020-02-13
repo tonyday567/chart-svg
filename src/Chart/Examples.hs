@@ -7,6 +7,7 @@
 module Chart.Examples where
 
 import Chart
+import Chart.Bar
 import Control.Applicative
 import Control.Lens
 import qualified Data.Map as Map
@@ -579,6 +580,13 @@ writeChartExample t (Ex css' hc' _ anns' spots') = Text.writeFile t $ renderHudC
 linkExample :: ChartSvg Double
 linkExample = ChartSvg (Rect (-100) 400 (-100) 400) [treeText (defaultTextStyle & #color .~ PixelRGB8 93 165 218) "<a xlink:href='http://www.google.com'>google</a>" (Chart.Point 0 0)]
 
+barDataExample :: BarData
+barDataExample =
+  BarData
+  [[1,2,3,5,8,0,-2,11,2,1], [1..10]]
+  (Just (("row "<>) . Text.pack . show <$> [1..11]))
+  (Just (("column "<>) . Text.pack . show <$> [1..2]))
+
 writeAllExamples :: IO ()
 writeAllExamples = do
   writeChart "other/mempty.svg" []
@@ -632,4 +640,5 @@ writeAllExamples = do
     (Point 400 400)
     (pad 1.1 (tri3ss 0.0001 0.0001 0 0 (Just (Rect 0 4000 0 4000)) 100))
   writeChartSvgUnsafe "other/link.svg" (Chart.Point 300 300) linkExample
+  writeChartSvgWith "other/bar.svg" defaultChartSvgStyle (\x -> barChart x (defaultBarOptions (fromMaybe [] (barDataExample ^. #barColumnLabels))) barDataExample)
   putStrLn " 👍"

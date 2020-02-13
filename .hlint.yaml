@@ -3,6 +3,7 @@
 - ignore: {name: Use first}
 - ignore: {name: Avoid lambda}
 - ignore: {name: Reduce duplication, within: Chart.Examples}
+- ignore: {name: Reduce duplication, within: Chart.Bar}
 # Replace a $ b $ c with a . b $ c
 - group: {name: dollar, enabled: true}
 

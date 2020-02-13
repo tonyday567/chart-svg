@@ -22,6 +22,7 @@ source-repository head
 library
   exposed-modules:
     Chart
+    Chart.Bar
     Chart.Core
     Chart.Examples
     Chart.Hud
@@ -36,7 +37,10 @@ library
     , attoparsec
     , base >=4.7 && <5
     , bifunctors
+    , colour
+    , palette
     , containers
+    , foldl
     , generic-lens
     , linear
     , lucid

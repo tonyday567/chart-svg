@@ -14,6 +14,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Types
@@ -33,6 +34,9 @@ module Chart.Types
     Anchor (..),
     fromAnchor,
     toAnchor,
+    FormatN (..),
+    fromFormatN,
+    toFormatN,
     GlyphStyle (..),
     defaultGlyphStyle,
     GlyphShape (..),
@@ -40,11 +44,17 @@ module Chart.Types
     LineStyle (..),
     defaultLineStyle,
     ChartSvg (..),
+    Orientation(..),
+    fromOrientation,
+    toOrientation,
     blue,
     grey,
     black,
     white,
     red,
+    toColour,
+    fromColour,
+    d3Palette1,
     ChartException (..),
     ChartSvgStyle (..),
     defaultChartSvgStyle,
@@ -67,6 +77,9 @@ import GHC.Generics
 import Graphics.Svg (DrawAttributes (..), Tree (..))
 import NumHask.Space
 import Prelude
+import qualified Data.Colour.RGBSpace as C
+import qualified Data.Colour.SRGB.Linear as C
+import qualified Data.Colour.Palette.ColorSet as C
 
 data ChartException = NotYetImplementedException deriving (Show)
 
@@ -161,6 +174,19 @@ toAnchor "Start" = AnchorStart
 toAnchor "End" = AnchorEnd
 toAnchor _ = AnchorMiddle
 
+data FormatN = FormatFixed Int | FormatComma Int | FormatNone deriving (Eq, Show, Generic)
+
+fromFormatN :: (IsString s) => FormatN -> s
+fromFormatN (FormatFixed _) = "Fixed"
+fromFormatN (FormatComma _) = "Comma"
+fromFormatN FormatNone = "None"
+
+toFormatN :: (Eq s, IsString s) => s -> Int -> FormatN
+toFormatN "Fixed" n = FormatFixed n
+toFormatN "Comma" n = FormatComma n
+toFormatN "None" _ = FormatNone
+toFormatN _ _ = FormatNone
+
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
@@ -253,6 +279,18 @@ instance (Ord a) => Semigroup (ChartSvg a) where
 instance (Chartable a) => Monoid (ChartSvg a) where
   mempty = ChartSvg unitRect mempty
 
+-- | Verticle or Horizontal
+data Orientation = Vert | Hori deriving (Eq, Show, Generic)
+
+fromOrientation :: (IsString s) => Orientation -> s
+fromOrientation Hori = "Hori"
+fromOrientation Vert = "Vert"
+
+toOrientation :: (Eq s, IsString s) => s -> Orientation
+toOrientation "Hori" = Hori
+toOrientation "Vert" = Vert
+toOrientation _ = Hori
+
 -- * color
 
 -- | the official chart-unit blue
@@ -275,6 +313,21 @@ white = PixelRGB8 255 255 255
 red :: PixelRGB8
 red = PixelRGB8 255 0 0
 
+-- | convert a 'PixelRGB8' to a 'Colour' representation.
+toColour :: PixelRGB8 -> C.Colour Double
+toColour (PixelRGB8 r g b) =
+  C.rgb (fromIntegral r / 256.0) (fromIntegral g / 256.0) (fromIntegral b / 256.0)
+
+-- | convert a 'Colour' to a 'PixelRGB8' representation.
+fromColour :: C.Colour Double -> PixelRGB8
+fromColour (C.toRGB -> C.RGB r g b) =
+  PixelRGB8 (floor (256 * r)) (floor (256 * g)) (floor (256 * b))
+
+-- | the d3 palette
+d3Palette1 :: [PixelRGB8]
+d3Palette1 = fromColour . C.d3Colors1 <$> [0..9]
+
+-- | Top-level SVG options.
 data ChartSvgStyle
   = ChartSvgStyle
       { sizex :: Double,
