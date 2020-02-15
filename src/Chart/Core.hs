@@ -46,6 +46,7 @@ module Chart.Core
     p0,
     hori,
     vert,
+    stack,
     moveChart,
     fixed,
     commas,
@@ -384,6 +385,14 @@ vert gap cs = foldl step [] cs
   where
     step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP 0 (w x) + s)))
     w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
+
+-- stack a list of charts horizontally, then vertically
+stack :: Chartable a => Int -> a -> [[Chart a]] -> [Chart a]
+stack _ _ [] = []
+stack n gap cs = vert gap (hori gap <$> group' cs [])
+  where
+    group' [] acc = reverse acc
+    group' x acc = group' (drop n x) (take n x:acc)
 
 moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs

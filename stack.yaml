@@ -3,13 +3,15 @@ resolver: lts-14.13
 packages:
   - .
   - ../web-rep
+  - ../box
+  - ../numhask-space
 
 extra-deps:
   - lucid-svg-0.7.1
   - javascript-bridge-0.2.0
-  - box-0.1.0
+  # - box-0.1.0
   # - web-rep-0.2.0
-  - numhask-space-0.3.0
+  # - numhask-space-0.3.0
   - tdigest-0.2.1
   - interpolatedstring-perl6-1.0.2
   - text-format-0.3.2

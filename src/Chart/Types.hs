@@ -74,7 +74,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Exts
 import GHC.Generics
-import Graphics.Svg (DrawAttributes (..), Tree (..))
+import Graphics.Svg (DrawAttributes (..), Tree (..), PathCommand)
 import NumHask.Space
 import Prelude
 import qualified Data.Colour.RGBSpace as C
@@ -236,6 +236,7 @@ data GlyphShape
   | VLineGlyph Double
   | HLineGlyph Double
   | SmileyGlyph
+  | PathGlyph [PathCommand]
   deriving (Show, Eq, Generic)
 
 glyphText :: GlyphShape -> Text
@@ -250,6 +251,7 @@ glyphText sh =
     VLineGlyph _ -> "VLine"
     HLineGlyph _ -> "HLine"
     SmileyGlyph -> "Smiley"
+    PathGlyph _ -> "Path"
 
 -- | line style
 data LineStyle
