@@ -437,7 +437,7 @@ repData d = do
     )
 
 repFormatN :: (Monad m) => FormatN -> SharedRep m FormatN
-repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
+repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed <<*>> texpt
   where
     tformat =
       dropdownSum
@@ -446,24 +446,30 @@ repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
         (Just "Format")
         [ "Comma",
           "Fixed",
+          "Expt",
+          "Dollar",
           "None"
         ]
         (fromFormatN tf)
     tcommas = sliderI (Just "prec") 0 8 1 (defInt tf)
     tfixed = sliderI (Just "prec") 0 8 1 (defInt tf)
+    texpt = sliderI (Just "prec") 0 8 1 (defInt tf)
     defInt tf' = case tf' of
       FormatComma n -> n
       FormatFixed n -> n
       _ -> 3
-    hmap tformat' tcommas' tfixed' =
+    hmap tformat' tcommas' tfixed' texpt'=
       div_
         ( tformat'
             <> subtype tcommas' (fromFormatN tf) "Comma"
             <> subtype tfixed' (fromFormatN tf) "Fixed"
+            <> subtype texpt' (fromFormatN tf) "Expt"
         )
-    mmap tformat' tcommas' tfixed' = case tformat' of
+    mmap tformat' tcommas' tfixed' texpt' = case tformat' of
       "Comma" -> FormatComma tcommas'
       "Fixed" -> FormatFixed tfixed'
+      "Expt" -> FormatExpt texpt'
+      "Dollar" -> FormatDollar
       "None" -> FormatNone
       _ -> FormatNone
 
