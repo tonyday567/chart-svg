@@ -163,6 +163,7 @@ main =
                   repChoice
                     0
                     [ ("hockey", repEx hockey),
+                      ("hockey*1000", repEx (hockey' (Point 1000 1000))),
                       ("unit", repEx oneExample),
                       ("rect", repEx normExample),
                       ("text", repEx textExample),

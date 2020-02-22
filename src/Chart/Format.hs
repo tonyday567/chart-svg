@@ -68,7 +68,9 @@ comma n a
       | x < 1000 = Text.pack (show x) <> t
       | otherwise =
         let (d, m) = divMod x 1000
-         in go d ("," <> Text.pack (show m))
+         in go d ("," <> Text.pack (show' m))
+      where
+        show' n' = let x' = show n' in (replicate (3-length x') '0' <> x')
 
 expt :: Int -> Double -> Text
 expt x n = Text.pack $ formatScientific Exponent (Just x) (fromFloatDigits n)

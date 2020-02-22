@@ -68,6 +68,20 @@ hockey =
     (LineA <$> lopts)
     (fmap SpotPoint <$> ls)
 
+-- | line example
+hockey' :: Point Double -> Ex
+hockey' (Point x' y') =
+  Ex
+    defaultChartSvgStyle
+    ( exampleHudConfig
+        "Example Chart"
+        (Just "An example from chart-svg")
+        (lrs, legopts)
+    )
+    3
+    (LineA <$> lopts)
+    (fmap SpotPoint <$> fmap (\(Point x y) -> Point (x*x') (y*y')) <$> ls)
+
 ls :: [[Point Double]]
 ls =
   fmap (uncurry Point)
@@ -275,8 +289,10 @@ sinHudConfig =
   (#hudAxes . element 0 . #atick . #ttick . _Just . _1 . #hasMathjax .~ True) &
   (#hudAxes . element 1 . #atick . #tstyle .~ sinYTicks) &
   #hudTitles .~
-    [ (defaultTitle "mathjax was here: \\(x \\over \\pi\\)") & #style . #hasMathjax .~ True & #place .~ PlaceBottom
-    , (defaultTitle "<a xlink:href='https://www.google.com'>google</a>") & #place .~ PlaceRight & #style . #size .~ 0.06
+    [ defaultTitle "mathjax was here: \\(x \\over \\pi\\)" & #style . #hasMathjax .~ True & #place .~ PlaceBottom
+    , defaultTitle "<a xlink:href='https://www.google.com'>google</a>" &
+      #place .~ PlaceRight &
+      #style . #size .~ 0.06
     ]
 
 simpleMathjaxConfig :: HudConfig
