@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Core
@@ -48,9 +47,6 @@ module Chart.Core
     vert,
     stack,
     moveChart,
-    fixed,
-    commas,
-    formatN,
   )
 where
 
@@ -70,7 +66,6 @@ import qualified Data.Text.IO as Text
 import NumHask.Space
 import Prelude
 import Text.Pretty.Simple (pShowNoColor)
-import Text.Printf
 
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor
@@ -397,23 +392,3 @@ stack n gap cs = vert gap (hori gap <$> group' cs [])
 moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs
 
-commas :: (RealFrac a, PrintfArg a) => Int -> a -> Text
-commas n a
-  | a < 1000 = fixed n a
-  | otherwise = go (floor a) ""
-  where
-    go :: Int -> Text -> Text
-    go x t
-      | x < 0 = "-" <> go (- x) ""
-      | x < 1000 = Text.pack (show x) <> t
-      | otherwise =
-        let (d, m) = divMod x 1000
-         in go d ("," <> Text.pack (show m))
-
-fixed :: (PrintfArg a) => Int -> a -> Text
-fixed n a = Text.pack $ printf ("%." <> show n <> "f") a
-
-formatN :: (PrintfArg a, RealFrac a, Show a) => FormatN -> a -> Text
-formatN (FormatFixed n) x = fixed n x
-formatN (FormatComma n) x = commas n x
-formatN FormatNone x = Text.pack (show x)

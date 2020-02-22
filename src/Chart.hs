@@ -8,6 +8,7 @@ module Chart
     module Chart.Core,
     module Chart.Svg,
     module Chart.Hud,
+    module Chart.Format,
     module Chart.Page,
     module NumHask.Space,
     PixelRGB8 (..),
@@ -17,6 +18,7 @@ where
 import Chart.Core
 import Chart.Hud
 import Chart.Page
+import Chart.Format
 import Chart.Svg
 import Chart.Types
 import Codec.Picture.Types

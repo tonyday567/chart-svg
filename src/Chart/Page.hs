@@ -22,7 +22,6 @@ module Chart.Page
     repAxisConfig,
     repChartSvgStyle,
     repData,
-    repTickFormat,
     repFormatN,
     repTickStyle,
     repTick,
@@ -48,6 +47,7 @@ where
 import Chart.Core
 import Chart.Hud
 import Chart.Types
+import Chart.Format
 import Chart.Bar
 import Control.Lens
 import Data.Attoparsec.Text
@@ -206,7 +206,7 @@ repLineStyle s = do
   o <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
   pure $ LineStyle w c o
 
-repPlace :: (Monad m) => Place Double -> SharedRep m (Place Double)
+repPlace :: (Monad m) => Place -> SharedRep m Place
 repPlace initpl = bimap hmap mmap rplace <<*>> rp
   where
     rplace =
@@ -258,7 +258,7 @@ repOrientation a =
       (fromOrientation <$> [Vert, Hori])
       (fromOrientation a)
 
-repBar :: (Monad m) => Bar Double -> SharedRep m (Bar Double)
+repBar :: (Monad m) => Bar -> SharedRep m Bar
 repBar cfg = do
   r <- repRectStyle (cfg ^. #rstyle)
   w <- slider (Just "width") 0 0.1 0.01 (cfg ^. #wid)
@@ -273,7 +273,7 @@ repAdjustments a = do
   diag <- checkbox (Just "allow diagonal text") (a ^. #allowDiagonal)
   pure $ Adjustments maxx maxy angle diag
 
-repTitle :: (Monad m) => Title Double -> SharedRep m (Title Double)
+repTitle :: (Monad m) => Title -> SharedRep m Title
 repTitle cfg = do
   ttext <- textbox (Just "text") (cfg ^. #text)
   ts <- repTextStyle (cfg ^. #style)
@@ -286,9 +286,9 @@ repHudConfig ::
   (Monad m) =>
   Int ->
   Int ->
-  AxisConfig Double ->
-  Title Double ->
-  LegendOptions Double ->
+  AxisConfig ->
+  Title ->
+  LegendOptions ->
   LegendRows ->
   Annotation ->
   Text ->
@@ -338,7 +338,7 @@ repHudConfig naxes ntitles defaxis deftitle deflegend deflrs defann deflabel cfg
           ("Legend", l')
         ]
 
-repAxisConfig :: (Monad m) => AxisConfig Double -> SharedRep m (AxisConfig Double)
+repAxisConfig :: (Monad m) => AxisConfig -> SharedRep m AxisConfig
 repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
   where
     b =
@@ -436,39 +436,6 @@ repData d = do
         _ -> SpotPoint <$> gridP sin (Range 0 (2 * pi)) 30
     )
 
-repTickFormat :: (Monad m) => TickFormat -> SharedRep m TickFormat
-repTickFormat tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
-  where
-    tformat =
-      dropdownSum
-        takeText
-        id
-        (Just "Tick Format")
-        [ "TickFormatDefault",
-          "TickFormatCommas",
-          "TickFormatFixed",
-          "TickFormatDollars"
-        ]
-        (tickFormatText tf)
-    tcommas = sliderI (Just "prec") 0 8 1 (defInt tf)
-    tfixed = sliderI (Just "prec") 0 8 1 (defInt tf)
-    defInt tf' = case tf' of
-      TickFormatCommas n -> n
-      TickFormatFixed n -> n
-      _ -> 3
-    hmap tformat' tcommas' tfixed' =
-      div_
-        ( tformat'
-            <> subtype tcommas' (tickFormatText tf) "TickFormatCommas"
-            <> subtype tfixed' (tickFormatText tf) "TickFormatFixed"
-        )
-    mmap tformat' tcommas' tfixed' = case tformat' of
-      "TickFormatDefault" -> TickFormatDefault
-      "TickFormatCommas" -> TickFormatCommas tcommas'
-      "TickFormatFixed" -> TickFormatFixed tfixed'
-      "TickFormatDollars" -> TickFormatDollars
-      _ -> TickFormatDefault
-
 repFormatN :: (Monad m) => FormatN -> SharedRep m FormatN
 repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
   where
@@ -500,7 +467,7 @@ repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed
       "None" -> FormatNone
       _ -> FormatNone
 
-repTickStyle :: (Monad m) => TickStyle Double -> SharedRep m (TickStyle Double)
+repTickStyle :: (Monad m) => TickStyle -> SharedRep m TickStyle
 repTickStyle cfg =
   bimap hmap mmap ts <<*>> ls <<*>> tr <<*>> te <<*>> tplaced
   where
@@ -522,14 +489,14 @@ repTickStyle cfg =
     tr =
       (,,)
         <$> sliderI (Just "Number of ticks") 0 20 1 defTn
-        <*> repTickFormat defTf
+        <*> repFormatN defTf
         <*> ( bool NoTickExtend TickExtend
                 <$> checkbox (Just "extend") defExtend
             )
     te =
       (,)
         <$> sliderI (Just "Number of ticks") 0 20 1 defTn
-        <*> repTickFormat defTf
+        <*> repFormatN defTf
     tplaced =
       accordionList
         (Just "placed ticks")
@@ -567,12 +534,12 @@ repTickStyle cfg =
     defTf = case cfg of
       TickRound x _ _ -> x
       TickExact x _ -> x
-      _ -> TickFormatDefault
+      _ -> FormatComma 2
     defExtend = case cfg of
       TickRound _ _ e -> e == TickExtend
       _ -> True
 
-repTick :: (Monad m) => Tick Double -> SharedRep m (Tick Double)
+repTick :: (Monad m) => Tick -> SharedRep m Tick
 repTick cfg = SharedRep $ do
   (Rep h fa) <-
     unrep $ bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
@@ -734,7 +701,7 @@ repChoice initt xs =
         )
     mmap dd' cs' = maybe (Data.List.head cs') (cs' !!) (elemIndex dd' ts)
 
-repLegend :: (Monad m) => LegendOptions Double -> SharedRep m (LegendOptions Double)
+repLegend :: (Monad m) => LegendOptions -> SharedRep m LegendOptions
 repLegend initl = LegendOptions <$> lsize' <*> hgap' <*> vgap' <*> ltext' <*> lmax' <*> innerPad' <*> outerPad' <*> legendFrame' <*> lplace' <*> scale'
   where
     lsize' = slider (Just "glyph size") 0.000 0.5 0.001 (initl ^. #lsize)

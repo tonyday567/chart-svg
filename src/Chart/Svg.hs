@@ -169,7 +169,7 @@ treeShape SmileyGlyph s' p =
   where
     s = realToFrac s'
     (Point x y) = realToFrac <$> p
-treeShape (PathGlyph pcs) s p =
+treeShape (PathGlyph pcs) _ _ =
   PathTree $ Path mempty pcs
 
 -- | GlyphStyle to svg Tree

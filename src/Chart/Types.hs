@@ -34,9 +34,6 @@ module Chart.Types
     Anchor (..),
     fromAnchor,
     toAnchor,
-    FormatN (..),
-    fromFormatN,
-    toFormatN,
     GlyphStyle (..),
     defaultGlyphStyle,
     GlyphShape (..),
@@ -173,19 +170,6 @@ toAnchor "Middle" = AnchorMiddle
 toAnchor "Start" = AnchorStart
 toAnchor "End" = AnchorEnd
 toAnchor _ = AnchorMiddle
-
-data FormatN = FormatFixed Int | FormatComma Int | FormatNone deriving (Eq, Show, Generic)
-
-fromFormatN :: (IsString s) => FormatN -> s
-fromFormatN (FormatFixed _) = "Fixed"
-fromFormatN (FormatComma _) = "Comma"
-fromFormatN FormatNone = "None"
-
-toFormatN :: (Eq s, IsString s) => s -> Int -> FormatN
-toFormatN "Fixed" n = FormatFixed n
-toFormatN "Comma" n = FormatComma n
-toFormatN "None" _ = FormatNone
-toFormatN _ _ = FormatNone
 
 -- | the offical text style
 defaultTextStyle :: TextStyle

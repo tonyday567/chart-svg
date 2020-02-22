@@ -29,7 +29,7 @@ data Ex
       }
   deriving (Eq, Show, Generic)
 
-exampleHudConfig :: Text -> Maybe Text -> (LegendRows, LegendOptions Double) -> HudConfig
+exampleHudConfig :: Text -> Maybe Text -> (LegendRows, LegendOptions) -> HudConfig
 exampleHudConfig t1 t2 legends' =
   defaultHudConfig
     & #hudTitles
@@ -40,7 +40,7 @@ exampleHudConfig t1 t2 legends' =
              <> maybe
                []
                ( \x ->
-                   [ (defaultTitle x :: Title Double)
+                   [ defaultTitle x
                        & #style . #size .~ 0.05
                        & #style . #opacity .~ 0.6
                        & #place .~ PlaceBottom
@@ -86,14 +86,14 @@ lopts =
       & #opacity .~ 1.0
   ]
 
-legopts :: LegendOptions Double
+legopts :: LegendOptions
 legopts =
-  (defaultLegendOptions :: LegendOptions Double)
-    & #lsize .~ (0.2 :: Double)
+  defaultLegendOptions
+    & #lsize .~ 0.2
     & #ltext . #size .~ 0.25
-    & #innerPad .~ (0.05 :: Double)
-    & #scale .~ (0.25 :: Double)
-    & #lplace .~ PlaceAbsolute (Point 0.5 (-0.3 :: Double))
+    & #innerPad .~ 0.05
+    & #scale .~ 0.25
+    & #lplace .~ PlaceAbsolute (Point 0.5 (-0.3))
 
 lrs :: LegendRows
 lrs = LegendFromChart ["hockey", "green", "vertical"]
@@ -275,19 +275,19 @@ sinHudConfig =
   (#hudAxes . element 0 . #atick . #ttick . _Just . _1 . #hasMathjax .~ True) &
   (#hudAxes . element 1 . #atick . #tstyle .~ sinYTicks) &
   #hudTitles .~
-    [ (defaultTitle "mathjax was here: \\(x \\over \\pi\\)" :: Title Double) & #style . #hasMathjax .~ True & #place .~ PlaceBottom
-    , (defaultTitle "<a xlink:href='https://www.google.com'>google</a>" :: Title Double) & #place .~ PlaceRight & #style . #size .~ 0.06
+    [ (defaultTitle "mathjax was here: \\(x \\over \\pi\\)") & #style . #hasMathjax .~ True & #place .~ PlaceBottom
+    , (defaultTitle "<a xlink:href='https://www.google.com'>google</a>") & #place .~ PlaceRight & #style . #size .~ 0.06
     ]
 
 simpleMathjaxConfig :: HudConfig
 simpleMathjaxConfig = mempty &   #hudTitles .~
-    [ (defaultTitle "mathjax was here: \\(x \\over \\pi\\)" :: Title Double) & #style . #hasMathjax .~ True & #place .~ PlaceBottom
+    [ (defaultTitle "mathjax was here: \\(x \\over \\pi\\)") & #style . #hasMathjax .~ True & #place .~ PlaceBottom
     ]
 
-sinYTicks :: TickStyle Double
+sinYTicks :: TickStyle
 sinYTicks = TickPlaced $ (\x -> (x, Text.pack $ show x)) <$> [-1,-0.5,0,0.5,1]
 
-sinXTicks :: TickStyle Double
+sinXTicks :: TickStyle
 sinXTicks = TickPlaced [(0,"zero"), (pi/2, "π/2"), (pi, "π"), (3 * pi / 2, "3π/2"), (2 * pi, "\\(2 \\pi \\)")]
 
 -- textual

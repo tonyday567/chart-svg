@@ -218,10 +218,10 @@ main =
                         & #hudLegend
                         .~ Just
                           ( LegendManual l1,
-                            (defaultLegendOptions :: LegendOptions Double)
-                              & #scale .~ (0.3 :: Double)
-                              & #lplace .~ PlaceAbsolute (Point (0.0 :: Double) 0.0)
-                              & #lsize .~ (0.12 :: Double)
+                            defaultLegendOptions
+                              & #scale .~ 0.3
+                              & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
+                              & #lsize .~ 0.12
                               & #ltext . #size .~ 0.16
                           )
                     )
@@ -234,10 +234,10 @@ main =
                         & #hudLegend
                         .~ Just
                           ( LegendManual l2,
-                            (defaultLegendOptions :: LegendOptions Double)
-                              & #scale .~ (0.3 :: Double)
-                              & #lplace .~ PlaceAbsolute (Point (0.0 :: Double) 0.0)
-                              & #lsize .~ (0.12 :: Double)
+                            defaultLegendOptions
+                              & #scale .~ 0.3
+                              & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
+                              & #lsize .~ 0.12
                               & #ltext . #size .~ 0.16
                           )
                     )

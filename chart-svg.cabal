@@ -25,6 +25,7 @@ library
     Chart.Bar
     Chart.Core
     Chart.Examples
+    Chart.Format
     Chart.Hud
     Chart.Svg
     Chart.Page
@@ -47,6 +48,7 @@ library
     , lens
     , numhask-space
     , pretty-simple
+    , protolude
     , scientific
     , svg-tree
     , text
@@ -68,6 +70,7 @@ executable examples
     , lens
     , javascript-bridge
     , numhask-space
+    , protolude
     , scotty
     , text
     , transformers
