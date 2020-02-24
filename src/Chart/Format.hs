@@ -32,6 +32,7 @@ data FormatN
   | FormatComma Int
   | FormatExpt Int
   | FormatDollar
+  | FormatPercent Int
   | FormatNone
   deriving (Eq, Show, Generic)
 
@@ -43,6 +44,7 @@ fromFormatN (FormatFixed _) = "Fixed"
 fromFormatN (FormatComma _) = "Comma"
 fromFormatN (FormatExpt _) = "Expt"
 fromFormatN FormatDollar = "Dollar"
+fromFormatN (FormatPercent _) = "Percent"
 fromFormatN FormatNone = "None"
 
 toFormatN :: (Eq s, IsString s) => s -> Int -> FormatN
@@ -50,6 +52,7 @@ toFormatN "Fixed" n = FormatFixed n
 toFormatN "Comma" n = FormatComma n
 toFormatN "Expt" n = FormatExpt n
 toFormatN "Dollar" _ = FormatDollar
+toFormatN "Percent" n = FormatPercent n
 toFormatN "None" _ = FormatNone
 toFormatN _ _ = FormatNone
 
@@ -77,11 +80,15 @@ expt x n = Text.pack $ formatScientific Exponent (Just x) (fromFloatDigits n)
 dollar :: Double -> Text
 dollar = ("$" <>) . comma 2
 
+percent :: Int -> Double -> Text
+percent x n = (<> "%") $ fixed x (100 * n)
+
 formatN :: FormatN -> Double -> Text
 formatN (FormatFixed n) x = fixed n x
 formatN (FormatComma n) x = comma n x
 formatN (FormatExpt n) x = expt n x
 formatN FormatDollar x = dollar x
+formatN (FormatPercent n) x = percent n x
 formatN FormatNone x = Text.pack (show x)
 
 -- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
@@ -106,4 +113,5 @@ formatNs (FormatFixed n) xs = precision fixed n xs
 formatNs (FormatComma n) xs = precision comma n xs
 formatNs (FormatExpt n) xs = precision expt n xs
 formatNs FormatDollar xs = precision (const dollar) 2 xs
+formatNs (FormatPercent n) xs = precision percent n xs
 formatNs FormatNone xs = Text.pack . show <$> xs

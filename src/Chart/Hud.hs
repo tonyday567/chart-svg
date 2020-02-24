@@ -3,6 +3,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -- | A hud (heads-up display) are decorations in and around a chart that assist with data interpretation.
 module Chart.Hud
@@ -71,7 +72,7 @@ import qualified Data.Text.IO as Text
 import GHC.Generics
 import NumHask.Space
 import Protolude
-
+import Control.Category (id)
 
 {- | In order to create huds, there are three main pieces of state that need to be kept track of:
 
