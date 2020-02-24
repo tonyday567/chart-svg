@@ -27,6 +27,7 @@ library
     Chart.Examples
     Chart.Format
     Chart.Hud
+    Chart.Pixel
     Chart.Svg
     Chart.Page
     Chart.Types

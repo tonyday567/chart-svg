@@ -184,8 +184,8 @@ barLegend bd bo
 barChart :: Rect Double -> BarOptions -> BarData -> ChartSvg Double
 barChart asp bo bd =
   hud
-    (bo ^. #barHudConfig & #hudLegend %~ fmap (first (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation))
     asp
+    (bo ^. #barHudConfig & #hudLegend %~ fmap (first (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation))
     (bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues))
 
 -- | convert data to a text and Point

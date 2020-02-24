@@ -7,17 +7,15 @@
 module Chart.Examples where
 
 import Chart
-import Chart.Bar
 import Control.Applicative
 import Control.Lens
-import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Text as Text
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
 import GHC.Generics
-import Graphics.Svg.CssTypes hiding (Point)
 import Prelude
+import qualified Data.Map.Strict as Map
 
 data Ex
   = Ex
@@ -29,7 +27,7 @@ data Ex
       }
   deriving (Eq, Show, Generic)
 
-exampleHudConfig :: Text -> Maybe Text -> (LegendRows, LegendOptions) -> HudConfig
+exampleHudConfig :: Text -> Maybe Text -> Maybe (LegendRows, LegendOptions) -> HudConfig
 exampleHudConfig t1 t2 legends' =
   defaultHudConfig
     & #hudTitles
@@ -49,7 +47,7 @@ exampleHudConfig t1 t2 legends' =
                )
                t2
          )
-    & #hudLegend .~ Just legends'
+    & #hudLegend .~ legends'
 
 makeExample :: (Real a) => HudConfig -> [Chart a] -> Ex
 makeExample hs cs = Ex defaultChartSvgStyle hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #spots <$> cs)
@@ -62,7 +60,7 @@ hockey =
     ( exampleHudConfig
         "Example Chart"
         (Just "An example from chart-svg")
-        (lrs, legopts)
+        (Just (lrs, legopts))
     )
     3
     (LineA <$> lopts)
@@ -76,7 +74,7 @@ hockey' (Point x' y') =
     ( exampleHudConfig
         "Example Chart"
         (Just "An example from chart-svg")
-        (lrs, legopts)
+        (Just (lrs, legopts))
     )
     3
     (LineA <$> lopts)
@@ -133,6 +131,9 @@ rs' = rs & #opacity .~ 0.1 & #borderOpacity .~ 0.1
 
 oneChart :: Chart Double
 oneChart = Chart (RectA rs) [SpotRect unitRect]
+
+onePixel :: Chart Double
+onePixel = Chart (PixelA defaultPixelStyle) [SpotRect unitRect]
 
 oneExample :: Ex
 oneExample =
@@ -297,7 +298,7 @@ sinHudConfig =
 
 simpleMathjaxConfig :: HudConfig
 simpleMathjaxConfig = mempty &   #hudTitles .~
-    [ (defaultTitle "mathjax was here: \\(x \\over \\pi\\)") & #style . #hasMathjax .~ True & #place .~ PlaceBottom
+    [ defaultTitle "mathjax was here: \\(x \\over \\pi\\)" & #style . #hasMathjax .~ True & #place .~ PlaceBottom
     ]
 
 sinYTicks :: TickStyle
@@ -319,16 +320,24 @@ boundText =
     cs = zipWith (\x y -> Chart x y) t1s ((: []) <$> ps)
     a1 = TextA (defaultTextStyle & #size .~ 0.06) t1
 
-pixel' :: (Point Double -> Double) -> [Chart Double]
-pixel' f =
-  (\(r, c) -> Chart (RectA (RectStyle 0 black 0 c 1)) [SpotRect r])
-    <$> pixelate f (fmap (pi *) unitRect) (Point 100 100) blue grey
+pixelOptions :: PixelOptions
+pixelOptions =
+  defaultPixelOptions & #poRange .~ fmap (pi *) unitRect & #poGrain .~ Point 100 100
 
 f1 :: (Floating a) => Point a -> a
 f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 
-cssCrisp :: CssRule
-cssCrisp = CssRule [] [CssDeclaration "shape-rendering" [[CssString "crispEdges"]]]
+-- | pixel example
+pixelEx :: [Chart Double]
+pixelEx =
+  hudChart (aspect 1.33)
+  ((fst $ hudsWithExtend (aspect 1.33) defaultHudConfig) <>
+  [ pixelLegend dataRange
+    (defaultPixelLegendOptions "pixel example" & #ploLegendOptions . #lplace .~ PlaceBottom)
+  ])
+  cs
+  where
+    (cs, dataRange) = pixelf f1 defaultPixelOptions
 
 label :: [Chart Double]
 label =
@@ -594,7 +603,7 @@ writeChartExample :: FilePath -> Ex -> IO ()
 writeChartExample t (Ex css' hc' _ anns' spots') = Text.writeFile t $ renderHudChartWith css' hc' (zipWith Chart anns' spots')
 
 linkExample :: ChartSvg Double
-linkExample = ChartSvg (Rect (-100) 400 (-100) 400) [treeText (defaultTextStyle & #color .~ PixelRGB8 93 165 218) "<a xlink:href='http://www.google.com'>google</a>" (Chart.Point 0 0)]
+linkExample = ChartSvg (Rect (-100) 400 (-100) 400) [treeText (defaultTextStyle & #color .~ PixelRGB8 93 165 218) "<a xlink:href='http://www.google.com'>google</a>" (Chart.Point 0 0)] Map.empty
 
 barDataExample :: BarData
 barDataExample =
@@ -612,17 +621,11 @@ writeAllExamples = do
         (RectA defaultRectStyle)
         [SpotRect (unitRect :: Rect Double)]
     ]
-  writeChartSvg "other/rotateOne.svg" (Point 200 200) rotateOne
-  writeChartSvg "other/translateOne.svg" (Point 200 200) translateOne
+  writeChartSvg "other/rotateOne.svg" (Point 200 200) True rotateOne
+  writeChartSvg "other/translateOne.svg" (Point 200 200) True translateOne
   writeChart "other/rectChart.svg" rectChart
   writeChart "other/rectCharts.svg" rectCharts
-  writeWithXml
-    "other/pixel.svg"
-    (Point 200.0 200.0)
-    Map.empty
-    ""
-    [cssCrisp]
-    (chartSvg unitRect (pixel' f1))
+  writeChart "other/pixel.svg" pixelEx
   writeChart "other/textChart.svg" [textChart]
   writeChart "other/textsChart.svg" [textsChart]
   writeChart "other/boundText.svg" boundText
@@ -641,20 +644,20 @@ writeAllExamples = do
   writeChartExample "other/hockey.svg" hockey
   writeChartSvg
     "other/tri1.svg"
-    (Point 400.0 400)
-    (pad 1.1 $ hudChartSvg (aspect 1) [hud1] (tri1 3 4 0.1 <> corners' (Rect 0 3 0 4) 0.1))
+    (Point 400.0 400) True
+    (pad 1.1 $ hudChartSvg (aspect 1) hud1 (tri1 3 4 0.1 <> corners' (Rect 0 3 0 4) 0.1))
   writeChartSvg
     "other/tri2.svg"
-    (Point 400 400)
+    (Point 400 400) True
     (pad 1.1 $ hudChartSvgWith (aspect 1) (Rect 0 20 0 20) hud1 (tri2 5 12 0.05 0.025 0.01 0.01))
   writeChartSvg
     "other/tri2s.svg"
-    (Point 400 400)
+    (Point 400 400) True
     (pad 1.1 (tri2ss 0.00004 0.0001 0 0 (Just (Rect 0 3000 0 3000)) 60))
   writeChartSvg
     "other/tri3s.svg"
-    (Point 400 400)
+    (Point 400 400) True
     (pad 1.1 (tri3ss 0.0001 0.0001 0 0 (Just (Rect 0 4000 0 4000)) 100))
-  writeChartSvgUnsafe "other/link.svg" (Chart.Point 300 300) linkExample
+  writeChartSvgUnsafe "other/link.svg" (Chart.Point 300 300) True linkExample
   writeChartSvgWith "other/bar.svg" defaultChartSvgStyle (\x -> barChart x (defaultBarOptions (fromMaybe [] (barDataExample ^. #barColumnLabels))) barDataExample)
   putStrLn " 👍"

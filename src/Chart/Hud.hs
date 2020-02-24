@@ -4,11 +4,15 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Practically, the configuration of a Hud is going to be in decimals, and so we go concrete and settle on doubles for HudConfig elements.
+-- | A hud (heads-up display) are decorations in and around a chart that assist with data interpretation.
 module Chart.Hud
   ( ChartDims (..),
     HudT (..),
     Hud,
+    hudChartWith,
+    hudChart,
+    hudChartSvgWith,
+    hudChartSvg,
     HudConfig (..),
     defaultHudConfig,
     Place (..),
@@ -45,13 +49,11 @@ module Chart.Hud
     legendEntry,
     makeLegend,
     makeLegendRows,
-    hudChartWith,
-    hudChart,
-    hudChartSvgWith,
-    hudChartSvg,
     hud,
     hudsWithExtend,
     renderHudChartWith,
+    renderHudChartExtrasWith,
+    writeHudChartWith,
     renderCharts,
   )
 where
@@ -65,10 +67,21 @@ import Control.Lens
 import Control.Monad ((>=>))
 import Control.Monad.Trans.State.Lazy
 import Data.Text (Text)
+import qualified Data.Text.IO as Text
 import GHC.Generics
 import NumHask.Space
 import Protolude
 
+
+{- | In order to create huds, there are three main pieces of state that need to be kept track of:
+
+- chartDim: the rectangular dimension of the physical representation of a chart on the screen so that new hud elements can be appended. Adding a hud piece tends to expand the chart dimension.
+
+- canvasDim: the rectangular dimension of the canvas on which data will be represented. At times appending a hud element will cause the canvas dimension to shift.
+
+- dataDim: the rectangluar dimension of the data being represented. Adding hud elements can cause this to change.
+
+-}
 data ChartDims a
   = ChartDims
       { chartDim :: Rect a,
@@ -87,6 +100,96 @@ instance (Monad m) => Semigroup (HudT m a) where
 instance (Monad m) => Monoid (HudT m a) where
   mempty = Hud pure
 
+-- $combination
+initDims :: [Chart Double] -> [Chart Double] -> ChartDims Double
+initDims cs cs' = ChartDims ca' da' xs'
+  where
+    ca' = defRect $ styleBoxes cs'
+    da' = defRect $ dataBox cs'
+    xs' = defRectS $ dataBox cs
+
+-- | combine huds and charts to form a new Chart using the supplied canvas and data dimensions.
+-- Note that the original chart data are transformed by this computation.
+hudChartWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
+hudChartWith ca xs hs cs =
+  flip evalState (ChartDims ca' da' xs) $
+    (unhud $ mconcat hs) cs'
+  where
+    da' = defRect $ dataBox cs'
+    ca' = defRect $ styleBoxes cs'
+    cs' = projectSpotsWith ca xs cs
+
+-- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
+-- Note that the original chart data are transformed by this computation.
+hudChart :: Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
+hudChart ca hs cs =
+  flip evalState (initDims cs cs') $
+    (unhud $ mconcat hs) cs'
+  where
+    xs' = defRectS $ dataBox cs
+    cs' = projectSpotsWith ca xs' cs
+
+-- | combine huds and charts to form a ChartSvg using the supplied canvas and data dimensions
+hudChartSvgWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> ChartSvg Double
+hudChartSvgWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ do
+  cs'' <- (unhud $ mconcat hs) cs'
+  cd <- use #chartDim
+  pure $ chartSvg_ cd cs''
+  where
+    xs' = defRectS $ dataBox cs
+    da' = defRect $ dataBox cs'
+    ca' = defRect $ styleBoxes cs'
+    cs' = projectSpotsWith ca xs cs
+
+-- | combine huds and charts to form a ChartSvg using the supplied canvas dimension and the actual data range
+hudChartSvg ::
+  Rect Double ->
+  [Hud Double] ->
+  [Chart Double] ->
+  ChartSvg Double
+hudChartSvg ca hss cs =
+  hudChartSvgWith ca (defRect $ dataBox cs) hss cs
+
+-- | combine a HudConfig and charts to form a ChartSvg using the supplied canvas dimensions, and extended the data range if needed by the huds.
+hud :: Rect Double -> HudConfig -> [Chart Double] -> ChartSvg Double
+hud ca cfg cs =
+  hudChartSvgWith ca (defRect $ dataBox (cs <> cs')) (hs <> l) (cs <> cs')
+  where
+    (hs, cs') = hudsWithExtend (defRectS $ dataBox cs) cfg
+    l = maybe [] (\x -> [legend (makeLegendRows (fst x) cs) (snd x)]) (cfg ^. #hudLegend)
+
+-- | Compute huds with frozen tick values and a potential data range extension.
+-- The complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc can create a new set of ticks different to the original.
+hudsWithExtend :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
+hudsWithExtend xs cfg =
+  (haxes <> [can] <> titles, [xsext])
+  where
+    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
+    titles = title <$> (cfg ^. #hudTitles)
+    newticks =
+      (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle))
+        <$> (cfg ^. #hudAxes)
+    axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
+    xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
+    haxes =
+      ( \x ->
+          maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar)
+            <> adjustedTickHud x
+      )
+        <$> axes'
+    -- convert TickRound to TickPlaced
+    freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
+    freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs') <$> ext)
+      where
+        (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs')
+        replaceRange :: Place -> Range Double -> Rect Double -> Rect Double
+        replaceRange pl' (Range a0 a1) (Rect x z y w) = case pl' of
+          PlaceRight -> Rect x z a0 a1
+          PlaceLeft -> Rect x z a0 a1
+          _ -> Rect a0 a1 y w
+    freezeTicks _ _ ts = (ts, Nothing)
+
+-- | Practically, the configuration of a Hud is going to be in decimals, typed into config files and the like, and so we concrete at the configuration level, and settle on doubles for specifying the geomtry of hud elements.
 data HudConfig
   = HudConfig
       { hudCanvas :: Maybe RectStyle,
@@ -773,6 +876,10 @@ legendEntry l a t =
         ( RectA rs,
           [SR 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
+      PixelA ps ->
+        ( PixelA ps,
+          [SR 0 (l ^. #lsize) 0 (l ^. #lsize)]
+        )
       TextA ts txts ->
         ( TextA (ts & #size .~ realToFrac (l ^. #lsize)) (take 1 txts),
           [SP 0 0]
@@ -795,134 +902,49 @@ makeLegendRows (LegendFromChart ts) cs = zip (view #annotation <$> cs) ts
 makeLegendRows (LegendManual lrs') _ = lrs'
 
 makeLegend :: LegendOptions -> [(Annotation, Text)] -> [Chart Double]
-makeLegend l lrs = cs'
+makeLegend l lrs =
+  padChart (l ^. #outerPad) .
+  maybe id (\x -> frameChart x (l ^. #innerPad)) (l ^. #legendFrame) .
+  vert (l ^. #hgap) $
+  (\(a,t) -> hori ((l ^. #vgap) + twidth - gapwidth t) [[t], [a]]) <$>
+  es
   where
     es = reverse $ uncurry (legendEntry l) <$> lrs
     twidth = maybe 0 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (styleBox t)
-    hs = (\(a,t) -> hori ((l ^. #vgap) + twidth - gapwidth t) [[t], [a]]) <$> es
-    vs = vert (l ^. #hgap) hs
-    cs =
-      maybe
-          []
-          ( \x ->
-              [ Chart
-                  (RectA x)
-                  ( maybeToList
-                      ( SpotRect
-                          <$> (padRect (l ^. #innerPad) <$> styleBoxes vs)
-                      )
-                  )
-              ]
-          )
-          (l ^. #legendFrame) <>
-      vs
-    cs' = cs <> [Chart BlankA (maybeToList (SpotRect . padRect (l ^. #outerPad) <$>
-                                            styleBoxes cs))]
-    padRect p (Rect x z y w) = Rect (x-p) (z+p) (y-p) (w+p)
-
--- $combination
--- the complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc creates a new set of ticks different to the original.
-
-initDims :: [Chart Double] -> [Chart Double] -> ChartDims Double
-initDims cs cs' = ChartDims ca' da' xs'
-  where
-    ca' = defRect $ styleBoxes cs'
-    da' = defRect $ dataBox cs'
-    xs' = defRectS $ dataBox cs
-
--- | combine huds and charts to form a new [Chart] using the supplied canvas and data dimensions.  Note that styling parameters such as #transition do not scale with combination, so results can be not what you expect.
-hudChartWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
-hudChartWith ca xs hs cs =
-  flip evalState (initDims cs cs') $
-    (unhud $ mconcat hs) cs'
-  where
-    cs' = projectSpotsWith ca xs cs
-
--- | combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
-hudChart :: Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
-hudChart ca hs cs =
-  flip evalState (initDims cs cs') $
-    (unhud $ mconcat hs) cs'
-  where
-    xs' = defRectS $ dataBox cs
-    cs' = projectSpotsWith ca xs' cs
-
--- | combine huds and charts to form a ChartSvg using the supplied canvas and data dimensions
-hudChartSvgWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> ChartSvg Double
-hudChartSvgWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ do
-  cs'' <- (unhud $ mconcat hs) cs'
-  cd <- use #chartDim
-  pure $ chartSvg_ cd cs''
-  where
-    xs' = defRectS $ dataBox cs
-    da' = defRect $ dataBox cs'
-    ca' = defRect $ styleBoxes cs'
-    cs' = projectSpotsWith ca xs cs
-
--- | combine huds and charts to form a ChartSvg using the supplied canvas dimension and the actual data range
-hudChartSvg ::
-  Rect Double ->
-  [[Hud Double]] ->
-  [Chart Double] ->
-  ChartSvg Double
-hudChartSvg ca hss cs =
-  hudChartSvgWith ca (defRect $ dataBox cs) (mconcat <$> hss) cs
-
--- | combine a HudConfig and charts to form a ChartSvg using the supplied canvas dimensions, and extended the data range if needed by the huds.
-hud :: HudConfig -> Rect Double -> [Chart Double] -> ChartSvg Double
-hud cfg ca cs =
-  hudChartSvgWith ca (defRect $ dataBox (cs <> cs')) (hs <> l) (cs <> cs')
-  where
-    (hs, cs') = hudsWithExtend (defRectS $ dataBox cs) cfg
-    l = maybe [] (\x -> [legend (makeLegendRows (fst x) cs) (snd x)]) (cfg ^. #hudLegend)
-
--- | compute huds with frozen tick values and a data range extension
-hudsWithExtend :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
-hudsWithExtend xs cfg =
-  (haxes <> [can] <> titles, [xsext])
-  where
-    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
-    titles = title <$> (cfg ^. #hudTitles)
-    newticks =
-      (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle))
-        <$> (cfg ^. #hudAxes)
-    axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
-    xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
-    haxes =
-      ( \x ->
-          maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar)
-            <> adjustedTickHud x
-      )
-        <$> axes'
-
--- | convert TickRound to TickPlaced
-freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
-freezeTicks pl xs ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs) <$> ext)
-  where
-    (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)
-freezeTicks _ _ ts = (ts, Nothing)
-
-replaceRange :: Place -> Range Double -> Rect Double -> Rect Double
-replaceRange pl (Range a0 a1) (Rect x z y w) = case pl of
-  PlaceRight -> Rect x z a0 a1
-  PlaceLeft -> Rect x z a0 a1
-  _ -> Rect a0 a1 y w
 
 renderHudChartWith :: ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
 renderHudChartWith scfg hcfg cs =
   bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
-    (scfg ^. #sizex) (scfg ^. #sizey)
+    (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
     . maybe id pad (scfg ^. #outerPad)
     . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
     . maybe id pad (scfg ^. #innerPad)
-    . hud hcfg (aspect (scfg ^. #chartAspect))
+    . hud (aspect (scfg ^. #chartAspect)) hcfg
     $ cs <> maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
+
+renderHudChartExtrasWith :: ChartSvgStyle -> HudConfig -> [Hud Double] -> [Chart Double] -> Text
+renderHudChartExtrasWith scfg hcfg hs cs =
+  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
+    (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
+    . maybe id pad (scfg ^. #outerPad)
+    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
+    . maybe id pad (scfg ^. #innerPad)
+    $ chartSvg asp cs'
+  where
+    asp = aspect (scfg ^. #chartAspect)
+    (hs0,cs0) = hudsWithExtend asp hcfg
+    cs' = hudChart asp
+      (hs0<>hs)
+      (cs<>cs0<>maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig))
+
+writeHudChartWith :: FilePath -> ChartSvgStyle -> HudConfig -> [Chart Double] -> IO ()
+writeHudChartWith fp css hc cs = Text.writeFile fp (renderHudChartWith css hc cs)
 
 renderCharts :: ChartSvgStyle -> [Chart Double] -> Text
 renderCharts scfg cs =
   bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
-    (scfg ^. #sizex) (scfg ^. #sizey)
+    (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
     . maybe id pad (scfg ^. #outerPad)
     . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
     . maybe id pad (scfg ^. #innerPad)

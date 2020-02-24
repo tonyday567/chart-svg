@@ -9,6 +9,7 @@ module Chart.Svg
     treeShape,
     treeText,
     tree,
+    namedElements,
     groupTrees,
     strokeRect,
     transformRect,
@@ -16,6 +17,7 @@ module Chart.Svg
     dagText,
     dagGlyph,
     dagLine,
+    dagPixel,
     pointSvg,
     rotateDA,
     rotatePDA,
@@ -195,8 +197,34 @@ tree (Chart (LineA s) xs) =
   groupTrees (dagLine s) [treeLine (toPoint <$> xs)]
 tree (Chart (RectA s) xs) =
   groupTrees (dagRect s) (treeRect <$> (toRect <$> xs))
+tree (Chart (PixelA s) xs) =
+  groupTrees (dagPixel s) (treeRect <$> (toRect <$> xs))
 tree (Chart BlankA _) =
   groupTrees mempty []
+
+-- | convert a Chart to named elements
+namedElements :: Chart a -> Map.Map Text.Text Svg.Element
+namedElements (Chart (PixelA s) _) =
+  Map.fromList [lgPixel s]
+namedElements _ = Map.empty
+
+-- | calculate the linear gradient to shove in defs
+-- FIXME: Only works for #pixelGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
+lgPixel :: PixelStyle -> (Text, Svg.Element)
+lgPixel o =
+  (o ^. #pixelTextureId, ElementLinearGradient $ defaultSvg &
+    linearGradientStart .~ (Num x0, Num y0) &
+    linearGradientStop .~ (Num x1, Num y1) &
+    linearGradientStops .~
+    [defaultSvg & gradientColor .~ promotePixel (o ^. #pixelColorMin) & gradientOpacity .~ Just (realToFrac $ o ^. #pixelOpacityMin) & gradientOffset .~ 0,
+    defaultSvg & gradientColor .~ promotePixel (o ^. #pixelColorMax) & gradientOpacity .~ Just (realToFrac $ o ^. #pixelOpacityMax)  & gradientOffset .~ 1
+    ]
+  )
+  where
+    x0 = min 0 (cos (o ^. #pixelGradient))
+    x1 = max 0 (cos (o ^. #pixelGradient))
+    y0 = max 0 (sin (o ^. #pixelGradient))
+    y1 = min 0 (sin (o ^. #pixelGradient))
 
 -- | add drawing attributes as a group svg wrapping a [Tree]
 groupTrees :: DrawAttributes -> [Tree] -> Tree
@@ -249,6 +277,14 @@ dagRect o =
     . (strokeOpacity ?~ realToFrac (o ^. #borderOpacity))
     . (fillColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #color)))
     . (fillOpacity ?~ realToFrac (o ^. #opacity))
+
+dagPixel :: PixelStyle -> DrawAttributes
+dagPixel o =
+  mempty
+    & (strokeWidth .~ Last (Just $ Num (realToFrac $ o ^. #pixelRectStyle . #borderSize)))
+    . (strokeColor .~ Last (Just $ ColorRef (promotePixel $ o ^. #pixelRectStyle . #borderColor)))
+    . (strokeOpacity ?~ realToFrac (o ^. #pixelRectStyle . #borderOpacity))
+    . (fillColor .~ Last (Just $ TextureRef (Text.unpack $ o ^. #pixelTextureId)))
 
 -- | group draw attributes for TextStyle. rotation is defined by svg relative to a point (or to an origin) and so rotation needs to be dealth with separately.
 dagText :: () => TextStyle -> DrawAttributes
@@ -316,36 +352,42 @@ translateDA p =
 -- | Rotate a ChartSvg expanding the Rect as necessary.
 -- Multiple rotations will expand the bounding box conservatively.
 rotateSvg :: (Chartable a) => a -> ChartSvg a -> ChartSvg a
-rotateSvg r (ChartSvg vb c) =
+rotateSvg r (ChartSvg vb c defs) =
   ChartSvg
     (rotateRect r vb)
     [groupTrees (rotateDA r mempty) c]
+    defs
 
 -- | Translate a ChartSvg also moving the Rect
 translateSvg :: (Chartable a) => Point a -> ChartSvg a -> ChartSvg a
-translateSvg p (ChartSvg vb c) =
+translateSvg p (ChartSvg vb c defs) =
   ChartSvg
     (move p vb)
     [groupTrees (translateDA p mempty) c]
+    defs
 
 -- * rendering
 
 -- | render a ChartSvg to an xml Document with the supplied size and various bits and pieces
+-- note that no attempt is made to resolve name collisions in definitions of named elements
 renderToXmlWith :: (Real a) => Point a -> Map.Map Text.Text Svg.Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
-renderToXmlWith (Point wid hei) defs desc css fp (ChartSvg vb ts) =
+renderToXmlWith (Point wid hei) defs desc css fp (ChartSvg vb ts defs') =
   Document
     ((\(Rect x z y w) -> Just (x, - w, z - x, w - y)) $ realToFrac <$> vb)
     (Just (Num (realToFrac wid)))
     (Just (Num (realToFrac hei)))
     ts
-    (Map.mapKeys Text.unpack defs)
+    (Map.mapKeys Text.unpack (defs `Map.union` defs'))
     (Text.unpack desc)
     css
     fp
 
+cssCrisp :: CssRule
+cssCrisp = CssRule [] [CssDeclaration "shape-rendering" [[CssString "crispEdges"]]]
+
 -- | render a ChartSvg to an xml Document with the supplied size
-renderToXml :: (Real a) => Point a -> ChartSvg a -> Document
-renderToXml p = renderToXmlWith p Map.empty "" [] ""
+renderToXml :: (Real a) => Point a -> Bool -> ChartSvg a -> Document
+renderToXml p crisp = renderToXmlWith p Map.empty "" (bool [] [cssCrisp] crisp) ""
 
 -- | render an xml document to Text
 xmlToText :: Document -> Text
@@ -363,20 +405,21 @@ unescape (Elem e) = Elem (unescapeTextElements e)
 unescape (Text t) = Text (t { cdVerbatim = CDataRaw})
 unescape x = x
 
-renderChartSvg :: Double -> Double -> ChartSvg Double -> Text.Text
-renderChartSvg x y =
-  xmlToText . renderToXml (Point x y)
+renderChartSvg :: Point Double -> Bool -> ChartSvg Double -> Text.Text
+renderChartSvg p c =
+  xmlToText . renderToXml p c
 
-renderChartSvgUnsafe :: Double -> Double -> ChartSvg Double -> Text.Text
-renderChartSvgUnsafe x y =
-  xmlToTextUnsafe . renderToXml (Point x y)
+renderChartSvgUnsafe :: Point Double -> Bool -> ChartSvg Double -> Text.Text
+renderChartSvgUnsafe p c =
+  xmlToTextUnsafe . renderToXml p c
 
 -- | write a ChartSvg to a svg file with various Document attributes.
 writeWithXml :: (Real a) => FilePath -> Point a -> Map.Map Text.Text Svg.Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
 writeWithXml fp p defs desc css c = Text.writeFile fp (xmlToText $ renderToXmlWith p defs desc css fp c)
 
-writeChartSvg :: FilePath -> Point Double -> ChartSvg Double -> IO ()
-writeChartSvg fp (Point x y) cs = Text.writeFile fp (renderChartSvg x y cs)
+writeChartSvg :: FilePath -> Point Double -> Bool -> ChartSvg Double -> IO ()
+writeChartSvg fp p c cs = Text.writeFile fp (renderChartSvg p c cs)
 
-writeChartSvgUnsafe :: FilePath -> Point Double -> ChartSvg Double -> IO ()
-writeChartSvgUnsafe fp (Point x y) cs = Text.writeFile fp (renderChartSvgUnsafe x y cs)
+writeChartSvgUnsafe :: FilePath -> Point Double -> Bool -> ChartSvg Double -> IO ()
+writeChartSvgUnsafe fp p c cs = Text.writeFile fp (renderChartSvgUnsafe p c cs)
+

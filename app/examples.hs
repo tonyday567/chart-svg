@@ -5,7 +5,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
 import Chart
-import Chart.Bar
 import Chart.Examples hiding (ts)
 import Control.Lens
 import Control.Monad (void)
@@ -35,7 +34,7 @@ repNoData css ann hc =
     hc
     10
     [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]
-  
+
 repBarChart :: (Monad m) => ChartSvgStyle -> BarData -> BarOptions -> SharedRep m (Text, Text)
 repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlags
   where
@@ -57,6 +56,41 @@ repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlag
         [ ("Svg", css'),
           ("Bar Data", bd'),
           ("Bar Options", bo'),
+          ("Debug", debug)
+        ]
+
+-- (\(css, po, hc, f) -> writeHudChartWith "other/pixel.svg" css hc (pixelf f po)) pixelEx
+-- pixelEx :: (ChartSvgStyle, PixelOptions, HudConfig, Point Double -> Double)
+
+repPixelChart :: (Monad m) => (ChartSvgStyle, PixelOptions, HudConfig, PixelLegendOptions, Point Double -> Double) ->
+  SharedRep m (Text, Text)
+repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rplo <<*>> debugFlags
+  where
+    rcss = repChartSvgStyle css
+    rpo = repPixelOptions po
+    rhc =
+      repHudConfig
+        2
+        3
+        defaultAxisConfig
+        (defaultTitle "default")
+        defaultLegendOptions
+        (LegendFromChart ["default"])
+        BlankA
+        ""
+        hc
+    rplo = repPixelLegendOptions plo
+    mmap rcss' rpo' rhc' rplo' debug = let (cs,hs) = pixelfl f rpo' rplo' in
+      ( renderHudChartExtrasWith rcss' rhc' hs cs,
+        debugHtml debug rcss' rhc' [])
+    hmap rcss' rpo' rhc' rplo' debug =
+      accordion_
+        "accpc"
+        Nothing
+        [ ("Svg", rcss'),
+          ("Hud", rhc'),
+          ("Pixel Options", rpo'),
+          ("Pixel Legend Options", rplo'),
           ("Debug", debug)
         ]
 
@@ -207,6 +241,10 @@ main =
                     defaultChartSvgStyle
                     (GlyphA defaultGlyphStyle)
                     defaultHudConfig
+                ),
+                ( "pixel",
+                  repPixelChart
+                  (defaultChartSvgStyle, defaultPixelOptions, defaultHudConfig, defaultPixelLegendOptions "pixel test", f1)
                 ),
                 ( "bounding box",
                   repTextBB defaultChartSvgStyle

@@ -26,13 +26,14 @@ module Chart.Page
     repTickStyle,
     repTick,
     repPoint,
+    repPointI,
     repRect,
     repRectOne,
     repRounded,
     repTriple,
     repGlyphShape,
     repChoice,
-    repLegend,
+    repLegendOptions,
     repLegendRows,
     repChartsWithSharedData,
     repChartsWithStaticData,
@@ -41,6 +42,8 @@ module Chart.Page
     repHudConfigDefault,
     repBarOptions,
     repBarData,
+    repPixelOptions,
+    repPixelLegendOptions,
   )
 where
 
@@ -49,6 +52,7 @@ import Chart.Hud
 import Chart.Types
 import Chart.Format
 import Chart.Bar
+import Chart.Pixel
 import Control.Lens
 import Data.Attoparsec.Text
 import Data.Biapplicative
@@ -96,36 +100,42 @@ repChartStaticData c = do
   pure $ Chart ann (c ^. #spots)
 
 repAnnotation :: (Monad m) => Annotation -> SharedRep m Annotation
-repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls
+repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls <<*>> ps
   where
     rann =
       dropdownSum
         takeText
         id
         (Just "Chart Annotation")
-        ["RectA", "TextA", "GlyphA", "LineA", "BlankA"]
+        ["RectA", "TextA", "GlyphA", "LineA", "BlankA", "PixelA"]
         (annotationText initann)
     rs = repRectStyle defRectStyle
     ts = repTextStyle defText
     gs = repGlyphStyle defGlyph
     ls = repLineStyle defLine
-    hmap ann rs ts gs ls =
+    ps = repPixelStyle defPixel
+    hmap ann rs ts gs ls ps =
       ann
         <> subtype rs (annotationText initann) "RectA"
         <> subtype ts (annotationText initann) "TextA"
         <> subtype gs (annotationText initann) "GlyphA"
         <> subtype ls (annotationText initann) "LineA"
-    mmap ann rs ts gs ls =
+        <> subtype ps (annotationText initann) "PixelA"
+    mmap ann rs ts gs ls ps =
       case ann of
         "RectA" -> RectA rs
         "TextA" -> TextA ts texts
         "GlyphA" -> GlyphA gs
         "LineA" -> LineA ls
         "BlankA" -> BlankA
+        "PixelA" -> PixelA ps
         _ -> BlankA
     defRectStyle = case initann of
       RectA s -> s
       _ -> defaultRectStyle
+    defPixel = case initann of
+      PixelA s -> s
+      _ -> defaultPixelStyle
     (defText, texts) = case initann of
       TextA s xs -> (s, xs)
       _ -> (defaultTextStyle, Text.singleton <$> ['a' .. 'z'])
@@ -144,6 +154,30 @@ repRectStyle s = do
   c <- colorPicker (Just "color") (s ^. #color)
   o <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
   pure $ RectStyle bs bc bo c o
+
+repPixelStyle ::
+  (Monad m) =>
+  PixelStyle ->
+  SharedRep m PixelStyle
+repPixelStyle cfg =
+  bimap hmap PixelStyle pcmin
+    <<*>> pomin
+    <<*>> pcmax
+    <<*>> pomax
+    <<*>> pd
+    <<*>> prs
+    <<*>> pt
+  where
+    pcmax = colorPicker (Just "high color") (cfg ^. #pixelColorMax)
+    pcmin = colorPicker (Just "low color") (cfg ^. #pixelColorMin)
+    pomax = slider (Just "high opacity") 0.0 1.0 0.001 (cfg ^. #pixelOpacityMax)
+    pomin = slider (Just "low opacity") 0.0 1.0 0.001 (cfg ^. #pixelOpacityMin)
+    pd = slider (Just "gradient direction") 0.0 (2*pi) 0.001 (cfg ^. #pixelGradient)
+    prs = repRectStyle (cfg ^. #pixelRectStyle)
+    pt = textbox (Just "texture id") (cfg ^. #pixelTextureId)
+
+    hmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
+      pcmin' <> pomin' <> pcmax' <> pomax' <> pd' <> prs' <> pt'
 
 repGlyphStyle :: (Monad m) => GlyphStyle -> SharedRep m GlyphStyle
 repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Nothing (x, [])) $ do
@@ -327,7 +361,7 @@ repHudConfig naxes ntitles defaxis deftitle deflegend deflrs defann deflabel cfg
         (isJust $ cfg ^. #hudLegend)
         ((,) <$>
          repLegendRows 5 (maybe deflrs fst (cfg ^. #hudLegend)) defann deflabel <*>
-         repLegend (maybe deflegend snd (cfg ^. #hudLegend)))
+         repLegendOptions (maybe deflegend snd (cfg ^. #hudLegend)))
     hmap can' ts' axs' l' =
       accordion_
         "accc"
@@ -376,6 +410,7 @@ repChartSvgStyle s =
     <<*>> fr
     <<*>> orig'
     <<*>> esc
+    <<*>> crisp
   where
     x = slider (Just "sizex") 0 1000 1 (s ^. #sizex)
     y = slider (Just "sizey") 0 1000 1 (s ^. #sizey)
@@ -401,7 +436,8 @@ repChartSvgStyle s =
         (isJust (s ^. #orig))
         (repGlyphStyle (fromMaybe defaultOrigin (s ^. #orig)))
     esc = checkbox (Just "escape text") (s ^. #escapeText)
-    hmap x' y' a' op'' ip' fr' orig'' esc' =
+    crisp = checkbox (Just "Use CssCrisp") (s ^. #useCssCrisp)
+    hmap x' y' a' op'' ip' fr' orig'' esc' crisp' =
       accordion_
         "accsvg"
         Nothing
@@ -409,7 +445,8 @@ repChartSvgStyle s =
           ("Padding", op'' <> ip'),
           ("Frame", fr'),
           ("Origin", orig''),
-          ("Escape", esc')
+          ("Escape", esc'),
+          ("CssCrisp", crisp')
         ]
 
 repData :: (Monad m) => Text -> SharedRep m [Spot Double]
@@ -599,6 +636,19 @@ repPoint (Point (Range xmin xmax) (Range ymin ymax)) (Point xstep ystep) (Point 
     (slider (Just "x") xmin xmax xstep x)
     <<*>> slider (Just "y") ymin ymax ystep y
 
+repPointI ::
+  (Monad m) =>
+  Point (Range Int) ->
+  Point Int ->
+  Point Int ->
+  SharedRep m (Point Int)
+repPointI (Point (Range xmin xmax) (Range ymin ymax)) (Point xstep ystep) (Point x y) =
+  bimap
+    (<>)
+    Point
+    (sliderI (Just "x") xmin xmax xstep x)
+    <<*>> sliderI (Just "y") ymin ymax ystep y
+
 repRect :: (Monad m) => Rect (Range Double) -> Rect Double -> Rect Double -> SharedRep m (Rect Double)
 repRect (Rect (Range xmin xmax) (Range zmin zmax) (Range ymin ymax) (Range wmin wmax)) (Rect xstep zstep ystep wstep) (Rect x z y w) =
   bimap
@@ -707,8 +757,8 @@ repChoice initt xs =
         )
     mmap dd' cs' = maybe (Data.List.head cs') (cs' !!) (elemIndex dd' ts)
 
-repLegend :: (Monad m) => LegendOptions -> SharedRep m LegendOptions
-repLegend initl = LegendOptions <$> lsize' <*> hgap' <*> vgap' <*> ltext' <*> lmax' <*> innerPad' <*> outerPad' <*> legendFrame' <*> lplace' <*> scale'
+repLegendOptions :: (Monad m) => LegendOptions -> SharedRep m LegendOptions
+repLegendOptions initl = LegendOptions <$> lsize' <*> hgap' <*> vgap' <*> ltext' <*> lmax' <*> innerPad' <*> outerPad' <*> legendFrame' <*> lplace' <*> scale'
   where
     lsize' = slider (Just "glyph size") 0.000 0.5 0.001 (initl ^. #lsize)
     hgap' = slider (Just "horizontal gap") 0.000 0.5 0.001 (initl ^. #hgap)
@@ -1008,3 +1058,56 @@ repBarData initbd =
       either (const (pure [])) id <$>
       readTextbox (Just "bar data") (initbd ^. #barData)
     hmap rl' cl' bd' = rl' <> cl' <> bd'
+
+repPixelOptions ::
+  (Monad m) =>
+  PixelOptions ->
+  SharedRep m PixelOptions
+repPixelOptions cfg =
+  bimap hmap PixelOptions ps
+    <<*>> pg
+    <<*>> pr
+  where
+    ps = repPixelStyle (cfg ^. #poStyle)
+    pg = repPointI (Point (Range 1 100) (Range 1 100)) (Point 1 1) (cfg ^. #poGrain)
+    pr = repRect (Rect (Range 0 5) (Range 0 5) (Range 0 5) (Range 0 5)) (Rect 0.01 0.01 0.01 0.01) (cfg ^. #poRange)
+
+    hmap ps' pg' pr' =
+      accordion_
+        "accpixel"
+        Nothing
+        [ ("Grain", pg'),
+          ("Range", pr'),
+          ("Style", ps')
+        ]
+
+-- PixelLegendOptions
+--      {ploStyle :: PixelStyle, ploTitle :: Text, ploWidth :: Double, ploAxisConfig :: AxisConfig, ploLegendOptions :: LegendOptions}
+
+repPixelLegendOptions ::
+  (Monad m) =>
+  PixelLegendOptions ->
+  SharedRep m PixelLegendOptions
+repPixelLegendOptions cfg =
+  bimap hmap PixelLegendOptions ps
+    <<*>> pt
+    <<*>> pw
+    <<*>> pa
+    <<*>> pl
+  where
+    ps = repPixelStyle (cfg ^. #ploStyle)
+    pt = textbox (Just "title") (cfg ^. #ploTitle)
+    pw = slider (Just "width") 0.0 0.3 0.001 (cfg ^. #ploWidth)
+    pa = repAxisConfig (cfg ^. #ploAxisConfig)
+    pl = repLegendOptions (cfg ^. #ploLegendOptions)
+
+    hmap ps' pt' pw' pa' pl' =
+      accordion_
+        "accplo"
+        Nothing
+        [ ("Style", ps'),
+          ("Title", pt'),
+          ("Width", pw'),
+          ("Axis", pa'),
+          ("Legend", pl')
+        ]

@@ -21,7 +21,6 @@ where
 
 import Data.Foldable
 import Data.List (nub)
-import Data.Maybe
 import Data.Monoid
 import Data.Scientific
 import qualified Data.Text as Text

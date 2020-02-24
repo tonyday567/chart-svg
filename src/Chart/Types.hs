@@ -40,6 +40,8 @@ module Chart.Types
     glyphText,
     LineStyle (..),
     defaultLineStyle,
+    PixelStyle (..),
+    defaultPixelStyle,
     ChartSvg (..),
     Orientation(..),
     fromOrientation,
@@ -61,6 +63,7 @@ module Chart.Types
     toPoint,
     pattern SR,
     pattern SP,
+    padRect,
   )
 where
 
@@ -71,12 +74,13 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Exts
 import GHC.Generics
-import Graphics.Svg (DrawAttributes (..), Tree (..), PathCommand)
-import NumHask.Space
+import Graphics.Svg (DrawAttributes (..), Tree (..), PathCommand, Element)
+import NumHask.Space hiding (Element)
 import Prelude
 import qualified Data.Colour.RGBSpace as C
 import qualified Data.Colour.SRGB.Linear as C
 import qualified Data.Colour.Palette.ColorSet as C
+import qualified Data.Map.Strict as Map
 
 data ChartException = NotYetImplementedException deriving (Show)
 
@@ -106,6 +110,7 @@ data Annotation
   | GlyphA GlyphStyle
   | LineA LineStyle
   | BlankA
+  | PixelA PixelStyle
   deriving (Eq, Show, Generic)
 
 annotationText :: Annotation -> Text
@@ -114,6 +119,7 @@ annotationText TextA {} = "TextA"
 annotationText (GlyphA _) = "GlyphA"
 annotationText (LineA _) = "LineA"
 annotationText BlankA = "BlankA"
+annotationText (PixelA _) = "PixelA"
 
 -- | Rectangle styling
 data RectStyle
@@ -250,20 +256,37 @@ data LineStyle
 defaultLineStyle :: LineStyle
 defaultLineStyle = LineStyle 0.02 blue 0.5
 
--- | Svg of a Chart consists of
--- An Svg `Tree` list and a Rect
+data PixelStyle = PixelStyle
+  { pixelColorMin :: PixelRGB8
+  , pixelOpacityMin :: Double
+  , pixelColorMax :: PixelRGB8
+  , pixelOpacityMax :: Double
+  -- | expressed in directional terms
+  -- 0 for horizontal
+  -- pi/2 for vertical
+  , pixelGradient :: Double
+  , pixelRectStyle :: RectStyle
+  , pixelTextureId :: Text
+  } deriving (Show, Eq, Generic)
+
+defaultPixelStyle :: PixelStyle
+defaultPixelStyle =
+  PixelStyle grey 1 blue 1 (pi/2) (RectStyle 0 black 0 black 1) "pixel"
+
+-- | Svg of a Chart consists of a viewBox expressed as a Rect, an Svg `Tree` list and any named elements for the definitions section.
 data ChartSvg a
   = ChartSvg
       { vbox :: Rect a,
-        chartTrees :: [Tree]
+        chartTrees :: [Tree],
+        chartDefs :: Map.Map Text Element
       }
-  deriving (Eq, Show)
+  deriving (Show)
 
 instance (Ord a) => Semigroup (ChartSvg a) where
-  (ChartSvg a b) <> (ChartSvg a' b') = ChartSvg (a <> a') (b <> b')
+  (ChartSvg a b c) <> (ChartSvg a' b' c') = ChartSvg (a <> a') (b <> b') (c <> c')
 
 instance (Chartable a) => Monoid (ChartSvg a) where
-  mempty = ChartSvg unitRect mempty
+  mempty = ChartSvg unitRect mempty mempty
 
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)
@@ -323,12 +346,13 @@ data ChartSvgStyle
         innerPad :: Maybe Double,
         chartFrame :: Maybe RectStyle,
         orig :: Maybe GlyphStyle,
-        escapeText :: Bool
+        escapeText :: Bool,
+        useCssCrisp :: Bool
       }
   deriving (Eq, Show, Generic)
 
 defaultChartSvgStyle :: ChartSvgStyle
-defaultChartSvgStyle = ChartSvgStyle 800 600 1.33 (Just 1.02) Nothing Nothing Nothing True
+defaultChartSvgStyle = ChartSvgStyle 800 600 1.33 (Just 1.02) Nothing Nothing Nothing True False
 
 defaultSvgFrame :: RectStyle
 defaultSvgFrame = border 0.01 blue 1.0
@@ -384,3 +408,7 @@ toPoint (SpotRect (Ranges x y)) = Point (mid x) (mid y)
 
 instance (Ord a) => Semigroup (Spot a) where
   (<>) a b = SpotRect (toRect a `union` toRect b)
+
+-- | additive padding
+padRect :: (Num a) => a -> Rect a -> Rect a
+padRect p (Rect x z y w) = Rect (x-p) (z+p) (y-p) (w+p)

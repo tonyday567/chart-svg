@@ -34,7 +34,7 @@ module Chart.Core
     black,
     white,
     blend,
-    pixelate,
+    blend',
     boxes,
     scaleAnn,
     pad,
@@ -47,6 +47,8 @@ module Chart.Core
     vert,
     stack,
     moveChart,
+    padChart,
+    frameChart,
   )
 where
 
@@ -72,7 +74,7 @@ pShow' = toStrict . pShowNoColor
 
 renderChartWith :: ChartSvgStyle -> [Chart Double] -> Text.Text
 renderChartWith scfg cs =
-  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey)
+  renderChartSvg (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
     . maybe id pad (scfg ^. #outerPad)
     . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
     . maybe id pad (scfg ^. #innerPad)
@@ -85,7 +87,7 @@ renderChart = renderChartWith defaultChartSvgStyle
 
 renderChartSvgWith :: ChartSvgStyle -> (Rect Double -> ChartSvg Double) -> Text.Text
 renderChartSvgWith scfg f =
-  renderChartSvg (scfg ^. #sizex) (scfg ^. #sizey)
+  renderChartSvg (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
     . maybe id pad (scfg ^. #outerPad)
     . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
     . maybe id pad (scfg ^. #innerPad)
@@ -109,7 +111,7 @@ chartSvg_ ::
   Rect a ->
   [Chart a] ->
   ChartSvg a
-chartSvg_ a cs = ChartSvg a (tree <$> cs)
+chartSvg_ a cs = ChartSvg a (tree <$> cs) (mconcat $ namedElements <$> cs)
 
 -- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied Rect, and expanding the Rect for chart style if necessary
 chartSvg ::
@@ -142,10 +144,11 @@ fittedSvg cs =
 
 -- | add an enclosing fitted frame to a ChartSvg
 frame :: (Chartable a) => RectStyle -> ChartSvg a -> ChartSvg a
-frame o (ChartSvg vb _) =
+frame o (ChartSvg vb _ defs) =
   ChartSvg
     vb
     ((: []) . tree $ Chart (RectA o) [SpotRect vb])
+    defs
 
 -- | a default frame
 defaultFrame :: (Chartable a) => ChartSvg a -> ChartSvg a
@@ -250,6 +253,9 @@ styleBox (Chart (LineA s) xs) =
 styleBox (Chart BlankA xs) =
   foldRect
     ((\x -> daBox mempty x (toRect x)) <$> xs)
+styleBox (Chart (PixelA s) xs) =
+  foldRect
+    ((\x -> daBox (dagPixel s) x (toRect x)) <$> xs)
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -311,28 +317,6 @@ defaultOrigin = GlyphStyle 0.05 red 0.5 grey 0 0 CircleGlyph Nothing Nothing
 showOrigin :: (Chartable a) => Chart a
 showOrigin = showOriginWith defaultOrigin
 
--- | interpolate between 2 colors
-blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
-blend c = mixWithAlpha f (f (0 :: Int))
-  where
-    f _ x0 x1 = fromIntegral (round (fromIntegral x0 + c * (fromIntegral x1 - fromIntegral x0)) :: Integer)
-
--- | create pixel data from a function on a Point
-pixelate ::
-  (Chartable a) =>
-  (Point a -> Double) ->
-  Rect a ->
-  Grid (Rect a) ->
-  PixelRGB8 ->
-  PixelRGB8 ->
-  [(Rect a, PixelRGB8)]
-pixelate f r g c0 c1 = (\(x, y) -> (x, blend y c0 c1)) <$> ps'
-  where
-    ps = gridF f r g
-    rs = snd <$> ps
-    rs' = project (space1 rs :: Range Double) (Range 0 1) <$> rs
-    ps' = zip (fst <$> ps) rs'
-
 -- deconstruct a chart into a chart for every spot
 decons :: Chart a -> [Chart a]
 decons (Chart (TextA ts txts) spts) = zipWith (\t s -> Chart (TextA ts [t]) [s]) txts spts
@@ -347,11 +331,12 @@ scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
 scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (* x)
 scaleAnn x (TextA a txs) = TextA (a & #size %~ (* x)) txs
 scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
+scaleAnn x (PixelA a) = PixelA $ a & #pixelRectStyle . #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
 -- | widen a ChartSvg Rect by a fraction of the size.
 pad :: (Chartable a) => a -> ChartSvg a -> ChartSvg a
-pad p (ChartSvg vb s) = ChartSvg (fmap (p *) vb) s
+pad p (ChartSvg vb s defs) = ChartSvg (fmap (p *) vb) s defs
 
 placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
 placedLabel p d t =
@@ -373,13 +358,14 @@ hori gap cs = foldl step [] cs
     z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
--- vertically stack a list of charts (proceeding upwards)
+-- vertically stack a list of charts (proceeding upwards), aligning them to the left
 vert :: Chartable a => a -> [[Chart a]] -> [Chart a]
 vert _ [] = []
 vert gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP 0 (w x) + s)))
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (origx x - origx a) (w x) + s)))
     w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
+    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- stack a list of charts horizontally, then vertically
 stack :: Chartable a => Int -> a -> [[Chart a]] -> [Chart a]
@@ -391,4 +377,24 @@ stack n gap cs = vert gap (hori gap <$> group' cs [])
 
 moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs
+
+-- additively pad a [Chart]
+padChart :: (RealFloat a) => a -> [Chart a] -> [Chart a]
+padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
+
+-- overlay a frame on some charts with some padding between
+frameChart :: (RealFloat a) => RectStyle -> a -> [Chart a] -> [Chart a]
+frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
+
+-- | interpolate between 2 colors
+blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
+blend c = mixWithAlpha f (f (0 :: Int))
+  where
+    f _ x0 x1 = fromIntegral (round (fromIntegral x0 + c * (fromIntegral x1 - fromIntegral x0)) :: Integer)
+
+-- | interpolate between 2 alpha colors
+blend' :: Double -> (PixelRGB8, Double) -> (PixelRGB8, Double) -> (PixelRGB8, Double)
+blend' c (c0,o0) (c1,o1) = (blend c c0 c1, f' c o0 o1)
+  where
+    f' c' x0 x1 = x0 + c' * (x1 - x0)
 
