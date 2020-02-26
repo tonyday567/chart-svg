@@ -331,7 +331,7 @@ f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 pixelEx :: [Chart Double]
 pixelEx =
   hudChart (aspect 1.33)
-  ((fst $ hudsWithExtend (aspect 1.33) defaultHudConfig) <>
+  (fst (hudsWithExtend (aspect 1.33) defaultHudConfig) <>
   [ pixelLegend dataRange
     (defaultPixelLegendOptions "pixel example" & #ploLegendOptions . #lplace .~ PlaceBottom)
   ])

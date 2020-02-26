@@ -87,16 +87,13 @@ pixelf f cfg =
       f
       (cfg ^. #poRange)
       (cfg ^. #poGrain)
-      (cfg ^. #poStyle . #pixelColorMax, cfg ^. #poStyle . #pixelOpacityMax)
       (cfg ^. #poStyle . #pixelColorMin, cfg ^. #poStyle . #pixelOpacityMin)
+      (cfg ^. #poStyle . #pixelColorMax, cfg ^. #poStyle . #pixelOpacityMax)
 
 pixelfl :: (Point Double -> Double) -> PixelOptions -> PixelLegendOptions -> ([Chart Double], [Hud Double])
 pixelfl f po plo = (cs, [pixelLegend dr plo])
   where
     (cs, dr) = pixelf f po
-
--- legend creation
--- writeChart "other/p1.svg" $ hudChart unitRect [pixelLegend (Range (-0.25) 0.25) (defaultPixelLegendOptions "fingers crossed")] [Chart BlankA [SpotRect unitRect]]
 
 data PixelLegendOptions
   = PixelLegendOptions
@@ -122,8 +119,18 @@ defaultPixelLegendOptions t =
 
 pixelLegendOptions :: LegendOptions
 pixelLegendOptions =
-  defaultLegendOptions & #lplace .~ PlaceRight & #scale .~ 0.5 & #lsize .~ 0.5 & #vgap .~ 0.05 & #hgap .~ 0.01
+  defaultLegendOptions &
+  #lplace .~ PlaceRight &
+  #scale .~ 0.4 &
+  #lsize .~ 0.5 &
+  #vgap .~ 0.05 &
+  #hgap .~ 0.01 &
+  #innerPad .~ 0.02 &
+  #outerPad .~ 0.02 &
+  #ltext . #hsize .~ 0.4
 
+-- legend creation
+-- writeChart "other/p1.svg" $ hudChart unitRect [pixelLegend (Range (-0.25) 33) (defaultPixelLegendOptions "count")] [Chart BlankA [SpotRect unitRect]]
 pixelLegend :: Range Double -> PixelLegendOptions -> Hud Double
 pixelLegend dataRange l = Hud $ \cs -> do
   ca <- use #chartDim
@@ -150,25 +157,23 @@ pixelLegend dataRange l = Hud $ \cs -> do
         PlaceRight -> Point (z + (z' - x') / 2.0) ((y + w) / 2.0)
         PlaceAbsolute p -> p
 
+-- writeChart "other/p1.svg" $ makePixelLegendChart (Range 0 33) defaultPixelLegendOptions <> [(Chart BlankA ([SpotRect unitRect]))]
 makePixelLegendChart :: Range Double -> PixelLegendOptions -> [Chart Double]
 makePixelLegendChart dataRange l =
   padChart (l ^. #ploLegendOptions . #outerPad)
     . maybe id (\x -> frameChart x (l ^. #ploLegendOptions . #innerPad)) (l ^. #ploLegendOptions . #legendFrame)
     $ hs
   where
-    a =
-      makePixelTick
-        dataRange
-        l
-        pchart
+    (Range x0 x1) = dataRange
+    a = makePixelTick l pchart
     pchart
       | l ^. #ploLegendOptions . #lplace == PlaceBottom ||
         l ^. #ploLegendOptions . #lplace == PlaceTop =
         Chart
             (PixelA (l ^. #ploStyle & #pixelGradient .~ 0))
             [ SR
-                0
-                (l ^. #ploLegendOptions . #lsize)
+                x0
+                x1
                 0
                 (l ^. #ploWidth)
             ]
@@ -178,8 +183,8 @@ makePixelLegendChart dataRange l =
             [ SR
                 0
                 (l ^. #ploWidth)
-                0
-                (l ^. #ploLegendOptions . #lsize)
+                x0
+                x1
             ]
     t = Chart (TextA (l ^. #ploLegendOptions . #ltext & #anchor .~ AnchorStart)
                [l ^. #ploTitle]) [SP 0 0]
@@ -190,16 +195,16 @@ isHori l =
   l ^. #ploLegendOptions . #lplace == PlaceBottom ||
   l ^. #ploLegendOptions . #lplace == PlaceTop
 
-makePixelTick :: Range Double -> PixelLegendOptions -> Chart Double -> [Chart Double]
-makePixelTick dataRange l pchart = phud
+makePixelTick :: PixelLegendOptions -> Chart Double -> [Chart Double]
+makePixelTick l pchart = phud
   where
-    r@(Rect x z y w) = fromMaybe unitRect (styleBox pchart)
-    (Range dmin' dmax') = dataRange
-    r' = bool (Rect x z dmin' dmax') (Rect dmin' dmax' y w) (isHori l)
+    r = fromMaybe unitRect (styleBox pchart)
+    r' = bool (Rect 0 (l ^. #ploWidth) 0 (l ^. #ploLegendOptions . #lsize)) (Rect 0 (l ^. #ploLegendOptions . #lsize) 0 (l ^. #ploWidth)) (isHori l)
     (hs, _) =
       hudsWithExtend
         r
         (mempty & #hudAxes .~ [l ^. #ploAxisConfig &
                                #place .~ bool PlaceRight PlaceBottom (isHori l)])
-    phud = hudChartWith r r' hs [pchart]
+    phud = hudChartWith r' r hs [pchart]
+
 

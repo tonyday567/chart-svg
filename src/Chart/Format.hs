@@ -92,19 +92,13 @@ formatN (FormatPercent n) x = percent n x
 formatN FormatNone x = Text.pack (show x)
 
 -- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
--- FIXME: busted for round ticks.
 precision :: (Int -> Double -> Text) -> Int -> [Double] -> [Text]
-precision f n0 xs
-  | foldr max 0 xs < 0.01 =
-    Text.pack <$> precLoop expt' n0 (fromFloatDigits <$> xs)
-  | foldr max 0 xs > 100000 =
-    Text.pack <$> precLoop expt' n0 (fromFloatDigits <$> xs)
-  | otherwise = precLoop f (fromIntegral n0) xs
+precision f n0 xs =
+  precLoop f (fromIntegral n0) xs
   where
-    expt' x = formatScientific Exponent (Just x)
     precLoop f' n xs' =
       let s = f' n <$> xs'
-       in if s == nub s
+       in if s == nub s || n > 4
             then s
             else precLoop f' (n + 1) xs'
 

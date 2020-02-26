@@ -56,6 +56,7 @@ module Chart.Hud
     renderHudChartExtrasWith,
     writeHudChartWith,
     renderCharts,
+    makeTickDates,
   )
 where
 
@@ -73,6 +74,8 @@ import GHC.Generics
 import NumHask.Space
 import Protolude
 import Control.Category (id)
+import qualified Control.Foldl as L
+import Data.Time
 
 {- | In order to create huds, there are three main pieces of state that need to be kept track of:
 
@@ -80,7 +83,7 @@ import Control.Category (id)
 
 - canvasDim: the rectangular dimension of the canvas on which data will be represented. At times appending a hud element will cause the canvas dimension to shift.
 
-- dataDim: the rectangluar dimension of the data being represented. Adding hud elements can cause this to change.
+- dataDim: the rectangular dimension of the data being represented. Adding hud elements can cause this to change.
 
 -}
 data ChartDims a
@@ -111,6 +114,7 @@ initDims cs cs' = ChartDims ca' da' xs'
 
 -- | combine huds and charts to form a new Chart using the supplied canvas and data dimensions.
 -- Note that the original chart data are transformed by this computation.
+-- used once in makePixelTick
 hudChartWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
 hudChartWith ca xs hs cs =
   flip evalState (ChartDims ca' da' xs) $
@@ -121,7 +125,8 @@ hudChartWith ca xs hs cs =
     cs' = projectSpotsWith ca xs cs
 
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
--- Note that the original chart data are transformed by this computation.
+-- Note that the original chart data are transformed and irrevocably lost by this computation.
+-- used once in renderHudChartExtrasWith
 hudChart :: Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
 hudChart ca hs cs =
   flip evalState (initDims cs cs') $
@@ -131,6 +136,7 @@ hudChart ca hs cs =
     cs' = projectSpotsWith ca xs' cs
 
 -- | combine huds and charts to form a ChartSvg using the supplied canvas and data dimensions
+-- hud
 hudChartSvgWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> ChartSvg Double
 hudChartSvgWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ do
   cs'' <- (unhud $ mconcat hs) cs'
@@ -152,6 +158,8 @@ hudChartSvg ca hss cs =
   hudChartSvgWith ca (defRect $ dataBox cs) hss cs
 
 -- | combine a HudConfig and charts to form a ChartSvg using the supplied canvas dimensions, and extended the data range if needed by the huds.
+-- renderHudChartWith
+-- barChart
 hud :: Rect Double -> HudConfig -> [Chart Double] -> ChartSvg Double
 hud ca cfg cs =
   hudChartSvgWith ca (defRect $ dataBox (cs <> cs')) (hs <> l) (cs <> cs')
@@ -161,6 +169,7 @@ hud ca cfg cs =
 
 -- | Compute huds with frozen tick values and a potential data range extension.
 -- The complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc can create a new set of ticks different to the original.
+-- mainly hud, but also used with pixel etc
 hudsWithExtend :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
 hudsWithExtend xs cfg =
   (haxes <> [can] <> titles, [xsext])
@@ -803,6 +812,21 @@ adjustedTickHud c = Hud $ \cs -> do
           (c ^. #adjust)
   unhud (tick (c ^. #place) adjTick) cs
 
+-- | Convert a UTCTime list into sensible ticks
+makeTickDates :: PosDiscontinuous -> Maybe Text -> Int -> [UTCTime] -> [(Int, Text)]
+makeTickDates pc fmt n dates =
+  lastOnes (\(_, x0) (_, x1) -> x0 == x1)
+    $ fst
+    $ placedTimeLabelDiscontinuous pc fmt n dates
+  where
+    lastOnes :: (a -> a -> Bool) -> [a] -> [a]
+    lastOnes _ [] = []
+    lastOnes _ [x] = [x]
+    lastOnes f (x : xs) = L.fold (L.Fold step (x, []) (\(x0, x1) -> reverse $ x0 : x1)) xs
+      where
+        step (a0, rs) a1 = if f a0 a1 then (a1, rs) else (a1, a0 : rs)
+
+-- You're all Legends!
 data LegendRows = LegendFromChart [Text] | LegendManual [(Annotation, Text)] deriving (Eq, Show, Generic)
 
 legendRowsText :: LegendRows -> Text
@@ -914,6 +938,8 @@ makeLegend l lrs =
     twidth = maybe 0 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (styleBox t)
 
+-- * rendering huds and charts
+-- major usage in Page, Examples etc
 renderHudChartWith :: ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
 renderHudChartWith scfg hcfg cs =
   bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
@@ -942,6 +968,7 @@ renderHudChartExtrasWith scfg hcfg hs cs =
 writeHudChartWith :: FilePath -> ChartSvgStyle -> HudConfig -> [Chart Double] -> IO ()
 writeHudChartWith fp css hc cs = Text.writeFile fp (renderHudChartWith css hc cs)
 
+-- chartSvg
 renderCharts :: ChartSvgStyle -> [Chart Double] -> Text
 renderCharts scfg cs =
   bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
@@ -951,3 +978,6 @@ renderCharts scfg cs =
     . maybe id pad (scfg ^. #innerPad)
     . chartSvg (aspect (scfg ^. #chartAspect))
     $ cs <> maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
+
+
+

@@ -122,12 +122,6 @@ recipe
 stack build --exec "$(stack path --local-install-root)/bin/examples" --file-watch
 ```
 
-adhoc:
-
--- let r = writeChartSvg "t1.svg" (Point 400 400) . chartSvg unitRect
--- renderPageHtmlToFile "other/mjbug1.html" (defaultPageConfig "blank") $ chartStyler False & #htmlBody %~ (<> (p_ "\\(x \\over \\pi \\)") <> (toHtmlRaw $ renderHudChartWith (defaultChartSvgStyle & #escapeText .~ False) simpleMathjaxConfig [Chart BlankA [SpotRect unitRect]]))
--- [Chart {annotation = TextA (TextStyle {size = 0.12, color = PixelRGB8 0 0 0, opacity = 1.0, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Just 0.0, translate = Just Point 0.0 -0.627, hasMathjax = True}) ["mathjax was here: \\(x \\over \\pi\\)"], spots = [SpotPoint Point 0.0 0.0]},Chart {annotation = BlankA, spots = [SpotRect Rect -0.5 0.5 -0.5 0.5]}]
-
 reference
 ---------
 

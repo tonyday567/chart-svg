@@ -180,7 +180,7 @@ barLegend bd bo
 
 -- | A bar chart with hud trimmings.
 --
--- By convetion only, the first axis (if any) is the bar axis.
+-- By convention only, the first axis (if any) is the bar axis.
 barChart :: Rect Double -> BarOptions -> BarData -> ChartSvg Double
 barChart asp bo bd =
   hud

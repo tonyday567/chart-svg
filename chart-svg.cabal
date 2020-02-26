@@ -53,6 +53,7 @@ library
     , scientific
     , svg-tree
     , text
+    , time
     , transformers
     , web-rep
     , xml
