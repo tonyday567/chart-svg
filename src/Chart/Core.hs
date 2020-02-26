@@ -11,10 +11,7 @@ module Chart.Core
     writeChartSvgWith,
     chartSvg_,
     chartSvg,
-    chartSvgWith,
-    fittedSvg,
     frame,
-    defaultFrame,
     projectTo,
     projectSpots,
     projectSpotsWith,
@@ -42,7 +39,6 @@ module Chart.Core
     defRect,
     defRectS,
     addToRect,
-    p0,
     hori,
     vert,
     stack,
@@ -123,25 +119,6 @@ chartSvg a cs = chartSvg_ (defRect $ styleBoxes cs') cs'
   where
     cs' = projectSpots a cs
 
--- | convert a [Chart] to a ChartSvg, projecting Chart data from a specified Rect range to the supplied Rect, and expanding the Rect for chart style if necessary
-chartSvgWith ::
-  (Chartable a) =>
-  Rect a ->
-  Rect a ->
-  [Chart a] ->
-  ChartSvg a
-chartSvgWith new old cs = chartSvg_ (addToRect new (styleBoxes cs')) cs'
-  where
-    cs' = projectSpotsWith new old cs
-
--- | convert a [Chart] to a ChartSvg, setting the Rect equal to the Chart data area
-fittedSvg ::
-  (Chartable a) =>
-  [Chart a] ->
-  ChartSvg a
-fittedSvg cs =
-  chartSvg (defRect $ styleBoxes cs) cs
-
 -- | add an enclosing fitted frame to a ChartSvg
 frame :: (Chartable a) => RectStyle -> ChartSvg a -> ChartSvg a
 frame o (ChartSvg vb _ defs) =
@@ -149,13 +126,6 @@ frame o (ChartSvg vb _ defs) =
     vb
     ((: []) . tree $ Chart (RectA o) [SpotRect vb])
     defs
-
--- | a default frame
-defaultFrame :: (Chartable a) => ChartSvg a -> ChartSvg a
-defaultFrame ch = frame (border 0.01 blue 1.0) ch <> ch
-
-p0 :: (Num a) => Spot a
-p0 = SP 0 0
 
 -- | project a Spot from one Rect to another, preserving relative position.
 projectOn :: (Ord a, Fractional a) => Rect a -> Rect a -> Spot a -> Spot a
@@ -308,7 +278,7 @@ showOriginWith :: (Chartable a) => GlyphStyle -> Chart a
 showOriginWith c =
   Chart
     (GlyphA c)
-    [p0]
+    [SP 0 0]
 
 defaultOrigin :: GlyphStyle
 defaultOrigin = GlyphStyle 0.05 red 0.5 grey 0 0 CircleGlyph Nothing Nothing

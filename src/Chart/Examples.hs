@@ -12,7 +12,6 @@ import Control.Lens
 import Data.Maybe
 import qualified Data.Text as Text
 import Data.Text (Text)
-import qualified Data.Text.IO as Text
 import GHC.Generics
 import Prelude
 import qualified Data.Map.Strict as Map
@@ -149,14 +148,12 @@ oneChart' = Chart (RectA rs') [SpotRect unitRect]
 
 rotateOne :: ChartSvg Double
 rotateOne =
-  defaultFrame $
     chartSvg unitRect [showOrigin]
       <> chartSvg unitRect [oneChart']
       <> rotateSvg 30 (chartSvg unitRect [oneChart])
 
 translateOne :: ChartSvg Double
 translateOne =
-  defaultFrame $
     chartSvg unitRect [showOrigin]
       <> chartSvg unitRect [oneChart']
       <> translateSvg (Point 1 1) (rotateSvg 30 (chartSvg unitRect [oneChart]))
@@ -189,7 +186,7 @@ textChart :: Chart Double
 textChart =
   Chart
     (TextA (defaultTextStyle & #size .~ (1.0 :: Double)) ["abcdefghij"])
-    [p0]
+    [SP 0 0]
 
 textsChart :: Chart Double
 textsChart =
@@ -220,7 +217,7 @@ circle' =
             & #borderSize .~ 0.2
         )
     )
-    [p0]
+    [SP 0 0]
 
 smiley :: Chart Double
 smiley =
@@ -232,7 +229,7 @@ smiley =
             & #shape .~ SmileyGlyph
         )
     )
-    [p0]
+    [SP 0 0]
 
 glyphs :: [Chart Double]
 glyphs = 
@@ -330,8 +327,8 @@ f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 -- | pixel example
 pixelEx :: [Chart Double]
 pixelEx =
-  hudChart (aspect 1.33)
-  (fst (hudsWithExtend (aspect 1.33) defaultHudConfig) <>
+  fst $ runHud (aspect 1.33)
+  (fst (makeHud (aspect 1.33) defaultHudConfig) <>
   [ pixelLegend dataRange
     (defaultPixelLegendOptions "pixel example" & #ploLegendOptions . #lplace .~ PlaceBottom)
   ])
@@ -549,7 +546,7 @@ tri2s s gap bs txts ab =
 
 tri2ss :: Double -> Double -> Double -> Double -> Maybe (Rect Double) -> Integer -> ChartSvg Double
 tri2ss s gap bs txts r n =
-  hudChartSvgWith unitRect (defRectS area) hud1 (tri2s s gap bs txts psf)
+  runHudSvgWith unitRect (defRectS area) hud1 (tri2s s gap bs txts psf)
   where
     ps = euclid n <> ((\(a, b) -> (a, - b)) <$> euclid n)
     psf = maybe ps (\(Rect x z y w) -> filter (\(a, b) -> fromIntegral a >= x && fromIntegral a <= z && fromIntegral b >= y && fromIntegral b <= w) ps) r
@@ -567,7 +564,7 @@ tri3s s gap bs txts ab =
 
 tri3ss :: Double -> Double -> Double -> Double -> Maybe (Rect Double) -> Integer -> ChartSvg Double
 tri3ss s gap bs txts r n =
-  hudChartSvgWith unitRect (defRectS area) hud1 (tri3s s gap bs txts psf)
+  runHudSvgWith unitRect (defRectS area) hud1 (tri3s s gap bs txts psf)
   where
     ps = euclid n <> ((\(a, b) -> (a, - b)) <$> euclid n)
     psf = maybe ps (\(Rect x z y w) -> filter (\(a, b) -> fromIntegral a >= x && fromIntegral a <= z && fromIntegral b >= y && fromIntegral b <= w) ps) r
@@ -600,7 +597,8 @@ euclid :: Integer -> [(Integer, Integer)]
 euclid x = filter (\(a, b) -> a /= 0 && b /= 0) $ (\m n -> (m * m - n * n, 2 * m * n)) <$> [1 .. x] <*> [1 .. x] :: [(Integer, Integer)]
 
 writeChartExample :: FilePath -> Ex -> IO ()
-writeChartExample t (Ex css' hc' _ anns' spots') = Text.writeFile t $ renderHudChartWith css' hc' (zipWith Chart anns' spots')
+writeChartExample fp (Ex css' hc' _ anns' spots') =
+  writeHudConfigChart fp css' hc' [] (zipWith Chart anns' spots')
 
 linkExample :: ChartSvg Double
 linkExample = ChartSvg (Rect (-100) 400 (-100) 400) [treeText (defaultTextStyle & #color .~ PixelRGB8 93 165 218) "<a xlink:href='http://www.google.com'>google</a>" (Chart.Point 0 0)] Map.empty
@@ -645,11 +643,11 @@ writeAllExamples = do
   writeChartSvg
     "other/tri1.svg"
     (Point 400.0 400) True
-    (pad 1.1 $ hudChartSvg (aspect 1) hud1 (tri1 3 4 0.1 <> corners' (Rect 0 3 0 4) 0.1))
+    (pad 1.1 $ runHudSvg (aspect 1) hud1 (tri1 3 4 0.1 <> corners' (Rect 0 3 0 4) 0.1))
   writeChartSvg
     "other/tri2.svg"
     (Point 400 400) True
-    (pad 1.1 $ hudChartSvgWith (aspect 1) (Rect 0 20 0 20) hud1 (tri2 5 12 0.05 0.025 0.01 0.01))
+    (pad 1.1 $ runHudSvgWith (aspect 1) (Rect 0 20 0 20) hud1 (tri2 5 12 0.05 0.025 0.01 0.01))
   writeChartSvg
     "other/tri2s.svg"
     (Point 400 400) True

@@ -81,7 +81,7 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
         hc
     rplo = repPixelLegendOptions plo
     mmap rcss' rpo' rhc' rplo' debug = let (cs,hs) = pixelfl f rpo' rplo' in
-      ( renderHudChartExtrasWith rcss' rhc' hs cs,
+      ( renderHudConfigChart rcss' rhc' hs cs,
         debugHtml debug rcss' rhc' [])
     hmap rcss' rpo' rhc' rplo' debug =
       accordion_
@@ -120,9 +120,10 @@ repTextBB css =
       txtchart ts tps
         <> boxes bb (txtchart ts tps)
     chartsvg cs ts tps bb =
-      renderHudChartWith
+      renderHudConfigChart
         cs
         defaultHudConfig
+        []
         (boxed ts tps bb)
     mmap cs ts bb tps debug =
       ( chartsvg cs ts tps bb,
@@ -289,4 +290,4 @@ main =
       (defaultPageConfig "default")
       (chartStyler True)
 
--- let (Ex css' hc' _ ann' sp') = makeExample sinHudConfig glyphsChart & #excss . #escapeText .~ False in renderPageHtmlToFile "other/mj2.html" (defaultPageConfig "blank") $ chartStyler False & #htmlBody %~ (<> (p_ "\\(x \\over \\pi \\)") <> (toHtmlRaw $ renderHudChartWith css' hc' (zipWith Chart ann' sp')))
+-- let (Ex css' hc' _ ann' sp') = makeExample sinHudConfig glyphsChart & #excss . #escapeText .~ False in renderPageHtmlToFile "other/mj2.html" (defaultPageConfig "blank") $ chartStyler False & #htmlBody %~ (<> (p_ "\\(x \\over \\pi \\)") <> (toHtmlRaw $ renderHudConfigChart css' hc' (zipWith Chart ann' sp')))

@@ -10,12 +10,17 @@ module Chart.Hud
   ( ChartDims (..),
     HudT (..),
     Hud,
-    hudChartWith,
-    hudChart,
-    hudChartSvgWith,
-    hudChartSvg,
+    runHudWith,
+    runHud,
+    runHudSvgWith,
+    runHudSvg,
+    makeHud,
+    makeHudChartSvg,
+    renderHudChart,
     HudConfig (..),
     defaultHudConfig,
+    renderHudConfigChart,
+    writeHudConfigChart,
     Place (..),
     placeText,
     AxisConfig (..),
@@ -42,6 +47,7 @@ module Chart.Hud
     Adjustments (..),
     defaultAdjustments,
     adjustTick,
+    makeTickDates,
     LegendRows (..),
     legendRowsText,
     LegendOptions (..),
@@ -50,19 +56,11 @@ module Chart.Hud
     legendEntry,
     makeLegend,
     makeLegendRows,
-    hud,
-    hudsWithExtend,
-    renderHudChartWith,
-    renderHudChartExtrasWith,
-    writeHudChartWith,
-    renderCharts,
-    makeTickDates,
   )
 where
 
 import Chart.Core
 import Chart.Format
-import Chart.Svg
 import Chart.Types
 import Codec.Picture.Types
 import Control.Lens
@@ -104,20 +102,23 @@ instance (Monad m) => Semigroup (HudT m a) where
 instance (Monad m) => Monoid (HudT m a) where
   mempty = Hud pure
 
--- $combination
-initDims :: [Chart Double] -> [Chart Double] -> ChartDims Double
-initDims cs cs' = ChartDims ca' da' xs'
-  where
-    ca' = defRect $ styleBoxes cs'
-    da' = defRect $ dataBox cs'
-    xs' = defRectS $ dataBox cs
-
--- | combine huds and charts to form a new Chart using the supplied canvas and data dimensions.
--- Note that the original chart data are transformed by this computation.
+-- | combine huds and charts to form a new Chart using the supplied
+-- initial canvas and data dimensions.
+-- Note that chart data is transformed by this computation.
 -- used once in makePixelTick
-hudChartWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
-hudChartWith ca xs hs cs =
-  flip evalState (ChartDims ca' da' xs) $
+runHudWith ::
+  -- | initial canvas dimension
+  Rect Double ->
+  -- | initial data dimension
+  Rect Double ->
+  -- | huds to add
+  [Hud Double] ->
+  -- | underlying chart
+  [Chart Double] ->
+  -- | state and new chart list
+  ([Chart Double], ChartDims Double)
+runHudWith ca xs hs cs =
+  flip runState (ChartDims ca' da' xs) $
     (unhud $ mconcat hs) cs'
   where
     da' = defRect $ dataBox cs'
@@ -126,78 +127,32 @@ hudChartWith ca xs hs cs =
 
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
--- used once in renderHudChartExtrasWith
-hudChart :: Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
-hudChart ca hs cs =
-  flip evalState (initDims cs cs') $
-    (unhud $ mconcat hs) cs'
-  where
-    xs' = defRectS $ dataBox cs
-    cs' = projectSpotsWith ca xs' cs
+-- used once in renderHudChart
+runHud :: Rect Double -> [Hud Double] -> [Chart Double] -> ([Chart Double], ChartDims Double)
+runHud ca hs cs = runHudWith ca (defRectS $ dataBox cs) hs cs
 
--- | combine huds and charts to form a ChartSvg using the supplied canvas and data dimensions
+-- | run huds over the charts and create a ChartSvg using the supplied canvas and data dimensions
 -- hud
-hudChartSvgWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> ChartSvg Double
-hudChartSvgWith ca xs hs cs = flip evalState (ChartDims ca' da' xs') $ do
-  cs'' <- (unhud $ mconcat hs) cs'
-  cd <- use #chartDim
-  pure $ chartSvg_ cd cs''
+runHudSvgWith :: Rect Double -> Rect Double -> [Hud Double] -> [Chart Double] -> ChartSvg Double
+runHudSvgWith ca xs hs cs = chartSvg_ ca' cs'
   where
-    xs' = defRectS $ dataBox cs
-    da' = defRect $ dataBox cs'
-    ca' = defRect $ styleBoxes cs'
-    cs' = projectSpotsWith ca xs cs
+    (cs', ChartDims ca' _ _) = runHudWith ca xs hs cs
 
--- | combine huds and charts to form a ChartSvg using the supplied canvas dimension and the actual data range
-hudChartSvg ::
+-- | run huds over some charts and create an ChartSvg using the supplied canvas dimension and the actual data range
+runHudSvg ::
   Rect Double ->
   [Hud Double] ->
   [Chart Double] ->
   ChartSvg Double
-hudChartSvg ca hss cs =
-  hudChartSvgWith ca (defRect $ dataBox cs) hss cs
+runHudSvg ca hss cs =
+  runHudSvgWith ca (defRect $ dataBox cs) hss cs
 
--- | combine a HudConfig and charts to form a ChartSvg using the supplied canvas dimensions, and extended the data range if needed by the huds.
--- renderHudChartWith
--- barChart
-hud :: Rect Double -> HudConfig -> [Chart Double] -> ChartSvg Double
-hud ca cfg cs =
-  hudChartSvgWith ca (defRect $ dataBox (cs <> cs')) (hs <> l) (cs <> cs')
-  where
-    (hs, cs') = hudsWithExtend (defRectS $ dataBox cs) cfg
-    l = maybe [] (\x -> [legend (makeLegendRows (fst x) cs) (snd x)]) (cfg ^. #hudLegend)
-
--- | Compute huds with frozen tick values and a potential data range extension.
--- The complexity here is due to gridSensible, which is not idempotent.  We have to remember the tick calculation that extends the data area, because reapplying TickRound etc can create a new set of ticks different to the original.
--- mainly hud, but also used with pixel etc
-hudsWithExtend :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
-hudsWithExtend xs cfg =
-  (haxes <> [can] <> titles, [xsext])
-  where
-    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
-    titles = title <$> (cfg ^. #hudTitles)
-    newticks =
-      (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle))
-        <$> (cfg ^. #hudAxes)
-    axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
-    xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
-    haxes =
-      ( \x ->
-          maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar)
-            <> adjustedTickHud x
-      )
-        <$> axes'
-    -- convert TickRound to TickPlaced
-    freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
-    freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs') <$> ext)
-      where
-        (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs')
-        replaceRange :: Place -> Range Double -> Rect Double -> Rect Double
-        replaceRange pl' (Range a0 a1) (Rect x z y w) = case pl' of
-          PlaceRight -> Rect x z a0 a1
-          PlaceLeft -> Rect x z a0 a1
-          _ -> Rect a0 a1 y w
-    freezeTicks _ _ ts = (ts, Nothing)
+-- * rendering huds and charts
+-- | Render some huds and charts.
+renderHudChart :: ChartSvgStyle -> [Hud Double] -> [Chart Double] -> Text
+renderHudChart scfg hs cs =
+  renderChartWith scfg . fst $
+  runHud (aspect (scfg ^. #chartAspect)) hs cs
 
 -- | Practically, the configuration of a Hud is going to be in decimals, typed into config files and the like, and so we concrete at the configuration level, and settle on doubles for specifying the geomtry of hud elements.
 data HudConfig
@@ -225,6 +180,59 @@ defaultHudConfig =
       defaultAxisConfig & #place .~ PlaceLeft
     ]
     Nothing
+
+-- | Make huds from a HudConfig
+-- Some huds, such as the creation of tick values, can extend the data dimension of a chart, so we also return a blank chart with the new data dimension.
+-- The complexity internally is due to the creation of ticks and, specifically, gridSensible, which is not idempotent. As a result, a tick calculation that does extends the data area, can then lead to new tick values when applying TickRound etc.
+makeHud :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
+makeHud xs cfg =
+  (haxes <> [can] <> titles <> l, [xsext])
+  where
+    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
+    titles = title <$> (cfg ^. #hudTitles)
+    newticks =
+      (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle))
+        <$> (cfg ^. #hudAxes)
+    axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
+    xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
+    haxes =
+      ( \x ->
+          maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar)
+            <> adjustedTickHud x
+      )
+        <$> axes'
+    l = maybe [] (\x -> [Hud $ \cs -> unhud (legend (makeLegendRows (fst x) cs) (snd x)) cs]) (cfg ^. #hudLegend)
+
+    -- convert TickRound to TickPlaced
+    freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
+    freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs') <$> ext)
+      where
+        (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs')
+        replaceRange :: Place -> Range Double -> Rect Double -> Rect Double
+        replaceRange pl' (Range a0 a1) (Rect x z y w) = case pl' of
+          PlaceRight -> Rect x z a0 a1
+          PlaceLeft -> Rect x z a0 a1
+          _ -> Rect a0 a1 y w
+    freezeTicks _ _ ts = (ts, Nothing)
+
+-- | run the huds produced by a HudConfig over charts to form a ChartSvg using the supplied canvas dimensions.
+makeHudChartSvg :: Rect Double -> HudConfig -> [Chart Double] -> ChartSvg Double
+makeHudChartSvg ca cfg cs =
+  runHudSvg ca hs (cs <> cs')
+  where
+    (hs, cs') = makeHud (defRectS $ dataBox cs) cfg
+
+-- | Render a chart using the supplied svg and hud styles.
+renderHudConfigChart :: ChartSvgStyle -> HudConfig -> [Hud Double] -> [Chart Double] -> Text
+renderHudConfigChart scfg hcfg extrah cs =
+  renderChartWith scfg . fst $
+  runHud (aspect (scfg ^. #chartAspect)) (hs <> extrah) (cs <> cs')
+  where
+    (hs, cs') = makeHud (defRectS $ dataBox cs) hcfg
+
+writeHudConfigChart :: FilePath -> ChartSvgStyle -> HudConfig -> [Hud Double] -> [Chart Double] -> IO ()
+writeHudConfigChart fp scfg hcfg extrah cs =
+  Text.writeFile fp (renderHudConfigChart scfg hcfg extrah cs)
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -375,7 +383,7 @@ title_ t a =
         )
         [t ^. #text]
     )
-    [p0]
+    [SP 0 0]
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -937,47 +945,4 @@ makeLegend l lrs =
     es = reverse $ uncurry (legendEntry l) <$> lrs
     twidth = maybe 0 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (styleBox t)
-
--- * rendering huds and charts
--- major usage in Page, Examples etc
-renderHudChartWith :: ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
-renderHudChartWith scfg hcfg cs =
-  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
-    (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
-    . maybe id pad (scfg ^. #outerPad)
-    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
-    . maybe id pad (scfg ^. #innerPad)
-    . hud (aspect (scfg ^. #chartAspect)) hcfg
-    $ cs <> maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
-
-renderHudChartExtrasWith :: ChartSvgStyle -> HudConfig -> [Hud Double] -> [Chart Double] -> Text
-renderHudChartExtrasWith scfg hcfg hs cs =
-  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
-    (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
-    . maybe id pad (scfg ^. #outerPad)
-    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
-    . maybe id pad (scfg ^. #innerPad)
-    $ chartSvg asp cs'
-  where
-    asp = aspect (scfg ^. #chartAspect)
-    (hs0,cs0) = hudsWithExtend asp hcfg
-    cs' = hudChart asp
-      (hs0<>hs)
-      (cs<>cs0<>maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig))
-
-writeHudChartWith :: FilePath -> ChartSvgStyle -> HudConfig -> [Chart Double] -> IO ()
-writeHudChartWith fp css hc cs = Text.writeFile fp (renderHudChartWith css hc cs)
-
--- chartSvg
-renderCharts :: ChartSvgStyle -> [Chart Double] -> Text
-renderCharts scfg cs =
-  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
-    (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
-    . maybe id pad (scfg ^. #outerPad)
-    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
-    . maybe id pad (scfg ^. #innerPad)
-    . chartSvg (aspect (scfg ^. #chartAspect))
-    $ cs <> maybe mempty (\g -> [showOriginWith g]) (scfg ^. #orig)
-
-
 

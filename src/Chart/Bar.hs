@@ -183,7 +183,7 @@ barLegend bd bo
 -- By convention only, the first axis (if any) is the bar axis.
 barChart :: Rect Double -> BarOptions -> BarData -> ChartSvg Double
 barChart asp bo bd =
-  hud
+  makeHudChartSvg
     asp
     (bo ^. #barHudConfig & #hudLegend %~ fmap (first (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation))
     (bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues))

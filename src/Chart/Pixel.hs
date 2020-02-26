@@ -201,10 +201,10 @@ makePixelTick l pchart = phud
     r = fromMaybe unitRect (styleBox pchart)
     r' = bool (Rect 0 (l ^. #ploWidth) 0 (l ^. #ploLegendOptions . #lsize)) (Rect 0 (l ^. #ploLegendOptions . #lsize) 0 (l ^. #ploWidth)) (isHori l)
     (hs, _) =
-      hudsWithExtend
+      makeHud
         r
         (mempty & #hudAxes .~ [l ^. #ploAxisConfig &
                                #place .~ bool PlaceRight PlaceBottom (isHori l)])
-    phud = hudChartWith r' r hs [pchart]
+    phud = fst $ runHudWith r' r hs [pchart]
 
 

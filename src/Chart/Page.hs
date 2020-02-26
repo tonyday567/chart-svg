@@ -899,7 +899,7 @@ repChartsWithSharedData css' hc' maxcs' cs' sspots =
         anns'
     mmap css'' ann' d' h' debug' =
       let ch = zipWith Chart ann' d'
-       in ( renderHudChartWith css'' h' ch,
+       in ( renderHudConfigChart css'' h' [] ch,
             debugHtml debug' css'' h' ch
           )
     hmap css'' ann' _ h' debug' =
@@ -939,7 +939,7 @@ debugHtml debug css hc cs =
       ( mconcat $
           (\x -> "<p style='white-space: pre'>" <> x <> "</p>")
             <$> [ "<h2>chart svg</h2>",
-                  renderHudChartWith css hc cs
+                  renderHudConfigChart css hc [] cs
                 ]
       )
       ((\(_, a, _) -> a) debug)
