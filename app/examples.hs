@@ -59,9 +59,6 @@ repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlag
           ("Debug", debug)
         ]
 
--- (\(css, po, hc, f) -> writeHudChartWith "other/pixel.svg" css hc (pixelf f po)) pixelEx
--- pixelEx :: (ChartSvgStyle, PixelOptions, HudConfig, Point Double -> Double)
-
 repPixelChart :: (Monad m) => (ChartSvgStyle, PixelOptions, HudConfig, PixelLegendOptions, Point Double -> Double) ->
   SharedRep m (Text, Text)
 repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rplo <<*>> debugFlags
@@ -91,52 +88,6 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
           ("Hud", rhc'),
           ("Pixel Options", rpo'),
           ("Pixel Legend Options", rplo'),
-          ("Debug", debug)
-        ]
-
-repTextBB :: (Monad m) => ChartSvgStyle -> SharedRep m (Text, Text)
-repTextBB css =
-  bimap hmap mmap rcss <<*>> rtstyle <<*>> rbox <<*>> rtps <<*>> debugFlags
-  where
-    rcss = repChartSvgStyle css
-    rtstyle = repTextStyle defaultTextStyle
-    rbox = repRectStyle (border 0.002 (PixelRGB8 115 36 163) 0.5)
-    rtps =
-      second (fmap (second SpotPoint)) $
-        listRep
-          (Just "text examples")
-          "te"
-          (checkbox Nothing)
-          repTextPoint
-          5
-          ("another example", Point 0 0)
-          [("12345678901234567890", Point 0 0), ("test2", Point 1 1)]
-    repTextPoint (t, p) =
-      bimap (<>) (,) (textbox Nothing t)
-        <<*>> repPoint (Point (Range 0 1) (Range 0 1)) (Point 0.01 0.01) p
-    txtchart ts tps =
-      [Chart (TextA ts (fst <$> tps)) (snd <$> tps)]
-    boxed ts tps bb =
-      txtchart ts tps
-        <> boxes bb (txtchart ts tps)
-    chartsvg cs ts tps bb =
-      renderHudConfigChart
-        cs
-        defaultHudConfig
-        []
-        (boxed ts tps bb)
-    mmap cs ts bb tps debug =
-      ( chartsvg cs ts tps bb,
-        debugHtml debug cs defaultHudConfig (boxed ts tps bb)
-      )
-    hmap cs ts bb tps debug =
-      accordion_
-        "acca"
-        Nothing
-        [ ("Svg", cs),
-          ("Style", ts),
-          ("Box", bb),
-          ("Example Text", tps),
           ("Debug", debug)
         ]
 
@@ -202,13 +153,7 @@ main =
                       ("unit", repEx oneExample),
                       ("rect", repEx normExample),
                       ("text", repEx textExample),
-                      ( "glyphs",
-                        repEx
-                          ( makeExample
-                              defaultHudConfig
-                              glyphs
-                          )
-                      ),
+                      ("glyphs", repEx (makeExample defaultHudConfig glyphs)),
                       ( "mathjax",
                         repEx
                           ( makeExample
@@ -218,22 +163,10 @@ main =
                           )
                       ),
                       ("boundText", repEx (makeExample defaultHudConfig boundText)),
-                      ( "label",
-                        repEx
-                          ( makeExample
-                              defaultHudConfig
-                              (label <> [Chart BlankA [SP 0 (0 :: Double)]])
-                          )
-                      ),
+                      ("label", repEx (makeExample defaultHudConfig label)),
                       ("glines", repEx (makeExample defaultHudConfig glines)),
                       ("lglyph", repEx (makeExample defaultHudConfig lglyph)),
-                      ( "glines <> lglyph",
-                        repEx
-                          ( makeExample
-                              defaultHudConfig
-                              (lglyph <> glines)
-                          )
-                      ),
+                      ("glines <> lglyph", repEx (makeExample defaultHudConfig (lglyph <> glines))),
                       ("bar", repBarChart defaultChartSvgStyle barDataExample (defaultBarOptions (fromMaybe [] (barDataExample ^. #barColumnLabels))))
                     ]
                 ),
@@ -241,14 +174,11 @@ main =
                   repMain
                     defaultChartSvgStyle
                     (GlyphA defaultGlyphStyle)
-                    defaultHudConfig
+                    (defaultHudConfig & #hudTitles .~ [defaultTitle "chart-svg"])
                 ),
                 ( "pixel",
                   repPixelChart
                   (defaultChartSvgStyle, defaultPixelOptions, defaultHudConfig, defaultPixelLegendOptions "pixel test", f1)
-                ),
-                ( "bounding box",
-                  repTextBB defaultChartSvgStyle
                 ),
                 ( "legend test",
                   repNoData
@@ -289,5 +219,3 @@ main =
       ""
       (defaultPageConfig "default")
       (chartStyler True)
-
--- let (Ex css' hc' _ ann' sp') = makeExample sinHudConfig glyphsChart & #excss . #escapeText .~ False in renderPageHtmlToFile "other/mj2.html" (defaultPageConfig "blank") $ chartStyler False & #htmlBody %~ (<> (p_ "\\(x \\over \\pi \\)") <> (toHtmlRaw $ renderHudConfigChart css' hc' (zipWith Chart ann' sp')))

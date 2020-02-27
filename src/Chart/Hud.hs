@@ -15,6 +15,7 @@ module Chart.Hud
     runHudSvgWith,
     runHudSvg,
     makeHud,
+    freezeTicks,
     makeHudChartSvg,
     renderHudChart,
     HudConfig (..),
@@ -175,7 +176,7 @@ defaultHudConfig :: HudConfig
 defaultHudConfig =
   HudConfig
     (Just defaultCanvas)
-    [defaultTitle "default"]
+    []
     [ defaultAxisConfig,
       defaultAxisConfig & #place .~ PlaceLeft
     ]
@@ -190,22 +191,15 @@ makeHud xs cfg =
   where
     can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
-    newticks =
-      (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle))
-        <$> (cfg ^. #hudAxes)
+    newticks = (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle)) <$> (cfg ^. #hudAxes)
     axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
     xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
-    haxes =
-      ( \x ->
-          maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar)
-            <> adjustedTickHud x
-      )
-        <$> axes'
+    haxes = (\x -> maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <> adjustedTickHud x) <$> axes'
     l = maybe [] (\x -> [Hud $ \cs -> unhud (legend (makeLegendRows (fst x) cs) (snd x)) cs]) (cfg ^. #hudLegend)
 
-    -- convert TickRound to TickPlaced
-    freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
-    freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs') <$> ext)
+-- convert TickRound to TickPlaced
+freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
+freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs') <$> ext)
       where
         (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs')
         replaceRange :: Place -> Range Double -> Rect Double -> Rect Double
@@ -213,7 +207,7 @@ makeHud xs cfg =
           PlaceRight -> Rect x z a0 a1
           PlaceLeft -> Rect x z a0 a1
           _ -> Rect a0 a1 y w
-    freezeTicks _ _ ts = (ts, Nothing)
+freezeTicks _ _ ts = (ts, Nothing)
 
 -- | run the huds produced by a HudConfig over charts to form a ChartSvg using the supplied canvas dimensions.
 makeHudChartSvg :: Rect Double -> HudConfig -> [Chart Double] -> ChartSvg Double
@@ -931,7 +925,7 @@ legendEntry l a t =
         )
 
 makeLegendRows :: LegendRows -> [Chart Double] -> [(Annotation, Text)]
-makeLegendRows (LegendFromChart ts) cs = zip (view #annotation <$> cs) ts
+makeLegendRows (LegendFromChart ts) cs = zip (filter (/=BlankA) $ view #annotation <$> cs) ts
 makeLegendRows (LegendManual lrs') _ = lrs'
 
 makeLegend :: LegendOptions -> [(Annotation, Text)] -> [Chart Double]
