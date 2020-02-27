@@ -81,20 +81,6 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
           ("Debug", debug)
         ]
 
-l1 :: [(Annotation, Text)]
-l1 =
-  [ (GlyphA defaultGlyphStyle, "glyph"),
-    (RectA defaultRectStyle, "rect"),
-    (TextA (defaultTextStyle & #anchor .~ AnchorStart) ["content"], "text"),
-    (LineA defaultLineStyle, "line"),
-    (BlankA, "blank")
-  ]
-
-l2 :: [(Annotation, Text)]
-l2 =
-  [ (GlyphA defaultGlyphStyle, "abcdefghijklmnopqrst")
-  ]
-
 repEx :: (Monad m) => Ex -> SharedRep m (Text, Text)
 repEx (Ex css hc maxcs anns xs) = repChartsWithStaticData css hc maxcs (zipWith Chart anns xs)
 
@@ -167,39 +153,13 @@ main =
                 ),
                 ( "pixel",
                   repPixelChart
-                  (defaultChartSvgStyle, defaultPixelOptions, defaultHudConfig, defaultPixelLegendOptions "pixel test", f1)
+                  (defaultChartSvgStyle, defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2, defaultHudConfig, defaultPixelLegendOptions "pixel test", f1)
                 ),
                 ( "legend test",
                   repNoData
                     defaultChartSvgStyle
                     BlankA
-                    ( defaultHudConfig
-                        & #hudLegend
-                        .~ Just
-                          ( defaultLegendOptions
-                              & #scale .~ 0.3
-                              & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
-                              & #lsize .~ 0.12
-                              & #ltext . #size .~ 0.16
-                          , l1
-                          )
-                    )
-                ),
-                ( "legend row hori bug",
-                  repNoData
-                    defaultChartSvgStyle
-                    BlankA
-                    ( defaultHudConfig
-                        & #hudLegend
-                        .~ Just
-                          ( defaultLegendOptions
-                              & #scale .~ 0.3
-                              & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
-                              & #lsize .~ 0.12
-                              & #ltext . #size .~ 0.16
-                          , l2
-                          )
-                    )
+                    legendTest
                 )
               ]
           )

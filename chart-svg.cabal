@@ -65,14 +65,12 @@ executable examples
       app
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
-      JuicyPixels
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , bifunctors
     , chart-svg
     , lens
     , javascript-bridge
     , numhask-space
-    , protolude
     , scotty
     , text
     , transformers

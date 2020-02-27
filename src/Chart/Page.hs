@@ -780,9 +780,22 @@ repChoice initt xs =
     mmap dd' cs' = maybe (Data.List.head cs') (cs' !!) (elemIndex dd' ts)
 
 repLegendOptions :: (Monad m) => LegendOptions -> SharedRep m LegendOptions
-repLegendOptions initl = LegendOptions <$> lsize' <*> hgap' <*> vgap' <*> ltext' <*> lmax' <*> innerPad' <*> outerPad' <*> legendFrame' <*> lplace' <*> scale'
+repLegendOptions initl =
+  bimap
+  hmap
+  LegendOptions
+  lsize' 
+  <<*>> vgap' 
+  <<*>> hgap' 
+  <<*>> ltext' 
+  <<*>> lmax' 
+  <<*>> innerPad' 
+  <<*>> outerPad' 
+  <<*>> legendFrame' 
+  <<*>> lplace' 
+  <<*>> scale'
   where
-    lsize' = slider (Just "glyph size") 0.000 0.5 0.001 (initl ^. #lsize)
+    lsize' = slider (Just "element size") 0.000 1 0.001 (initl ^. #lsize)
     hgap' = slider (Just "horizontal gap") 0.000 0.5 0.001 (initl ^. #hgap)
     vgap' = slider (Just "vertical gap") 0.000 0.5 0.001 (initl ^. #vgap)
     ltext' = repTextStyle (initl ^. #ltext)
@@ -808,6 +821,17 @@ repLegendOptions initl = LegendOptions <$> lsize' <*> hgap' <*> vgap' <*> ltext'
         (repRectStyle (fromMaybe defaultSvgFrame (initl ^. #legendFrame)))
     lplace' = repPlace (initl ^. #lplace)
     scale' = slider (Just "scale") 0.01 1 0.001 (initl ^. #scale)
+    hmap lsize'' vgap'' hgap'' ltext'' lmax'' innerPad'' outerPad'' legendFrame'' lplace'' scale'' =
+      accordion_
+        "accleg"
+        Nothing
+        [ ("Scale", scale'' <> lsize''),
+          ("Pads", innerPad'' <> outerPad'' <> vgap'' <> hgap''),
+          ("Text", ltext''),
+          ("Frame", legendFrame''),
+          ("Place", lplace''),
+          ("Max Elements", lmax'')
+        ]
 
 repChartsWithSharedData ::
   (Monad m) =>

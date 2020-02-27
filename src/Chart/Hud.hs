@@ -11,6 +11,7 @@ module Chart.Hud
     HudT (..),
     Hud,
     runHudWith,
+    runHudWith_,
     runHud,
     runHudSvgWith,
     runHudSvg,
@@ -51,9 +52,9 @@ module Chart.Hud
     makeTickDates,
     LegendOptions (..),
     defaultLegendOptions,
-    legend,
+    legendHud,
     legendEntry,
-    makeLegend,
+    legendChart,
     legendFromChart,
   )
 where
@@ -124,6 +125,23 @@ runHudWith ca xs hs cs =
     ca' = defRect $ styleBoxes cs'
     cs' = projectSpotsWith ca xs cs
 
+-- | combine huds and charts to form a new Chart using the supplied
+-- initial canvas and data dimensions, with no transformation of chart data.
+runHudWith_ ::
+  -- | initial canvas dimension
+  Rect Double ->
+  -- | initial data dimension
+  Rect Double ->
+  -- | huds to add
+  [Hud Double] ->
+  -- | underlying chart
+  [Chart Double] ->
+  -- | state and new chart list
+  ([Chart Double], ChartDims Double)
+runHudWith_ ca xs hs cs =
+  flip runState (ChartDims ca ca xs) $
+    (unhud $ mconcat hs) cs
+
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
 -- used once in renderHudChart
@@ -193,7 +211,7 @@ makeHud xs cfg =
     axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
     xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
     haxes = (\x -> maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <> adjustedTickHud x) <$> axes'
-    l = maybe mempty legend (cfg ^. #hudLegend)
+    l = maybe mempty (\(lo, ats) -> legendHud lo (legendChart ats lo)) (cfg ^. #hudLegend)
 
 -- convert TickRound to TickPlaced
 freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
@@ -860,16 +878,17 @@ defaultLegendOptions =
     PlaceBottom
     0.2
 
-legend :: (LegendOptions, [(Annotation, Text)]) -> Hud Double
-legend (l, lrs) = Hud $ \cs -> do
+legendHud :: LegendOptions -> [Chart Double] -> Hud Double
+legendHud l lcs = Hud $ \cs -> do
   ca <- use #chartDim
-  let cs' = cs <> movedleg ca (scaledleg ca)
+  let cs' = cs <> movedleg ca scaledleg
   #chartDim .= defRect (styleBoxes cs')
   pure cs'
   where
-    scaledleg ca' =
+    scaledleg =
       (#annotation %~ scaleAnn (realToFrac $ l ^. #scale))
-        <$> projectSpots (fmap (* l ^. #scale) ca') (makeLegend l lrs)
+      . (#spots %~ fmap (fmap (* l ^. #scale)))
+      <$> lcs
     movedleg ca' leg =
       maybe id (moveChart . SpotPoint . placel (l ^. #lplace) ca') (styleBoxes leg) leg
     placel pl (Rect x z y w) (Rect x' z' y' w') =
@@ -905,7 +924,7 @@ legendEntry l a t =
         )
       GlyphA gs ->
         ( GlyphA (gs & #size .~ realToFrac (l ^. #lsize)),
-          [SP 0 (0.33 * l ^. #lsize)]
+          [SP (0.5 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
       LineA ls ->
         ( LineA (ls & #width %~ (/(realToFrac $ l ^. #scale))),
@@ -916,8 +935,8 @@ legendEntry l a t =
           [SP 0 0]
         )
 
-makeLegend :: LegendOptions -> [(Annotation, Text)] -> [Chart Double]
-makeLegend l lrs =
+legendChart :: [(Annotation, Text)] -> LegendOptions -> [Chart Double]
+legendChart lrs l =
   padChart (l ^. #outerPad) .
   maybe id (\x -> frameChart x (l ^. #innerPad)) (l ^. #legendFrame) .
   vert (l ^. #hgap) $

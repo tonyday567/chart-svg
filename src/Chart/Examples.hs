@@ -165,6 +165,12 @@ ts =
     (fmap Text.singleton ['a' .. 'y'])
     [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
 
+ts12 :: [(Text.Text, Point Double)]
+ts12 =
+  zip
+    (fmap (Text.pack . replicate 12) ['m', 'o', 'n', 'a', 'd'])
+    [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
+
 textChart :: Chart Double
 textChart =
   Chart
@@ -288,17 +294,20 @@ sinXTicks :: TickStyle
 sinXTicks = TickPlaced [(0,"zero"), (pi/2, "π/2"), (pi, "π"), (3 * pi / 2, "3π/2"), (2 * pi, "\\(2 \\pi \\)")]
 
 -- textual
+
 boundText :: [Chart Double]
 boundText =
-  [ Chart (RectA defaultRectStyle) (SpotRect <$> catMaybes (styleBox <$> cs)),
-    Chart a1 ps
+  [ t1
+  , t2
+  , Chart BlankA [SpotRect (Rect 0 0.1 (-0.5) 0.5)]
+  , Chart (RectA defaultRectStyle) [SpotRect (defRectS $ styleBox t1)]
+  , Chart (RectA defaultRectStyle) [SpotRect (defRectS $ styleBox t2)]
   ]
   where
-    t1 = fst <$> ts
-    ps = projectTo (aspect 1) $ SpotPoint . snd <$> ts
-    t1s = TextA (defaultTextStyle & #size .~ 0.06) . (: []) <$> t1
-    cs = zipWith (\x y -> Chart x y) t1s ((: []) <$> ps)
-    a1 = TextA (defaultTextStyle & #size .~ 0.06) t1
+    t1 = Chart (TextA (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
+                ["a pretty long piece of text"]) [SP 0.0 0.0]
+    t2 = Chart (TextA (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
+                ["another pretty long piece of text"]) [SP 1 1]
 
 pixelOptions :: PixelOptions
 pixelOptions =
@@ -308,16 +317,8 @@ f1 :: (Floating a) => Point a -> a
 f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 
 -- | pixel example
-pixelEx :: [Chart Double]
-pixelEx =
-  fst $ runHud (aspect 1.33)
-  (fst (makeHud (aspect 1.33) defaultHudConfig) <>
-  [ pixelLegend dataRange
-    (defaultPixelLegendOptions "pixel example" & #ploLegendOptions . #lplace .~ PlaceBottom)
-  ])
-  cs
-  where
-    (cs, dataRange) = pixelf f1 defaultPixelOptions
+pixelEx :: ([Chart Double], [Hud Double])
+pixelEx = pixelfl f1 (defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2) (defaultPixelLegendOptions "pixel test")
 
 label :: [Chart Double]
 label =
@@ -579,6 +580,28 @@ hud1 =
 euclid :: Integer -> [(Integer, Integer)]
 euclid x = filter (\(a, b) -> a /= 0 && b /= 0) $ (\m n -> (m * m - n * n, 2 * m * n)) <$> [1 .. x] <*> [1 .. x] :: [(Integer, Integer)]
 
+
+legendTest :: HudConfig
+legendTest = defaultHudConfig
+                        & #hudLegend
+                        .~ Just
+                          ( defaultLegendOptions
+                              & #scale .~ 0.3
+                              & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
+                              & #lsize .~ 0.12
+                              & #ltext . #size .~ 0.16
+                          , l1
+                          )
+  where
+    l1 =
+      [ (GlyphA defaultGlyphStyle, "glyph"),
+        (RectA defaultRectStyle, "rect"),
+        (TextA (defaultTextStyle & #anchor .~ AnchorStart) ["content"], "text"),
+        (LineA defaultLineStyle, "line"),
+        (GlyphA defaultGlyphStyle, "abcdefghijklmnopqrst"),
+        (BlankA, "blank")
+      ]
+
 writeChartExample :: FilePath -> Ex -> IO ()
 writeChartExample fp (Ex css' hc' _ anns' spots') =
   writeHudConfigChart fp css' hc' [] (zipWith Chart anns' spots')
@@ -606,7 +629,7 @@ writeAllExamples = do
   writeChartSvg "other/translateOne.svg" (Point 200 200) True translateOne
   writeChart "other/rectChart.svg" rectChart
   writeChart "other/rectCharts.svg" rectCharts
-  writeChart "other/pixel.svg" pixelEx
+  writeHudConfigChart "other/pixel.svg" defaultChartSvgStyle mempty (snd pixelEx) (fst pixelEx)
   writeChart "other/textChart.svg" [textChart]
   writeChart "other/textsChart.svg" [textsChart]
   writeChart "other/boundText.svg" boundText
