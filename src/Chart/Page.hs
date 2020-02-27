@@ -34,7 +34,6 @@ module Chart.Page
     repGlyphShape,
     repChoice,
     repLegendOptions,
-    repLegendRows,
     repChartsWithSharedData,
     repChartsWithStaticData,
     debugHtml,
@@ -320,15 +319,16 @@ repHudConfig ::
   (Monad m) =>
   Int ->
   Int ->
+  Int ->
   AxisConfig ->
   Title ->
   LegendOptions ->
-  LegendRows ->
+  [(Annotation, Text)] ->
   Annotation ->
   Text ->
   HudConfig ->
   SharedRep m HudConfig
-repHudConfig naxes ntitles defaxis deftitle deflegend deflrs defann deflabel cfg =
+repHudConfig naxes ntitles nlegendRows defaxis deftitle deflegend deflrs defann deflabel cfg =
   bimap hmap (\a b c d -> HudConfig a b c d) can
     <<*>> ts
     <<*>> axs
@@ -355,13 +355,31 @@ repHudConfig naxes ntitles defaxis deftitle deflegend deflrs defann deflabel cfg
         naxes
         defaxis
         (cfg ^. #hudAxes)
+    labelsc =
+      listRep
+        (Just "labelsc")
+        "labelscz"
+        (checkbox Nothing)
+        (textbox Nothing)
+        nlegendRows
+        deflabel
+        (snd <$> deflrs)
+    anns =
+      listRep
+        (Just "annotations")
+        "annsz"
+        (checkbox Nothing)
+        repAnnotation
+        nlegendRows
+        defann
+        (fst <$> deflrs)
     l =
       maybeRep
         (Just "legend")
         (isJust $ cfg ^. #hudLegend)
         ((,) <$>
-         repLegendRows 5 (maybe deflrs fst (cfg ^. #hudLegend)) defann deflabel <*>
-         repLegendOptions (maybe deflegend snd (cfg ^. #hudLegend)))
+          repLegendOptions (maybe deflegend fst (cfg ^. #hudLegend)) <*>
+          (zip <$> anns <*> labelsc))
     hmap can' ts' axs' l' =
       accordion_
         "accc"
@@ -791,71 +809,6 @@ repLegendOptions initl = LegendOptions <$> lsize' <*> hgap' <*> vgap' <*> ltext'
     lplace' = repPlace (initl ^. #lplace)
     scale' = slider (Just "scale") 0.01 1 0.001 (initl ^. #scale)
 
-repLegendRows ::
-  (Monad m) =>
-  Int ->
-  LegendRows ->
-  Annotation ->
-  Text ->
-  SharedRep m LegendRows
-repLegendRows n initlrs defann deflabel =
-  bimap hmap mmap lrows <<*>> labelsc <<*>> labels
-    <<*>> anns
-  where
-    lrows =
-      dropdownSum
-        takeText
-        id
-        (Just "LegendRows")
-        [ "LegendFromChart",
-          "LegendManual"
-        ]
-        (legendRowsText initlrs)
-    labels =
-      listRep
-        (Just "labels")
-        "labelsz"
-        (checkbox Nothing)
-        (textbox Nothing)
-        n
-        deflabel
-        (defLabels initlrs)
-    labelsc =
-      listRep
-        (Just "labelsc")
-        "labelscz"
-        (checkbox Nothing)
-        (textbox Nothing)
-        n
-        deflabel
-        (defLabels initlrs)
-    anns =
-      listRep
-        (Just "annotations")
-        "annsz"
-        (checkbox Nothing)
-        repAnnotation
-        n
-        defann
-        (defAnns initlrs)
-    defLabels lrs'' = case lrs'' of
-      LegendFromChart ts -> ts
-      LegendManual lrs' -> snd <$> lrs'
-    defAnns lrs'' = case lrs'' of
-      LegendFromChart _ -> []
-      LegendManual lrs' -> fst <$> lrs'
-    hmap lrows' labelsc' labels' anns' =
-      div_
-        ( lrows'
-            <> subtype labelsc' (legendRowsText initlrs) "LegendFromChart"
-            <> subtype labels' (legendRowsText initlrs) "LegendManual"
-            <> subtype anns' (legendRowsText initlrs) "LegendManual"
-        )
-    mmap lrows' labelsc' labels' anns' = case lrows' of
-      "LegendFromChart" -> LegendFromChart labelsc'
-      "LegendManual" -> LegendManual (zip anns' labels')
-      _ -> LegendManual (zip anns' labels')
-
 repChartsWithSharedData ::
   (Monad m) =>
   ChartSvgStyle ->
@@ -878,15 +831,16 @@ repChartsWithSharedData css' hc' maxcs' cs' sspots =
     anns' = view #annotation <$> cs'
     hr =
       repHudConfig
-        2
-        3
-        defaultAxisConfig
-        (defaultTitle "default")
-        defaultLegendOptions
-        (LegendFromChart ["default"])
-        BlankA
-        ""
-        hc'
+      2
+      3
+      5
+      defaultAxisConfig
+      (defaultTitle "default")
+      (maybe defaultLegendOptions fst (hc' ^. #hudLegend))
+      (maybe [] snd (hc' ^. #hudLegend))
+      BlankA
+      ""
+      hc'
     cssr = repChartSvgStyle css'
     annsr =
       listRep
@@ -967,10 +921,11 @@ repHudConfigDefault hc =
   repHudConfig
     2
     3
+    5
     defaultAxisConfig
     (defaultTitle "default")
     defaultLegendOptions
-    (LegendFromChart ["insert names here"])
+    []
     BlankA
     ""
     hc
@@ -1022,10 +977,11 @@ repBarOptions nrows defrs defts cfg =
     ho = repHudConfig
         2
         3
+        5
         defaultAxisConfig
         (defaultTitle "bar options")
-        (maybe defaultLegendOptions snd (cfg ^. #barHudConfig . #hudLegend))
-        (maybe (LegendManual []) fst (cfg ^. #barHudConfig . #hudLegend))
+        (maybe defaultLegendOptions fst (cfg ^. #barHudConfig . #hudLegend))
+        (maybe [] snd (cfg ^. #barHudConfig . #hudLegend))
         BlankA
         ""
         (cfg ^. #barHudConfig)

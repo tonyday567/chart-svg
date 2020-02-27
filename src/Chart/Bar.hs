@@ -72,14 +72,14 @@ defaultBarOptions legendLabels =
         & #hudTitles .~ [defaultTitle "Default Bar Chart"]
         & #hudLegend
           .~ Just
-            ( LegendManual (zip (RectA <$> gs) legendLabels),
-              defaultLegendOptions
+            ( defaultLegendOptions
                 & #lplace .~ PlaceRight
                 & #lsize .~ 0.12
                 & #vgap .~ 0.16
                 & #hgap .~ 0.14
                 & #ltext . #size .~ 0.16
                 & #scale .~ 0.33
+            , (zip (RectA <$> gs) legendLabels)
             )
     )
   where
@@ -172,11 +172,11 @@ tickFirstAxis :: BarData -> [AxisConfig] -> [AxisConfig]
 tickFirstAxis _ [] = []
 tickFirstAxis bd (x : xs) = (x & #atick . #tstyle .~ barTicks bd) : xs
 
-barLegend :: BarData -> BarOptions -> LegendRows
+barLegend :: BarData -> BarOptions -> [(Annotation, Text)]
 barLegend bd bo
-  | bd ^. #barData == [] = LegendManual []
-  | isNothing (bd ^. #barColumnLabels) = LegendManual []
-  | otherwise = LegendManual $ zip (RectA <$> bo ^. #barRectStyles) $ take (length (bd ^. #barData)) $ fromMaybe [] (bd ^. #barColumnLabels) <> repeat ""
+  | bd ^. #barData == [] = []
+  | isNothing (bd ^. #barColumnLabels) = []
+  | otherwise = zip (RectA <$> bo ^. #barRectStyles) $ take (length (bd ^. #barData)) $ fromMaybe [] (bd ^. #barColumnLabels) <> repeat ""
 
 -- | A bar chart with hud trimmings.
 --
@@ -185,7 +185,7 @@ barChart :: Rect Double -> BarOptions -> BarData -> ChartSvg Double
 barChart asp bo bd =
   makeHudChartSvg
     asp
-    (bo ^. #barHudConfig & #hudLegend %~ fmap (first (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation))
+    (bo ^. #barHudConfig & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation))
     (bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues))
 
 -- | convert data to a text and Point

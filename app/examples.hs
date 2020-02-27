@@ -65,17 +65,7 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
   where
     rcss = repChartSvgStyle css
     rpo = repPixelOptions po
-    rhc =
-      repHudConfig
-        2
-        3
-        defaultAxisConfig
-        (defaultTitle "default")
-        defaultLegendOptions
-        (LegendFromChart ["default"])
-        BlankA
-        ""
-        hc
+    rhc = repHudConfigDefault hc
     rplo = repPixelLegendOptions plo
     mmap rcss' rpo' rhc' rplo' debug = let (cs,hs) = pixelfl f rpo' rplo' in
       ( renderHudConfigChart rcss' rhc' hs cs,
@@ -149,7 +139,6 @@ main =
                   repChoice
                     0
                     [ ("hockey", repEx hockey),
-                      ("hockey*1000", repEx (hockey' (Point 1000 1000))),
                       ("unit", repEx oneExample),
                       ("rect", repEx normExample),
                       ("text", repEx textExample),
@@ -187,12 +176,12 @@ main =
                     ( defaultHudConfig
                         & #hudLegend
                         .~ Just
-                          ( LegendManual l1,
-                            defaultLegendOptions
+                          ( defaultLegendOptions
                               & #scale .~ 0.3
                               & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
                               & #lsize .~ 0.12
                               & #ltext . #size .~ 0.16
+                          , l1
                           )
                     )
                 ),
@@ -203,12 +192,12 @@ main =
                     ( defaultHudConfig
                         & #hudLegend
                         .~ Just
-                          ( LegendManual l2,
-                            defaultLegendOptions
+                          ( defaultLegendOptions
                               & #scale .~ 0.3
                               & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
                               & #lsize .~ 0.12
                               & #ltext . #size .~ 0.16
+                          , l2
                           )
                     )
                 )

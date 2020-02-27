@@ -49,14 +49,12 @@ module Chart.Hud
     defaultAdjustments,
     adjustTick,
     makeTickDates,
-    LegendRows (..),
-    legendRowsText,
     LegendOptions (..),
     defaultLegendOptions,
     legend,
     legendEntry,
     makeLegend,
-    makeLegendRows,
+    legendFromChart,
   )
 where
 
@@ -161,7 +159,7 @@ data HudConfig
       { hudCanvas :: Maybe RectStyle,
         hudTitles :: [Title],
         hudAxes :: [AxisConfig],
-        hudLegend :: Maybe (LegendRows, LegendOptions)
+        hudLegend :: Maybe (LegendOptions, [(Annotation, Text)])
       }
   deriving (Eq, Show, Generic)
 
@@ -187,7 +185,7 @@ defaultHudConfig =
 -- The complexity internally is due to the creation of ticks and, specifically, gridSensible, which is not idempotent. As a result, a tick calculation that does extends the data area, can then lead to new tick values when applying TickRound etc.
 makeHud :: Rect Double -> HudConfig -> ([Hud Double], [Chart Double])
 makeHud xs cfg =
-  (haxes <> [can] <> titles <> l, [xsext])
+  (haxes <> [can] <> titles <> [l], [xsext])
   where
     can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
@@ -195,7 +193,7 @@ makeHud xs cfg =
     axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
     xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
     haxes = (\x -> maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <> adjustedTickHud x) <$> axes'
-    l = maybe [] (\x -> [Hud $ \cs -> unhud (legend (makeLegendRows (fst x) cs) (snd x)) cs]) (cfg ^. #hudLegend)
+    l = maybe mempty legend (cfg ^. #hudLegend)
 
 -- convert TickRound to TickPlaced
 freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
@@ -829,12 +827,6 @@ makeTickDates pc fmt n dates =
         step (a0, rs) a1 = if f a0 a1 then (a1, rs) else (a1, a0 : rs)
 
 -- You're all Legends!
-data LegendRows = LegendFromChart [Text] | LegendManual [(Annotation, Text)] deriving (Eq, Show, Generic)
-
-legendRowsText :: LegendRows -> Text
-legendRowsText (LegendFromChart _) = "LegendFromChart"
-legendRowsText (LegendManual _) = "LegendManual"
-
 -- | Legend options
 data LegendOptions
   = LegendOptions
@@ -868,8 +860,8 @@ defaultLegendOptions =
     PlaceBottom
     0.2
 
-legend :: [(Annotation, Text)] -> LegendOptions -> Hud Double
-legend lrs l = Hud $ \cs -> do
+legend :: (LegendOptions, [(Annotation, Text)]) -> Hud Double
+legend (l, lrs) = Hud $ \cs -> do
   ca <- use #chartDim
   let cs' = cs <> movedleg ca (scaledleg ca)
   #chartDim .= defRect (styleBoxes cs')
@@ -924,10 +916,6 @@ legendEntry l a t =
           [SP 0 0]
         )
 
-makeLegendRows :: LegendRows -> [Chart Double] -> [(Annotation, Text)]
-makeLegendRows (LegendFromChart ts) cs = zip (filter (/=BlankA) $ view #annotation <$> cs) ts
-makeLegendRows (LegendManual lrs') _ = lrs'
-
 makeLegend :: LegendOptions -> [(Annotation, Text)] -> [Chart Double]
 makeLegend l lrs =
   padChart (l ^. #outerPad) .
@@ -939,4 +927,7 @@ makeLegend l lrs =
     es = reverse $ uncurry (legendEntry l) <$> lrs
     twidth = maybe 0 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (styleBox t)
+
+legendFromChart :: [Text] -> [Chart Double] -> [(Annotation, Text)]
+legendFromChart = zipWith (\t c -> (c ^. #annotation,t))
 

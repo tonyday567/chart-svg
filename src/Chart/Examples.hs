@@ -26,7 +26,7 @@ data Ex
       }
   deriving (Eq, Show, Generic)
 
-exampleHudConfig :: Text -> Maybe Text -> Maybe (LegendRows, LegendOptions) -> HudConfig
+exampleHudConfig :: Text -> Maybe Text -> Maybe (LegendOptions, [(Annotation, Text)]) -> HudConfig
 exampleHudConfig t1 t2 legends' =
   defaultHudConfig
     & #hudTitles
@@ -59,25 +59,11 @@ hockey =
     ( exampleHudConfig
         "Example Chart"
         (Just "An example from chart-svg")
-        (Just (lrs, legopts))
+        (Just (legopts, zip (LineA <$> lopts) ["hockey", "line", "vertical"]))
     )
     3
     (LineA <$> lopts)
     (fmap SpotPoint <$> ls)
-
--- | line example
-hockey' :: Point Double -> Ex
-hockey' (Point x' y') =
-  Ex
-    defaultChartSvgStyle
-    ( exampleHudConfig
-        "Example Chart"
-        (Just "An example from chart-svg")
-        (Just (lrs, legopts))
-    )
-    3
-    (LineA <$> lopts)
-    (fmap SpotPoint <$> fmap (\(Point x y) -> Point (x*x') (y*y')) <$> ls)
 
 ls :: [[Point Double]]
 ls =
@@ -105,9 +91,6 @@ legopts =
     & #innerPad .~ 0.05
     & #scale .~ 0.25
     & #lplace .~ PlaceAbsolute (Point 0.5 (-0.3))
-
-lrs :: LegendRows
-lrs = LegendFromChart ["hockey", "green", "vertical"]
 
 -- rects
 ropts :: [RectStyle]
@@ -418,7 +401,7 @@ bbExample =
       [("text1", SP 0 0), ("text2", SP 1 1)]
 
 legExample :: Ex
-legExample = makeExample (mempty & #hudLegend .~ Just (LegendManual l1, defaultLegendOptions)) [Chart (LineA defaultLineStyle) [SP 0 0, SP 1 1]]
+legExample = makeExample (mempty & #hudLegend .~ Just (defaultLegendOptions, l1)) [Chart (LineA defaultLineStyle) [SP 0 0, SP 1 1]]
   where
     l1 =
       [ (GlyphA defaultGlyphStyle, "glyph"),
