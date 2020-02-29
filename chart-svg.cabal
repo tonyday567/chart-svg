@@ -52,6 +52,7 @@ library
     , protolude
     , scientific
     , svg-tree
+    , tagsoup
     , text
     , time
     , transformers

@@ -123,20 +123,13 @@ main =
               0
               [ ( "examples",
                   repChoice
-                    0
+                    5
                     [ ("hockey", repEx hockey),
                       ("unit", repEx oneExample),
                       ("rect", repEx normExample),
                       ("text", repEx textExample),
                       ("glyphs", repEx (makeExample defaultHudConfig glyphs)),
-                      ( "mathjax",
-                        repEx
-                          ( makeExample
-                              sinHudConfig
-                              glyphsChart &
-                              #excss . #escapeText .~ False
-                          )
-                      ),
+                      ("mathjax", repEx mathjaxExample),
                       ("boundText", repEx (makeExample defaultHudConfig boundText)),
                       ("label", repEx (makeExample defaultHudConfig label)),
                       ("glines", repEx (makeExample defaultHudConfig glines)),

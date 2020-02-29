@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -62,15 +63,18 @@ import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
 import qualified Data.Text.IO as Text
 import NumHask.Space
-import Prelude
+import Protolude
 import Text.Pretty.Simple (pShowNoColor)
+import Control.Category (id)
+import Text.HTML.TagSoup
 
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor
 
 renderChartWith :: ChartSvgStyle -> [Chart Double] -> Text.Text
 renderChartWith scfg cs =
-  renderChartSvg (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
+  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
+  (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
     . maybe id pad (scfg ^. #outerPad)
     . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
     . maybe id pad (scfg ^. #innerPad)
@@ -241,7 +245,7 @@ styleBoxText o t p = move p $ realToFrac <$> maybe flat (`rotateRect` flat) (rea
     h = o ^. #hsize
     v = o ^. #vsize
     n1 = o ^. #nudge1
-    x' = s * h * realToFrac (Text.length t)
+    x' = s * h * realToFrac (Protolude.sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
     y' = s * v
     n1' = s * n1
     a' = case o ^. #anchor of

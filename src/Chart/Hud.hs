@@ -11,7 +11,6 @@ module Chart.Hud
     HudT (..),
     Hud,
     runHudWith,
-    runHudWith_,
     runHud,
     runHudSvgWith,
     runHudSvg,
@@ -124,23 +123,6 @@ runHudWith ca xs hs cs =
     da' = defRect $ dataBox cs'
     ca' = defRect $ styleBoxes cs'
     cs' = projectSpotsWith ca xs cs
-
--- | combine huds and charts to form a new Chart using the supplied
--- initial canvas and data dimensions, with no transformation of chart data.
-runHudWith_ ::
-  -- | initial canvas dimension
-  Rect Double ->
-  -- | initial data dimension
-  Rect Double ->
-  -- | huds to add
-  [Hud Double] ->
-  -- | underlying chart
-  [Chart Double] ->
-  -- | state and new chart list
-  ([Chart Double], ChartDims Double)
-runHudWith_ ca xs hs cs =
-  flip runState (ChartDims ca ca xs) $
-    (unhud $ mconcat hs) cs
 
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
