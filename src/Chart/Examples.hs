@@ -15,8 +15,6 @@ import Data.Text (Text)
 import GHC.Generics
 import Prelude
 import qualified Data.Map.Strict as Map
-import Web.Page hiding (element)
-import Lucid (toHtmlRaw)
 
 data Ex
   = Ex
@@ -268,45 +266,8 @@ gopts =
       $ defaultGlyphStyle
   ]
 
-
--- FIXME: https://github.com/Twinside/svg-tree/issues/22
-mathjaxExampleSvgText :: Text
-mathjaxExampleSvgText = renderHudConfigChart css' hc' [] (zipWith Chart anns' spots')
-  where
-    (Ex css' hc' _ anns' spots') = mathjaxExample
-
-mathjaxExampleWrite :: Text -> IO ()
-mathjaxExampleWrite x = renderPageHtmlToFile "other/mathjax.html" (defaultPageConfig "other/mathjax.html") (mathjaxSvgPage "hasmathjax" & #htmlBody .~ toHtmlRaw x)
-
-mathjaxExample :: Ex
-mathjaxExample =
-  makeExample
-  sinHudConfig
-  glyphsChart &
-  #excss . #escapeText .~ False
-
 glyphsChart :: [Chart Double]
 glyphsChart = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) gdata ((#size .~ 0.02) <$> gopts)
-
-sinHudConfig :: HudConfig
-sinHudConfig =
-  defaultHudConfig &
-  (#hudAxes . element 0 . #atick . #tstyle .~ sinXTicks) &
-  -- (#hudAxes . element 0 . #atick . #ttick . _Just . _1 . #hasMathjax .~ True) &
-  (#hudAxes . element 1 . #atick . #tstyle .~ sinYTicks) &
-  #hudTitles .~
-    [ defaultTitle "mathjax: $x \\over \\pi$" & #style . #hasMathjax .~ True & #place .~ PlaceBottom
-    , defaultTitle "prefix: $\\sum_{i=0}^n i^2 = \\frac{(n^2+n)(2n+1)}{6}$" & #style . #hasMathjax .~ True & #place .~ PlaceTop
-    , defaultTitle "<a xlink:href='https://www.google.com'>google</a>" &
-      #place .~ PlaceRight &
-      #style . #size .~ 0.06
-    ]
-
-sinYTicks :: TickStyle
-sinYTicks = TickPlaced $ (\x -> (x, Text.pack $ show x)) <$> [-1,-0.5,0,0.5,1]
-
-sinXTicks :: TickStyle
-sinXTicks = TickPlaced [(0,"zero"), (pi/2, "π/2"), (pi, "π"), (3 * pi / 2, "3π/2"), (2 * pi, "\\(2 \\pi \\)")]
 
 -- textual
 boundText :: [Chart Double]

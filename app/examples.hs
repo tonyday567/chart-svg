@@ -129,7 +129,6 @@ main =
                       ("rect", repEx normExample),
                       ("text", repEx textExample),
                       ("glyphs", repEx (makeExample defaultHudConfig glyphs)),
-                      ("mathjax", repEx mathjaxExample),
                       ("boundText", repEx (makeExample defaultHudConfig boundText)),
                       ("label", repEx (makeExample defaultHudConfig label)),
                       ("glines", repEx (makeExample defaultHudConfig glines)),
