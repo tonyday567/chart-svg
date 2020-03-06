@@ -73,6 +73,8 @@ import Protolude
 import Control.Category (id)
 import qualified Control.Foldl as L
 import Data.Time
+import Chart.ChartSvg
+import Chart.Svg
 
 {- | In order to create huds, there are three main pieces of state that need to be kept track of:
 
@@ -148,7 +150,7 @@ runHudSvg ca hss cs =
 
 -- * rendering huds and charts
 -- | Render some huds and charts.
-renderHudChart :: ChartSvgStyle -> [Hud Double] -> [Chart Double] -> Text
+renderHudChart :: SvgStyle -> [Hud Double] -> [Chart Double] -> Text
 renderHudChart scfg hs cs =
   renderChartWith scfg . fst $
   runHud (aspect (scfg ^. #chartAspect)) hs cs
@@ -215,14 +217,14 @@ makeHudChartSvg ca cfg cs =
     (hs, cs') = makeHud (defRectS $ dataBox cs) cfg
 
 -- | Render a chart using the supplied svg and hud styles.
-renderHudConfigChart :: ChartSvgStyle -> HudConfig -> [Hud Double] -> [Chart Double] -> Text
+renderHudConfigChart :: SvgStyle -> HudConfig -> [Hud Double] -> [Chart Double] -> Text
 renderHudConfigChart scfg hcfg extrah cs =
   renderChartWith scfg . fst $
   runHud (aspect (scfg ^. #chartAspect)) (hs <> extrah) (cs <> cs')
   where
     (hs, cs') = makeHud (defRectS $ dataBox cs) hcfg
 
-writeHudConfigChart :: FilePath -> ChartSvgStyle -> HudConfig -> [Hud Double] -> [Chart Double] -> IO ()
+writeHudConfigChart :: FilePath -> SvgStyle -> HudConfig -> [Hud Double] -> [Chart Double] -> IO ()
 writeHudConfigChart fp scfg hcfg extrah cs =
   Text.writeFile fp (renderHudConfigChart scfg hcfg extrah cs)
 

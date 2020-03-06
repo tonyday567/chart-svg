@@ -22,8 +22,6 @@ module Chart.Svg
     rotateDA,
     rotatePDA,
     translateDA,
-    rotateSvg,
-    translateSvg,
     renderToXml,
     renderToXmlWith,
     xmlToText,
@@ -32,9 +30,34 @@ module Chart.Svg
     writeChartSvgUnsafe,
     renderChartSvg,
     renderChartSvgUnsafe,
+    renderChartWith,
+    renderChart,
+    renderChartSvgWith,
+    writeChartWith,
+    writeChart,
+    writeChartSvgWith,
+    chartSvg_,
+    chartSvg,
+    frame,
+    styleBox,
+    styleBoxes,
+    styleBoxText,
+    styleBoxGlyph,
+    addChartBox,
+    addChartBoxes,
+    boxes,
+    pad,
+    hori,
+    vert,
+    stack,
+    padChart,
+    frameChart,
+
   )
 where
 
+import Chart.ChartSvg
+import Chart.Core
 import Chart.Types
 import Codec.Picture.Types
 import Control.Lens hiding (transform)
@@ -52,11 +75,143 @@ import Graphics.Svg.CssTypes as Svg hiding (Point)
 import Linear.V2
 import NumHask.Space hiding (Element)
 import Text.XML.Light.Output
-import Prelude hiding (writeFile)
+import Protolude hiding (writeFile)
 import Text.XML.Light.Types as XML
-import Data.Bool
+import Data.List.NonEmpty (NonEmpty (..))
+import Text.HTML.TagSoup
 
 -- * Svg
+
+-- | a Rect that bounds the geometric attributes of a 'DrawAttributes'
+-- only handles stroke width and transformations, referencing a point to calculate relative rotation from
+daBox :: (Chartable a) => DrawAttributes -> Spot a -> Rect a -> Rect a
+daBox da s r = transformRect s da (strokeRect da r)
+
+-- | the geometric dimensions of a Chart inclusive of style geometry
+styleBox :: (Real a, Chartable a) => Chart a -> Maybe (Rect a)
+styleBox (Chart (TextA s ts) xs) =
+  foldRect $
+    zipWith
+      ( \t x ->
+          daBox
+            (dagText s)
+            x
+            (styleBoxText s t (toPoint x))
+      )
+      ts
+      xs
+styleBox (Chart (GlyphA s) xs) =
+  foldRect $
+    ( \x ->
+        daBox
+          (dagGlyph s)
+          x
+          (move (toPoint x) (styleBoxGlyph s))
+    )
+      <$> xs
+styleBox (Chart (RectA s) xs) =
+  foldRect
+    ((\x -> daBox (dagRect s) x (toRect x)) <$> xs)
+styleBox (Chart (LineA s) xs) =
+  foldRect
+    ((\x -> daBox (dagLine s) x (toRect x)) <$> xs)
+styleBox (Chart BlankA xs) =
+  foldRect
+    ((\x -> daBox mempty x (toRect x)) <$> xs)
+styleBox (Chart (PixelA s) xs) =
+  foldRect
+    ((\x -> daBox (dagPixel s) x (toRect x)) <$> xs)
+
+-- | the extra geometric dimensions of a [Chart]
+styleBoxes :: (Chartable a) => [Chart a] -> Maybe (Rect a)
+styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
+
+-- | the extra area from text styling
+styleBoxText ::
+  (Ord a, Fractional a) =>
+  TextStyle ->
+  Text.Text ->
+  Point a ->
+  Rect a
+styleBoxText o t p = move p $ realToFrac <$> maybe flat (`rotateRect` flat) (realToFrac <$> o ^. #rotation)
+  where
+    flat = Rect ((- x' / 2) + x' * a') (x' / 2 + x' * a') ((- y' / 2) - n1') (y' / 2 - n1')
+    s = o ^. #size
+    h = o ^. #hsize
+    v = o ^. #vsize
+    n1 = o ^. #nudge1
+    x' = s * h * realToFrac (Protolude.sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
+    y' = s * v
+    n1' = s * n1
+    a' = case o ^. #anchor of
+      AnchorStart -> 0.5
+      AnchorEnd -> -0.5
+      AnchorMiddle -> 0.0
+
+-- | the extra area from glyph styling
+styleBoxGlyph :: (Chartable a) => GlyphStyle -> Rect a
+styleBoxGlyph s = realToFrac <$> case sh of
+  EllipseGlyph a -> scale (Point sz (a * sz)) unitRect
+  RectSharpGlyph a -> scale (Point sz (a * sz)) unitRect
+  RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) unitRect
+  VLineGlyph a -> scale (Point (a * sz) sz) unitRect
+  HLineGlyph a -> scale (Point sz (a * sz)) unitRect
+  TriangleGlyph a b c -> (sz *) <$> sconcat (toRect . SpotPoint <$> (a :| [b, c]) :: NonEmpty (Rect Double))
+  _ -> (sz *) <$> unitRect
+  where
+    sh = s ^. #shape
+    sz = s ^. #size
+
+
+addChartBox :: (Chartable a) => Chart a -> Rect a -> Rect a
+addChartBox c r = sconcat (r :| maybeToList (styleBox c))
+
+addChartBoxes :: (Chartable a) => [Chart a] -> Rect a -> Rect a
+addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
+
+-- take a chart and produce a RectA chart of all the bounding style boxes of each point
+boxes :: (Chartable a) => RectStyle -> [Chart a] -> [Chart a]
+boxes rs cs = mconcat $ fmap (Chart (RectA rs) . maybeToList . fmap SpotRect . styleBox) . decons <$> cs
+
+-- deconstruct a chart into a chart for every spot
+decons :: Chart a -> [Chart a]
+decons (Chart (TextA ts txts) spts) = zipWith (\t s -> Chart (TextA ts [t]) [s]) txts spts
+decons (Chart ann spts) = (\s -> Chart ann [s]) <$> spts
+
+-- horizontally stack a list of list of charts (proceeding to the right) with a gap between
+hori :: Chartable a => a -> [[Chart a]] -> [Chart a]
+hori _ [] = []
+hori gap cs = foldl step [] cs
+  where
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 - SP (origx x) 0 + s)))
+    z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
+    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+
+-- vertically stack a list of charts (proceeding upwards), aligning them to the left
+vert :: Chartable a => a -> [[Chart a]] -> [Chart a]
+vert _ [] = []
+vert gap cs = foldl step [] cs
+  where
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (origx x - origx a) (w x) + s)))
+    w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
+    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+
+-- stack a list of charts horizontally, then vertically
+stack :: Chartable a => Int -> a -> [[Chart a]] -> [Chart a]
+stack _ _ [] = []
+stack n gap cs = vert gap (hori gap <$> group' cs [])
+  where
+    group' [] acc = reverse acc
+    group' x acc = group' (drop n x) (take n x:acc)
+
+-- additively pad a [Chart]
+padChart :: (RealFloat a) => a -> [Chart a] -> [Chart a]
+padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
+
+-- overlay a frame on some charts with some padding between
+frameChart :: (RealFloat a) => RectStyle -> a -> [Chart a] -> [Chart a]
+frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
+
 
 -- * svg primitives
 
@@ -171,8 +326,10 @@ treeShape SmileyGlyph s' p =
   where
     s = realToFrac s'
     (Point x y) = realToFrac <$> p
+{-
 treeShape (PathGlyph pcs) _ _ =
   PathTree $ Path mempty pcs
+-}
 
 -- | GlyphStyle to svg Tree
 treeGlyph :: (Fractional a, Real a) => GlyphStyle -> Point a -> Tree
@@ -349,23 +506,6 @@ translateDA p =
   where
     Point x' y' = realToFrac <$> p
 
--- | Rotate a ChartSvg expanding the Rect as necessary.
--- Multiple rotations will expand the bounding box conservatively.
-rotateSvg :: (Chartable a) => a -> ChartSvg a -> ChartSvg a
-rotateSvg r (ChartSvg vb c defs) =
-  ChartSvg
-    (rotateRect r vb)
-    [groupTrees (rotateDA r mempty) c]
-    defs
-
--- | Translate a ChartSvg also moving the Rect
-translateSvg :: (Chartable a) => Point a -> ChartSvg a -> ChartSvg a
-translateSvg p (ChartSvg vb c defs) =
-  ChartSvg
-    (move p vb)
-    [groupTrees (translateDA p mempty) c]
-    defs
-
 -- * rendering
 
 -- | render a ChartSvg to an xml Document with the supplied size and various bits and pieces
@@ -405,6 +545,36 @@ unescape (Elem e) = Elem (unescapeTextElements e)
 unescape (Text t) = Text (t { cdVerbatim = CDataRaw})
 unescape x = x
 
+-- | write a ChartSvg to a svg file with various Document attributes.
+writeWithXml :: (Real a) => FilePath -> Point a -> Map.Map Text.Text Svg.Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
+writeWithXml fp p defs desc css c = Text.writeFile fp (xmlToText $ renderToXmlWith p defs desc css fp c)
+
+-- | create a ChartSvg from a [Chart] and a Rect without any scaling
+chartSvg_ ::
+  (Chartable a) =>
+  Rect a ->
+  [Chart a] ->
+  ChartSvg a
+chartSvg_ a cs = ChartSvg a (tree <$> cs) (mconcat $ namedElements <$> cs)
+
+-- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied Rect, and expanding the Rect for chart style if necessary
+chartSvg ::
+  (Chartable a) =>
+  Rect a ->
+  [Chart a] ->
+  ChartSvg a
+chartSvg a cs = chartSvg_ (defRect $ styleBoxes cs') cs'
+  where
+    cs' = projectSpots a cs
+
+-- | add an enclosing fitted frame to a ChartSvg
+frame :: (Chartable a) => RectStyle -> ChartSvg a -> ChartSvg a
+frame o (ChartSvg vb _ defs) =
+  ChartSvg
+    vb
+    ((: []) . tree $ Chart (RectA o) [SpotRect vb])
+    defs
+
 renderChartSvg :: Point Double -> Bool -> ChartSvg Double -> Text.Text
 renderChartSvg p c =
   xmlToText . renderToXml p c
@@ -413,13 +583,40 @@ renderChartSvgUnsafe :: Point Double -> Bool -> ChartSvg Double -> Text.Text
 renderChartSvgUnsafe p c =
   xmlToTextUnsafe . renderToXml p c
 
--- | write a ChartSvg to a svg file with various Document attributes.
-writeWithXml :: (Real a) => FilePath -> Point a -> Map.Map Text.Text Svg.Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
-writeWithXml fp p defs desc css c = Text.writeFile fp (xmlToText $ renderToXmlWith p defs desc css fp c)
-
 writeChartSvg :: FilePath -> Point Double -> Bool -> ChartSvg Double -> IO ()
 writeChartSvg fp p c cs = Text.writeFile fp (renderChartSvg p c cs)
 
 writeChartSvgUnsafe :: FilePath -> Point Double -> Bool -> ChartSvg Double -> IO ()
 writeChartSvgUnsafe fp p c cs = Text.writeFile fp (renderChartSvgUnsafe p c cs)
+
+renderChartWith :: SvgStyle -> [Chart Double] -> Text.Text
+renderChartWith scfg cs =
+  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
+  (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
+    . maybe id pad (scfg ^. #outerPad)
+    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
+    . maybe id pad (scfg ^. #innerPad)
+    . chartSvg (aspect (scfg ^. #chartAspect))
+    $ cs
+
+renderChart :: [Chart Double] -> Text.Text
+renderChart = renderChartWith defaultSvgStyle
+
+renderChartSvgWith :: SvgStyle -> (Rect Double -> ChartSvg Double) -> Text.Text
+renderChartSvgWith scfg f =
+  renderChartSvg (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
+    . maybe id pad (scfg ^. #outerPad)
+    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
+    . maybe id pad (scfg ^. #innerPad)
+    $ f (aspect (scfg ^. #chartAspect))
+
+writeChartWith :: FilePath -> SvgStyle -> [Chart Double] -> IO ()
+writeChartWith fp scfg cs = Text.writeFile fp (renderChartWith scfg cs)
+
+writeChartSvgWith :: FilePath -> SvgStyle -> (Rect Double -> ChartSvg Double) -> IO ()
+writeChartSvgWith fp scfg cs = Text.writeFile fp (renderChartSvgWith scfg cs)
+
+-- | write a ChartSvg to an svg file.
+writeChart :: FilePath -> [Chart Double] -> IO ()
+writeChart fp cs = writeChartWith fp defaultSvgStyle cs
 

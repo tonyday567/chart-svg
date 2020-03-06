@@ -51,8 +51,8 @@ data BarOptions
       }
   deriving (Show, Eq, Generic)
 
-defaultBarOptions :: [Text] -> BarOptions
-defaultBarOptions legendLabels =
+defaultBarOptions :: BarOptions
+defaultBarOptions =
   BarOptions
     gs
     ts
@@ -79,7 +79,7 @@ defaultBarOptions legendLabels =
                 & #hgap .~ 0.14
                 & #ltext . #size .~ 0.16
                 & #scale .~ 0.33
-            , (zip (RectA <$> gs) legendLabels)
+            , []
             )
     )
   where
@@ -181,12 +181,11 @@ barLegend bd bo
 -- | A bar chart with hud trimmings.
 --
 -- By convention only, the first axis (if any) is the bar axis.
-barChart :: Rect Double -> BarOptions -> BarData -> ChartSvg Double
-barChart asp bo bd =
-  makeHudChartSvg
-    asp
-    (bo ^. #barHudConfig & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation))
-    (bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues))
+barChart :: BarOptions -> BarData -> (HudConfig, [Chart Double])
+barChart bo bd =
+  ( bo ^. #barHudConfig & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation)
+  , bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
+  )
 
 -- | convert data to a text and Point
 barDataTP :: Bool -> FormatN -> Double -> [[Double]] -> [[(Text, Double)]]
@@ -221,7 +220,6 @@ barTexts (BarOptions _ _ ogap igap tgap _ fn add orient _) bs = zipWith zip (fma
     bstep = (1 - (1 + 1) * ogap + (n - 1) * igap') / n
     igap' = igap * (1 - (1 + 1) * ogap)
 
--- | A bar chart without hud trimmings.
 barTextCharts :: BarOptions -> BarData -> [Chart Double]
 barTextCharts bo bd =
   zipWith (\o d -> Chart (TextA o (fst <$> d)) (SpotPoint . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))

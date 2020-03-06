@@ -20,7 +20,7 @@ module Chart.Page
     repTitle,
     repHudConfig,
     repAxisConfig,
-    repChartSvgStyle,
+    repSvgStyle,
     repData,
     repFormatN,
     repTickStyle,
@@ -415,11 +415,11 @@ repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
           ("Place", p')
         ]
 
-repChartSvgStyle :: (Monad m) => ChartSvgStyle -> SharedRep m ChartSvgStyle
-repChartSvgStyle s =
+repSvgStyle :: (Monad m) => SvgStyle -> SharedRep m SvgStyle
+repSvgStyle s =
   bimap
     hmap
-    ChartSvgStyle
+    SvgStyle
     x
     <<*>> y
     <<*>> a
@@ -835,7 +835,7 @@ repLegendOptions initl =
 
 repChartsWithSharedData ::
   (Monad m) =>
-  ChartSvgStyle ->
+  SvgStyle ->
   HudConfig ->
   Int ->
   [Chart Double] ->
@@ -865,7 +865,7 @@ repChartsWithSharedData css' hc' maxcs' cs' sspots =
       BlankA
       ""
       hc'
-    cssr = repChartSvgStyle css'
+    cssr = repSvgStyle css'
     annsr =
       listRep
         (Just "Annotations")
@@ -892,7 +892,7 @@ repChartsWithSharedData css' hc' maxcs' cs' sspots =
 
 repChartsWithStaticData ::
   (Monad m) =>
-  ChartSvgStyle ->
+  SvgStyle ->
   HudConfig ->
   Int ->
   [Chart Double] ->
@@ -900,7 +900,7 @@ repChartsWithStaticData ::
 repChartsWithStaticData css' hc' maxcs' cs' =
   repChartsWithSharedData css' hc' maxcs' cs' (bipure mempty)
 
-debugHtml :: (Bool, Bool, Bool) -> ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
+debugHtml :: (Bool, Bool, Bool) -> SvgStyle -> HudConfig -> [Chart Double] -> Text
 debugHtml debug css hc cs =
   bool
     mempty

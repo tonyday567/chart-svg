@@ -22,8 +22,6 @@ module Chart.Types
     Chartable,
     Annotation (..),
     annotationText,
-    Tree (..),
-    DrawAttributes (..),
     RectStyle (RectStyle),
     defaultRectStyle,
     blob,
@@ -42,7 +40,6 @@ module Chart.Types
     defaultLineStyle,
     PixelStyle (..),
     defaultPixelStyle,
-    ChartSvg (..),
     Orientation(..),
     fromOrientation,
     toOrientation,
@@ -55,8 +52,8 @@ module Chart.Types
     fromColour,
     d3Palette1,
     ChartException (..),
-    ChartSvgStyle (..),
-    defaultChartSvgStyle,
+    SvgStyle (..),
+    defaultSvgStyle,
     defaultSvgFrame,
     Spot (..),
     toRect,
@@ -74,13 +71,11 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Exts
 import GHC.Generics
-import Graphics.Svg (DrawAttributes (..), Tree (..), PathCommand, Element)
 import NumHask.Space hiding (Element)
 import Prelude
 import qualified Data.Colour.RGBSpace as C
 import qualified Data.Colour.SRGB.Linear as C
 import qualified Data.Colour.Palette.ColorSet as C
-import qualified Data.Map.Strict as Map
 
 data ChartException = NotYetImplementedException deriving (Show)
 
@@ -103,7 +98,7 @@ type Chartable a =
   (Real a, Fractional a, RealFrac a, RealFloat a, Floating a)
 
 -- | a piece of chart structure
--- | The use of #rowName with these Annotation collection doesn't seem to mesh well with polymorphism, so a switch to concrete types (which fit it with svg-tree methods) occurs at this layer, and the underlying data structure is a lot of Doubles
+-- | The use of #rowName with Annotation doesn't seem to mesh well with polymorphism, so a switch to concrete types (which fit it with svg-tree methods) occurs at this layer, and the underlying ADTs use a lot of Doubles
 data Annotation
   = RectA RectStyle
   | TextA TextStyle [Text.Text]
@@ -226,7 +221,7 @@ data GlyphShape
   | VLineGlyph Double
   | HLineGlyph Double
   | SmileyGlyph
-  | PathGlyph [PathCommand]
+  | PathGlyph [Text]
   deriving (Show, Eq, Generic)
 
 glyphText :: GlyphShape -> Text
@@ -272,21 +267,6 @@ data PixelStyle = PixelStyle
 defaultPixelStyle :: PixelStyle
 defaultPixelStyle =
   PixelStyle grey 1 blue 1 (pi/2) (RectStyle 0 black 0 black 1) "pixel"
-
--- | Svg of a Chart consists of a viewBox expressed as a Rect, an Svg `Tree` list and any named elements for the definitions section.
-data ChartSvg a
-  = ChartSvg
-      { vbox :: Rect a,
-        chartTrees :: [Tree],
-        chartDefs :: Map.Map Text Element
-      }
-  deriving (Show)
-
-instance (Ord a) => Semigroup (ChartSvg a) where
-  (ChartSvg a b c) <> (ChartSvg a' b' c') = ChartSvg (a <> a') (b <> b') (c <> c')
-
-instance (Chartable a) => Monoid (ChartSvg a) where
-  mempty = ChartSvg unitRect mempty mempty
 
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)
@@ -337,8 +317,8 @@ d3Palette1 :: [PixelRGB8]
 d3Palette1 = fromColour . C.d3Colors1 <$> [0..9]
 
 -- | Top-level SVG options.
-data ChartSvgStyle
-  = ChartSvgStyle
+data SvgStyle
+  = SvgStyle
       { sizex :: Double,
         sizey :: Double,
         chartAspect :: Double,
@@ -351,8 +331,8 @@ data ChartSvgStyle
       }
   deriving (Eq, Show, Generic)
 
-defaultChartSvgStyle :: ChartSvgStyle
-defaultChartSvgStyle = ChartSvgStyle 800 600 1.33 (Just 1.02) Nothing Nothing Nothing True False
+defaultSvgStyle :: SvgStyle
+defaultSvgStyle = SvgStyle 800 600 1.33 (Just 1.02) Nothing Nothing Nothing True False
 
 defaultSvgFrame :: RectStyle
 defaultSvgFrame = border 0.01 blue 1.0

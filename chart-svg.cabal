@@ -23,6 +23,7 @@ library
   exposed-modules:
     Chart
     Chart.Bar
+    Chart.ChartSvg
     Chart.Core
     Chart.Examples
     Chart.Format

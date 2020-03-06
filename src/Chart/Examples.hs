@@ -14,11 +14,10 @@ import qualified Data.Text as Text
 import Data.Text (Text)
 import GHC.Generics
 import Prelude
-import qualified Data.Map.Strict as Map
 
 data Ex
   = Ex
-      { excss :: ChartSvgStyle,
+      { excss :: SvgStyle,
         exhc :: HudConfig,
         exmaxcs :: Int,
         exanns :: [Annotation],
@@ -49,13 +48,13 @@ exampleHudConfig t1 t2 legends' =
     & #hudLegend .~ legends'
 
 makeExample :: (Real a) => HudConfig -> [Chart a] -> Ex
-makeExample hs cs = Ex defaultChartSvgStyle hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #spots <$> cs)
+makeExample hs cs = Ex defaultSvgStyle hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #spots <$> cs)
 
 -- | line example
 hockey :: Ex
 hockey =
   Ex
-    defaultChartSvgStyle
+    defaultSvgStyle
     ( exampleHudConfig
         "Example Chart"
         (Just "An example from chart-svg")
@@ -120,7 +119,7 @@ onePixel = Chart (PixelA defaultPixelStyle) [SpotRect unitRect]
 oneExample :: Ex
 oneExample =
   Ex
-    defaultChartSvgStyle
+    defaultSvgStyle
     mempty
     1
     [RectA rs]
@@ -128,18 +127,6 @@ oneExample =
 
 oneChart' :: Chart Double
 oneChart' = Chart (RectA rs') [SpotRect unitRect]
-
-rotateOne :: ChartSvg Double
-rotateOne =
-    chartSvg unitRect [showOrigin]
-      <> chartSvg unitRect [oneChart']
-      <> rotateSvg 30 (chartSvg unitRect [oneChart])
-
-translateOne :: ChartSvg Double
-translateOne =
-    chartSvg unitRect [showOrigin]
-      <> chartSvg unitRect [oneChart']
-      <> translateSvg (Point 1 1) (rotateSvg 30 (chartSvg unitRect [oneChart]))
 
 rectChart :: [Chart Double]
 rectChart = take 1 rectCharts
@@ -151,7 +138,7 @@ rectCharts =
 normExample :: Ex
 normExample =
   Ex
-    defaultChartSvgStyle
+    defaultSvgStyle
     mempty
     2
     (RectA <$> ropts)
@@ -191,7 +178,7 @@ textsChart =
 textExample :: Ex
 textExample =
   Ex
-    defaultChartSvgStyle
+    defaultSvgStyle
     defaultHudConfig
     26
     (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) . (: []) . fst <$> ts)
@@ -387,154 +374,6 @@ legExample = makeExample (mempty & #hudLegend .~ Just (defaultLegendOptions, l1)
         (BlankA, "blank")
       ]
 
-tri1 :: Int -> Int -> Double -> [Chart Double]
-tri1 a b s =
-  [ Chart
-      ( GlyphA
-          ( defaultGlyphStyle
-              & #shape
-                .~ TriangleGlyph
-                  (Point 0 0)
-                  (Point (fromIntegral a) 0)
-                  (Point (fromIntegral a) (fromIntegral b))
-              & #borderSize .~ 0.01
-              & #size .~ s
-              & #translate ?~ c
-          )
-      )
-      [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
-  ]
-  where
-    c :: Point Double
-    c = Point (- s * (fromIntegral a * 2) / 3) (- s * fromIntegral b / 3)
-
-tri2 :: Integer -> Integer -> Double -> Double -> Double -> Double -> [Chart Double]
-tri2 a b s gap bs txts =
-  [ Chart
-      ( GlyphA
-          ( defaultGlyphStyle
-              & #shape
-                .~ TriangleGlyph
-                  (Point 0 0)
-                  (Point (fromIntegral a) 0)
-                  (Point (fromIntegral a) (fromIntegral b))
-              & #borderSize .~ bs
-              & #size .~ s
-              & #translate ?~ c
-          )
-      )
-      [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
-  ]
-    <> zipWith3
-      ( \side bump ts'' ->
-          Chart
-            (TextA (ts'' & #translate ?~ c + bump) (Text.pack . show <$> [side]))
-            [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
-      )
-      [a, b, h]
-      [ Point
-          (s * fromIntegral a / 2)
-          ( (- gap)
-              - 0.65
-              * realToFrac (ts' ^. #vsize)
-              * realToFrac (ts' ^. #size)
-          ),
-        Point (s * fromIntegral a + gap) (s * fromIntegral b / 2),
-        Point (s * fromIntegral a / 2 - gap * (fromIntegral b ** 2.0 / fromIntegral h ** 2)) (s * fromIntegral b / 2 + gap * (fromIntegral a ** 2.0 / fromIntegral h ** 2))
-      ]
-      [ ts',
-        ts' & #anchor .~ AnchorStart,
-        ts' & #rotation ?~ (- atan (fromIntegral b / fromIntegral a) * (180 / pi))
-      ]
-  where
-    c :: Point Double
-    c = Point (- s * (fromIntegral a * 2) / 3) (- s * fromIntegral b / 3)
-    h :: Integer
-    h = round $ sqrt (fromIntegral (a ^ (2 :: Integer) + b ^ (2 :: Integer)) :: Float) :: Integer
-    ts' = defaultTextStyle & #size .~ txts
-
-tri3 :: Integer -> Integer -> Double -> Double -> Double -> Double -> [Chart Double]
-tri3 a b s gap bs txts =
-  [ Chart
-      ( GlyphA
-          ( defaultGlyphStyle
-              & #shape
-                .~ TriangleGlyph
-                  (Point 0 0)
-                  (Point (fromIntegral a / ns) 0)
-                  (Point (fromIntegral a / ns) (fromIntegral b / ns))
-              & #borderSize .~ bs
-              & #size .~ s
-              & #translate ?~ ((/ ns) <$> c)
-          )
-      )
-      [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
-  ]
-    <> zipWith3
-      ( \side bump ts'' ->
-          Chart
-            (TextA (ts'' & #translate ?~ ((/ ns) <$> (c + bump))) (Text.pack . show <$> [side]))
-            [SpotPoint $ Point (fromIntegral a) (fromIntegral b)]
-      )
-      [a, b, h]
-      [ Point
-          (s * fromIntegral a / 2)
-          ( (- gap)
-              - 0.65
-              * realToFrac (ts' ^. #vsize)
-              * realToFrac (ts' ^. #size)
-          ),
-        Point (s * fromIntegral a + gap) (s * fromIntegral b / 2),
-        Point (s * fromIntegral a / 2 - gap * (fromIntegral b ** 2.0 / fromIntegral h ** 2)) (s * fromIntegral b / 2 + gap * (fromIntegral a ** 2.0 / fromIntegral h ** 2))
-      ]
-      [ ts',
-        ts' & #anchor .~ AnchorStart,
-        ts' & #rotation ?~ (- atan (fromIntegral b / fromIntegral a) * (180 / pi))
-      ]
-  where
-    c :: Point Double
-    c = Point (- s * (fromIntegral a * 2) / 3) (- s * fromIntegral b / 3)
-    h :: Integer
-    h = round $ sqrt (fromIntegral (a ^ (2 :: Integer) + b ^ (2 :: Integer)) :: Float) :: Integer
-    ts' = defaultTextStyle & #size .~ txts
-    ns = log . sqrt $ fromIntegral a * fromIntegral b / 2
-
-tri2s :: Double -> Double -> Double -> Double -> [(Integer, Integer)] -> [Chart Double]
-tri2s s gap bs txts ab =
-  mconcat $ (\(a, b) -> tri2 a b s gap bs txts) <$> ab
-
-tri2ss :: Double -> Double -> Double -> Double -> Maybe (Rect Double) -> Integer -> ChartSvg Double
-tri2ss s gap bs txts r n =
-  runHudSvgWith unitRect (defRectS area) hud1 (tri2s s gap bs txts psf)
-  where
-    ps = euclid n <> ((\(a, b) -> (a, - b)) <$> euclid n)
-    psf = maybe ps (\(Rect x z y w) -> filter (\(a, b) -> fromIntegral a >= x && fromIntegral a <= z && fromIntegral b >= y && fromIntegral b <= w) ps) r
-    area =
-      r
-        <|> foldRect
-          ( toRect
-              . (\(a, b) -> SpotPoint (Point (fromIntegral a) (fromIntegral b)))
-              <$> ps
-          )
-
-tri3s :: Double -> Double -> Double -> Double -> [(Integer, Integer)] -> [Chart Double]
-tri3s s gap bs txts ab =
-  mconcat $ (\(a, b) -> tri3 a b s gap bs txts) <$> ab
-
-tri3ss :: Double -> Double -> Double -> Double -> Maybe (Rect Double) -> Integer -> ChartSvg Double
-tri3ss s gap bs txts r n =
-  runHudSvgWith unitRect (defRectS area) hud1 (tri3s s gap bs txts psf)
-  where
-    ps = euclid n <> ((\(a, b) -> (a, - b)) <$> euclid n)
-    psf = maybe ps (\(Rect x z y w) -> filter (\(a, b) -> fromIntegral a >= x && fromIntegral a <= z && fromIntegral b >= y && fromIntegral b <= w) ps) r
-    area =
-      r
-        <|> foldRect
-          ( toRect
-              . (\(a, b) -> SpotPoint (Point (fromIntegral a) (fromIntegral b)))
-              <$> ps
-          )
-
 corners' :: Rect Double -> Double -> [Chart Double]
 corners' (Rect x z y w) s =
   [ Chart
@@ -554,7 +393,6 @@ hud1 =
 
 euclid :: Integer -> [(Integer, Integer)]
 euclid x = filter (\(a, b) -> a /= 0 && b /= 0) $ (\m n -> (m * m - n * n, 2 * m * n)) <$> [1 .. x] <*> [1 .. x] :: [(Integer, Integer)]
-
 
 legendTest :: HudConfig
 legendTest = defaultHudConfig
@@ -581,10 +419,6 @@ writeChartExample :: FilePath -> Ex -> IO ()
 writeChartExample fp (Ex css' hc' _ anns' spots') =
   writeHudConfigChart fp css' hc' [] (zipWith Chart anns' spots')
 
--- writeChartSvgUnsafe "other/link.svg" (Chart.Point 300 300) True $ makeHudChartSvg unitRect (defaultHudConfig & #hudTitles .~ [defaultTitle "<a xlink:href='http://www.google.com'>google</a>"]) []
-linkExample :: ChartSvg Double
-linkExample = ChartSvg (Rect (-100) 400 (-100) 400) [treeText (defaultTextStyle & #color .~ PixelRGB8 93 165 218) "<a xlink:href='http://www.google.com'>google</a>" (Chart.Point 0 0)] Map.empty
-
 barDataExample :: BarData
 barDataExample =
   BarData
@@ -592,20 +426,17 @@ barDataExample =
   (Just (("row "<>) . Text.pack . show <$> [1..11]))
   (Just (("column "<>) . Text.pack . show <$> [1..2]))
 
+barExample :: Ex
+barExample = uncurry makeExample
+  (barChart defaultBarOptions barDataExample)
+
 writeAllExamples :: IO ()
 writeAllExamples = do
   writeChart "other/mempty.svg" []
-  writeChart
-    "other/one.svg"
-    [ Chart
-        (RectA defaultRectStyle)
-        [SpotRect (unitRect :: Rect Double)]
-    ]
-  writeChartSvg "other/rotateOne.svg" (Point 200 200) True rotateOne
-  writeChartSvg "other/translateOne.svg" (Point 200 200) True translateOne
+  writeChart "other/one.svg" [ Chart (RectA defaultRectStyle) [SpotRect (unitRect :: Rect Double)] ]
   writeChart "other/rectChart.svg" rectChart
   writeChart "other/rectCharts.svg" rectCharts
-  writeHudConfigChart "other/pixel.svg" defaultChartSvgStyle mempty (snd pixelEx) (fst pixelEx)
+  writeHudConfigChart "other/pixel.svg" defaultSvgStyle mempty (snd pixelEx) (fst pixelEx)
   writeChart "other/textChart.svg" [textChart]
   writeChart "other/textsChart.svg" [textsChart]
   writeChart "other/boundText.svg" boundText
@@ -622,22 +453,5 @@ writeAllExamples = do
   writeChartExample "other/bb.svg" bbExample
   writeChartExample "other/leg.svg" legExample
   writeChartExample "other/hockey.svg" hockey
-  writeChartSvg
-    "other/tri1.svg"
-    (Point 400.0 400) True
-    (pad 1.1 $ runHudSvg (aspect 1) hud1 (tri1 3 4 0.1 <> corners' (Rect 0 3 0 4) 0.1))
-  writeChartSvg
-    "other/tri2.svg"
-    (Point 400 400) True
-    (pad 1.1 $ runHudSvgWith (aspect 1) (Rect 0 20 0 20) hud1 (tri2 5 12 0.05 0.025 0.01 0.01))
-  writeChartSvg
-    "other/tri2s.svg"
-    (Point 400 400) True
-    (pad 1.1 (tri2ss 0.00004 0.0001 0 0 (Just (Rect 0 3000 0 3000)) 60))
-  writeChartSvg
-    "other/tri3s.svg"
-    (Point 400 400) True
-    (pad 1.1 (tri3ss 0.0001 0.0001 0 0 (Just (Rect 0 4000 0 4000)) 100))
-  writeChartSvgUnsafe "other/link.svg" (Chart.Point 300 300) True linkExample
-  writeChartSvgWith "other/bar.svg" defaultChartSvgStyle (\x -> barChart x (defaultBarOptions (fromMaybe [] (barDataExample ^. #barColumnLabels))) barDataExample)
+  writeChartExample "other/bar.svg" barExample
   putStrLn " 👍"

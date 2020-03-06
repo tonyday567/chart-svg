@@ -32,6 +32,8 @@ import Data.Generics.Labels ()
 import GHC.Generics
 import NumHask.Space
 import Protolude
+import Chart.ChartSvg
+import Chart.Svg
 
 data PixelOptions
   = PixelOptions
