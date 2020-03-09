@@ -3,7 +3,9 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Svg
-  ( treeRect,
+  ( padChart,
+    frameChart,
+    treeRect,
     treeGlyph,
     treeLine,
     treeShape,
@@ -22,23 +24,6 @@ module Chart.Svg
     rotateDA,
     rotatePDA,
     translateDA,
-    renderToXml,
-    renderToXmlWith,
-    xmlToText,
-    writeWithXml,
-    writeChartSvg,
-    writeChartSvgUnsafe,
-    renderChartSvg,
-    renderChartSvgUnsafe,
-    renderChartWith,
-    renderChart,
-    renderChartSvgWith,
-    writeChartWith,
-    writeChart,
-    writeChartSvgWith,
-    chartSvg_,
-    chartSvg,
-    frame,
     styleBox,
     styleBoxes,
     styleBoxText,
@@ -46,41 +31,37 @@ module Chart.Svg
     addChartBox,
     addChartBoxes,
     boxes,
-    pad,
     hori,
     vert,
     stack,
-    padChart,
-    frameChart,
-
   )
 where
 
-import Chart.ChartSvg
-import Chart.Core
 import Chart.Types
 import Codec.Picture.Types
 import Control.Lens hiding (transform)
 import Data.Foldable
 import Data.Generics.Labels ()
+import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
 import GHC.Exception
 import Graphics.Svg as Svg hiding (Point, Text, toPoint)
-import Graphics.Svg.CssTypes as Svg hiding (Point)
 import Linear.V2
 import NumHask.Space hiding (Element)
-import Text.XML.Light.Output
 import Protolude hiding (writeFile)
-import Text.XML.Light.Types as XML
-import Data.List.NonEmpty (NonEmpty (..))
 import Text.HTML.TagSoup
 
--- * Svg
+-- | additively pad a [Chart]
+padChart :: (RealFloat a) => a -> [Chart a] -> [Chart a]
+padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
+
+-- | overlay a frame on some charts with some additive padding between
+frameChart :: (RealFloat a) => RectStyle -> a -> [Chart a] -> [Chart a]
+frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
 
 -- | a Rect that bounds the geometric attributes of a 'DrawAttributes'
 -- only handles stroke width and transformations, referencing a point to calculate relative rotation from
@@ -162,7 +143,6 @@ styleBoxGlyph s = realToFrac <$> case sh of
     sh = s ^. #shape
     sz = s ^. #size
 
-
 addChartBox :: (Chartable a) => Chart a -> Rect a -> Rect a
 addChartBox c r = sconcat (r :| maybeToList (styleBox c))
 
@@ -202,16 +182,7 @@ stack _ _ [] = []
 stack n gap cs = vert gap (hori gap <$> group' cs [])
   where
     group' [] acc = reverse acc
-    group' x acc = group' (drop n x) (take n x:acc)
-
--- additively pad a [Chart]
-padChart :: (RealFloat a) => a -> [Chart a] -> [Chart a]
-padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
-
--- overlay a frame on some charts with some padding between
-frameChart :: (RealFloat a) => RectStyle -> a -> [Chart a] -> [Chart a]
-frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
-
+    group' x acc = group' (drop n x) (take n x : acc)
 
 -- * svg primitives
 
@@ -237,9 +208,9 @@ treeRect a =
 -- | Text svg
 treeText :: (Chartable a) => TextStyle -> Text -> Point a -> Tree
 treeText s t p =
-  bool id (groupTrees (mempty & attrClass .~ ["hasmathjax"]) . (:[])) (s ^. #hasMathjax) $
-  TextTree Nothing (textAt (pointSvg p) t)
-    & maybe id (\x -> drawAttr %~ rotatePDA x p) (realToFrac <$> s ^. #rotation)
+  bool id (groupTrees (mempty & attrClass .~ ["hasmathjax"]) . (: [])) (s ^. #hasMathjax) $
+    TextTree Nothing (textAt (pointSvg p) t)
+      & maybe id (\x -> drawAttr %~ rotatePDA x p) (realToFrac <$> s ^. #rotation)
 
 -- | GlyphShape to svg Tree
 treeShape :: GlyphShape -> Double -> Point Double -> Tree
@@ -326,6 +297,7 @@ treeShape SmileyGlyph s' p =
   where
     s = realToFrac s'
     (Point x y) = realToFrac <$> p
+
 {-
 treeShape (PathGlyph pcs) _ _ =
   PathTree $ Path mempty pcs
@@ -369,13 +341,15 @@ namedElements _ = Map.empty
 -- FIXME: Only works for #pixelGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
 lgPixel :: PixelStyle -> (Text, Svg.Element)
 lgPixel o =
-  (o ^. #pixelTextureId, ElementLinearGradient $ defaultSvg &
-    linearGradientStart .~ (Num x0, Num y0) &
-    linearGradientStop .~ (Num x1, Num y1) &
-    linearGradientStops .~
-    [defaultSvg & gradientColor .~ promotePixel (o ^. #pixelColorMin) & gradientOpacity .~ Just (realToFrac $ o ^. #pixelOpacityMin) & gradientOffset .~ 0,
-    defaultSvg & gradientColor .~ promotePixel (o ^. #pixelColorMax) & gradientOpacity .~ Just (realToFrac $ o ^. #pixelOpacityMax)  & gradientOffset .~ 1
-    ]
+  ( o ^. #pixelTextureId,
+    ElementLinearGradient $
+      defaultSvg
+        & linearGradientStart .~ (Num x0, Num y0)
+        & linearGradientStop .~ (Num x1, Num y1)
+        & linearGradientStops
+          .~ [ defaultSvg & gradientColor .~ promotePixel (o ^. #pixelColorMin) & gradientOpacity .~ Just (realToFrac $ o ^. #pixelOpacityMin) & gradientOffset .~ 0,
+               defaultSvg & gradientColor .~ promotePixel (o ^. #pixelColorMax) & gradientOpacity .~ Just (realToFrac $ o ^. #pixelOpacityMax) & gradientOffset .~ 1
+             ]
   )
   where
     x0 = min 0 (cos (o ^. #pixelGradient))
@@ -505,118 +479,3 @@ translateDA p =
     %~ (\x -> Just $ maybe [Translate x' (- y')] (<> [Translate x' (- y')]) x)
   where
     Point x' y' = realToFrac <$> p
-
--- * rendering
-
--- | render a ChartSvg to an xml Document with the supplied size and various bits and pieces
--- note that no attempt is made to resolve name collisions in definitions of named elements
-renderToXmlWith :: (Real a) => Point a -> Map.Map Text.Text Svg.Element -> Text.Text -> [CssRule] -> FilePath -> ChartSvg a -> Document
-renderToXmlWith (Point wid hei) defs desc css fp (ChartSvg vb ts defs') =
-  Document
-    ((\(Rect x z y w) -> Just (x, - w, z - x, w - y)) $ realToFrac <$> vb)
-    (Just (Num (realToFrac wid)))
-    (Just (Num (realToFrac hei)))
-    ts
-    (Map.mapKeys Text.unpack (defs `Map.union` defs'))
-    (Text.unpack desc)
-    css
-    fp
-
-cssCrisp :: CssRule
-cssCrisp = CssRule [] [CssDeclaration "shape-rendering" [[CssString "crispEdges"]]]
-
--- | render a ChartSvg to an xml Document with the supplied size
-renderToXml :: (Real a) => Point a -> Bool -> ChartSvg a -> Document
-renderToXml p crisp = renderToXmlWith p Map.empty "" (bool [] [cssCrisp] crisp) ""
-
--- | render an xml document to Text
-xmlToText :: Document -> Text
-xmlToText = Text.pack . ppcElement defaultConfigPP . xmlOfDocument
-
--- | render an xml document to Text
-xmlToTextUnsafe :: Document -> Text
-xmlToTextUnsafe = Text.pack . ppcElement defaultConfigPP . unescapeTextElements . xmlOfDocument
-
-unescapeTextElements :: XML.Element -> XML.Element
-unescapeTextElements e = e { elContent = unescape <$> elContent e}
-
-unescape :: Content -> Content
-unescape (Elem e) = Elem (unescapeTextElements e)
-unescape (Text t) = Text (t { cdVerbatim = CDataRaw})
-unescape x = x
-
--- | write a ChartSvg to a svg file with various Document attributes.
-writeWithXml :: (Real a) => FilePath -> Point a -> Map.Map Text.Text Svg.Element -> Text.Text -> [CssRule] -> ChartSvg a -> IO ()
-writeWithXml fp p defs desc css c = Text.writeFile fp (xmlToText $ renderToXmlWith p defs desc css fp c)
-
--- | create a ChartSvg from a [Chart] and a Rect without any scaling
-chartSvg_ ::
-  (Chartable a) =>
-  Rect a ->
-  [Chart a] ->
-  ChartSvg a
-chartSvg_ a cs = ChartSvg a (tree <$> cs) (mconcat $ namedElements <$> cs)
-
--- | convert a [Chart] to a ChartSvg, projecting Chart data to the supplied Rect, and expanding the Rect for chart style if necessary
-chartSvg ::
-  (Chartable a) =>
-  Rect a ->
-  [Chart a] ->
-  ChartSvg a
-chartSvg a cs = chartSvg_ (defRect $ styleBoxes cs') cs'
-  where
-    cs' = projectSpots a cs
-
--- | add an enclosing fitted frame to a ChartSvg
-frame :: (Chartable a) => RectStyle -> ChartSvg a -> ChartSvg a
-frame o (ChartSvg vb _ defs) =
-  ChartSvg
-    vb
-    ((: []) . tree $ Chart (RectA o) [SpotRect vb])
-    defs
-
-renderChartSvg :: Point Double -> Bool -> ChartSvg Double -> Text.Text
-renderChartSvg p c =
-  xmlToText . renderToXml p c
-
-renderChartSvgUnsafe :: Point Double -> Bool -> ChartSvg Double -> Text.Text
-renderChartSvgUnsafe p c =
-  xmlToTextUnsafe . renderToXml p c
-
-writeChartSvg :: FilePath -> Point Double -> Bool -> ChartSvg Double -> IO ()
-writeChartSvg fp p c cs = Text.writeFile fp (renderChartSvg p c cs)
-
-writeChartSvgUnsafe :: FilePath -> Point Double -> Bool -> ChartSvg Double -> IO ()
-writeChartSvgUnsafe fp p c cs = Text.writeFile fp (renderChartSvgUnsafe p c cs)
-
-renderChartWith :: SvgStyle -> [Chart Double] -> Text.Text
-renderChartWith scfg cs =
-  bool renderChartSvgUnsafe renderChartSvg (scfg ^. #escapeText)
-  (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
-    . maybe id pad (scfg ^. #outerPad)
-    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
-    . maybe id pad (scfg ^. #innerPad)
-    . chartSvg (aspect (scfg ^. #chartAspect))
-    $ cs
-
-renderChart :: [Chart Double] -> Text.Text
-renderChart = renderChartWith defaultSvgStyle
-
-renderChartSvgWith :: SvgStyle -> (Rect Double -> ChartSvg Double) -> Text.Text
-renderChartSvgWith scfg f =
-  renderChartSvg (Point (scfg ^. #sizex) (scfg ^. #sizey)) (scfg ^. #useCssCrisp)
-    . maybe id pad (scfg ^. #outerPad)
-    . maybe id (\x c -> frame x c <> c) (scfg ^. #chartFrame)
-    . maybe id pad (scfg ^. #innerPad)
-    $ f (aspect (scfg ^. #chartAspect))
-
-writeChartWith :: FilePath -> SvgStyle -> [Chart Double] -> IO ()
-writeChartWith fp scfg cs = Text.writeFile fp (renderChartWith scfg cs)
-
-writeChartSvgWith :: FilePath -> SvgStyle -> (Rect Double -> ChartSvg Double) -> IO ()
-writeChartSvgWith fp scfg cs = Text.writeFile fp (renderChartSvgWith scfg cs)
-
--- | write a ChartSvg to an svg file.
-writeChart :: FilePath -> [Chart Double] -> IO ()
-writeChart fp cs = writeChartWith fp defaultSvgStyle cs
-

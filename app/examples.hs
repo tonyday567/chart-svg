@@ -18,35 +18,26 @@ import Web.Page
 import Web.Scotty
 import Prelude
 
-repMain :: (Monad m) => SvgStyle -> Annotation -> HudConfig -> SharedRep m (Text, Text)
+repMain :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
 repMain css ann hc =
-  repChartsWithSharedData
-    css
-    hc
-    10
-    [Chart ann []]
-    (fmap (: []) <$> const (repData "sin"))
+  repChartsWithSharedData css hc 10 [Chart ann []] (fmap (: []) <$> const (repData "sin"))
 
-repNoData :: (Monad m) => SvgStyle -> Annotation -> HudConfig -> SharedRep m (Text, Text)
+repNoData :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
 repNoData css ann hc =
-  repChartsWithStaticData
-    css
-    hc
-    10
-    [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]
+  repChartsWithStaticData css hc 10 [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]
 
-repBarChart :: (Monad m) => SvgStyle -> BarData -> BarOptions -> SharedRep m (Text, Text)
+repBarChart :: (Monad m) => SvgOptions -> BarData -> BarOptions -> SharedRep m (Text, Text)
 repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlags
   where
-    rcss = repSvgStyle css
+    rcss = repSvgOptions css
     rbo = repBarOptions 5 defaultRectStyle defaultTextStyle bo
     rbd = repBarData bd
     barchartsvg css' bd' bo' =
-      let (hc', cs') = barChart bo' bd' in
-      renderHudConfigChart css' hc' [] cs'
+      let (hc', cs') = barChart bo' bd'
+       in renderHudOptionsChart css' hc' [] cs'
     mmap css' bd' bo' debug =
       ( barchartsvg css' bd' bo',
-        debugHtml debug css' (bo' ^. #barHudConfig) (bars bo' bd')
+        debugHtml debug css' (bo' ^. #barHudOptions) (bars bo' bd')
       )
     hmap css' bd' bo' debug =
       accordion_
@@ -58,17 +49,21 @@ repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlag
           ("Debug", debug)
         ]
 
-repPixelChart :: (Monad m) => (SvgStyle, PixelOptions, HudConfig, PixelLegendOptions, Point Double -> Double) ->
+repPixelChart ::
+  (Monad m) =>
+  (SvgOptions, PixelOptions, HudOptions, PixelLegendOptions, Point Double -> Double) ->
   SharedRep m (Text, Text)
 repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rplo <<*>> debugFlags
   where
-    rcss = repSvgStyle css
+    rcss = repSvgOptions css
     rpo = repPixelOptions po
-    rhc = repHudConfigDefault hc
+    rhc = repHudOptionsDefault hc
     rplo = repPixelLegendOptions plo
-    mmap rcss' rpo' rhc' rplo' debug = let (cs,hs) = pixelfl f rpo' rplo' in
-      ( renderHudConfigChart rcss' rhc' hs cs,
-        debugHtml debug rcss' rhc' [])
+    mmap rcss' rpo' rhc' rplo' debug =
+      let (cs, hs) = pixelfl f rpo' rplo'
+       in ( renderHudOptionsChart rcss' rhc' hs cs,
+            debugHtml debug rcss' rhc' []
+          )
     hmap rcss' rpo' rhc' rplo' debug =
       accordion_
         "accpc"
@@ -81,7 +76,8 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
         ]
 
 repEx :: (Monad m) => Ex -> SharedRep m (Text, Text)
-repEx (Ex css hc maxcs anns xs) = repChartsWithStaticData css hc maxcs (zipWith Chart anns xs)
+repEx (Ex css hc maxcs anns xs) =
+  repChartsWithStaticData css hc maxcs (zipWith Chart anns xs)
 
 midChart ::
   SharedRep IO (Text, Text) ->
@@ -122,40 +118,32 @@ main =
               0
               [ ( "examples",
                   repChoice
-                    5
+                    0
                     [ ("hockey", repEx hockey),
                       ("unit", repEx oneExample),
+                      ("hud", repEx (Ex defaultSvgOptions defaultHudOptions 1 [] [])),
                       ("rect", repEx normExample),
                       ("text", repEx textExample),
-                      ("glyphs", repEx (makeExample defaultHudConfig glyphs)),
-                      ("boundText", repEx (makeExample defaultHudConfig boundText)),
-                      ("label", repEx (makeExample defaultHudConfig label)),
-                      ("glines", repEx (makeExample defaultHudConfig glines)),
-                      ("lglyph", repEx (makeExample defaultHudConfig lglyph)),
-                      ("glines <> lglyph", repEx (makeExample defaultHudConfig (lglyph <> glines))),
-                      ("bar", repBarChart defaultSvgStyle barDataExample defaultBarOptions)
+                      ("glyphs", repEx (makeExample defaultHudOptions glyphs)),
+                      ("boundText", repEx (makeExample defaultHudOptions boundText)),
+                      ("label", repEx (makeExample defaultHudOptions label)),
+                      ("glines", repEx (makeExample defaultHudOptions glines)),
+                      ("lglyph", repEx (makeExample defaultHudOptions lglyph)),
+                      ("glines <> lglyph", repEx (makeExample defaultHudOptions (lglyph <> glines))),
+                      ("bar", repBarChart defaultSvgOptions barDataExample defaultBarOptions)
                     ]
                 ),
                 ( "main",
-                  repMain
-                    defaultSvgStyle
-                    (GlyphA defaultGlyphStyle)
-                    (defaultHudConfig & #hudTitles .~ [defaultTitle "chart-svg"])
+                  repMain defaultSvgOptions (GlyphA defaultGlyphStyle) (defaultHudOptions & #hudTitles .~ [defaultTitle "chart-svg"])
                 ),
                 ( "pixel",
                   repPixelChart
-                  (defaultSvgStyle, defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2, defaultHudConfig, defaultPixelLegendOptions "pixel test", f1)
+                    (defaultSvgOptions, defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2, defaultHudOptions, defaultPixelLegendOptions "pixel test", f1)
                 ),
                 ( "legend test",
-                  repNoData
-                    defaultSvgStyle
-                    BlankA
-                    legendTest
+                  repNoData defaultSvgOptions BlankA legendTest
                 )
               ]
           )
       )
-    servePageWith
-      ""
-      (defaultPageConfig "default")
-      (chartStyler True)
+    servePageWith "" (defaultPageConfig "default") (chartStyler True)

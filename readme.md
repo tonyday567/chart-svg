@@ -32,18 +32,6 @@ unit rectangle
 </svg>
 ```
 
-```
-(pad 1.1 $ chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]])
-```
-
-rotate
-
-![](other/rotateOne.svg)
-
-translate
-
-![](other/translateOne.svg)
-
 rectChart
 
 ![](other/rectChart.svg)

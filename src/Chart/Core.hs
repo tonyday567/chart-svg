@@ -4,10 +4,13 @@
 
 module Chart.Core
   ( pShow',
+    frame,
+    pad,
     projectTo,
     projectSpots,
     projectSpotsWith,
     dataBox,
+    toAspect,
     showOrigin,
     showOriginWith,
     defaultOrigin,
@@ -29,6 +32,7 @@ where
 
 import Chart.Types
 import Codec.Picture.Types
+import Control.Category (id)
 import Control.Lens hiding (transform)
 import Data.Foldable
 import Data.List.NonEmpty (NonEmpty (..))
@@ -41,10 +45,17 @@ import Data.Text.Lazy (toStrict)
 import NumHask.Space
 import Protolude
 import Text.Pretty.Simple (pShowNoColor)
-import Control.Category (id)
 
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor
+
+-- | A framing chart.
+frame :: RectStyle -> Rect a -> Chart a
+frame o r = Chart (RectA o) [SpotRect r]
+
+-- | widen a Rect by a fraction.
+pad :: (Chartable a) => a -> Rect a -> Rect a
+pad p r = fmap (p *) r
 
 -- | project a Spot from one Rect to another, preserving relative position.
 projectOn :: (Ord a, Fractional a) => Rect a -> Rect a -> Spot a -> Spot a
@@ -102,6 +113,9 @@ projectSpotsWith new old cs = cs'
     ss = annotation <$> cs
     cs' = zipWith Chart ss xss
 
+toAspect :: (Fractional a) => Rect a -> a
+toAspect (Rect x z y w) = (z - x) / (w - y)
+
 -- |
 dataBox :: Chartable a => [Chart a] -> Maybe (Rect a)
 dataBox cs = foldRect . mconcat $ fmap toRect <$> (spots <$> cs)
@@ -132,7 +146,7 @@ placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
 placedLabel p d t =
   Chart
     ( TextA
-        (defaultTextStyle
+        ( defaultTextStyle
             & #rotation ?~ realToFrac d
         )
         [t]
@@ -150,7 +164,6 @@ blend c = mixWithAlpha f (f (0 :: Int))
 
 -- | interpolate between 2 alpha colors
 blend' :: Double -> (PixelRGB8, Double) -> (PixelRGB8, Double) -> (PixelRGB8, Double)
-blend' c (c0,o0) (c1,o1) = (blend c c0 c1, f' c o0 o1)
+blend' c (c0, o0) (c1, o1) = (blend c c0 c1, f' c o0 o1)
   where
     f' c' x0 x1 = x0 + c' * (x1 - x0)
-

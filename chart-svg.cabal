@@ -23,12 +23,12 @@ library
   exposed-modules:
     Chart
     Chart.Bar
-    Chart.ChartSvg
     Chart.Core
     Chart.Examples
     Chart.Format
     Chart.Hud
     Chart.Pixel
+    Chart.Render
     Chart.Svg
     Chart.Page
     Chart.Types

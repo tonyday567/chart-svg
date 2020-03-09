@@ -47,7 +47,7 @@ data BarOptions
         valueFormatN :: FormatN,
         accumulateValues :: Bool,
         orientation :: Orientation,
-        barHudConfig :: HudConfig
+        barHudOptions :: HudOptions
       }
   deriving (Show, Eq, Generic)
 
@@ -63,11 +63,11 @@ defaultBarOptions =
     (FormatFixed 0)
     False
     Hori
-    ( defaultHudConfig
+    ( defaultHudOptions
         & #hudAxes
-          .~ [ defaultAxisConfig
+          .~ [ defaultAxisOptions
                  & #atick . #ltick .~ Nothing,
-               defaultAxisConfig & #place .~ PlaceLeft
+               defaultAxisOptions & #place .~ PlaceLeft
              ]
         & #hudTitles .~ [defaultTitle "Default Bar Chart"]
         & #hudLegend
@@ -78,8 +78,8 @@ defaultBarOptions =
                 & #vgap .~ 0.16
                 & #hgap .~ 0.14
                 & #ltext . #size .~ 0.16
-                & #scale .~ 0.33
-            , []
+                & #lscale .~ 0.33,
+              []
             )
     )
   where
@@ -165,10 +165,10 @@ barTicks bd
     TickLabels $ take (maxRows (bd ^. #barData)) $
       fromMaybe [] (bd ^. #barRowLabels) <> repeat ""
 
-flipAllAxes :: Orientation -> [AxisConfig] -> [AxisConfig]
+flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
 flipAllAxes o = fmap (bool id flipAxis (o == Vert))
 
-tickFirstAxis :: BarData -> [AxisConfig] -> [AxisConfig]
+tickFirstAxis :: BarData -> [AxisOptions] -> [AxisOptions]
 tickFirstAxis _ [] = []
 tickFirstAxis bd (x : xs) = (x & #atick . #tstyle .~ barTicks bd) : xs
 
@@ -181,10 +181,10 @@ barLegend bd bo
 -- | A bar chart with hud trimmings.
 --
 -- By convention only, the first axis (if any) is the bar axis.
-barChart :: BarOptions -> BarData -> (HudConfig, [Chart Double])
+barChart :: BarOptions -> BarData -> (HudOptions, [Chart Double])
 barChart bo bd =
-  ( bo ^. #barHudConfig & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation)
-  , bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
+  ( bo ^. #barHudOptions & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation),
+    bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
   )
 
 -- | convert data to a text and Point

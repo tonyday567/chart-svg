@@ -17,17 +17,20 @@ import Prelude
 
 data Ex
   = Ex
-      { excss :: SvgStyle,
-        exhc :: HudConfig,
+      { excss :: SvgOptions,
+        exhc :: HudOptions,
         exmaxcs :: Int,
         exanns :: [Annotation],
         exspots :: [[Spot Double]]
       }
   deriving (Eq, Show, Generic)
 
-exampleHudConfig :: Text -> Maybe Text -> Maybe (LegendOptions, [(Annotation, Text)]) -> HudConfig
-exampleHudConfig t1 t2 legends' =
-  defaultHudConfig
+makeExample :: HudOptions -> [Chart Double] -> Ex
+makeExample hs cs = Ex defaultSvgOptions hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #spots <$> cs)
+
+exampleHudOptions :: Text -> Maybe Text -> Maybe (LegendOptions, [(Annotation, Text)]) -> HudOptions
+exampleHudOptions t1 t2 legends' =
+  defaultHudOptions
     & #hudTitles
       .~ ( [ defaultTitle t1
                & #style . #size .~ 0.08
@@ -47,15 +50,12 @@ exampleHudConfig t1 t2 legends' =
          )
     & #hudLegend .~ legends'
 
-makeExample :: (Real a) => HudConfig -> [Chart a] -> Ex
-makeExample hs cs = Ex defaultSvgStyle hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #spots <$> cs)
-
 -- | line example
 hockey :: Ex
 hockey =
   Ex
-    defaultSvgStyle
-    ( exampleHudConfig
+    defaultSvgOptions
+    ( exampleHudOptions
         "Example Chart"
         (Just "An example from chart-svg")
         (Just (legopts, zip (LineA <$> lopts) ["hockey", "line", "vertical"]))
@@ -88,7 +88,7 @@ legopts =
     & #lsize .~ 0.2
     & #ltext . #size .~ 0.25
     & #innerPad .~ 0.05
-    & #scale .~ 0.25
+    & #lscale .~ 0.25
     & #lplace .~ PlaceAbsolute (Point 0.5 (-0.3))
 
 -- rects
@@ -97,6 +97,15 @@ ropts =
   [ blob (PixelRGB8 93 165 218) 0.5,
     blob (PixelRGB8 120 80 60) 0.5
   ]
+
+normExample :: Ex
+normExample =
+  Ex
+    defaultSvgOptions
+    mempty
+    2
+    (RectA <$> ropts)
+    (fmap SpotRect <$> rss)
 
 rss :: [[Rect Double]]
 rss =
@@ -119,7 +128,7 @@ onePixel = Chart (PixelA defaultPixelStyle) [SpotRect unitRect]
 oneExample :: Ex
 oneExample =
   Ex
-    defaultSvgStyle
+    defaultSvgOptions
     mempty
     1
     [RectA rs]
@@ -134,15 +143,6 @@ rectChart = take 1 rectCharts
 rectCharts :: [Chart Double]
 rectCharts =
   zipWith (\s xs -> Chart (RectA s) (SpotRect <$> xs)) ropts rss
-
-normExample :: Ex
-normExample =
-  Ex
-    defaultSvgStyle
-    mempty
-    2
-    (RectA <$> ropts)
-    (fmap SpotRect <$> rss)
 
 -- * text
 
@@ -178,8 +178,8 @@ textsChart =
 textExample :: Ex
 textExample =
   Ex
-    defaultSvgStyle
-    defaultHudConfig
+    defaultSvgOptions
+    defaultHudOptions
     26
     (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) . (: []) . fst <$> ts)
     ((: []) . SpotPoint . snd <$> ts)
@@ -208,7 +208,7 @@ smiley =
     [SP 0 0]
 
 glyphs :: [Chart Double]
-glyphs = 
+glyphs =
   zipWith
     ( \(sh, bs) p ->
         Chart
@@ -230,7 +230,7 @@ glyphs =
       (HLineGlyph 0.02, 0),
       (SmileyGlyph, 0.01)
     ]
-    [SP x 0 | x <- [0 .. (7::Double)]]
+    [SP x 0 | x <- [0 .. (7 :: Double)]]
 
 glyphsExample :: Ex
 glyphsExample = makeExample mempty glyphs
@@ -259,17 +259,27 @@ glyphsChart = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) gdata ((#size
 -- textual
 boundText :: [Chart Double]
 boundText =
-  [ t1
-  , t2
-  , Chart BlankA [SpotRect (Rect 0 0.1 (-0.5) 0.5)]
-  , Chart (RectA defaultRectStyle) [SpotRect (defRectS $ styleBox t1)]
-  , Chart (RectA defaultRectStyle) [SpotRect (defRectS $ styleBox t2)]
+  [ t1,
+    t2,
+    Chart BlankA [SpotRect (Rect 0 0.1 (-0.5) 0.5)],
+    Chart (RectA defaultRectStyle) [SpotRect (defRectS $ styleBox t1)],
+    Chart (RectA defaultRectStyle) [SpotRect (defRectS $ styleBox t2)]
   ]
   where
-    t1 = Chart (TextA (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
-                ["a pretty long piece of text"]) [SP 0.0 0.0]
-    t2 = Chart (TextA (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
-                ["another pretty long piece of text"]) [SP 1 1]
+    t1 =
+      Chart
+        ( TextA
+            (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
+            ["a pretty long piece of text"]
+        )
+        [SP 0.0 0.0]
+    t2 =
+      Chart
+        ( TextA
+            (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
+            ["another pretty long piece of text"]
+        )
+        [SP 1 1]
 
 pixelOptions :: PixelOptions
 pixelOptions =
@@ -351,20 +361,23 @@ lglyph = txt <> gly
 defExample :: Ex
 defExample =
   makeExample
-    defaultHudConfig
+    defaultHudOptions
     [Chart (GlyphA defaultGlyphStyle) (SpotPoint <$> gridP sin (Range 0 (2 * pi)) 30)]
 
 bbExample :: Ex
 bbExample =
-  makeExample defaultHudConfig $
-    ( \tps ->
-        let cs = [Chart (TextA defaultTextStyle (fst <$> tps)) (snd <$> tps)]
-         in cs <> boxes defaultRectStyle cs
+  makeExample defaultHudOptions $
+    ( ( \tps ->
+          let cs = [Chart (TextA defaultTextStyle (fst <$> tps)) (snd <$> tps)]
+           in cs <> boxes defaultRectStyle cs
+      )
+        [("text1", SP 0 0), ("text2", SP 1 1)]
     )
-      [("text1", SP 0 0), ("text2", SP 1 1)]
 
 legExample :: Ex
-legExample = makeExample (mempty & #hudLegend .~ Just (defaultLegendOptions, l1)) [Chart (LineA defaultLineStyle) [SP 0 0, SP 1 1]]
+legExample =
+  makeExample (mempty & #hudLegend .~ Just (defaultLegendOptions, l1)) $
+    [Chart (LineA defaultLineStyle) [SP 0 0, SP 1 1]]
   where
     l1 =
       [ (GlyphA defaultGlyphStyle, "glyph"),
@@ -394,17 +407,18 @@ hud1 =
 euclid :: Integer -> [(Integer, Integer)]
 euclid x = filter (\(a, b) -> a /= 0 && b /= 0) $ (\m n -> (m * m - n * n, 2 * m * n)) <$> [1 .. x] <*> [1 .. x] :: [(Integer, Integer)]
 
-legendTest :: HudConfig
-legendTest = defaultHudConfig
-                        & #hudLegend
-                        .~ Just
-                          ( defaultLegendOptions
-                              & #scale .~ 0.3
-                              & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
-                              & #lsize .~ 0.12
-                              & #ltext . #size .~ 0.16
-                          , l1
-                          )
+legendTest :: HudOptions
+legendTest =
+  defaultHudOptions
+    & #hudLegend
+    .~ Just
+      ( defaultLegendOptions
+          & #lscale .~ 0.3
+          & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
+          & #lsize .~ 0.12
+          & #ltext . #size .~ 0.16,
+        l1
+      )
   where
     l1 =
       [ (GlyphA defaultGlyphStyle, "glyph"),
@@ -417,38 +431,45 @@ legendTest = defaultHudConfig
 
 writeChartExample :: FilePath -> Ex -> IO ()
 writeChartExample fp (Ex css' hc' _ anns' spots') =
-  writeHudConfigChart fp css' hc' [] (zipWith Chart anns' spots')
+  writeHudOptionsChart fp css' hc' [] (zipWith Chart anns' spots')
 
 barDataExample :: BarData
 barDataExample =
   BarData
-  [[1,2,3,5,8,0,-2,11,2,1], [1..10]]
-  (Just (("row "<>) . Text.pack . show <$> [1..11]))
-  (Just (("column "<>) . Text.pack . show <$> [1..2]))
+    [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]]
+    (Just (("row " <>) . Text.pack . show <$> [1 .. 11]))
+    (Just (("column " <>) . Text.pack . show <$> [1 .. 2]))
 
 barExample :: Ex
-barExample = uncurry makeExample
-  (barChart defaultBarOptions barDataExample)
+barExample = makeExample hc cs
+  where
+    (hc, cs) = barChart defaultBarOptions barDataExample
 
 writeAllExamples :: IO ()
 writeAllExamples = do
-  writeChart "other/mempty.svg" []
-  writeChart "other/one.svg" [ Chart (RectA defaultRectStyle) [SpotRect (unitRect :: Rect Double)] ]
-  writeChart "other/rectChart.svg" rectChart
-  writeChart "other/rectCharts.svg" rectCharts
-  writeHudConfigChart "other/pixel.svg" defaultSvgStyle mempty (snd pixelEx) (fst pixelEx)
-  writeChart "other/textChart.svg" [textChart]
-  writeChart "other/textsChart.svg" [textsChart]
-  writeChart "other/boundText.svg" boundText
-  writeChart "other/label.svg" label
-  writeChart "other/circle.svg" [circle']
-  writeChart "other/glyphs.svg" glyphs
-  writeChart "other/smiley.svg" [smiley]
-  writeChart "other/glyphsChart.svg" glyphsChart
-  writeChart "other/lglyph.svg" lglyph
-  writeChart "other/lines.svg" lines'
-  writeChart "other/glines.svg" glines
-  writeChart "other/compound.svg" (lglyph <> glines)
+  writeCharts "other/mempty.svg" []
+  writeCharts "other/one.svg" [Chart (RectA defaultRectStyle) [SpotRect (unitRect :: Rect Double)]]
+  writeHudOptionsChart "other/hud.svg" defaultSvgOptions defaultHudOptions [] []
+  writeCharts "other/rectChart.svg" rectChart
+  writeCharts "other/rectCharts.svg" rectCharts
+  writeHudOptionsChart
+    "other/pixel.svg"
+    defaultSvgOptions
+    mempty
+    (snd pixelEx)
+    (fst pixelEx)
+  writeCharts "other/textChart.svg" [textChart]
+  writeCharts "other/textsChart.svg" [textsChart]
+  writeCharts "other/boundText.svg" boundText
+  writeCharts "other/label.svg" label
+  writeCharts "other/circle.svg" [circle']
+  writeCharts "other/glyphs.svg" glyphs
+  writeCharts "other/smiley.svg" [smiley]
+  writeCharts "other/glyphsChart.svg" glyphsChart
+  writeCharts "other/lglyph.svg" lglyph
+  writeCharts "other/lines.svg" lines'
+  writeCharts "other/glines.svg" glines
+  writeCharts "other/compound.svg" (lglyph <> glines)
   writeChartExample "other/def.svg" defExample
   writeChartExample "other/bb.svg" bbExample
   writeChartExample "other/leg.svg" legExample

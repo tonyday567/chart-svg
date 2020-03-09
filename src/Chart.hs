@@ -10,6 +10,7 @@ module Chart
     module Chart.Hud,
     module Chart.Format,
     module Chart.Page,
+    module Chart.Render,
     module Chart.Bar,
     module Chart.Pixel,
     module NumHask.Space,
@@ -19,10 +20,11 @@ where
 
 import Chart.Bar
 import Chart.Core
+import Chart.Format
 import Chart.Hud
 import Chart.Page
-import Chart.Format
 import Chart.Pixel
+import Chart.Render
 import Chart.Svg
 import Chart.Types
 import Codec.Picture.Types
