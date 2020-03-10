@@ -1,4 +1,61 @@
-<svg viewBox="0.0 -408.0 612.0 408.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600.0" height="400.0"><style type="text/css"> {
-  shape-rendering: &quot;crispEdges&quot;;
-}
-</style><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="0.1" text-anchor="middle"><text x="0.0" y="-0.0">a</text><text x="9.983341664682815e-2" y="-1.0">b</text><text x="0.19866933079506122" y="-2.0">c</text><text x="0.2955202066613396" y="-3.0">d</text><text x="0.3894183423086505" y="-4.0">e</text><text x="0.479425538604203" y="-5.0">f</text><text x="0.5646424733950355" y="-6.0">g</text><text x="0.6442176872376911" y="-7.0">h</text><text x="0.7173560908995228" y="-8.0">i</text><text x="0.7833269096274833" y="-9.0">j</text><text x="0.8414709848078965" y="-10.0">k</text><text x="0.8912073600614354" y="-11.0">l</text><text x="0.9320390859672264" y="-12.0">m</text><text x="0.963558185417193" y="-13.0">n</text><text x="0.9854497299884603" y="-14.0">o</text><text x="0.9974949866040544" y="-15.0">p</text><text x="0.9995736030415051" y="-16.0">q</text><text x="0.9916648104524686" y="-17.0">r</text><text x="0.9738476308781951" y="-18.0">s</text><text x="0.9463000876874145" y="-19.0">t</text><text x="0.9092974268256817" y="-20.0">u</text><text x="0.8632093666488738" y="-21.0">v</text><text x="0.8084964038195901" y="-22.0">w</text><text x="0.74570521217672" y="-23.0">x</text><text x="0.6754631805511506" y="-24.0">y</text></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+    "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" height="300.0" viewBox="-0.685 -0.52 1.37 1.04" width="399.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.11.1">
+  <style type="text/css">{ shape-rendering: &#39;crispEdges&#39;; }
+  </style>
+  <defs>
+  </defs>
+  <g fill-opacity="1.0" font-size="0.1" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="middle">
+    <text x="0.0" y="-0.0">a
+    </text>
+    <text x="9.983341664682815e-2" y="-1.0">b
+    </text>
+    <text x="0.19866933079506122" y="-2.0">c
+    </text>
+    <text x="0.2955202066613396" y="-3.0">d
+    </text>
+    <text x="0.3894183423086505" y="-4.0">e
+    </text>
+    <text x="0.479425538604203" y="-5.0">f
+    </text>
+    <text x="0.5646424733950355" y="-6.0">g
+    </text>
+    <text x="0.6442176872376911" y="-7.0">h
+    </text>
+    <text x="0.7173560908995228" y="-8.0">i
+    </text>
+    <text x="0.7833269096274833" y="-9.0">j
+    </text>
+    <text x="0.8414709848078965" y="-10.0">k
+    </text>
+    <text x="0.8912073600614354" y="-11.0">l
+    </text>
+    <text x="0.9320390859672264" y="-12.0">m
+    </text>
+    <text x="0.963558185417193" y="-13.0">n
+    </text>
+    <text x="0.9854497299884603" y="-14.0">o
+    </text>
+    <text x="0.9974949866040544" y="-15.0">p
+    </text>
+    <text x="0.9995736030415051" y="-16.0">q
+    </text>
+    <text x="0.9916648104524686" y="-17.0">r
+    </text>
+    <text x="0.9738476308781951" y="-18.0">s
+    </text>
+    <text x="0.9463000876874145" y="-19.0">t
+    </text>
+    <text x="0.9092974268256817" y="-20.0">u
+    </text>
+    <text x="0.8632093666488738" y="-21.0">v
+    </text>
+    <text x="0.8084964038195901" y="-22.0">w
+    </text>
+    <text x="0.74570521217672" y="-23.0">x
+    </text>
+    <text x="0.6754631805511506" y="-24.0">y
+    </text>
+  </g>
+</svg>

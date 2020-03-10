@@ -1,4 +1,50 @@
-<svg viewBox="0.0 -408.0 612.0 408.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600.0" height="400.0"><style type="text/css"> {
-  shape-rendering: &quot;crispEdges&quot;;
-}
-</style><g stroke-width="2.0e-2" stroke="#5DA5DA" fill="none" stroke-opacity="0.5"><polyline points="-0.3333333333333333,0.5 0.3333333333333333,-0.5" /></g><g /><g stroke-width="4.0e-3" stroke="#3764A0" fill="#FFFFFF" fill-opacity="1.0" stroke-opacity="0.5"><rect width="0.19" height="0.2157" x="-2.0000000000000004e-2" y="0.5572" /></g><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="1.6e-2" text-anchor="start"><text x="0.0" y="0.7445">blank</text></g><g /><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="1.6e-2" text-anchor="start"><text x="0.0" y="0.7097">line</text></g><g stroke-width="2.0e-2" stroke="#5DA5DA" fill="none" stroke-opacity="0.5"><polyline points="8.000000000000002e-2,0.7031000000000001 0.12000000000000002,0.7031000000000001" /></g><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="1.6e-2" text-anchor="start"><text x="0.0" y="0.6731">text</text></g><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="2.0000000000000004e-2" text-anchor="start"><text x="8.000000000000002e-2" y="0.6731">content</text></g><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="1.6e-2" text-anchor="start"><text x="0.0" y="0.6346">rect</text></g><g stroke-width="1.0e-3" stroke="#666666" fill="#FF0000" fill-opacity="0.5" stroke-opacity="0.5"><rect width="1.999999999999999e-2" height="2.0000000000000018e-2" x="8.000000000000002e-2" y="0.6146" /></g><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="1.6e-2" text-anchor="start"><text x="0.0" y="0.5941000000000001">glyph</text></g><g stroke-width="3.0e-3" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4"><rect width="1.999999999999999e-2" height="2.0000000000000018e-2" x="8.000000000000002e-2" y="0.5775" /></g><g /></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+    "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" height="300.0" viewBox="-0.685 -0.52 1.37 1.04" width="399.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.11.1">
+  <style type="text/css">{ shape-rendering: &#39;crispEdges&#39;; }
+  </style>
+  <defs>
+  </defs>
+  <g stroke-opacity="0.5" stroke="#5da5da" stroke-width="2.0e-2" fill="none">
+    <polyline points="-0.665,0.5
+0.665,-0.5"/>
+  </g>
+  <g stroke-opacity="0.5" fill-opacity="1.0" stroke="#3764a0" stroke-width="4.0e-3" fill="#ffffff">
+    <rect height="0.2157" width="0.19" x="-2.0000000000000004e-2" y="0.5572"/>
+  </g>
+  <g fill-opacity="1.0" font-size="1.6e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="0.0" y="0.7445">blank
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="1.6e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="0.0" y="0.7097">line
+    </text>
+  </g>
+  <g stroke-opacity="0.5" stroke="#5da5da" stroke-width="2.0e-2" fill="none">
+    <polyline points="8.000000000000002e-2,0.7031000000000001
+0.12000000000000002,0.7031000000000001"/>
+  </g>
+  <g fill-opacity="1.0" font-size="1.6e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="0.0" y="0.6731">text
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="2.0000000000000004e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="8.000000000000002e-2" y="0.6731">content
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="1.6e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="0.0" y="0.6346">rect
+    </text>
+  </g>
+  <g stroke-opacity="0.5" fill-opacity="0.5" stroke="#666666" stroke-width="1.0e-3" fill="#ff0000">
+    <rect height="2.0000000000000018e-2" width="1.999999999999999e-2" x="8.000000000000002e-2" y="0.6146"/>
+  </g>
+  <g fill-opacity="1.0" font-size="1.6e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="0.0" y="0.5941000000000001">glyph
+    </text>
+  </g>
+  <g stroke-opacity="0.4" fill-opacity="0.8" stroke="#2c429d" stroke-width="3.0e-3" fill="#d99721">
+    <rect height="2.0000000000000018e-2" width="1.999999999999999e-2" x="8.000000000000002e-2" y="0.5775"/>
+  </g>
+</svg>

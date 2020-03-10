@@ -1,4 +1,23 @@
-<svg viewBox="0.0 -408.0 612.0 408.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600.0" height="400.0"><style type="text/css"> {
-  shape-rendering: &quot;crispEdges&quot;;
-}
-</style><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="8.0e-2" text-anchor="start"><text x="0.0" y="-0.0">a pretty long piece of text</text></g><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="8.0e-2" text-anchor="start"><text x="1.0" y="-1.0">another pretty long piece of text</text></g><g /><g stroke-width="5.0e-3" stroke="#666666" fill="#FF0000" fill-opacity="0.5" stroke-opacity="0.5"><rect width="0.9720000000000001" height="0.11599999999999999" y="-7.4e-2" /></g><g stroke-width="5.0e-3" stroke="#666666" fill="#FF0000" fill-opacity="0.5" stroke-opacity="0.5"><rect width="1.1880000000000002" height="0.1160000000000001" x="1.0" y="-1.074" /></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+    "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" height="300.0" viewBox="-0.685 -0.52 1.37 1.04" width="399.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.11.1">
+  <style type="text/css">{ shape-rendering: &#39;crispEdges&#39;; }
+  </style>
+  <defs>
+  </defs>
+  <g fill-opacity="1.0" font-size="8.0e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="0.0" y="-0.0">a pretty long piece of text
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="8.0e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="1.0" y="-1.0">another pretty long piece of text
+    </text>
+  </g>
+  <g stroke-opacity="0.5" fill-opacity="0.5" stroke="#666666" stroke-width="5.0e-3" fill="#ff0000">
+    <rect height="0.11599999999999999" width="0.9720000000000001" x="0.0" y="-7.4e-2"/>
+  </g>
+  <g stroke-opacity="0.5" fill-opacity="0.5" stroke="#666666" stroke-width="5.0e-3" fill="#ff0000">
+    <rect height="0.1160000000000001" width="1.1880000000000002" x="1.0" y="-1.074"/>
+  </g>
+</svg>

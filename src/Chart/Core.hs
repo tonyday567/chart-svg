@@ -35,11 +35,11 @@ import NumHask.Space
 import Protolude
 
 -- | additively pad a [Chart]
-padChart :: (RealFloat a) => a -> [Chart a] -> [Chart a]
+padChart :: Double -> [Chart Double] -> [Chart Double]
 padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
 
 -- | overlay a frame on some charts with some additive padding between
-frameChart :: (RealFloat a) => RectStyle -> a -> [Chart a] -> [Chart a]
+frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
 frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
 
 -- | project a Spot from one Rect to another, preserving relative position.
@@ -114,7 +114,7 @@ moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs
 
 -- horizontally stack a list of list of charts (proceeding to the right) with a gap between
-hori :: Chartable a => a -> [[Chart a]] -> [Chart a]
+hori :: Double -> [[Chart Double]] -> [Chart Double]
 hori _ [] = []
 hori gap cs = foldl step [] cs
   where
@@ -123,7 +123,7 @@ hori gap cs = foldl step [] cs
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- vertically stack a list of charts (proceeding upwards), aligning them to the left
-vert :: Chartable a => a -> [[Chart a]] -> [Chart a]
+vert :: Double -> [[Chart Double]] -> [Chart Double]
 vert _ [] = []
 vert gap cs = foldl step [] cs
   where
@@ -132,15 +132,15 @@ vert gap cs = foldl step [] cs
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- stack a list of charts horizontally, then vertically
-stack :: Chartable a => Int -> a -> [[Chart a]] -> [Chart a]
+stack :: Int -> Double -> [[Chart Double]] -> [Chart Double]
 stack _ _ [] = []
 stack n gap cs = vert gap (hori gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
 
-addChartBox :: (Chartable a) => Chart a -> Rect a -> Rect a
+addChartBox :: Chart Double -> Rect Double -> Rect Double
 addChartBox c r = sconcat (r :| maybeToList (styleBox c))
 
-addChartBoxes :: (Chartable a) => [Chart a] -> Rect a -> Rect a
+addChartBoxes :: [Chart Double] -> Rect Double -> Rect Double
 addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))

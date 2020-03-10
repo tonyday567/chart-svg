@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
@@ -13,7 +14,7 @@ import Data.Maybe
 import qualified Data.Text as Text
 import Data.Text (Text)
 import GHC.Generics
-import Prelude
+import Protolude
 
 data Ex
   = Ex
@@ -195,18 +196,6 @@ circle' =
     )
     [SP 0 0]
 
-smiley :: Chart Double
-smiley =
-  Chart
-    ( GlyphA
-        ( defaultGlyphStyle
-            & #size .~ 1
-            & #borderSize .~ (0.02 :: Double)
-            & #shape .~ SmileyGlyph
-        )
-    )
-    [SP 0 0]
-
 glyphs :: [Chart Double]
 glyphs =
   zipWith
@@ -226,9 +215,9 @@ glyphs =
       (RectSharpGlyph 0.75, 0.01),
       (RectRoundedGlyph 0.75 0.01 0.01, 0.01),
       (EllipseGlyph 0.75, 0),
-      (VLineGlyph 0.02, 0),
-      (HLineGlyph 0.02, 0),
-      (SmileyGlyph, 0.01)
+      (VLineGlyph, 0.01),
+      (HLineGlyph, 0.01),
+      (TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0), 0.01)
     ]
     [SP x 0 | x <- [0 .. (7 :: Double)]]
 
@@ -458,7 +447,6 @@ writeAllExamples = do
   writeCharts "other/label.svg" label
   writeCharts "other/circle.svg" [circle']
   writeCharts "other/glyphs.svg" glyphs
-  writeCharts "other/smiley.svg" [smiley]
   writeCharts "other/glyphsChart.svg" glyphsChart
   writeCharts "other/lglyph.svg" lglyph
   writeCharts "other/lines.svg" lines'
@@ -468,4 +456,4 @@ writeAllExamples = do
   writeChartExample "other/leg.svg" legExample
   writeChartExample "other/hockey.svg" hockey
   writeChartExample "other/bar.svg" barExample
-  putStrLn " 👍"
+  putStrLn (" 👍" :: Text)

@@ -31,7 +31,6 @@ library
     Chart.Pixel
     Chart.Render
     Chart.Svg
-    Chart.Svg.Lucid
     Chart.Page
     Chart.Types
   hs-source-dirs:
@@ -44,10 +43,8 @@ library
     , bifunctors
     , colour
     , palette
-    , containers
     , foldl
     , generic-lens
-    , linear
     , lucid
     , lucid-svg
     , lens
@@ -55,13 +52,12 @@ library
     , pretty-simple
     , protolude
     , scientific
-    , svg-tree
     , tagsoup
     , text
+    , text-format
     , time
     , transformers
     , web-rep
-    , xml
   default-language: Haskell2010
 
 executable examples

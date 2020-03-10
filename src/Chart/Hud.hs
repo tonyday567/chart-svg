@@ -105,7 +105,7 @@ flipAxis ac = case ac ^. #place of
 addToRect :: (Ord a) => Rect a -> Maybe (Rect a) -> Rect a
 addToRect r r' = sconcat $ r :| maybeToList r'
 
-canvas :: (Monad m, Chartable a) => RectStyle -> HudT m a
+canvas :: (Monad m) => RectStyle -> HudT m Double
 canvas s = Hud $ \cs -> do
   a <- use #canvasDim
   let c = Chart (RectA s) [SpotRect a]

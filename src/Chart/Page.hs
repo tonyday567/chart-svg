@@ -722,7 +722,7 @@ repTriple (a, b, c) sr =
   bimap (\a' b' c' -> a' <> b' <> c') (,,) (sr a) <<*>> sr b <<*>> sr c
 
 repGlyphShape :: (Monad m) => GlyphShape -> SharedRep m GlyphShape
-repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl <<*>> rround <<*>> tri
+repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>> tri
   where
     sha =
       dropdownSum
@@ -736,14 +736,11 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl 
           "RectSharp",
           "RectRounded",
           "VLine",
-          "HLine",
-          "Smiley"
+          "HLine"
         ]
         (glyphText sh)
     ell = slider Nothing 0.5 2 0.01 defRatio
     rsharp = slider Nothing 0.5 2 0.01 defRatio
-    vl = slider Nothing 0.001 0.1 0.0001 defLine
-    hl = slider Nothing 0.001 0.1 0.0001 defLine
     rround = repRounded defRounded
     tri =
       repTriple
@@ -752,15 +749,13 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl 
             (Point (Range 0 1) (Range 0 1))
             (Point 0.001 0.001)
         )
-    hmap sha' ell' rsharp' vl' hl' rround' tri' =
+    hmap sha' ell' rsharp' rround' tri' =
       sha'
         <> subtype ell' (glyphText sh) "Ellipse"
         <> subtype rsharp' (glyphText sh) "RectSharp"
-        <> subtype vl' (glyphText sh) "VLine"
-        <> subtype hl' (glyphText sh) "HLine"
         <> subtype rround' (glyphText sh) "RectRounded"
         <> subtype tri' (glyphText sh) "Triangle"
-    mmap sha' ell' rsharp' vl' hl' rround' tri' =
+    mmap sha' ell' rsharp' rround' tri' =
       case sha' of
         "Circle" -> CircleGlyph
         "Square" -> SquareGlyph
@@ -768,18 +763,13 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl 
         "RectSharp" -> RectSharpGlyph rsharp'
         "RectRounded" -> (\(a, b, c) -> RectRoundedGlyph a b c) rround'
         "Triangle" -> (\(a, b, c) -> TriangleGlyph a b c) tri'
-        "VLine" -> VLineGlyph vl'
-        "HLine" -> HLineGlyph hl'
-        "Smiley" -> SmileyGlyph
-        _ -> SmileyGlyph
+        "VLine" -> VLineGlyph
+        "HLine" -> HLineGlyph
+        _ -> CircleGlyph
     defRatio = case sh of
       EllipseGlyph r -> r
       RectSharpGlyph r -> r
       _ -> 1.5
-    defLine = case sh of
-      VLineGlyph r -> r
-      HLineGlyph r -> r
-      _ -> 0.05
     defRounded = case sh of
       RectRoundedGlyph a b c -> (a, b, c)
       _ -> (0.884, 2.7e-2, 5.0e-2)

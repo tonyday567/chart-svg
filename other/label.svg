@@ -1,4 +1,13 @@
-<svg viewBox="0.0 -408.0 612.0 408.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600.0" height="400.0"><style type="text/css"> {
-  shape-rendering: &quot;crispEdges&quot;;
-}
-</style><g stroke-width="0.0" stroke="none" fill="#666666" fill-opacity="1.0" font-size="8.0e-2" text-anchor="middle"><text transform="rotate(45.0, 1.0, -1.0)" x="1.0" y="-1.0">text at (1,1) rotated by 45 degrees</text></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+    "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" height="300.0" viewBox="-0.685 -0.52 1.37 1.04" width="399.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.11.1">
+  <style type="text/css">{ shape-rendering: &#39;crispEdges&#39;; }
+  </style>
+  <defs>
+  </defs>
+  <g fill-opacity="1.0" font-size="8.0e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="middle">
+    <text transform="rotate(45.0, 1.0, -1.0)" x="1.0" y="-1.0">text at (1,1) rotated by 45 degrees
+    </text>
+  </g>
+</svg>

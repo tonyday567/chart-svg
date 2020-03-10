@@ -1,4 +1,12 @@
-<svg viewBox="0.0 -408.0 612.0 408.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600.0" height="400.0"><style type="text/css"> {
-  shape-rendering: &quot;crispEdges&quot;;
-}
-</style><g stroke-width="0.2" stroke="#2C429D" fill="#D99721" fill-opacity="0.8" stroke-opacity="0.4"><rect width="1.0" height="1.0" x="-0.5" y="-0.5" /></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+    "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" height="300.0" viewBox="-0.685 -0.52 1.37 1.04" width="399.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.11.1">
+  <style type="text/css">{ shape-rendering: &#39;crispEdges&#39;; }
+  </style>
+  <defs>
+  </defs>
+  <g stroke-opacity="0.4" fill-opacity="0.8" stroke="#2c429d" stroke-width="0.2" fill="#d99721">
+    <rect height="1.0" width="1.0" x="-0.5" y="-0.5"/>
+  </g>
+</svg>

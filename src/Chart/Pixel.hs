@@ -109,7 +109,7 @@ pixelAxisOptions =
     Nothing
     ( Tick
         (TickRound (FormatComma 0) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph 0.002, 0.01))
+        (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph & #borderSize .~ 0.002, 0.01))
         (Just (defaultTextTick, 0.03))
         Nothing
     )

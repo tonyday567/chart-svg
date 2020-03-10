@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Render
@@ -21,31 +22,28 @@ where
 
 import Chart.Core
 import Chart.Hud (makeHud, runHud)
-import Chart.Svg (namedElements, styleBoxes, tree)
+import Chart.Svg
 import Chart.Types
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()
-import qualified Data.Map as Map
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Graphics.Svg as Svg hiding (Point, Text, toPoint)
-import Graphics.Svg.CssTypes as Svg hiding (Point)
+import qualified Data.Text.Lazy as Lazy
 import NumHask.Space hiding (Element)
 import Protolude hiding (writeFile)
-import Text.XML.Light.Output
-import qualified Text.XML.Light.Types as XML
+import Lucid.Svg hiding (z)
+import Control.Category (id)
 
 -- | scale chart data, projecting to the supplied Rect, and expanding the resultant Rect for chart style if necessary.
 --
 -- Note that this modifies the underlying chart data.
 -- FIXME: do a divide to make an exact fit
 scaleCharts ::
-  (Chartable a) =>
-  Rect a ->
-  [Chart a] ->
-  (Rect a, [Chart a])
+  Rect Double ->
+  [Chart Double] ->
+  (Rect Double, [Chart Double])
 scaleCharts cs r = (defRect $ styleBoxes cs', cs')
   where
     cs' = projectSpots cs r
@@ -66,36 +64,18 @@ getViewbox o cs = case view #svgAspect o of
 
 -- * rendering
 
--- | render Charts to an xml Document using the supplied size and viewbox.
-renderToDocument :: Point Double -> Rect Double -> [Chart Double] -> Document
-renderToDocument (Point w' h') vb cs =
-  Document
-    ((\(Rect x z y w) -> Just (x, - w, z - x, w - y)) $ realToFrac <$> vb)
-    (Just (Num (realToFrac w')))
-    (Just (Num (realToFrac h')))
-    (tree <$> cs)
-    (Map.mapKeys Text.unpack (mconcat $ namedElements <$> cs))
-    (Text.unpack "")
-    [cssCrisp]
-    ""
+renderToSvg :: Point Double -> Rect Double -> [Chart Double] -> Svg ()
+renderToSvg (Point w' h') (Rect x z y w) cs =
+  doctype_ <>
+  with (svg11_ (cssCrisp <> chartDefs cs <> mconcat (svg <$> cs))) [version_ "1.1", width_ (show w') , height_ (show h'), viewBox_ (show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))]
 
-cssCrisp :: CssRule
-cssCrisp = CssRule [] [CssDeclaration "shape-rendering" [[CssString "crispEdges"]]]
-
--- | render an xml document to Text
-documentToText :: EscapeText -> Document -> Text
-documentToText EscapeText = Text.pack . ppcElement defaultConfigPP . xmlOfDocument
-documentToText NoEscapeText = Text.pack . ppcElement defaultConfigPP . unescapeTextElements . xmlOfDocument
-  where
-    unescapeTextElements e = e {XML.elContent = unescape <$> XML.elContent e}
-    unescape (XML.Elem e) = XML.Elem (unescapeTextElements e)
-    unescape (XML.Text t) = XML.Text (t {XML.cdVerbatim = XML.CDataRaw})
-    unescape x = x
+cssCrisp :: Svg ()
+cssCrisp = style_ [type_ "text/css"] "{ shape-rendering: 'crispEdges'; }"
 
 -- | render Charts with the supplied options.
 renderChartsWith :: SvgOptions -> [Chart Double] -> Text.Text
 renderChartsWith so cs =
-  documentToText (so ^. #escapeText) (renderToDocument (getSize so cs'') r' cs'')
+  Lazy.toStrict $ prettyText (renderToSvg (getSize so cs'') r' cs'')
   where
     r' = r & maybe id padRect (so ^. #outerPad)
     cs'' =

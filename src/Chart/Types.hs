@@ -243,10 +243,8 @@ data GlyphShape
   | RectSharpGlyph Double
   | RectRoundedGlyph Double Double Double
   | TriangleGlyph (Point Double) (Point Double) (Point Double)
-  | VLineGlyph Double
-  | HLineGlyph Double
-  | SmileyGlyph
-  | PathGlyph [Text]
+  | VLineGlyph
+  | HLineGlyph
   deriving (Show, Eq, Generic)
 
 glyphText :: GlyphShape -> Text
@@ -258,10 +256,8 @@ glyphText sh =
     EllipseGlyph _ -> "Ellipse"
     RectSharpGlyph _ -> "RectSharp"
     RectRoundedGlyph {} -> "RectRounded"
-    VLineGlyph _ -> "VLine"
-    HLineGlyph _ -> "HLine"
-    SmileyGlyph -> "Smiley"
-    PathGlyph _ -> "Path"
+    VLineGlyph -> "VLine"
+    HLineGlyph -> "HLine"
 
 -- | line style
 data LineStyle
@@ -531,10 +527,10 @@ data Tick
 defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
-    & #borderSize .~ 0
+    & #borderSize .~ 0.005
     & #color .~ PixelRGB8 95 3 145
     & #opacity .~ 1
-    & #shape .~ VLineGlyph 0.005
+    & #shape .~ VLineGlyph
 
 defaultTextTick :: TextStyle
 defaultTextTick =

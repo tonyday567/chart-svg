@@ -74,10 +74,6 @@ glyphs
 
 ![](other/glyphs.svg)
 
-smiley
-
-![](other/smiley.svg)
-
 glyphsChart
 
 ![](other/glyphsChart.svg)
