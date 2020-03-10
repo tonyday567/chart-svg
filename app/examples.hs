@@ -10,13 +10,11 @@ import Control.Lens
 import Control.Monad (void)
 import Control.Monad.Trans.State.Lazy
 import Data.Biapplicative
-import Data.Bool
-import Data.Maybe
 import Data.Text (Text)
 import Network.Wai.Middleware.Static ((>->), addBase, noDots, staticPolicy)
 import Web.Page
 import Web.Scotty
-import Prelude
+import Protolude hiding ((<<*>>), Rep, replace)
 
 repMain :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
 repMain css ann hc =

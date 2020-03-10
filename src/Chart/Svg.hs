@@ -3,37 +3,12 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Svg
-  ( padChart,
-    frameChart,
-    treeRect,
-    treeGlyph,
-    treeLine,
-    treeShape,
-    treeText,
-    tree,
+  ( tree,
     namedElements,
-    groupTrees,
-    strokeRect,
-    transformRect,
-    dagRect,
-    dagText,
-    dagGlyph,
-    dagLine,
-    dagPixel,
-    pointSvg,
-    rotateDA,
-    rotatePDA,
-    translateDA,
     styleBox,
     styleBoxes,
     styleBoxText,
     styleBoxGlyph,
-    addChartBox,
-    addChartBoxes,
-    boxes,
-    hori,
-    vert,
-    stack,
   )
 where
 
@@ -54,14 +29,6 @@ import Linear.V2
 import NumHask.Space hiding (Element)
 import Protolude hiding (writeFile)
 import Text.HTML.TagSoup
-
--- | additively pad a [Chart]
-padChart :: (RealFloat a) => a -> [Chart a] -> [Chart a]
-padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
-
--- | overlay a frame on some charts with some additive padding between
-frameChart :: (RealFloat a) => RectStyle -> a -> [Chart a] -> [Chart a]
-frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
 
 -- | a Rect that bounds the geometric attributes of a 'DrawAttributes'
 -- only handles stroke width and transformations, referencing a point to calculate relative rotation from
@@ -143,49 +110,7 @@ styleBoxGlyph s = realToFrac <$> case sh of
     sh = s ^. #shape
     sz = s ^. #size
 
-addChartBox :: (Chartable a) => Chart a -> Rect a -> Rect a
-addChartBox c r = sconcat (r :| maybeToList (styleBox c))
-
-addChartBoxes :: (Chartable a) => [Chart a] -> Rect a -> Rect a
-addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
-
--- take a chart and produce a RectA chart of all the bounding style boxes of each point
-boxes :: (Chartable a) => RectStyle -> [Chart a] -> [Chart a]
-boxes rs cs = mconcat $ fmap (Chart (RectA rs) . maybeToList . fmap SpotRect . styleBox) . decons <$> cs
-
--- deconstruct a chart into a chart for every spot
-decons :: Chart a -> [Chart a]
-decons (Chart (TextA ts txts) spts) = zipWith (\t s -> Chart (TextA ts [t]) [s]) txts spts
-decons (Chart ann spts) = (\s -> Chart ann [s]) <$> spts
-
--- horizontally stack a list of list of charts (proceeding to the right) with a gap between
-hori :: Chartable a => a -> [[Chart a]] -> [Chart a]
-hori _ [] = []
-hori gap cs = foldl step [] cs
-  where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 - SP (origx x) 0 + s)))
-    z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
-    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
-
--- vertically stack a list of charts (proceeding upwards), aligning them to the left
-vert :: Chartable a => a -> [[Chart a]] -> [Chart a]
-vert _ [] = []
-vert gap cs = foldl step [] cs
-  where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (origx x - origx a) (w x) + s)))
-    w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
-    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
-
--- stack a list of charts horizontally, then vertically
-stack :: Chartable a => Int -> a -> [[Chart a]] -> [Chart a]
-stack _ _ [] = []
-stack n gap cs = vert gap (hori gap <$> group' cs [])
-  where
-    group' [] acc = reverse acc
-    group' x acc = group' (drop n x) (take n x : acc)
-
 -- * svg primitives
-
 -- | convert a point to the svg co-ordinate system
 -- The svg coordinate system has the y-axis going from top to bottom.
 pointSvg :: (Real a) => Point a -> (Number, Number)
@@ -459,13 +384,6 @@ dagLine o =
     . (fillColor .~ Last (Just FillNone))
 
 -- * transformations
-
--- | A DrawAttributes to rotate by x degrees.
-rotateDA :: (Real a, HasDrawAttributes s) => a -> s -> s
-rotateDA a s = s & transform %~ (Just . maybe r (<> r))
-  where
-    r = [Rotate (realToFrac a) Nothing]
-
 -- | A DrawAttributes to rotate around a point by x degrees.
 rotatePDA :: (Real a, HasDrawAttributes s) => a -> Point a -> s -> s
 rotatePDA a (Point x y) s = s & transform %~ (Just . maybe r (<> r))

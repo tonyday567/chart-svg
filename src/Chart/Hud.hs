@@ -26,7 +26,7 @@ where
 
 import Chart.Core
 import Chart.Format
-import Chart.Svg (addChartBox, addChartBoxes, frameChart, hori, padChart, styleBox, styleBoxText, styleBoxes, vert)
+import Chart.Svg (styleBox, styleBoxText, styleBoxes)
 import Chart.Types
 import Control.Category (id)
 import qualified Control.Foldl as L
@@ -101,6 +101,9 @@ flipAxis ac = case ac ^. #place of
   PlaceLeft -> ac & #place .~ PlaceBottom
   PlaceRight -> ac & #place .~ PlaceTop
   PlaceAbsolute _ -> ac
+
+addToRect :: (Ord a) => Rect a -> Maybe (Rect a) -> Rect a
+addToRect r r' = sconcat $ r :| maybeToList r'
 
 canvas :: (Monad m, Chartable a) => RectStyle -> HudT m a
 canvas s = Hud $ \cs -> do
@@ -624,3 +627,4 @@ legendChart lrs l =
 
 legendFromChart :: [Text] -> [Chart Double] -> [(Annotation, Text)]
 legendFromChart = zipWith (\t c -> (c ^. #annotation, t))
+

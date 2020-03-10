@@ -23,6 +23,7 @@ library
   exposed-modules:
     Chart
     Chart.Bar
+    Chart.Color
     Chart.Core
     Chart.Examples
     Chart.Format
@@ -30,6 +31,7 @@ library
     Chart.Pixel
     Chart.Render
     Chart.Svg
+    Chart.Svg.Lucid
     Chart.Page
     Chart.Types
   hs-source-dirs:
@@ -47,6 +49,7 @@ library
     , generic-lens
     , linear
     , lucid
+    , lucid-svg
     , lens
     , numhask-space
     , pretty-simple
@@ -73,6 +76,7 @@ executable examples
     , lens
     , javascript-bridge
     , numhask-space
+    , protolude
     , scotty
     , text
     , transformers

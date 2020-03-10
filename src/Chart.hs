@@ -5,6 +5,7 @@ module Chart
   ( -- * Types
     -- $types
     module Chart.Types,
+    module Chart.Color,
     module Chart.Core,
     module Chart.Svg,
     module Chart.Hud,
@@ -19,6 +20,7 @@ module Chart
 where
 
 import Chart.Bar
+import Chart.Color
 import Chart.Core
 import Chart.Format
 import Chart.Hud

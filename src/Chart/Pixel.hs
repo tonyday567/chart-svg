@@ -22,9 +22,10 @@ module Chart.Pixel
   )
 where
 
+import Chart.Color
 import Chart.Core
 import Chart.Hud
-import Chart.Svg (frameChart, padChart, styleBox, vert)
+import Chart.Svg (styleBox)
 import Chart.Types
 import Codec.Picture.Types
 import Control.Category (id)

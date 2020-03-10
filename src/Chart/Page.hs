@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
@@ -47,23 +48,25 @@ module Chart.Page
 where
 
 import Chart.Bar
-import Chart.Core
 import Chart.Format
 import Chart.Pixel
 import Chart.Render (renderHudOptionsChart)
 import Chart.Types
+import Control.Category (id)
 import Control.Lens
 import Data.Attoparsec.Text
 import Data.Biapplicative
-import Data.Bool
 import Data.List
-import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Lucid
 import NumHask.Space
-import Web.Page
-import Prelude
+import Web.Page hiding (bool)
+import Text.Pretty.Simple (pShowNoColor)
+import Protolude hiding ((<<*>>))
+
+pShow' :: (Show a) => a -> Text
+pShow' = toStrict . pShowNoColor
 
 chartStyler :: Bool -> Page
 chartStyler doDebug =

@@ -3,35 +3,27 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Core
-  ( pShow',
-    frame,
-    pad,
+  ( padChart,
+    frameChart,
     projectTo,
     projectSpots,
     projectSpotsWith,
     dataBox,
     toAspect,
-    showOrigin,
-    showOriginWith,
-    defaultOrigin,
-    blue,
-    grey,
-    red,
-    black,
-    white,
-    blend,
-    blend',
     scaleAnn,
-    placedLabel,
     defRect,
     defRectS,
-    addToRect,
     moveChart,
+    hori,
+    vert,
+    stack,
+    addChartBox,
+    addChartBoxes,
   )
 where
 
 import Chart.Types
-import Codec.Picture.Types
+import Chart.Svg (styleBox, styleBoxes)
 import Control.Category (id)
 import Control.Lens hiding (transform)
 import Data.Foldable
@@ -39,23 +31,16 @@ import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import Data.Monoid
 import Data.Semigroup hiding (getLast)
-import qualified Data.Text as Text
-import Data.Text (Text)
-import Data.Text.Lazy (toStrict)
 import NumHask.Space
 import Protolude
-import Text.Pretty.Simple (pShowNoColor)
 
-pShow' :: (Show a) => a -> Text
-pShow' = toStrict . pShowNoColor
+-- | additively pad a [Chart]
+padChart :: (RealFloat a) => a -> [Chart a] -> [Chart a]
+padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
 
--- | A framing chart.
-frame :: RectStyle -> Rect a -> Chart a
-frame o r = Chart (RectA o) [SpotRect r]
-
--- | widen a Rect by a fraction.
-pad :: (Chartable a) => a -> Rect a -> Rect a
-pad p r = fmap (p *) r
+-- | overlay a frame on some charts with some additive padding between
+frameChart :: (RealFloat a) => RectStyle -> a -> [Chart a] -> [Chart a]
+frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
 
 -- | project a Spot from one Rect to another, preserving relative position.
 projectOn :: (Ord a, Fractional a) => Rect a -> Rect a -> Spot a -> Spot a
@@ -96,9 +81,6 @@ defRectS r = maybe unitRect singletonUnit r
       | y == w = Rect x z (y - 0.5) (y + 0.5)
       | otherwise = Rect x z y w
 
-addToRect :: (Ord a) => Rect a -> Maybe (Rect a) -> Rect a
-addToRect r r' = sconcat $ r :| maybeToList r'
-
 projectSpots :: (Chartable a) => Rect a -> [Chart a] -> [Chart a]
 projectSpots a cs = cs'
   where
@@ -120,20 +102,6 @@ toAspect (Rect x z y w) = (z - x) / (w - y)
 dataBox :: Chartable a => [Chart a] -> Maybe (Rect a)
 dataBox cs = foldRect . mconcat $ fmap toRect <$> (spots <$> cs)
 
--- | include a circle at the origin with size and color
-showOriginWith :: (Chartable a) => GlyphStyle -> Chart a
-showOriginWith c =
-  Chart
-    (GlyphA c)
-    [SP 0 0]
-
-defaultOrigin :: GlyphStyle
-defaultOrigin = GlyphStyle 0.05 red 0.5 grey 0 0 CircleGlyph Nothing Nothing
-
--- | include a red circle at the origin
-showOrigin :: (Chartable a) => Chart a
-showOrigin = showOriginWith defaultOrigin
-
 scaleAnn :: Double -> Annotation -> Annotation
 scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
 scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (* x)
@@ -142,28 +110,37 @@ scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
 scaleAnn x (PixelA a) = PixelA $ a & #pixelRectStyle . #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
-placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
-placedLabel p d t =
-  Chart
-    ( TextA
-        ( defaultTextStyle
-            & #rotation ?~ realToFrac d
-        )
-        [t]
-    )
-    [SpotPoint p]
-
 moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs
 
--- | interpolate between 2 colors
-blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
-blend c = mixWithAlpha f (f (0 :: Int))
+-- horizontally stack a list of list of charts (proceeding to the right) with a gap between
+hori :: Chartable a => a -> [[Chart a]] -> [Chart a]
+hori _ [] = []
+hori gap cs = foldl step [] cs
   where
-    f _ x0 x1 = fromIntegral (round (fromIntegral x0 + c * (fromIntegral x1 - fromIntegral x0)) :: Integer)
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 - SP (origx x) 0 + s)))
+    z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
+    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
--- | interpolate between 2 alpha colors
-blend' :: Double -> (PixelRGB8, Double) -> (PixelRGB8, Double) -> (PixelRGB8, Double)
-blend' c (c0, o0) (c1, o1) = (blend c c0 c1, f' c o0 o1)
+-- vertically stack a list of charts (proceeding upwards), aligning them to the left
+vert :: Chartable a => a -> [[Chart a]] -> [Chart a]
+vert _ [] = []
+vert gap cs = foldl step [] cs
   where
-    f' c' x0 x1 = x0 + c' * (x1 - x0)
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (origx x - origx a) (w x) + s)))
+    w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
+    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+
+-- stack a list of charts horizontally, then vertically
+stack :: Chartable a => Int -> a -> [[Chart a]] -> [Chart a]
+stack _ _ [] = []
+stack n gap cs = vert gap (hori gap <$> group' cs [])
+  where
+    group' [] acc = reverse acc
+    group' x acc = group' (drop n x) (take n x : acc)
+
+addChartBox :: (Chartable a) => Chart a -> Rect a -> Rect a
+addChartBox c r = sconcat (r :| maybeToList (styleBox c))
+
+addChartBoxes :: (Chartable a) => [Chart a] -> Rect a -> Rect a
+addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))

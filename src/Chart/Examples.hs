@@ -292,6 +292,10 @@ f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 pixelEx :: ([Chart Double], [Hud Double])
 pixelEx = pixelfl f1 (defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2) (defaultPixelLegendOptions "pixel test")
 
+placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
+placedLabel p d t =
+  Chart ( TextA ( defaultTextStyle & #rotation ?~ realToFrac d ) [t] ) [SpotPoint p]
+
 label :: [Chart Double]
 label =
   [placedLabel (Point (1.0 :: Double) 1.0) (45.0 :: Double) "text at (1,1) rotated by 45 degrees"]
@@ -364,19 +368,9 @@ defExample =
     defaultHudOptions
     [Chart (GlyphA defaultGlyphStyle) (SpotPoint <$> gridP sin (Range 0 (2 * pi)) 30)]
 
-bbExample :: Ex
-bbExample =
-  makeExample defaultHudOptions $
-    ( ( \tps ->
-          let cs = [Chart (TextA defaultTextStyle (fst <$> tps)) (snd <$> tps)]
-           in cs <> boxes defaultRectStyle cs
-      )
-        [("text1", SP 0 0), ("text2", SP 1 1)]
-    )
-
 legExample :: Ex
 legExample =
-  makeExample (mempty & #hudLegend .~ Just (defaultLegendOptions, l1)) $
+  makeExample (mempty & #hudLegend .~ Just (defaultLegendOptions, l1))
     [Chart (LineA defaultLineStyle) [SP 0 0, SP 1 1]]
   where
     l1 =
@@ -471,7 +465,6 @@ writeAllExamples = do
   writeCharts "other/glines.svg" glines
   writeCharts "other/compound.svg" (lglyph <> glines)
   writeChartExample "other/def.svg" defExample
-  writeChartExample "other/bb.svg" bbExample
   writeChartExample "other/leg.svg" legExample
   writeChartExample "other/hockey.svg" hockey
   writeChartExample "other/bar.svg" barExample

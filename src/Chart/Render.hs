@@ -21,7 +21,7 @@ where
 
 import Chart.Core
 import Chart.Hud (makeHud, runHud)
-import Chart.Svg (frameChart, namedElements, padChart, styleBoxes, tree)
+import Chart.Svg (namedElements, styleBoxes, tree)
 import Chart.Types
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()

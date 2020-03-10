@@ -17,7 +17,7 @@ module Chart.Bar
   )
 where
 
-import Chart.Core
+import Chart.Color
 import Chart.Format
 import Chart.Hud
 import Chart.Types

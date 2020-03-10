@@ -14,7 +14,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Types
@@ -43,14 +42,6 @@ module Chart.Types
     Orientation (..),
     fromOrientation,
     toOrientation,
-    blue,
-    grey,
-    black,
-    white,
-    red,
-    toColour,
-    fromColour,
-    d3Palette1,
     ChartException (..),
     Spot (..),
     toRect,
@@ -99,12 +90,10 @@ module Chart.Types
   )
 where
 
+import Chart.Color
 import Codec.Picture.Types
 import Control.Exception
 import Control.Lens
-import qualified Data.Colour.Palette.ColorSet as C
-import qualified Data.Colour.RGBSpace as C
-import qualified Data.Colour.SRGB.Linear as C
 import Data.Generics.Labels ()
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -318,44 +307,8 @@ toOrientation "Hori" = Hori
 toOrientation "Vert" = Vert
 toOrientation _ = Hori
 
--- * color
-
--- | the official chart-unit blue
-blue :: PixelRGB8
-blue = PixelRGB8 93 165 218
-
--- | the official chart-unit grey
-grey :: PixelRGB8
-grey = PixelRGB8 102 102 102
-
--- | black
-black :: PixelRGB8
-black = PixelRGB8 0 0 0
-
--- | white
-white :: PixelRGB8
-white = PixelRGB8 255 255 255
-
--- | red
-red :: PixelRGB8
-red = PixelRGB8 255 0 0
-
--- | convert a 'PixelRGB8' to a 'Colour' representation.
-toColour :: PixelRGB8 -> C.Colour Double
-toColour (PixelRGB8 r g b) =
-  C.rgb (fromIntegral r / 256.0) (fromIntegral g / 256.0) (fromIntegral b / 256.0)
-
--- | convert a 'Colour' to a 'PixelRGB8' representation.
-fromColour :: C.Colour Double -> PixelRGB8
-fromColour (C.toRGB -> C.RGB r g b) =
-  PixelRGB8 (floor (256 * r)) (floor (256 * g)) (floor (256 * b))
-
--- | the d3 palette
-d3Palette1 :: [PixelRGB8]
-d3Palette1 = fromColour . C.d3Colors1 <$> [0 .. 9]
 
 -- * primitive Chart elements
-
 -- | unification of a point and rect on the plane
 data Spot a
   = SpotPoint (Point a)
