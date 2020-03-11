@@ -724,7 +724,7 @@ repTriple (a, b, c) sr =
   bimap (\a' b' c' -> a' <> b' <> c') (,,) (sr a) <<*>> sr b <<*>> sr c
 
 repGlyphShape :: (Monad m) => GlyphShape -> SharedRep m GlyphShape
-repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>> tri
+repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>> tri <<*>> p
   where
     sha =
       dropdownSum
@@ -738,7 +738,8 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
           "RectSharp",
           "RectRounded",
           "VLine",
-          "HLine"
+          "HLine",
+          "Path"
         ]
         (glyphText sh)
     ell = slider Nothing 0.5 2 0.01 defRatio
@@ -751,13 +752,15 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
             (Point (Range 0 1) (Range 0 1))
             (Point 0.001 0.001)
         )
-    hmap sha' ell' rsharp' rround' tri' =
+    p = textbox (Just "path") defP
+    hmap sha' ell' rsharp' rround' tri' p' =
       sha'
         <> subtype ell' (glyphText sh) "Ellipse"
         <> subtype rsharp' (glyphText sh) "RectSharp"
         <> subtype rround' (glyphText sh) "RectRounded"
         <> subtype tri' (glyphText sh) "Triangle"
-    mmap sha' ell' rsharp' rround' tri' =
+        <> subtype p' (glyphText sh) "Path"
+    mmap sha' ell' rsharp' rround' tri' p' =
       case sha' of
         "Circle" -> CircleGlyph
         "Square" -> SquareGlyph
@@ -767,7 +770,11 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
         "Triangle" -> (\(a, b, c) -> TriangleGlyph a b c) tri'
         "VLine" -> VLineGlyph
         "HLine" -> HLineGlyph
+        "Path" -> PathGlyph p'
         _ -> CircleGlyph
+    defP = case sh of
+      PathGlyph p -> p
+      _ -> mempty
     defRatio = case sh of
       EllipseGlyph r -> r
       RectSharpGlyph r -> r
