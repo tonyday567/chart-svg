@@ -42,7 +42,6 @@ module Chart.Types
     Orientation (..),
     fromOrientation,
     toOrientation,
-    ChartException (..),
     Spot (..),
     toRect,
     toPoint,
@@ -92,7 +91,6 @@ where
 
 import Chart.Color
 import Codec.Picture.Types
-import Control.Exception
 import Control.Lens
 import Data.Generics.Labels ()
 import Data.Text (Text)
@@ -101,10 +99,7 @@ import GHC.Exts
 import GHC.Generics
 import NumHask.Space hiding (Element)
 import Protolude
-
-data ChartException = NotYetImplementedException deriving (Show)
-
-instance Exception ChartException
+import Data.List ((!!))
 
 -- * Chart
 
@@ -154,7 +149,7 @@ data RectStyle
 
 -- | the official style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.005 grey 0.5 red 0.5
+defaultRectStyle = RectStyle 0.02 (chartPalette!!0) 0.5 (chartPalette!!3) 0.5
 
 -- | solid rectangle, no border
 blob :: PixelRGB8 -> Double -> RectStyle
@@ -245,6 +240,7 @@ data GlyphShape
   | TriangleGlyph (Point Double) (Point Double) (Point Double)
   | VLineGlyph
   | HLineGlyph
+  | PathGlyph Text
   deriving (Show, Eq, Generic)
 
 glyphText :: GlyphShape -> Text
@@ -258,6 +254,7 @@ glyphText sh =
     RectRoundedGlyph {} -> "RectRounded"
     VLineGlyph -> "VLine"
     HLineGlyph -> "HLine"
+    PathGlyph _ -> "Path"
 
 -- | line style
 data LineStyle
@@ -391,7 +388,7 @@ data SvgOptions
   deriving (Eq, Show, Generic)
 
 defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing EscapeText NoCssOptions ScaleCharts (ManualAspect 1.33)
+defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoEscapeText NoCssOptions ScaleCharts (ManualAspect 1.5)
 
 defaultSvgFrame :: RectStyle
 defaultSvgFrame = border 0.01 blue 1.0

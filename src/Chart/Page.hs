@@ -42,8 +42,10 @@ module Chart.Page
     repHudOptionsDefault,
     repBarOptions,
     repBarData,
+    repBarChart,
     repPixelOptions,
     repPixelLegendOptions,
+    repPixelChart,
   )
 where
 
@@ -479,7 +481,7 @@ repSvgOptions s =
       bool NoCssOptions UseCssCrisp
         <$> checkbox (Just "Use CssCrisp") (UseCssCrisp == s ^. #useCssCrisp)
     scalec =
-      bool ScaleCharts NoScaleCharts
+      bool NoScaleCharts ScaleCharts
         <$> checkbox (Just "Scale Charts") (ScaleCharts == s ^. #scaleCharts')
     hmap h' op'' ip' fr' esc' csso' scalec' svga' =
       accordion_
@@ -1112,4 +1114,53 @@ repPixelLegendOptions cfg =
           ("Width", pw'),
           ("Axis", pa'),
           ("Legend", pl')
+        ]
+
+repBarChart :: (Monad m) => SvgOptions -> BarData -> BarOptions -> SharedRep m (Text, Text)
+repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlags
+  where
+    rcss = repSvgOptions css
+    rbo = repBarOptions 5 defaultRectStyle defaultTextStyle bo
+    rbd = repBarData bd
+    barchartsvg css' bd' bo' =
+      let (hc', cs') = barChart bo' bd'
+       in renderHudOptionsChart css' hc' [] cs'
+    mmap css' bd' bo' debug =
+      ( barchartsvg css' bd' bo',
+        debugHtml debug css' (bo' ^. #barHudOptions) (bars bo' bd')
+      )
+    hmap css' bd' bo' debug =
+      accordion_
+        "accbc"
+        Nothing
+        [ ("Svg", css'),
+          ("Bar Data", bd'),
+          ("Bar Options", bo'),
+          ("Debug", debug)
+        ]
+
+repPixelChart ::
+  (Monad m) =>
+  (SvgOptions, PixelOptions, HudOptions, PixelLegendOptions, Point Double -> Double) ->
+  SharedRep m (Text, Text)
+repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rplo <<*>> debugFlags
+  where
+    rcss = repSvgOptions css
+    rpo = repPixelOptions po
+    rhc = repHudOptionsDefault hc
+    rplo = repPixelLegendOptions plo
+    mmap rcss' rpo' rhc' rplo' debug =
+      let (cs, hs) = pixelfl f rpo' rplo'
+       in ( renderHudOptionsChart rcss' rhc' hs cs,
+            debugHtml debug rcss' rhc' []
+          )
+    hmap rcss' rpo' rhc' rplo' debug =
+      accordion_
+        "accpc"
+        Nothing
+        [ ("Svg", rcss'),
+          ("Hud", rhc'),
+          ("Pixel Options", rpo'),
+          ("Pixel Legend Options", rplo'),
+          ("Debug", debug)
         ]

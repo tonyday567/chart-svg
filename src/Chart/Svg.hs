@@ -6,6 +6,7 @@
 
 module Chart.Svg
   ( svg,
+    chartDef,
     chartDefs,
     styleBox,
     styleBoxes,
@@ -111,7 +112,9 @@ lgPixel o =
 
 -- | get chart definitions
 chartDefs :: [Chart a] -> Svg ()
-chartDefs cs = defs_ $ mconcat $ mconcat $ chartDef <$> cs
+chartDefs cs = bool (defs_ (mconcat ds)) mempty (0 == length ds)
+  where
+    ds = mconcat $ chartDef <$> cs
 
 chartDef :: Chart a -> [Svg ()]
 chartDef c = case c of
@@ -185,6 +188,8 @@ svgShape VLineGlyph s (Point x y) =
   polyline_ [points_ (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)) )]
 svgShape HLineGlyph s (Point x y) =
   polyline_ [points_ (show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]
+svgShape (PathGlyph path) _ p =
+  path_ [d_ path, transform_ (toTranslateText p)]
 
 -- | GlyphStyle to svg Tree
 svgGlyph :: GlyphStyle -> Point Double -> Svg ()

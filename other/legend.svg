@@ -255,4 +255,48 @@
   <g stroke-opacity="0.0" fill-opacity="0.5" stroke="#666666" stroke-width="0.0" fill="#5f0391">
     <rect height="4.489337822671191e-3" width="1.3952839402818475" x="-0.6499348867494534" y="0.41133557800224463"/>
   </g>
+  <g stroke-opacity="0.5" fill-opacity="1.0" stroke="#3764a0" stroke-width="6.0e-3" fill="#ffffff">
+    <rect height="0.4503703703703705" width="0.6753174270964142" x="1.9801404585833238e-2" y="-0.44738496071829414"/>
+  </g>
+  <g fill-opacity="1.0" font-size="4.8e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="4.770708339147034e-2" y="-4.657687991021331e-2">blank
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="4.8e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="4.770708339147034e-2" y="-0.11337822671156006">abcdefghijklmnopqrst
+    </text>
+  </g>
+  <g stroke-opacity="0.4" fill-opacity="0.8" stroke="#2c429d" stroke-width="3.0e-3" fill="#d99721">
+    <rect height="3.599999999999999e-2" width="3.600000000000003e-2" x="0.5487527091763174" y="-0.14204489337822676"/>
+  </g>
+  <g fill-opacity="1.0" font-size="4.8e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="4.770708339147034e-2" y="-0.1801795735129068">line
+    </text>
+  </g>
+  <g stroke-opacity="0.5" stroke="#5da5da" stroke-width="2.0e-2" fill="none">
+    <polyline points="0.5500093018929355,-0.19084624017957363
+0.6169829310264638,-0.19084624017957363"/>
+  </g>
+  <g fill-opacity="1.0" font-size="4.8e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="4.770708339147034e-2" y="-0.24698092031425367">text
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="3.6e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="0.5500093018929355" y="-0.24698092031425367">content
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="4.8e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="4.770708339147034e-2" y="-0.3137822671156004">rect
+    </text>
+  </g>
+  <g stroke-opacity="0.5" fill-opacity="0.5" stroke="#31331c" stroke-width="6.0e-3" fill="#ab7257">
+    <rect height="3.232323232323242e-2" width="3.348681456676417e-2" x="0.5500093018929355" y="-0.34610549943883284"/>
+  </g>
+  <g fill-opacity="1.0" font-size="4.8e-2" stroke="none" stroke-width="0.0" fill="#666666" text-anchor="start">
+    <text x="4.770708339147034e-2" y="-0.3805836139169473">glyph
+    </text>
+  </g>
+  <g stroke-opacity="0.4" fill-opacity="0.8" stroke="#2c429d" stroke-width="3.0e-3" fill="#d99721">
+    <rect height="3.600000000000003e-2" width="3.600000000000003e-2" x="0.5487527091763174" y="-0.409250280583614"/>
+  </g>
 </svg>

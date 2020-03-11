@@ -24,9 +24,11 @@ module Chart.Color
     toColour,
     fromColour,
     d3Palette1,
+    chartPalette,
     blend,
     blend',
     toHex,
+    fromHex,
   )
 where
 
@@ -37,9 +39,8 @@ import qualified Data.Colour.SRGB.Linear as C
 import Data.Generics.Labels ()
 import GHC.Exts
 import Protolude
-import Data.Text.Format
-import Data.Text
-import Data.Text.Internal.Builder (toLazyText)
+import Web.Page.Html
+import Data.Attoparsec.Text hiding (take)
 
 -- * color
 -- | the official chart-unit blue
@@ -76,6 +77,9 @@ fromColour (C.toRGB -> C.RGB r g b) =
 d3Palette1 :: [PixelRGB8]
 d3Palette1 = fromColour . C.d3Colors1 <$> [0 .. 9]
 
+chartPalette :: [PixelRGB8]
+chartPalette = rights $ parseOnly fromHex <$> ["#31331c", "#454e56", "#94a7b5", "#ab7257"]
+
 -- | interpolate between 2 colors
 blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
 blend c = mixWithAlpha f (f (0 :: Int))
@@ -88,6 +92,7 @@ blend' c (c0, o0) (c1, o1) = (blend c c0 c1, f' c o0 o1)
   where
     f' c' x0 x1 = x0 + c' * (x1 - x0)
 
+{-
 -- | convert from 'PixelRGB8' to #xxxxxx
 toHex :: PixelRGB8 -> Text
 toHex (PixelRGB8 r g b) =
@@ -95,3 +100,5 @@ toHex (PixelRGB8 r g b) =
     <> justifyRight 2 '0' (toStrict $ toLazyText $ hex r)
     <> justifyRight 2 '0' (toStrict $ toLazyText $ hex g)
     <> justifyRight 2 '0' (toStrict $ toLazyText $ hex b)
+
+-}
