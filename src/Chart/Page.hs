@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
@@ -18,9 +19,9 @@ module Chart.Page
     repBar,
     repAdjustments,
     repTitle,
-    repHudConfig,
-    repAxisConfig,
-    repChartSvgStyle,
+    repHudOptions,
+    repAxisOptions,
+    repSvgOptions,
     repData,
     repFormatN,
     repTickStyle,
@@ -38,37 +39,41 @@ module Chart.Page
     repChartsWithStaticData,
     debugHtml,
     debugFlags,
-    repHudConfigDefault,
+    repHudOptionsDefault,
     repBarOptions,
     repBarData,
+    repBarChart,
     repPixelOptions,
     repPixelLegendOptions,
+    repPixelChart,
   )
 where
 
-import Chart.Core
-import Chart.Hud
-import Chart.Types
-import Chart.Format
 import Chart.Bar
+import Chart.Format
 import Chart.Pixel
+import Chart.Render (renderHudOptionsChart)
+import Chart.Types
+import Control.Category (id)
 import Control.Lens
 import Data.Attoparsec.Text
 import Data.Biapplicative
-import Data.Bool
 import Data.List
-import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Lucid
 import NumHask.Space
-import Web.Page
-import Prelude
+import Web.Page hiding (bool)
+import Text.Pretty.Simple (pShowNoColor)
+import Protolude hiding ((<<*>>))
+
+pShow' :: (Show a) => a -> Text
+pShow' = toStrict . pShowNoColor
 
 chartStyler :: Bool -> Page
 chartStyler doDebug =
-  mathjaxSvgPage "hasmathjax" <>
-  bootstrapPage
+  mathjaxSvgPage "hasmathjax"
+    <> bootstrapPage
     <> bridgePage
     & #htmlHeader .~ title_ "chart styler"
     & #htmlBody
@@ -171,10 +176,9 @@ repPixelStyle cfg =
     pcmin = colorPicker (Just "low color") (cfg ^. #pixelColorMin)
     pomax = slider (Just "high opacity") 0.0 1.0 0.001 (cfg ^. #pixelOpacityMax)
     pomin = slider (Just "low opacity") 0.0 1.0 0.001 (cfg ^. #pixelOpacityMin)
-    pd = slider (Just "gradient direction") 0.0 (2*pi) 0.001 (cfg ^. #pixelGradient)
+    pd = slider (Just "gradient direction") 0.0 (2 * pi) 0.001 (cfg ^. #pixelGradient)
     prs = repRectStyle (cfg ^. #pixelRectStyle)
     pt = textbox (Just "texture id") (cfg ^. #pixelTextureId)
-
     hmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
       pcmin' <> pomin' <> pcmax' <> pomax' <> pd' <> prs' <> pt'
 
@@ -315,21 +319,21 @@ repTitle cfg = do
   b <- slider (Just "buffer") 0 0.2 0.01 (cfg ^. #buff)
   pure $ Title ttext ts tp ta b
 
-repHudConfig ::
+repHudOptions ::
   (Monad m) =>
   Int ->
   Int ->
   Int ->
-  AxisConfig ->
+  AxisOptions ->
   Title ->
   LegendOptions ->
   [(Annotation, Text)] ->
   Annotation ->
   Text ->
-  HudConfig ->
-  SharedRep m HudConfig
-repHudConfig naxes ntitles nlegendRows defaxis deftitle deflegend deflrs defann deflabel cfg =
-  bimap hmap (\a b c d -> HudConfig a b c d) can
+  HudOptions ->
+  SharedRep m HudOptions
+repHudOptions naxes ntitles nlegendRows defaxis deftitle deflegend deflrs defann deflabel cfg =
+  bimap hmap (\a b c d -> HudOptions a b c d) can
     <<*>> ts
     <<*>> axs
     <<*>> l
@@ -351,7 +355,7 @@ repHudConfig naxes ntitles nlegendRows defaxis deftitle deflegend deflrs defann 
         (Just "axes")
         "axz"
         (checkbox Nothing)
-        repAxisConfig
+        repAxisOptions
         naxes
         defaxis
         (cfg ^. #hudAxes)
@@ -377,9 +381,10 @@ repHudConfig naxes ntitles nlegendRows defaxis deftitle deflegend deflrs defann 
       maybeRep
         (Just "legend")
         (isJust $ cfg ^. #hudLegend)
-        ((,) <$>
-          repLegendOptions (maybe deflegend fst (cfg ^. #hudLegend)) <*>
-          (zip <$> anns <*> labelsc))
+        ( (,)
+            <$> repLegendOptions (maybe deflegend fst (cfg ^. #hudLegend))
+            <*> (zip <$> anns <*> labelsc)
+        )
     hmap can' ts' axs' l' =
       accordion_
         "accc"
@@ -390,8 +395,8 @@ repHudConfig naxes ntitles nlegendRows defaxis deftitle deflegend deflrs defann 
           ("Legend", l')
         ]
 
-repAxisConfig :: (Monad m) => AxisConfig -> SharedRep m AxisConfig
-repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
+repAxisOptions :: (Monad m) => AxisOptions -> SharedRep m AxisOptions
+repAxisOptions cfg = bimap hmap AxisOptions b <<*>> adj <<*>> t <<*>> p
   where
     b =
       maybeRep
@@ -415,24 +420,45 @@ repAxisConfig cfg = bimap hmap AxisConfig b <<*>> adj <<*>> t <<*>> p
           ("Place", p')
         ]
 
-repChartSvgStyle :: (Monad m) => ChartSvgStyle -> SharedRep m ChartSvgStyle
-repChartSvgStyle s =
+repSvgAspect :: (Monad m) => SvgAspect -> Double -> SharedRep m SvgAspect
+repSvgAspect sa ddef =
+  bimap hmap toSvgAspect sa' <<*>> td
+  where
+    sa' =
+      dropdownSum
+        takeText
+        id
+        (Just "Aspect")
+        [ "ManualAspect",
+          "ChartsAspect"
+        ]
+        (fromSvgAspect sa)
+    td = slider (Just "aspect scale") 0 10 0.01 (defD ddef)
+    defD d' = case sa of
+      ManualAspect d -> d
+      ChartAspect -> d'
+    hmap sa'' td' =
+      div_
+        ( sa''
+            <> subtype td' (fromSvgAspect sa) "ManualAspect"
+        )
+
+repSvgOptions :: (Monad m) => SvgOptions -> SharedRep m SvgOptions
+repSvgOptions s =
   bimap
     hmap
-    ChartSvgStyle
-    x
-    <<*>> y
-    <<*>> a
+    SvgOptions
+    h'
     <<*>> op'
     <<*>> ip
     <<*>> fr
-    <<*>> orig'
     <<*>> esc
-    <<*>> crisp
+    <<*>> csso
+    <<*>> scalec
+    <<*>> svga
   where
-    x = slider (Just "sizex") 0 1000 1 (s ^. #sizex)
-    y = slider (Just "sizey") 0 1000 1 (s ^. #sizey)
-    a = slider (Just "aspect") 0.2 5 0.1 (s ^. #chartAspect)
+    svga = repSvgAspect (s ^. #svgAspect) 1.33
+    h' = slider (Just "height") 1 1000 1 (s ^. #svgHeight)
     op' =
       maybeRep
         (Just "outer pad")
@@ -448,23 +474,25 @@ repChartSvgStyle s =
         (Just "frame")
         (isJust (s ^. #chartFrame))
         (repRectStyle (fromMaybe defaultSvgFrame (s ^. #chartFrame)))
-    orig' =
-      maybeRep
-        (Just "origin")
-        (isJust (s ^. #orig))
-        (repGlyphStyle (fromMaybe defaultOrigin (s ^. #orig)))
-    esc = checkbox (Just "escape text") (s ^. #escapeText)
-    crisp = checkbox (Just "Use CssCrisp") (s ^. #useCssCrisp)
-    hmap x' y' a' op'' ip' fr' orig'' esc' crisp' =
+    esc =
+      bool NoEscapeText EscapeText
+        <$> checkbox (Just "escape text") (EscapeText == s ^. #escapeText)
+    csso =
+      bool NoCssOptions UseCssCrisp
+        <$> checkbox (Just "Use CssCrisp") (UseCssCrisp == s ^. #useCssCrisp)
+    scalec =
+      bool NoScaleCharts ScaleCharts
+        <$> checkbox (Just "Scale Charts") (ScaleCharts == s ^. #scaleCharts')
+    hmap h' op'' ip' fr' esc' csso' scalec' svga' =
       accordion_
         "accsvg"
         Nothing
-        [ ("Sizing", x' <> y' <> a'),
+        [ ("Aspect", svga' <> h'),
           ("Padding", op'' <> ip'),
           ("Frame", fr'),
-          ("Origin", orig''),
           ("Escape", esc'),
-          ("CssCrisp", crisp')
+          ("Css", csso'),
+          ("Scale", scalec')
         ]
 
 repData :: (Monad m) => Text -> SharedRep m [Spot Double]
@@ -620,9 +648,7 @@ repTick cfg = SharedRep $ do
           ("text", tt'),
           ("line", lt')
         ]
-
     ts = repTickStyle (cfg ^. #tstyle)
-
     gt =
       maybeRep Nothing (isJust (cfg ^. #gtick)) $
         bimap
@@ -698,7 +724,7 @@ repTriple (a, b, c) sr =
   bimap (\a' b' c' -> a' <> b' <> c') (,,) (sr a) <<*>> sr b <<*>> sr c
 
 repGlyphShape :: (Monad m) => GlyphShape -> SharedRep m GlyphShape
-repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl <<*>> rround <<*>> tri
+repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>> tri <<*>> p
   where
     sha =
       dropdownSum
@@ -713,13 +739,11 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl 
           "RectRounded",
           "VLine",
           "HLine",
-          "Smiley"
+          "Path"
         ]
         (glyphText sh)
     ell = slider Nothing 0.5 2 0.01 defRatio
     rsharp = slider Nothing 0.5 2 0.01 defRatio
-    vl = slider Nothing 0.001 0.1 0.0001 defLine
-    hl = slider Nothing 0.001 0.1 0.0001 defLine
     rround = repRounded defRounded
     tri =
       repTriple
@@ -728,15 +752,15 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl 
             (Point (Range 0 1) (Range 0 1))
             (Point 0.001 0.001)
         )
-    hmap sha' ell' rsharp' vl' hl' rround' tri' =
+    p = textbox (Just "path") defP
+    hmap sha' ell' rsharp' rround' tri' p' =
       sha'
         <> subtype ell' (glyphText sh) "Ellipse"
         <> subtype rsharp' (glyphText sh) "RectSharp"
-        <> subtype vl' (glyphText sh) "VLine"
-        <> subtype hl' (glyphText sh) "HLine"
         <> subtype rround' (glyphText sh) "RectRounded"
         <> subtype tri' (glyphText sh) "Triangle"
-    mmap sha' ell' rsharp' vl' hl' rround' tri' =
+        <> subtype p' (glyphText sh) "Path"
+    mmap sha' ell' rsharp' rround' tri' p' =
       case sha' of
         "Circle" -> CircleGlyph
         "Square" -> SquareGlyph
@@ -744,18 +768,17 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> vl <<*>> hl 
         "RectSharp" -> RectSharpGlyph rsharp'
         "RectRounded" -> (\(a, b, c) -> RectRoundedGlyph a b c) rround'
         "Triangle" -> (\(a, b, c) -> TriangleGlyph a b c) tri'
-        "VLine" -> VLineGlyph vl'
-        "HLine" -> HLineGlyph hl'
-        "Smiley" -> SmileyGlyph
-        _ -> SmileyGlyph
+        "VLine" -> VLineGlyph
+        "HLine" -> HLineGlyph
+        "Path" -> PathGlyph p'
+        _ -> CircleGlyph
+    defP = case sh of
+      PathGlyph p -> p
+      _ -> mempty
     defRatio = case sh of
       EllipseGlyph r -> r
       RectSharpGlyph r -> r
       _ -> 1.5
-    defLine = case sh of
-      VLineGlyph r -> r
-      HLineGlyph r -> r
-      _ -> 0.05
     defRounded = case sh of
       RectRoundedGlyph a b c -> (a, b, c)
       _ -> (0.884, 2.7e-2, 5.0e-2)
@@ -782,18 +805,18 @@ repChoice initt xs =
 repLegendOptions :: (Monad m) => LegendOptions -> SharedRep m LegendOptions
 repLegendOptions initl =
   bimap
-  hmap
-  LegendOptions
-  lsize' 
-  <<*>> vgap' 
-  <<*>> hgap' 
-  <<*>> ltext' 
-  <<*>> lmax' 
-  <<*>> innerPad' 
-  <<*>> outerPad' 
-  <<*>> legendFrame' 
-  <<*>> lplace' 
-  <<*>> scale'
+    hmap
+    LegendOptions
+    lsize'
+    <<*>> vgap'
+    <<*>> hgap'
+    <<*>> ltext'
+    <<*>> lmax'
+    <<*>> innerPad'
+    <<*>> outerPad'
+    <<*>> legendFrame'
+    <<*>> lplace'
+    <<*>> scale'
   where
     lsize' = slider (Just "element size") 0.000 1 0.001 (initl ^. #lsize)
     hgap' = slider (Just "horizontal gap") 0.000 0.5 0.001 (initl ^. #hgap)
@@ -801,26 +824,26 @@ repLegendOptions initl =
     ltext' = repTextStyle (initl ^. #ltext)
     lmax' = sliderI (Just "max entries") 0 10 1 (initl ^. #lmax)
     innerPad' =
-        slider
-            (Just "inner padding")
-            0
-            0.2
-            0.001
-            (initl ^. #innerPad)
+      slider
+        (Just "inner padding")
+        0
+        0.2
+        0.001
+        (initl ^. #innerPad)
     outerPad' =
-         slider
-            (Just "outer padding")
-            0
-            0.2
-            0.001
-            (initl ^. #outerPad)
+      slider
+        (Just "outer padding")
+        0
+        0.2
+        0.001
+        (initl ^. #outerPad)
     legendFrame' =
       maybeRep
         (Just "frame")
         (isJust (initl ^. #legendFrame))
         (repRectStyle (fromMaybe defaultSvgFrame (initl ^. #legendFrame)))
     lplace' = repPlace (initl ^. #lplace)
-    scale' = slider (Just "scale") 0.01 1 0.001 (initl ^. #scale)
+    scale' = slider (Just "scale") 0.01 1 0.001 (initl ^. #lscale)
     hmap lsize'' vgap'' hgap'' ltext'' lmax'' innerPad'' outerPad'' legendFrame'' lplace'' scale'' =
       accordion_
         "accleg"
@@ -835,8 +858,8 @@ repLegendOptions initl =
 
 repChartsWithSharedData ::
   (Monad m) =>
-  ChartSvgStyle ->
-  HudConfig ->
+  SvgOptions ->
+  HudOptions ->
   Int ->
   [Chart Double] ->
   ([[Spot Double]] -> SharedRep m [[Spot Double]]) ->
@@ -854,18 +877,18 @@ repChartsWithSharedData css' hc' maxcs' cs' sspots =
     spots' = view #spots <$> cs'
     anns' = view #annotation <$> cs'
     hr =
-      repHudConfig
-      2
-      3
-      5
-      defaultAxisConfig
-      (defaultTitle "default")
-      (maybe defaultLegendOptions fst (hc' ^. #hudLegend))
-      (maybe [] snd (hc' ^. #hudLegend))
-      BlankA
-      ""
-      hc'
-    cssr = repChartSvgStyle css'
+      repHudOptions
+        2
+        3
+        5
+        defaultAxisOptions
+        (defaultTitle "default")
+        (maybe defaultLegendOptions fst (hc' ^. #hudLegend))
+        (maybe [] snd (hc' ^. #hudLegend))
+        BlankA
+        ""
+        hc'
+    cssr = repSvgOptions css'
     annsr =
       listRep
         (Just "Annotations")
@@ -877,7 +900,7 @@ repChartsWithSharedData css' hc' maxcs' cs' sspots =
         anns'
     mmap css'' ann' d' h' debug' =
       let ch = zipWith Chart ann' d'
-       in ( renderHudConfigChart css'' h' [] ch,
+       in ( renderHudOptionsChart css'' h' [] ch,
             debugHtml debug' css'' h' ch
           )
     hmap css'' ann' _ h' debug' =
@@ -892,15 +915,15 @@ repChartsWithSharedData css' hc' maxcs' cs' sspots =
 
 repChartsWithStaticData ::
   (Monad m) =>
-  ChartSvgStyle ->
-  HudConfig ->
+  SvgOptions ->
+  HudOptions ->
   Int ->
   [Chart Double] ->
   SharedRep m (Text, Text)
 repChartsWithStaticData css' hc' maxcs' cs' =
   repChartsWithSharedData css' hc' maxcs' cs' (bipure mempty)
 
-debugHtml :: (Bool, Bool, Bool) -> ChartSvgStyle -> HudConfig -> [Chart Double] -> Text
+debugHtml :: (Bool, Bool, Bool) -> SvgOptions -> HudOptions -> [Chart Double] -> Text
 debugHtml debug css hc cs =
   bool
     mempty
@@ -917,7 +940,7 @@ debugHtml debug css hc cs =
       ( mconcat $
           (\x -> "<p style='white-space: pre'>" <> x <> "</p>")
             <$> [ "<h2>chart svg</h2>",
-                  renderHudConfigChart css hc [] cs
+                  renderHudOptionsChart css hc [] cs
                 ]
       )
       ((\(_, a, _) -> a) debug)
@@ -936,17 +959,17 @@ debugFlags =
   bimap
     (\a b c -> a <> b <> c)
     (,,)
-    (checkbox (Just "show hudConfig values") False)
+    (checkbox (Just "show hudOptions values") False)
     <<*>> checkbox (Just "show chart svg") False
     <<*>> checkbox (Just "show Chart values") False
 
-repHudConfigDefault :: Monad m => HudConfig -> SharedRep m HudConfig
-repHudConfigDefault hc =
-  repHudConfig
+repHudOptionsDefault :: Monad m => HudOptions -> SharedRep m HudOptions
+repHudOptionsDefault hc =
+  repHudOptions
     2
     3
     5
-    defaultAxisConfig
+    defaultAxisOptions
     (defaultTitle "default")
     defaultLegendOptions
     []
@@ -998,18 +1021,18 @@ repBarOptions nrows defrs defts cfg =
     fn = repFormatN (cfg ^. #valueFormatN)
     av = checkbox (Just "accumulate values") (cfg ^. #accumulateValues)
     or = repOrientation (cfg ^. #orientation)
-    ho = repHudConfig
+    ho =
+      repHudOptions
         2
         3
         5
-        defaultAxisConfig
+        defaultAxisOptions
         (defaultTitle "bar options")
-        (maybe defaultLegendOptions fst (cfg ^. #barHudConfig . #hudLegend))
-        (maybe [] snd (cfg ^. #barHudConfig . #hudLegend))
+        (maybe defaultLegendOptions fst (cfg ^. #barHudOptions . #hudLegend))
+        (maybe [] snd (cfg ^. #barHudOptions . #hudLegend))
         BlankA
         ""
-        (cfg ^. #barHudConfig)
-
+        (cfg ^. #barHudOptions)
     hmap rs' ts' og' ig' tg' dv' fn' av' or' ho' =
       accordion_
         "accbo"
@@ -1031,16 +1054,22 @@ repBarData initbd =
     <<*>> cl
   where
     rl =
-      maybeRep Nothing (isJust (initbd ^. #barRowLabels))
-      (either (const []) id <$>
-       readTextbox (Just "row labels") (fromMaybe [] (initbd ^. #barRowLabels)))
+      maybeRep
+        Nothing
+        (isJust (initbd ^. #barRowLabels))
+        ( either (const []) id
+            <$> readTextbox (Just "row labels") (fromMaybe [] (initbd ^. #barRowLabels))
+        )
     cl =
-      maybeRep Nothing (isJust (initbd ^. #barColumnLabels))
-      (either (const []) id <$>
-       readTextbox (Just "column labels") (fromMaybe [] (initbd ^. #barColumnLabels)))
+      maybeRep
+        Nothing
+        (isJust (initbd ^. #barColumnLabels))
+        ( either (const []) id
+            <$> readTextbox (Just "column labels") (fromMaybe [] (initbd ^. #barColumnLabels))
+        )
     bd =
-      either (const (pure [])) id <$>
-      readTextbox (Just "bar data") (initbd ^. #barData)
+      either (const (pure [])) id
+        <$> readTextbox (Just "bar data") (initbd ^. #barData)
     hmap rl' cl' bd' = rl' <> cl' <> bd'
 
 repPixelOptions ::
@@ -1055,7 +1084,6 @@ repPixelOptions cfg =
     ps = repPixelStyle (cfg ^. #poStyle)
     pg = repPointI (Point (Range 1 100) (Range 1 100)) (Point 1 1) (cfg ^. #poGrain)
     pr = repRect (Rect (Range 0 5) (Range 0 5) (Range 0 5) (Range 0 5)) (Rect 0.01 0.01 0.01 0.01) (cfg ^. #poRange)
-
     hmap ps' pg' pr' =
       accordion_
         "accpixel"
@@ -1066,7 +1094,7 @@ repPixelOptions cfg =
         ]
 
 -- PixelLegendOptions
---      {ploStyle :: PixelStyle, ploTitle :: Text, ploWidth :: Double, ploAxisConfig :: AxisConfig, ploLegendOptions :: LegendOptions}
+--      {ploStyle :: PixelStyle, ploTitle :: Text, ploWidth :: Double, ploAxisOptions :: AxisOptions, ploLegendOptions :: LegendOptions}
 
 repPixelLegendOptions ::
   (Monad m) =>
@@ -1082,9 +1110,8 @@ repPixelLegendOptions cfg =
     ps = repPixelStyle (cfg ^. #ploStyle)
     pt = textbox (Just "title") (cfg ^. #ploTitle)
     pw = slider (Just "width") 0.0 0.3 0.001 (cfg ^. #ploWidth)
-    pa = repAxisConfig (cfg ^. #ploAxisConfig)
+    pa = repAxisOptions (cfg ^. #ploAxisOptions)
     pl = repLegendOptions (cfg ^. #ploLegendOptions)
-
     hmap ps' pt' pw' pa' pl' =
       accordion_
         "accplo"
@@ -1094,4 +1121,53 @@ repPixelLegendOptions cfg =
           ("Width", pw'),
           ("Axis", pa'),
           ("Legend", pl')
+        ]
+
+repBarChart :: (Monad m) => SvgOptions -> BarData -> BarOptions -> SharedRep m (Text, Text)
+repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlags
+  where
+    rcss = repSvgOptions css
+    rbo = repBarOptions 5 defaultRectStyle defaultTextStyle bo
+    rbd = repBarData bd
+    barchartsvg css' bd' bo' =
+      let (hc', cs') = barChart bo' bd'
+       in renderHudOptionsChart css' hc' [] cs'
+    mmap css' bd' bo' debug =
+      ( barchartsvg css' bd' bo',
+        debugHtml debug css' (bo' ^. #barHudOptions) (bars bo' bd')
+      )
+    hmap css' bd' bo' debug =
+      accordion_
+        "accbc"
+        Nothing
+        [ ("Svg", css'),
+          ("Bar Data", bd'),
+          ("Bar Options", bo'),
+          ("Debug", debug)
+        ]
+
+repPixelChart ::
+  (Monad m) =>
+  (SvgOptions, PixelOptions, HudOptions, PixelLegendOptions, Point Double -> Double) ->
+  SharedRep m (Text, Text)
+repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rplo <<*>> debugFlags
+  where
+    rcss = repSvgOptions css
+    rpo = repPixelOptions po
+    rhc = repHudOptionsDefault hc
+    rplo = repPixelLegendOptions plo
+    mmap rcss' rpo' rhc' rplo' debug =
+      let (cs, hs) = pixelfl f rpo' rplo'
+       in ( renderHudOptionsChart rcss' rhc' hs cs,
+            debugHtml debug rcss' rhc' []
+          )
+    hmap rcss' rpo' rhc' rplo' debug =
+      accordion_
+        "accpc"
+        Nothing
+        [ ("Svg", rcss'),
+          ("Hud", rhc'),
+          ("Pixel Options", rpo'),
+          ("Pixel Legend Options", rplo'),
+          ("Debug", debug)
         ]

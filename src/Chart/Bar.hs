@@ -17,7 +17,7 @@ module Chart.Bar
   )
 where
 
-import Chart.Core
+import Chart.Color
 import Chart.Format
 import Chart.Hud
 import Chart.Types
@@ -47,12 +47,12 @@ data BarOptions
         valueFormatN :: FormatN,
         accumulateValues :: Bool,
         orientation :: Orientation,
-        barHudConfig :: HudConfig
+        barHudOptions :: HudOptions
       }
   deriving (Show, Eq, Generic)
 
-defaultBarOptions :: [Text] -> BarOptions
-defaultBarOptions legendLabels =
+defaultBarOptions :: BarOptions
+defaultBarOptions =
   BarOptions
     gs
     ts
@@ -63,11 +63,11 @@ defaultBarOptions legendLabels =
     (FormatFixed 0)
     False
     Hori
-    ( defaultHudConfig
+    ( defaultHudOptions
         & #hudAxes
-          .~ [ defaultAxisConfig
+          .~ [ defaultAxisOptions
                  & #atick . #ltick .~ Nothing,
-               defaultAxisConfig & #place .~ PlaceLeft
+               defaultAxisOptions & #place .~ PlaceLeft
              ]
         & #hudTitles .~ [defaultTitle "Default Bar Chart"]
         & #hudLegend
@@ -78,13 +78,13 @@ defaultBarOptions legendLabels =
                 & #vgap .~ 0.16
                 & #hgap .~ 0.14
                 & #ltext . #size .~ 0.16
-                & #scale .~ 0.33
-            , (zip (RectA <$> gs) legendLabels)
+                & #lscale .~ 0.33,
+              []
             )
     )
   where
-    gs = (\x -> RectStyle 0.002 grey 1 x 0.5) <$> d3Palette1
-    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04 & #opacity .~ 0.5) <$> d3Palette1
+    gs = (\x -> RectStyle 0.002 grey 1 x 0.5) <$> chartPalette
+    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04 & #opacity .~ 0.5) <$> chartPalette
 
 -- | imagine a data frame ...
 data BarData
@@ -165,10 +165,10 @@ barTicks bd
     TickLabels $ take (maxRows (bd ^. #barData)) $
       fromMaybe [] (bd ^. #barRowLabels) <> repeat ""
 
-flipAllAxes :: Orientation -> [AxisConfig] -> [AxisConfig]
+flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
 flipAllAxes o = fmap (bool id flipAxis (o == Vert))
 
-tickFirstAxis :: BarData -> [AxisConfig] -> [AxisConfig]
+tickFirstAxis :: BarData -> [AxisOptions] -> [AxisOptions]
 tickFirstAxis _ [] = []
 tickFirstAxis bd (x : xs) = (x & #atick . #tstyle .~ barTicks bd) : xs
 
@@ -181,12 +181,11 @@ barLegend bd bo
 -- | A bar chart with hud trimmings.
 --
 -- By convention only, the first axis (if any) is the bar axis.
-barChart :: Rect Double -> BarOptions -> BarData -> ChartSvg Double
-barChart asp bo bd =
-  makeHudChartSvg
-    asp
-    (bo ^. #barHudConfig & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation))
-    (bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues))
+barChart :: BarOptions -> BarData -> (HudOptions, [Chart Double])
+barChart bo bd =
+  ( bo ^. #barHudOptions & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation),
+    bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
+  )
 
 -- | convert data to a text and Point
 barDataTP :: Bool -> FormatN -> Double -> [[Double]] -> [[(Text, Double)]]
@@ -221,7 +220,6 @@ barTexts (BarOptions _ _ ogap igap tgap _ fn add orient _) bs = zipWith zip (fma
     bstep = (1 - (1 + 1) * ogap + (n - 1) * igap') / n
     igap' = igap * (1 - (1 + 1) * ogap)
 
--- | A bar chart without hud trimmings.
 barTextCharts :: BarOptions -> BarData -> [Chart Double]
 barTextCharts bo bd =
   zipWith (\o d -> Chart (TextA o (fst <$> d)) (SpotPoint . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))

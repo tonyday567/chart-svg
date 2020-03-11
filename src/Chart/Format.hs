@@ -5,9 +5,7 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Format
-  ( FormatN (..),
-    defaultFormatN,
-    fromFormatN,
+  ( fromFormatN,
     toFormatN,
     fixed,
     comma,
@@ -19,6 +17,7 @@ module Chart.Format
   )
 where
 
+import Chart.Types
 import Data.Foldable
 import Data.List (nub)
 import Data.Monoid
@@ -26,18 +25,6 @@ import Data.Scientific
 import qualified Data.Text as Text
 import Data.Text (Text)
 import Protolude
-
-data FormatN
-  = FormatFixed Int
-  | FormatComma Int
-  | FormatExpt Int
-  | FormatDollar
-  | FormatPercent Int
-  | FormatNone
-  deriving (Eq, Show, Generic)
-
-defaultFormatN :: FormatN
-defaultFormatN = FormatComma 2
 
 fromFormatN :: (IsString s) => FormatN -> s
 fromFormatN (FormatFixed _) = "Fixed"
@@ -72,7 +59,7 @@ comma n a
         let (d, m) = divMod x 1000
          in go d ("," <> Text.pack (show' m))
       where
-        show' n' = let x' = show n' in (replicate (3-length x') '0' <> x')
+        show' n' = let x' = show n' in (replicate (3 - length x') '0' <> x')
 
 expt :: Int -> Double -> Text
 expt x n = Text.pack $ formatScientific Exponent (Just x) (fromFloatDigits n)

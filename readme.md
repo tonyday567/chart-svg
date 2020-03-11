@@ -7,114 +7,93 @@ Status](https://travis-ci.org/tonyday567/chart-svg.svg)](https://travis-ci.org/t
 [![lts](https://www.stackage.org/package/chart-svg/badge/lts)](http://stackage.org/lts/package/chart-svg)
 [![nightly](https://www.stackage.org/package/chart-svg/badge/nightly)](http://stackage.org/nightly/package/chart-svg)
 
-test svgs
+A chart library targetting SVG.
+
+test charts
 =========
 
-rects
------
-
 mempty
+---
+
+`writeCharts "other/mempty.svg" []` produces the following svg:
 
 ```
-<svg viewBox="-0.5 -0.5 1.0 1.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0" />
+
+<svg xmlns="http://www.w3.org/2000/svg" height="300.0" viewBox="-0.77 -0.52 1.54 1.04" width="450.0" xmlns:xlink="http://www.w3.org/1999/xlink">
+</svg>
 ```
 
-unit rectangle
+The default Svg options are for a height of 300 and an aspect ratio (width/height) of 1.5. The viewBox is centered on (0,0) with height of 1 and a width of the aspect ratio with an extra 0.02 of outer padding in all 4 directions.
 
-![](other/one.svg)
+unit
+---
+
+`[Chart (RectA defaultRectStyle) [SpotRect unitRect]]`
+
+![](other/unit.svg)
 
 ```
-<?xml version='1.0' ?>
-<svg viewBox="-0.603 -0.603 1.206 1.206" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200.0" height="200.0">
-  <g stroke-width="5.0e-3" stroke="#666666" fill="#5DA5DA" fill-opacity="0.5" stroke-opacity="0.5">
-    <rect width="1.0" height="1.0" x="-0.5" y="-0.5" />
+
+<svg xmlns="http://www.w3.org/2000/svg" height="300.0" viewBox="-0.7725 -0.5225 1.545 1.045" width="450.0" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g stroke-opacity="0.5" fill-opacity="0.5" stroke="#666666" stroke-width="5.0e-3" fill="#ff0000">
+    <rect height="1.0" width="1.5" x="-0.75" y="-0.5"/>
   </g>
 </svg>
 ```
 
-```
-(pad 1.1 $ chartSvg (one :: ViewBox Double) [Chart (RectA defaultRectStyle) mempty [one]])
-```
+Huds & HudOptions
+===
 
-rotate
+`defaultHudOptions`
 
-![](other/rotateOne.svg)
+![](other/hud.svg)
 
-translate
 
-![](other/translateOne.svg)
+Chart Types
+===
 
-rectChart
+rect
 
-![](other/rectChart.svg)
+![](other/rect.svg)
 
-rectCharts
+line
 
-![](other/rectCharts.svg)
+![](other/line.svg)
 
-pixelChart
+text
+
+![](other/text.svg)
+
+glyph
+
+![](other/glyph.svg)
+
+bar
+
+![](other/bar.svg)
+
+pixel
 
 ![](other/pixel.svg)
 
-text
-----
-
-text
-
-![](other/textChart.svg)
-
-textsChart
-
-![](other/textsChart.svg)
+tests
+===
 
 boundText
 
 ![](other/boundText.svg)
 
-label + bounding box
+compound
+
+![](other/compound.svg)
+
+label
 
 ![](other/label.svg)
 
-glyphs
-------
+legend
 
-circle
-
-![](other/circle.svg)
-
-glyphs
-
-![](other/glyphs.svg)
-
-smiley
-
-![](other/smiley.svg)
-
-glyphsChart
-
-![](other/glyphsChart.svg)
-
-line charts
------------
-
-line
-
-![](other/lines.svg)
-
-gline
-
-![](other/glines.svg)
-
-labelled glyph
---------------
-
-lglyph
-
-![](other/lglyph.svg)
-
-putting it all together
-
-![](other/compound.svg)
+![](other/legend.svg)
 
 recipe
 ------
@@ -125,10 +104,8 @@ stack build --exec "$(stack path --local-install-root)/bin/examples" --file-watc
 reference
 ---------
 
--   [libraries](https://www.stackage.org/)
--   [MDN svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial)
 -   [SVG2](https://www.w3.org/TR/SVG2/)
+-   [MDN svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial)
 -   [lucid](http://hackage.haskell.org/package/lucid)
--   [svg-tree](http://hackage.haskell.org/package/svg-tree-0.6.2.2/docs/Graphics-Svg-Types.html#v:documentLocation)
--   [JuicyPixels](http://hackage.haskell.org/package/JuicyPixels-3.2.9.5/docs/Codec-Picture-Types.html#t:PixelRGBA8)
+-   [lucid-svg](http://hackage.haskell.org/package/lucid-svg)
 

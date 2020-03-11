@@ -19,11 +19,13 @@ module Chart.Pixel
     defaultPixelLegendOptions,
     isHori,
     makePixelTick,
-  ) where
+  )
+where
 
+import Chart.Color
 import Chart.Core
-import Chart.Format
 import Chart.Hud
+import Chart.Svg (styleBox)
 import Chart.Types
 import Codec.Picture.Types
 import Control.Category (id)
@@ -97,17 +99,17 @@ pixelfl f po plo = (cs, [legendHud (plo ^. #ploLegendOptions) (pixelLegendChart 
 
 data PixelLegendOptions
   = PixelLegendOptions
-      {ploStyle :: PixelStyle, ploTitle :: Text, ploWidth :: Double, ploAxisConfig :: AxisConfig, ploLegendOptions :: LegendOptions}
+      {ploStyle :: PixelStyle, ploTitle :: Text, ploWidth :: Double, ploAxisOptions :: AxisOptions, ploLegendOptions :: LegendOptions}
   deriving (Eq, Show, Generic)
 
-pixelAxisConfig :: AxisConfig
-pixelAxisConfig =
-  AxisConfig
+pixelAxisOptions :: AxisOptions
+pixelAxisOptions =
+  AxisOptions
     Nothing
     Nothing
     ( Tick
         (TickRound (FormatComma 0) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph 0.002, 0.01))
+        (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph & #borderSize .~ 0.002, 0.01))
         (Just (defaultTextTick, 0.03))
         Nothing
     )
@@ -115,19 +117,19 @@ pixelAxisConfig =
 
 defaultPixelLegendOptions :: Text -> PixelLegendOptions
 defaultPixelLegendOptions t =
-  PixelLegendOptions defaultPixelStyle t 0.05 pixelAxisConfig pixelLegendOptions
+  PixelLegendOptions defaultPixelStyle t 0.05 pixelAxisOptions pixelLegendOptions
 
 pixelLegendOptions :: LegendOptions
 pixelLegendOptions =
-  defaultLegendOptions &
-  #lplace .~ PlaceRight &
-  #scale .~ 0.7 &
-  #lsize .~ 0.5 &
-  #vgap .~ 0.05 &
-  #hgap .~ 0.01 &
-  #innerPad .~ 0.05 &
-  #outerPad .~ 0.02 &
-  #ltext . #hsize .~ 0.5
+  defaultLegendOptions
+    & #lplace .~ PlaceRight
+    & #lscale .~ 0.7
+    & #lsize .~ 0.5
+    & #vgap .~ 0.05
+    & #hgap .~ 0.01
+    & #innerPad .~ 0.05
+    & #outerPad .~ 0.02
+    & #ltext . #hsize .~ 0.5
 
 pixelLegendChart :: Range Double -> PixelLegendOptions -> [Chart Double]
 pixelLegendChart dataRange l =
@@ -138,18 +140,18 @@ pixelLegendChart dataRange l =
     (Range x0 x1) = dataRange
     a = makePixelTick l pchart
     pchart
-      | l ^. #ploLegendOptions . #lplace == PlaceBottom ||
-        l ^. #ploLegendOptions . #lplace == PlaceTop =
-        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ 0)) [ SR x0 x1 0 (l ^. #ploWidth) ]
+      | l ^. #ploLegendOptions . #lplace == PlaceBottom
+          || l ^. #ploLegendOptions . #lplace == PlaceTop =
+        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ 0)) [SR x0 x1 0 (l ^. #ploWidth)]
       | otherwise =
-        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ (pi/2))) [ SR 0 (l ^. #ploWidth) x0 x1 ]
+        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ (pi / 2))) [SR 0 (l ^. #ploWidth) x0 x1]
     t = Chart (TextA (l ^. #ploLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #ploTitle]) [SP 0 0]
     hs = vert (l ^. #ploLegendOptions . #vgap) [a, [t]]
 
 isHori :: PixelLegendOptions -> Bool
 isHori l =
-  l ^. #ploLegendOptions . #lplace == PlaceBottom ||
-  l ^. #ploLegendOptions . #lplace == PlaceTop
+  l ^. #ploLegendOptions . #lplace == PlaceBottom
+    || l ^. #ploLegendOptions . #lplace == PlaceTop
 
 makePixelTick :: PixelLegendOptions -> Chart Double -> [Chart Double]
 makePixelTick l pchart = phud
@@ -159,7 +161,9 @@ makePixelTick l pchart = phud
     (hs, _) =
       makeHud
         r
-        (mempty & #hudAxes .~ [l ^. #ploAxisConfig &
-                               #place .~ bool PlaceRight PlaceBottom (isHori l)])
-    phud = fst $ runHudWith r' r hs [pchart]
-
+        ( mempty & #hudAxes
+            .~ [ l ^. #ploAxisOptions
+                   & #place .~ bool PlaceRight PlaceBottom (isHori l)
+               ]
+        )
+    phud = runHudWith r' r hs [pchart]
