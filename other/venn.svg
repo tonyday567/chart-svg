@@ -1,0 +1,52 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" height="300.0" viewBox="-2.02 -2.02 4.04 4.04" width="450.0" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g fill-opacity="1.0" font-size="0.16" stroke="none" stroke-width="0.0" fill="#000000" text-anchor="middle">
+    <text transform="rotate(60.0, 0.9, -0.7)" x="0.9" y="-0.7">Composable
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="0.16" stroke="none" stroke-width="0.0" fill="#000000" text-anchor="middle">
+    <text transform="rotate(0.0, 0.0, 1.0)" x="0.0" y="1.0">Functional
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="0.16" stroke="none" stroke-width="0.0" fill="#000000" text-anchor="middle">
+    <text transform="rotate(-60.0, -1.0, -0.55)" x="-1.0" y="-0.55">Open
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="0.16" stroke="none" stroke-width="0.0" fill="#000000" text-anchor="middle">
+    <text transform="rotate(0.0, 0.6, 0.4)" x="0.6" y="0.4">Accurate
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="0.16" stroke="none" stroke-width="0.0" fill="#000000" text-anchor="middle">
+    <text transform="rotate(0.0, -0.6, 0.4)" x="-0.6" y="0.4">Dynamic
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="0.16" stroke="none" stroke-width="0.0" fill="#000000" text-anchor="middle">
+    <text transform="rotate(0.0, 0.0, -0.7)" x="0.0" y="-0.7">Modern
+    </text>
+  </g>
+  <g fill-opacity="1.0" font-size="0.2" stroke="none" stroke-width="0.0" fill="#000000" text-anchor="middle">
+    <text transform="rotate(0.0, 0.0, -0.0)" x="0.0" y="-0.0">chart-svg
+    </text>
+  </g>
+  <g stroke-opacity="1.0" fill-opacity="0.6" stroke="#ffffff" stroke-width="4.0e-2" fill="#032f74">
+    <path transform="translate(0.0, -0.0)" d="M0.0,-1.2320508075688774 A0.5 0.5 0.0 1 1 1.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,-1.2320508075688774 Z"/>
+  </g>
+  <g stroke-opacity="1.0" fill-opacity="0.6" stroke="#ffffff" stroke-width="4.0e-2" fill="#003601">
+    <path transform="translate(0.0, -0.0)" d="M-1.0,0.5 A0.5 0.5 0.0 1 0 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -1.0,0.5 Z"/>
+  </g>
+  <g stroke-opacity="1.0" fill-opacity="0.6" stroke="#ffffff" stroke-width="4.0e-2" fill="#065906">
+    <path transform="translate(0.0, -0.0)" d="M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"/>
+  </g>
+  <g stroke-opacity="1.0" fill-opacity="0.6" stroke="#ffffff" stroke-width="4.0e-2" fill="#ac0505">
+    <path transform="translate(0.0, -0.0)" d="M0.0,-1.2320508075688774 A1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.0,-1.2320508075688774 Z"/>
+  </g>
+  <g stroke-opacity="1.0" fill-opacity="0.6" stroke="#ffffff" stroke-width="4.0e-2" fill="#4b2282">
+    <path transform="translate(0.0, -0.0)" d="M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 Z"/>
+  </g>
+  <g stroke-opacity="1.0" fill-opacity="0.6" stroke="#ffffff" stroke-width="4.0e-2" fill="#431712">
+    <path transform="translate(0.0, -0.0)" d="M0.0,0.5 A1.0 1.0 0.0 0 1 -1.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,0.5 Z"/>
+  </g>
+  <g stroke-opacity="1.0" fill-opacity="0.6" stroke="#ffffff" stroke-width="4.0e-2" fill="#c42f8a">
+    <path transform="translate(0.0, -0.0)" d="M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 Z"/>
+  </g>
+</svg>

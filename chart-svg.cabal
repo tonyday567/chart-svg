@@ -80,3 +80,28 @@ executable examples
     , wai-middleware-static
     , web-rep
   default-language: Haskell2010
+
+executable venn
+  main-is: venn.hs
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , bifunctors
+    , containers
+    , chart-svg
+    , generic-lens
+    , lucid-svg
+    , lens
+    , javascript-bridge
+    , numhask-space
+    , protolude
+    , scotty
+    , text
+    , transformers
+    , unordered-containers
+    , wai-middleware-static
+    , web-rep
+  default-language: Haskell2010
+

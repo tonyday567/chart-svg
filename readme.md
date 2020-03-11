@@ -9,6 +9,8 @@ Status](https://travis-ci.org/tonyday567/chart-svg.svg)](https://travis-ci.org/t
 
 A chart library targetting SVG.
 
+![](other/venn.svg)
+
 test charts
 =========
 
