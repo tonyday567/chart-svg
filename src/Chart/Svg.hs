@@ -6,6 +6,7 @@
 
 module Chart.Svg
   ( svg,
+    svgt,
     chartDef,
     chartDefs,
     styleBox,
@@ -29,6 +30,7 @@ import Control.Category (id)
 import Protolude hiding (writeFile)
 import Text.HTML.TagSoup hiding (Attribute)
 import Lucid.Svg hiding (z)
+import qualified Lucid
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -210,6 +212,22 @@ svg (Chart (RectA s) xs) =
 svg (Chart (PixelA s) xs) =
   g_ (attsPixel s) (mconcat $ svgRect . toRect <$> xs)
 svg (Chart BlankA _) = mempty
+
+-- | add a tooltip to a chart
+svgt :: Chart Double -> (TextStyle, Text) -> Svg ()
+svgt (Chart (TextA s ts) xs) (s', ts') =
+  g_ (attsText s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (zipWith (\t p -> svgText s t (toPoint p)) ts xs))
+svgt (Chart (GlyphA s) xs) (s', ts') =
+  g_ (attsGlyph s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgGlyph s . toPoint <$> xs))
+svgt (Chart (LineA s) xs) (s', ts') =
+  g_ (attsLine s) (title_ (attsText s') (Lucid.toHtml ts') <> svgLine (toPoint <$> xs))
+svgt (Chart (RectA s) xs) (s', ts') =
+  g_ (attsRect s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
+svgt (Chart (PixelA s) xs) (s', ts') =
+  g_ (attsPixel s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
+svgt (Chart BlankA _) _ = mempty
+
+
 
 -- * Style to Attributes
 attsRect :: RectStyle -> [Attribute]

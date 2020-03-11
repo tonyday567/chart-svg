@@ -21,6 +21,8 @@ module Chart.Render
     renderHudChart,
     renderHudOptionsChart,
     writeHudOptionsChart,
+    svg2_,
+    cssCrisp,
   )
 where
 
@@ -63,9 +65,13 @@ getSize o cs = case view #svgAspect o of
   ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) $ defRect $ styleBoxes cs
 
 getViewbox :: SvgOptions -> [Chart Double] -> Rect Double
-getViewbox o cs = case view #svgAspect o of
-  ManualAspect a -> Rect (a * (-0.5)) (a * 0.5) (-0.5) 0.5
-  ChartAspect -> defRect $ styleBoxes cs
+getViewbox o cs =
+  bool asp (defRect $ styleBoxes cs) (NoScaleCharts == view #scaleCharts' o)
+  where
+    asp =
+      case view #svgAspect o of
+        ManualAspect a -> Rect (a * (-0.5)) (a * 0.5) (-0.5) 0.5
+        ChartAspect -> defRect $ styleBoxes cs
 
 -- * rendering
 
