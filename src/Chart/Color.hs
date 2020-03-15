@@ -25,6 +25,7 @@ module Chart.Color
     fromColour,
     d3Palette1,
     chartPalette,
+    chartPalette2,
     blend,
     blend',
     toHex,
@@ -78,7 +79,12 @@ d3Palette1 :: [PixelRGB8]
 d3Palette1 = fromColour . C.d3Colors1 <$> [0 .. 9]
 
 chartPalette :: [PixelRGB8]
-chartPalette = rights $ parseOnly fromHex <$> ["#31331c", "#454e56", "#94a7b5", "#ab7257"]
+chartPalette = rights $ parseOnly fromHex <$> ["#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e", "#31331c", "#454e56", "#94a7b5", "#ab7257"]
+
+-- https://twitter.com/PalettesCinema/status/1221263628592009225/photo/1
+chartPalette2 :: [PixelRGB8]
+chartPalette2 = rights $ parseOnly fromHex <$> reverse ["#001114", "#042f1e", "#033d26", "#034243", "#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e"]
+
 
 -- | interpolate between 2 colors
 blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
