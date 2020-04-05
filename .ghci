@@ -1,8 +1,0 @@
-:set -XDataKinds
-:set -XOverloadedStrings
-:set -XOverloadedLabels
-:set -XExtendedDefaultRules
-:set -XFlexibleContexts
-:set -XTypeFamilies
-:set -XTypeApplications
-

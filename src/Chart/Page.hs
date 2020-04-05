@@ -59,13 +59,12 @@ import Control.Lens
 import Data.Attoparsec.Text
 import Data.Biapplicative
 import Data.List
-import Data.Text (Text)
 import qualified Data.Text as Text
 import Lucid
 import NumHask.Space
-import Web.Page hiding (bool)
-import Text.Pretty.Simple (pShowNoColor)
 import Protolude hiding ((<<*>>))
+import Text.Pretty.Simple (pShowNoColor)
+import Web.Page hiding (bool)
 
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor

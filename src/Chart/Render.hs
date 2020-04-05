@@ -30,18 +30,17 @@ import Chart.Core
 import Chart.Hud (makeHud, runHud)
 import Chart.Svg
 import Chart.Types
+import Control.Category (id)
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()
 import Data.Maybe
-import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import qualified Data.Text.Lazy as Lazy
+import qualified Lucid.Base as Lucid
+import Lucid.Svg hiding (z)
 import NumHask.Space hiding (Element)
 import Protolude hiding (writeFile)
-import Lucid.Svg hiding (z)
-import Control.Category (id)
-import qualified Lucid.Base as Lucid
 
 -- | scale chart data, projecting to the supplied Rect, and expanding the resultant Rect for chart style if necessary.
 --
@@ -76,15 +75,17 @@ getViewbox o cs =
 -- * rendering
 
 -- | @svg@ element + svg 2 attributes
-svg2_:: Term [Attribute] (s -> t) => s -> t
-svg2_ m = svg_ [ Lucid.makeAttribute "xmlns" "http://www.w3.org/2000/svg"
-               , Lucid.makeAttribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
-               ]
-          m
+svg2_ :: Term [Attribute] (s -> t) => s -> t
+svg2_ m =
+  svg_
+    [ Lucid.makeAttribute "xmlns" "http://www.w3.org/2000/svg",
+      Lucid.makeAttribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
+    ]
+    m
 
 renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Svg ()
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
-  with (svg2_ (bool id (cssCrisp<>) (csso == UseCssCrisp) $ chartDefs cs <> mconcat (svg <$> cs))) [width_ (show w'), height_ (show h'), viewBox_ (show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))]
+  with (svg2_ (bool id (cssCrisp <>) (csso == UseCssCrisp) $ chartDefs cs <> mconcat (svg <$> cs))) [width_ (show w'), height_ (show h'), viewBox_ (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))]
 
 cssCrisp :: Svg ()
 cssCrisp = style_ [type_ "text/css"] "{ shape-rendering: 'crispEdges'; }"
@@ -125,6 +126,7 @@ writeCharts_ fp csso p r cs =
   Text.writeFile fp (renderCharts_ csso p r cs)
 
 -- * rendering huds and charts
+
 -- | Render some huds and charts.
 renderHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Text
 renderHudChart so hs cs = renderChartsWith so (runHud (getViewbox so cs) hs cs)

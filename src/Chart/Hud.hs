@@ -1,8 +1,8 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -- | A hud (heads-up display) are decorations in and around a chart that assist with data interpretation.
 module Chart.Hud
@@ -32,7 +32,6 @@ import Control.Category (id)
 import qualified Control.Foldl as L
 import Control.Lens
 import Control.Monad.Trans.State.Lazy
-import Data.Text (Text)
 import Data.Time
 import GHC.Generics
 import NumHask.Space
@@ -627,4 +626,3 @@ legendChart lrs l =
 
 legendFromChart :: [Text] -> [Chart Double] -> [(Annotation, Text)]
 legendFromChart = zipWith (\t c -> (c ^. #annotation, t))
-

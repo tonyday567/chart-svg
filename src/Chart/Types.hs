@@ -93,13 +93,12 @@ import Chart.Color
 import Codec.Picture.Types
 import Control.Lens
 import Data.Generics.Labels ()
-import Data.Text (Text)
+import Data.List ((!!))
 import qualified Data.Text as Text
 import GHC.Exts
 import GHC.Generics
 import NumHask.Space hiding (Element)
 import Protolude
-import Data.List ((!!))
 
 -- * Chart
 
@@ -149,7 +148,7 @@ data RectStyle
 
 -- | the official style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.02 (chartPalette!!0) 0.5 (chartPalette!!3) 0.5
+defaultRectStyle = RectStyle 0.02 (chartPalette !! 0) 0.5 (chartPalette !! 3) 0.5
 
 -- | solid rectangle, no border
 blob :: PixelRGB8 -> Double -> RectStyle
@@ -300,8 +299,8 @@ toOrientation "Hori" = Hori
 toOrientation "Vert" = Vert
 toOrientation _ = Hori
 
-
 -- * primitive Chart elements
+
 -- | unification of a point and rect on the plane
 data Spot a
   = SpotPoint (Point a)
@@ -309,7 +308,6 @@ data Spot a
   deriving (Eq, Show, Functor)
 
 instance (Ord a, Num a, Fractional a) => Num (Spot a) where
-
   SpotPoint (Point x y) + SpotPoint (Point x' y') = SpotPoint (Point (x + x') (y + y'))
   SpotPoint (Point x' y') + SpotRect (Rect x z y w) = SpotRect $ Rect (x + x') (z + x') (y + y') (w + y')
   SpotRect (Rect x z y w) + SpotPoint (Point x' y') = SpotRect $ Rect (x + x') (z + x') (y + y') (w + y')

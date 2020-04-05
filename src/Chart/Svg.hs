@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Svg
@@ -18,19 +18,17 @@ where
 
 import Chart.Color (toHex)
 import Chart.Types
+import Control.Category (id)
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()
-import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import Data.Monoid
-import Data.Text (Text)
 import qualified Data.Text as Text
+import qualified Lucid
+import Lucid.Svg hiding (z)
 import NumHask.Space as NH hiding (Element)
-import Control.Category (id)
 import Protolude hiding (writeFile)
 import Text.HTML.TagSoup hiding (Attribute)
-import Lucid.Svg hiding (z)
-import qualified Lucid
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -72,7 +70,7 @@ styleBoxGlyph s = move p' $ sw $ case sh of
 
 -- | the geometric dimensions of a Chart inclusive of style geometry
 styleBox :: Chart Double -> Maybe (Rect Double)
-styleBox (Chart (TextA s ts) xs) = foldRect $ zipWith ( \t x -> styleBoxText s t (toPoint x)) ts xs
+styleBox (Chart (TextA s ts) xs) = foldRect $ zipWith (\t x -> styleBoxText s t (toPoint x)) ts xs
 styleBox (Chart (GlyphA s) xs) = foldRect $ (\x -> move (toPoint x) (styleBoxGlyph s)) <$> xs
 styleBox (Chart (RectA s) xs) = foldRect (padRect (0.5 * s ^. #borderSize) . toRect <$> xs)
 styleBox (Chart (LineA s) xs) = foldRect (padRect (0.5 * s ^. #width) . toRect <$> xs)
@@ -88,24 +86,25 @@ styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
 lgPixel :: PixelStyle -> Svg ()
 lgPixel o =
   linearGradient_
-  [ id_ (o ^. #pixelTextureId)
-  , x1_ (show x0)
-  , y1_ (show y0)
-  , x2_ (show x1)
-  , y2_ (show y1)
-  ]
-  (mconcat [
-      stop_
-        [ stop_opacity_ (show $ o ^. #pixelOpacityMin)
-        , stop_color_ (toHex (o ^. #pixelColorMin))
-        , offset_ "0"
+    [ id_ (o ^. #pixelTextureId),
+      x1_ (show x0),
+      y1_ (show y0),
+      x2_ (show x1),
+      y2_ (show y1)
+    ]
+    ( mconcat
+        [ stop_
+            [ stop_opacity_ (show $ o ^. #pixelOpacityMin),
+              stop_color_ (toHex (o ^. #pixelColorMin)),
+              offset_ "0"
+            ],
+          stop_
+            [ stop_opacity_ (show $ o ^. #pixelOpacityMax),
+              stop_color_ (toHex (o ^. #pixelColorMax)),
+              offset_ "1"
+            ]
         ]
-      , stop_
-        [ stop_opacity_ (show $ o ^. #pixelOpacityMax)
-        , stop_color_ (toHex (o ^. #pixelColorMax))
-        , offset_ "1"
-        ]
-      ])
+    )
   where
     x0 = min 0 (cos (o ^. #pixelGradient))
     x1 = max 0 (cos (o ^. #pixelGradient))
@@ -127,69 +126,69 @@ chartDef c = case c of
 svgRect :: Rect Double -> Svg ()
 svgRect (Rect x z y w) =
   rect_
-  [ width_ (show $ z - x)
-  , height_ (show $ w - y)
-  , x_ (show x)
-  , y_ (show $ - w)
-  ]
+    [ width_ (show $ z - x),
+      height_ (show $ w - y),
+      x_ (show x),
+      y_ (show $ - w)
+    ]
 
 -- | Text svg
 svgText :: TextStyle -> Text -> Point Double -> Svg ()
 svgText s t p@(Point x y) =
   bool id (g_ [class_ "hasmathjax"]) (s ^. #hasMathjax) $
-  text_
-  ([ x_ (show x)
-   , y_ (show $ -y)
-   ] <>
-   maybe [] (\x' -> [transform_ (toRotateText x' p)]) (s ^. #rotation)
-  )
-  (toHtmlRaw t)
+    text_
+      ( [ x_ (show x),
+          y_ (show $ - y)
+        ]
+          <> maybe [] (\x' -> [transform_ (toRotateText x' p)]) (s ^. #rotation)
+      )
+      (toHtmlRaw t)
 
 -- | line svg
 svgLine :: [Point Double] -> Svg ()
 svgLine xs = polyline_ [points_ (toPointsText xs)]
   where
-    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> show x <> "," <> show (-y)) <$> xs'
+    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> show x <> "," <> show (- y)) <$> xs'
 
 -- | GlyphShape to svg Tree
 svgShape :: GlyphShape -> Double -> Point Double -> Svg ()
 svgShape CircleGlyph s (Point x y) =
   circle_
-  [ cx_ (show x)
-  , cy_ (show $ -y)
-  , r_ (show $ 0.5 * s)
-  ]
+    [ cx_ (show x),
+      cy_ (show $ - y),
+      r_ (show $ 0.5 * s)
+    ]
 svgShape SquareGlyph s p =
   svgRect (move p ((s *) <$> unitRect))
 svgShape (RectSharpGlyph x') s p =
   svgRect (move p (NH.scale (Point s (x' * s)) unitRect))
 svgShape (RectRoundedGlyph x' rx ry) s p =
   rect_
-  [ width_ (show $ z - x)
-  , height_ (show $ w - y)
-  , x_ (show x)
-  , y_ (show $ - w)
-  , rx_ (show rx)
-  , ry_ (show ry)
-  ]
+    [ width_ (show $ z - x),
+      height_ (show $ w - y),
+      x_ (show x),
+      y_ (show $ - w),
+      rx_ (show rx),
+      ry_ (show ry)
+    ]
   where
     (Rect x z y w) = move p (NH.scale (Point s (x' * s)) unitRect)
 svgShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   polygon_
-  [ transform_ (toTranslateText p)
-  , points_ (show (s*xa) <> "," <> show (-(s*ya)) <> " " <> show (s*xb) <> "," <> show (-(s*yb)) <> " " <> show (s*xc) <> "," <> show (-(s*yc)))
-  ]
+    [ transform_ (toTranslateText p),
+      points_ (show (s * xa) <> "," <> show (- (s * ya)) <> " " <> show (s * xb) <> "," <> show (- (s * yb)) <> " " <> show (s * xc) <> "," <> show (- (s * yc)))
+    ]
 svgShape (EllipseGlyph x') s (Point x y) =
   ellipse_
-  [ cx_ (show x)
-  , cy_ (show $ -y)
-  , rx_ (show $ 0.5 * s)
-  , ry_ (show $ 0.5 * s * x')
-  ]
+    [ cx_ (show x),
+      cy_ (show $ - y),
+      rx_ (show $ 0.5 * s),
+      ry_ (show $ 0.5 * s * x')
+    ]
 svgShape VLineGlyph s (Point x y) =
-  polyline_ [points_ (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)) )]
+  polyline_ [points_ (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
 svgShape HLineGlyph s (Point x y) =
-  polyline_ [points_ (show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]
+  polyline_ [points_ (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
 svgShape (PathGlyph path) _ p =
   path_ [d_ path, transform_ (toTranslateText p)]
 
@@ -227,37 +226,35 @@ svgt (Chart (PixelA s) xs) (s', ts') =
   g_ (attsPixel s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
 svgt (Chart BlankA _) _ = mempty
 
-
-
 -- * Style to Attributes
+
 attsRect :: RectStyle -> [Attribute]
 attsRect o =
-  [ stroke_width_ (show $ o ^. #borderSize)
-  , stroke_ (toHex $ o ^. #borderColor)
-  , stroke_opacity_ (show $ o ^. #borderOpacity)
-  , fill_ (toHex $ o ^. #color)
-  , fill_opacity_ (show $ o ^. #opacity)
+  [ stroke_width_ (show $ o ^. #borderSize),
+    stroke_ (toHex $ o ^. #borderColor),
+    stroke_opacity_ (show $ o ^. #borderOpacity),
+    fill_ (toHex $ o ^. #color),
+    fill_opacity_ (show $ o ^. #opacity)
   ]
 
 attsPixel :: PixelStyle -> [Attribute]
 attsPixel o =
-  [ stroke_width_ (show $ o ^. #pixelRectStyle . #borderSize)
-  , stroke_ (toHex $ o ^. #pixelRectStyle . #borderColor)
-  , stroke_opacity_ (show $ o ^. #pixelRectStyle . #borderOpacity)
-  , fill_ ("url(#" <> (o ^. #pixelTextureId) <> ")")
+  [ stroke_width_ (show $ o ^. #pixelRectStyle . #borderSize),
+    stroke_ (toHex $ o ^. #pixelRectStyle . #borderColor),
+    stroke_opacity_ (show $ o ^. #pixelRectStyle . #borderOpacity),
+    fill_ ("url(#" <> (o ^. #pixelTextureId) <> ")")
   ]
 
 attsText :: TextStyle -> [Attribute]
 attsText o =
-  [ stroke_width_ "0.0"
-  , stroke_ "none"
-  , fill_ (toHex $ o ^. #color)
-  , fill_opacity_ (show $ o ^. #opacity)
-  , font_size_ (show $ o ^. #size)
-  , text_anchor_ (toTextAnchor $ o ^. #anchor)
+  [ stroke_width_ "0.0",
+    stroke_ "none",
+    fill_ (toHex $ o ^. #color),
+    fill_opacity_ (show $ o ^. #opacity),
+    font_size_ (show $ o ^. #size),
+    text_anchor_ (toTextAnchor $ o ^. #anchor)
   ]
-  <>
-  maybe [] ((:[]) . transform_ . toTranslateText) (o ^. #translate)
+    <> maybe [] ((: []) . transform_ . toTranslateText) (o ^. #translate)
   where
     toTextAnchor :: Anchor -> Text
     toTextAnchor AnchorMiddle = "middle"
@@ -266,27 +263,26 @@ attsText o =
 
 attsGlyph :: GlyphStyle -> [Attribute]
 attsGlyph o =
-  [ stroke_width_ (show $ o ^. #borderSize)
-  , stroke_ (toHex $ o ^. #borderColor)
-  , stroke_opacity_ (show $ o ^. #borderOpacity)
-  , fill_ (toHex $ o ^. #color)
-  , fill_opacity_ (show $ o ^. #opacity)
+  [ stroke_width_ (show $ o ^. #borderSize),
+    stroke_ (toHex $ o ^. #borderColor),
+    stroke_opacity_ (show $ o ^. #borderOpacity),
+    fill_ (toHex $ o ^. #color),
+    fill_opacity_ (show $ o ^. #opacity)
   ]
-  <>
-  maybe [] ((:[]) . transform_ . toTranslateText) (o ^. #translate)
+    <> maybe [] ((: []) . transform_ . toTranslateText) (o ^. #translate)
 
 attsLine :: LineStyle -> [Attribute]
 attsLine o =
-  [ stroke_width_ (show $ o ^. #width)
-  , stroke_ (toHex $ o ^. #color)
-  , stroke_opacity_ (show $ o ^. #opacity)
-  , fill_ "none"
+  [ stroke_width_ (show $ o ^. #width),
+    stroke_ (toHex $ o ^. #color),
+    stroke_opacity_ (show $ o ^. #opacity),
+    fill_ "none"
   ]
 
 toTranslateText :: Point Double -> Text
 toTranslateText (Point x y) =
-  "translate(" <> show x <> ", " <> show (-y) <> ")"
+  "translate(" <> show x <> ", " <> show (- y) <> ")"
 
 toRotateText :: Double -> Point Double -> Text
 toRotateText r (Point x y) =
-  "rotate(" <> show r <> ", " <> show x <> ", " <> show (-y) <> ")"
+  "rotate(" <> show r <> ", " <> show x <> ", " <> show (- y) <> ")"

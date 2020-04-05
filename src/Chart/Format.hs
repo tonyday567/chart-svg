@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Format
@@ -23,7 +23,6 @@ import Data.List (nub)
 import Data.Monoid
 import Data.Scientific
 import qualified Data.Text as Text
-import Data.Text (Text)
 import Protolude
 
 fromFormatN :: (IsString s) => FormatN -> s

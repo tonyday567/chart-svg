@@ -1,20 +1,15 @@
-resolver: lts-14.13
+resolver: lts-15.6
 
 packages:
   - .
 
 extra-deps:
-  - lucid-svg-0.7.1
-  - javascript-bridge-0.2.0
-  # - box-0.1.0
-  # - web-rep-0.2.0
-  # - numhask-space-0.3.0
-  - git: https://github.com/tonyday567/box.git
-    commit: 507d3a80d924bb16b870837dd19afb96539e50e0
-  - git: https://github.com/tonyday567/web-rep.git
-    commit: 70bf940011da254d1cb6523a263a5a0142bf69ba
-  - git: https://github.com/tonyday567/numhask-space.git
-    commit: 05a21479e75004e678cad2e8b89766e7a3df50e2
-  - tdigest-0.2.1
+  - box-0.2.0
   - interpolatedstring-perl6-1.0.2
+  - javascript-bridge-0.2.0
+  - lucid-svg-0.7.1
+  - numhask-space-0.3.1
+  - palette-0.3.0.2
+  - tdigest-0.2.1
   - text-format-0.3.2
+  - web-rep-0.3.1

@@ -12,7 +12,6 @@ import Control.Applicative
 import Control.Lens
 import Data.Maybe
 import qualified Data.Text as Text
-import Data.Text (Text)
 import GHC.Generics
 import Protolude
 
@@ -89,11 +88,14 @@ ls =
 lopts :: [LineStyle]
 lopts =
   [ defaultLineStyle & #color .~ PixelRGB8 197 130 75 & #width .~ 0.015
-      & #opacity .~ 0.6,
+      & #opacity
+      .~ 0.6,
     defaultLineStyle & #color .~ PixelRGB8 60 127 43 & #width .~ 0.03
-      & #opacity .~ 0.6,
+      & #opacity
+      .~ 0.6,
     defaultLineStyle & #color .~ PixelRGB8 52 41 137 & #width .~ 0.01
-      & #opacity .~ 1.0
+      & #opacity
+      .~ 1.0
   ]
 
 legopts :: LegendOptions
@@ -140,8 +142,8 @@ textExample =
     ts :: [(Text.Text, Point Double)]
     ts =
       zip
-      (fmap Text.singleton ['a' .. 'y'])
-      [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
+        (fmap Text.singleton ['a' .. 'y'])
+        [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
 
 -- | glyph example
 glyphExample :: Ex
@@ -219,7 +221,6 @@ boundTextBug =
         )
         [SP 1 1]
 
-
 -- | compound chart
 gopts3 :: [GlyphStyle]
 gopts3 =
@@ -291,7 +292,7 @@ labelExample =
 
 placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
 placedLabel p d t =
-  Chart ( TextA ( defaultTextStyle & #rotation ?~ realToFrac d ) [t] ) [SpotPoint p]
+  Chart (TextA (defaultTextStyle & #rotation ?~ realToFrac d) [t]) [SpotPoint p]
 
 label :: [Chart Double]
 label =
@@ -339,13 +340,11 @@ writeAllExamples = do
   writeChartExample "other/glyph.svg" glyphExample
   writeChartExample "other/bar.svg" barExample
   writeHudOptionsChart "other/pixel.svg" defaultSvgOptions defaultHudOptions (snd pixelEx) (fst pixelEx)
-
   -- stuff
   writeCharts "other/boundText.svg" boundTextBug
   writeCharts "other/compound.svg" (lglyph <> glines)
   writeCharts "other/label.svg" label
   writeHudOptionsChart "other/legend.svg" defaultSvgOptions legendTest [] []
-
   -- main
   writeChartExample "other/main.svg" mainExample
   putStrLn (" 👍" :: Text)

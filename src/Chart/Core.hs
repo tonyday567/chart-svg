@@ -1,5 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Core
@@ -22,12 +22,11 @@ module Chart.Core
   )
 where
 
-import Chart.Types
 import Chart.Svg (styleBox, styleBoxes)
+import Chart.Types
 import Control.Category (id)
 import Control.Lens hiding (transform)
 import Data.Foldable
-import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import Data.Monoid
 import Data.Semigroup hiding (getLast)

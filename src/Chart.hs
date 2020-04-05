@@ -2,9 +2,7 @@
 
 -- | A haskell Charting library targetting SVG
 module Chart
-  ( -- * Types
-    -- $types
-    module Chart.Types,
+  ( module Chart.Types,
     module Chart.Color,
     module Chart.Core,
     module Chart.Svg,
@@ -31,6 +29,3 @@ import Chart.Svg
 import Chart.Types
 import Codec.Picture.Types
 import NumHask.Space
-
--- $types
--- There are some.

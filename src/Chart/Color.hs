@@ -34,6 +34,7 @@ module Chart.Color
 where
 
 import Codec.Picture.Types
+import Data.Attoparsec.Text hiding (take)
 import qualified Data.Colour.Palette.ColorSet as C
 import qualified Data.Colour.RGBSpace as C
 import qualified Data.Colour.SRGB.Linear as C
@@ -41,9 +42,9 @@ import Data.Generics.Labels ()
 import GHC.Exts
 import Protolude
 import Web.Page.Html
-import Data.Attoparsec.Text hiding (take)
 
 -- * color
+
 -- | the official chart-unit blue
 blue :: PixelRGB8
 blue = PixelRGB8 93 165 218
@@ -85,7 +86,6 @@ chartPalette = rights $ parseOnly fromHex <$> ["#026062", "#0ea194", "#0a865a", 
 chartPalette2 :: [PixelRGB8]
 chartPalette2 = rights $ parseOnly fromHex <$> reverse ["#001114", "#042f1e", "#033d26", "#034243", "#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e"]
 
-
 -- | interpolate between 2 colors
 blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
 blend c = mixWithAlpha f (f (0 :: Int))
@@ -97,7 +97,6 @@ blend' :: Double -> (PixelRGB8, Double) -> (PixelRGB8, Double) -> (PixelRGB8, Do
 blend' c (c0, o0) (c1, o1) = (blend c c0 c1, f' c o0 o1)
   where
     f' c' x0 x1 = x0 + c' * (x1 - x0)
-
 {-
 -- | convert from 'PixelRGB8' to #xxxxxx
 toHex :: PixelRGB8 -> Text

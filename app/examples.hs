@@ -1,21 +1,19 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 import Chart
 import Chart.Examples
 import Control.Category (id)
 import Control.Lens
-import Control.Monad (void)
 import Control.Monad.Trans.State.Lazy
-import Data.Text (Text)
 import Network.Wai.Middleware.Static ((>->), addBase, noDots, staticPolicy)
+import Protolude hiding ((<<*>>), Rep, replace)
 import Web.Page
 import Web.Scotty
-import Protolude hiding ((<<*>>), Rep, replace)
 
 repNoData :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
 repNoData css ann hc =
@@ -73,7 +71,7 @@ main =
                       ("text", repEx textExample),
                       ("glyph", repEx glyphExample),
                       ("bar", repBarChart defaultSvgOptions barDataExample defaultBarOptions),
-                      ( "pixel", repPixelChart (defaultSvgOptions, defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2, defaultHudOptions, defaultPixelLegendOptions "pixel test", f1))
+                      ("pixel", repPixelChart (defaultSvgOptions, defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2, defaultHudOptions, defaultPixelLegendOptions "pixel test", f1))
                     ]
                 ),
                 ( "stuff",
@@ -82,10 +80,10 @@ main =
                     [ ("bound text bug", repEx (makeExample defaultHudOptions boundTextBug)),
                       ("compound chart", repEx (makeExample defaultHudOptions (lglyph <> glines))),
                       ("label", repEx (makeExample defaultHudOptions label)),
-                      ( "legend test", repNoData defaultSvgOptions BlankA legendTest)
+                      ("legend test", repNoData defaultSvgOptions BlankA legendTest)
                     ]
                 ),
-                ( "main", repEx mainExample)
+                ("main", repEx mainExample)
               ]
           )
       )
