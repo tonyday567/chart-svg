@@ -50,6 +50,7 @@ module Chart.Page
 where
 
 import Chart.Bar
+import Chart.Color
 import Chart.Format
 import Chart.Pixel
 import Chart.Render (renderHudOptionsChart)
@@ -152,18 +153,18 @@ repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls
 repRectStyle :: (Monad m) => RectStyle -> SharedRep m RectStyle
 repRectStyle s = do
   bs <- slider (Just "border size") 0.0 0.1 0.001 (s ^. #borderSize)
-  bc <- colorPicker (Just "border color") (s ^. #borderColor)
-  bo <- slider (Just "border opacity") 0 1 0.1 (s ^. #borderOpacity)
-  c <- colorPicker (Just "color") (s ^. #color)
-  o <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
-  pure $ RectStyle bs bc bo c o
+  bc <- colorPicker (Just "border color") (hex $  s ^. #borderColor)
+  bo <- slider (Just "border opacity") 0 1 0.1 (opac $ s ^. #borderColor)
+  c <- colorPicker (Just "color") (hex $ s ^. #color)
+  o <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
+  pure $ RectStyle bs (fromHexOpac bc bo) (fromHexOpac c o)
 
 repPixelStyle ::
   (Monad m) =>
   PixelStyle ->
   SharedRep m PixelStyle
 repPixelStyle cfg =
-  bimap hmap PixelStyle pcmin
+  bimap hmap mmap pcmin
     <<*>> pomin
     <<*>> pcmax
     <<*>> pomax
@@ -171,15 +172,17 @@ repPixelStyle cfg =
     <<*>> prs
     <<*>> pt
   where
-    pcmax = colorPicker (Just "high color") (cfg ^. #pixelColorMax)
-    pcmin = colorPicker (Just "low color") (cfg ^. #pixelColorMin)
-    pomax = slider (Just "high opacity") 0.0 1.0 0.001 (cfg ^. #pixelOpacityMax)
-    pomin = slider (Just "low opacity") 0.0 1.0 0.001 (cfg ^. #pixelOpacityMin)
+    pcmax = colorPicker (Just "high color") (toHex $ cfg ^. #pixelColorMax)
+    pcmin = colorPicker (Just "low color") (toHex $ cfg ^. #pixelColorMin)
+    pomax = slider (Just "high opacity") 0.0 1.0 0.001 (opac $ cfg ^. #pixelColorMax)
+    pomin = slider (Just "low opacity") 0.0 1.0 0.001 (opac $ cfg ^. #pixelColorMin)
     pd = slider (Just "gradient direction") 0.0 (2 * pi) 0.001 (cfg ^. #pixelGradient)
     prs = repRectStyle (cfg ^. #pixelRectStyle)
     pt = textbox (Just "texture id") (cfg ^. #pixelTextureId)
     hmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
       pcmin' <> pomin' <> pcmax' <> pomax' <> pd' <> prs' <> pt'
+    mmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
+      PixelStyle (fromHexOpac pcmin' pomin') (fromHexOpac pcmax' pomax') pd' prs' pt'
 
 repGlyphStyle :: (Monad m) => GlyphStyle -> SharedRep m GlyphStyle
 repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Nothing (x, [])) $ do
@@ -188,11 +191,11 @@ repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Noth
   gc <-
     colorPicker
       (Just "Color")
-      (gs ^. #color)
-  go <- slider (Just "Opacity") 0 1 0.1 (gs ^. #opacity)
+      (toHex $ gs ^. #color)
+  go <- slider (Just "Opacity") 0 1 0.1 (opac $ gs ^. #color)
   bsz <- slider (Just "Border Size") 0 0.02 0.001 (gs ^. #borderSize)
-  gbc <- colorPicker (Just "Border Color") (gs ^. #borderColor)
-  gbo <- slider (Just "Border Opacity") 0 1 0.1 (gs ^. #borderOpacity)
+  gbc <- colorPicker (Just "Border Color") (toHex $ gs ^. #borderColor)
+  gbo <- slider (Just "Border Opacity") 0 1 0.1 (opac $ gs ^. #borderColor)
   tr <-
     maybeRep
       (Just "rotation")
@@ -207,13 +210,13 @@ repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Noth
           (Point 0.001 0.001)
           (Point 0 0)
       )
-  pure (GlyphStyle sz gc go gbc gbo bsz sh tr tt)
+  pure (GlyphStyle sz (fromHexOpac gc go) (fromHexOpac gbc gbo) bsz sh tr tt)
 
 repTextStyle :: (Monad m) => TextStyle -> SharedRep m TextStyle
 repTextStyle s = do
   ts <- slider (Just "size") 0.02 0.3 0.01 (s ^. #size)
-  tc <- colorPicker (Just "color") (s ^. #color)
-  to' <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
+  tc <- colorPicker (Just "color") (toHex $ s ^. #color)
+  to' <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
   ta <- repAnchor (s ^. #anchor)
   th <- slider (Just "hsize") 0.2 1 0.05 (s ^. #hsize)
   tv <- slider (Just "vsize") 0.5 2 0.05 (s ^. #vsize)
@@ -233,14 +236,14 @@ repTextStyle s = do
           (Point 0 0)
       )
   tm <- checkbox (Just "mathjax") (s ^. #hasMathjax)
-  pure $ TextStyle ts tc to' ta th tv tn tr tt tm
+  pure $ TextStyle ts (fromHexOpac tc to') ta th tv tn tr tt tm
 
 repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
 repLineStyle s = do
   w <- slider (Just "width") 0.000 0.05 0.001 (s ^. #width)
-  c <- colorPicker (Just "color") (s ^. #color)
-  o <- slider (Just "opacity") 0 1 0.1 (s ^. #opacity)
-  pure $ LineStyle w c o
+  c <- colorPicker (Just "color") (toHex $ s ^. #color)
+  o <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
+  pure $ LineStyle w (fromHexOpac c o)
 
 repPlace :: (Monad m) => Place -> SharedRep m Place
 repPlace initpl = bimap hmap mmap rplace <<*>> rp
@@ -723,7 +726,7 @@ repTriple (a, b, c) sr =
   bimap (\a' b' c' -> a' <> b' <> c') (,,) (sr a) <<*>> sr b <<*>> sr c
 
 repGlyphShape :: (Monad m) => GlyphShape -> SharedRep m GlyphShape
-repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>> tri <<*>> p
+repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>> tri <<*>> p <<*>> lwidth
   where
     sha =
       dropdownSum
@@ -744,6 +747,7 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
     ell = slider Nothing 0.5 2 0.01 defRatio
     rsharp = slider Nothing 0.5 2 0.01 defRatio
     rround = repRounded defRounded
+    lwidth = slider (Just "width") 0.001 0.02 0.001 defLwidth
     tri =
       repTriple
         defTriangle
@@ -752,14 +756,16 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
             (Point 0.001 0.001)
         )
     p = textbox (Just "path") defP
-    hmap sha' ell' rsharp' rround' tri' p' =
+    hmap sha' ell' rsharp' rround' tri' p' lwidth' =
       sha'
         <> subtype ell' (glyphText sh) "Ellipse"
         <> subtype rsharp' (glyphText sh) "RectSharp"
         <> subtype rround' (glyphText sh) "RectRounded"
         <> subtype tri' (glyphText sh) "Triangle"
+        <> subtype lwidth' (glyphText sh) "VLine"
+        <> subtype lwidth' (glyphText sh) "HLine"
         <> subtype p' (glyphText sh) "Path"
-    mmap sha' ell' rsharp' rround' tri' p' =
+    mmap sha' ell' rsharp' rround' tri' p' lwidth' =
       case sha' of
         "Circle" -> CircleGlyph
         "Square" -> SquareGlyph
@@ -767,8 +773,8 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
         "RectSharp" -> RectSharpGlyph rsharp'
         "RectRounded" -> (\(a, b, c) -> RectRoundedGlyph a b c) rround'
         "Triangle" -> (\(a, b, c) -> TriangleGlyph a b c) tri'
-        "VLine" -> VLineGlyph
-        "HLine" -> HLineGlyph
+        "VLine" -> VLineGlyph lwidth'
+        "HLine" -> HLineGlyph lwidth'
         "Path" -> PathGlyph p'
         _ -> CircleGlyph
     defP = case sh of
@@ -778,6 +784,10 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
       EllipseGlyph r -> r
       RectSharpGlyph r -> r
       _ -> 1.5
+    defLwidth = case sh of
+      VLineGlyph r -> r
+      HLineGlyph r -> r
+      _ -> 0.005
     defRounded = case sh of
       RectRoundedGlyph a b c -> (a, b, c)
       _ -> (0.884, 2.7e-2, 5.0e-2)

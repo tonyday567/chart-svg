@@ -2,14 +2,17 @@ resolver: lts-15.6
 
 packages:
   - .
+  - ../web-rep
 
 extra-deps:
-  - box-0.2.0
+  - box-0.3.0
   - interpolatedstring-perl6-1.0.2
   - javascript-bridge-0.2.0
   - lucid-svg-0.7.1
   - numhask-space-0.3.1
-  - palette-0.3.0.2
   - tdigest-0.2.1
   - text-format-0.3.2
-  - web-rep-0.3.1
+  # - web-rep-0.3.2
+
+#ghc-options:
+#  "$locals": -fwrite-ide-info

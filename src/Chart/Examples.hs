@@ -14,6 +14,7 @@ import Data.Maybe
 import qualified Data.Text as Text
 import GHC.Generics
 import Protolude
+import Data.List ((!!))
 
 data Ex
   = Ex
@@ -61,7 +62,7 @@ rss =
   ]
 
 ropts :: [RectStyle]
-ropts = zipWith blob chartPalette [0.2, 0.7]
+ropts = zipWith (\c o -> blob (setAlpha c o)) palette [0.2, 0.7]
 
 -- | line example
 lineExample :: Ex
@@ -87,15 +88,9 @@ ls =
 
 lopts :: [LineStyle]
 lopts =
-  [ defaultLineStyle & #color .~ PixelRGB8 197 130 75 & #width .~ 0.015
-      & #opacity
-      .~ 0.6,
-    defaultLineStyle & #color .~ PixelRGB8 60 127 43 & #width .~ 0.03
-      & #opacity
-      .~ 0.6,
-    defaultLineStyle & #color .~ PixelRGB8 52 41 137 & #width .~ 0.01
-      & #opacity
-      .~ 1.0
+  [ defaultLineStyle & #color .~ (palette !! 0) & #width .~ 0.015,
+    defaultLineStyle & #color .~ (palette !! 1) & #width .~ 0.03,
+    defaultLineStyle & #color .~ (palette !! 2) & #width .~ 0.01
   ]
 
 legopts :: LegendOptions
@@ -113,14 +108,12 @@ exampleLineHudOptions t1 t2 legends' =
     & #hudTitles
       .~ ( [ defaultTitle t1
                & #style . #size .~ 0.08
-               & #style . #opacity .~ 0.6
            ]
              <> maybe
                []
                ( \x ->
                    [ defaultTitle x
                        & #style . #size .~ 0.05
-                       & #style . #opacity .~ 0.6
                        & #place .~ PlaceBottom
                        & #anchor .~ AnchorEnd
                    ]
@@ -168,8 +161,8 @@ glyphs =
       (RectSharpGlyph 0.75, 0.01),
       (RectRoundedGlyph 0.75 0.01 0.01, 0.01),
       (EllipseGlyph 0.75, 0),
-      (VLineGlyph, 0.01),
-      (HLineGlyph, 0.01),
+      (VLineGlyph 0.005, 0.01),
+      (HLineGlyph 0.005, 0.01),
       (TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0), 0.01),
       (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z", 0.01)
     ]
@@ -233,10 +226,7 @@ gopts3 =
           . (#size .~ 0.08)
           $ defaultGlyphStyle
     )
-    [ PixelRGB8 120 67 30,
-      PixelRGB8 30 48 130,
-      PixelRGB8 60 60 60
-    ]
+    palette
     [EllipseGlyph 1.5, SquareGlyph, CircleGlyph]
 
 glines :: [Chart Double]
@@ -258,7 +248,7 @@ lglyph = txt <> gly
           Chart
             ( TextA
                 ( defaultTextStyle
-                    & #opacity .~ 0.2
+                    & #color %~ (\x -> setAlpha x 0.2)
                     & #translate ?~ Point 0 0.04
                 )
                 [t]

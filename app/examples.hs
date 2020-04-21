@@ -19,6 +19,7 @@ repNoData :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m 
 repNoData css ann hc =
   repChartsWithStaticData css hc 10 [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]
 
+
 repEx :: (Monad m) => Ex -> SharedRep m (Text, Text)
 repEx (Ex css hc maxcs anns xs) =
   repChartsWithStaticData css hc maxcs (zipWith Chart anns xs)

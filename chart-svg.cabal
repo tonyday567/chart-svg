@@ -37,12 +37,10 @@ library
       src
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
-      JuicyPixels
+      Color
     , attoparsec
     , base >=4.7 && <5
     , bifunctors
-    , colour
-    , palette
     , foldl
     , generic-lens
     , lucid

@@ -83,8 +83,8 @@ defaultBarOptions =
             )
     )
   where
-    gs = (\x -> RectStyle 0.002 grey 1 x 0.5) <$> chartPalette
-    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04 & #opacity .~ 0.5) <$> chartPalette
+    gs = (\x -> RectStyle 0.002 colorGrey x) <$> palette
+    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette
 
 -- | imagine a data frame ...
 data BarData

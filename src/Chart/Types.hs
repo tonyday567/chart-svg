@@ -90,7 +90,6 @@ module Chart.Types
 where
 
 import Chart.Color
-import Codec.Picture.Types
 import Control.Lens
 import Data.Generics.Labels ()
 import Data.List ((!!))
@@ -139,35 +138,32 @@ annotationText (PixelA _) = "PixelA"
 data RectStyle
   = RectStyle
       { borderSize :: Double,
-        borderColor :: PixelRGB8,
-        borderOpacity :: Double,
-        color :: PixelRGB8,
-        opacity :: Double
+        borderColor :: Colour,
+        color :: Colour
       }
   deriving (Show, Eq, Generic)
 
--- | the official style
+-- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.02 (chartPalette !! 0) 0.5 (chartPalette !! 3) 0.5
+defaultRectStyle = RectStyle 0.02 (palette !! 0) (palette !! 1)
 
 -- | solid rectangle, no border
-blob :: PixelRGB8 -> Double -> RectStyle
-blob = RectStyle 0 black 0
+blob :: Colour -> RectStyle
+blob = RectStyle 0 transparent
 
 -- | clear and utrans rect
 clear :: RectStyle
-clear = RectStyle 0 black 0 black 0
+clear = RectStyle 0 transparent transparent
 
 -- | transparent rectangle, with border
-border :: Double -> PixelRGB8 -> Double -> RectStyle
-border s c o = RectStyle s c o black 0
+border :: Double -> Colour -> RectStyle
+border s c = RectStyle s c transparent
 
 -- | Text styling
 data TextStyle
   = TextStyle
       { size :: Double,
-        color :: PixelRGB8,
-        opacity :: Double,
+        color :: Colour,
         anchor :: Anchor,
         hsize :: Double,
         vsize :: Double,
@@ -194,7 +190,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 grey 1.0 AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing False
+  TextStyle 0.08 colorText AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing False
 
 -- | Glyph styling
 data GlyphStyle
@@ -202,11 +198,9 @@ data GlyphStyle
       { -- | glyph radius
         size :: Double,
         -- | fill color
-        color :: PixelRGB8,
-        opacity :: Double,
+        color :: Colour,
         -- | stroke color
-        borderColor :: PixelRGB8,
-        borderOpacity :: Double,
+        borderColor :: Colour,
         -- | stroke width (adds a bit to the bounding box)
         borderSize :: Double,
         shape :: GlyphShape,
@@ -220,10 +214,8 @@ defaultGlyphStyle :: GlyphStyle
 defaultGlyphStyle =
   GlyphStyle
     0.03
-    (PixelRGB8 217 151 33)
-    0.8
-    (PixelRGB8 44 66 157)
-    0.4
+    (setAlpha (palette !! 0) 0.8)
+    (setAlpha (palette !! 1) 0.4)
     0.003
     SquareGlyph
     Nothing
@@ -237,8 +229,8 @@ data GlyphShape
   | RectSharpGlyph Double
   | RectRoundedGlyph Double Double Double
   | TriangleGlyph (Point Double) (Point Double) (Point Double)
-  | VLineGlyph
-  | HLineGlyph
+  | VLineGlyph Double
+  | HLineGlyph Double
   | PathGlyph Text
   deriving (Show, Eq, Generic)
 
@@ -251,29 +243,26 @@ glyphText sh =
     EllipseGlyph _ -> "Ellipse"
     RectSharpGlyph _ -> "RectSharp"
     RectRoundedGlyph {} -> "RectRounded"
-    VLineGlyph -> "VLine"
-    HLineGlyph -> "HLine"
+    VLineGlyph _ -> "VLine"
+    HLineGlyph _ -> "HLine"
     PathGlyph _ -> "Path"
 
 -- | line style
 data LineStyle
   = LineStyle
       { width :: Double,
-        color :: PixelRGB8,
-        opacity :: Double
+        color :: Colour
       }
   deriving (Show, Eq, Generic)
 
 -- | the official default line style
 defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.02 blue 0.5
+defaultLineStyle = LineStyle 0.012 (palette !! 0)
 
 data PixelStyle
   = PixelStyle
-      { pixelColorMin :: PixelRGB8,
-        pixelOpacityMin :: Double,
-        pixelColorMax :: PixelRGB8,
-        pixelOpacityMax :: Double,
+      { pixelColorMin :: Colour,
+        pixelColorMax :: Colour,
         -- | expressed in directional terms
         -- 0 for horizontal
         -- pi/2 for vertical
@@ -285,7 +274,7 @@ data PixelStyle
 
 defaultPixelStyle :: PixelStyle
 defaultPixelStyle =
-  PixelStyle grey 1 blue 1 (pi / 2) (RectStyle 0 black 0 black 1) "pixel"
+  PixelStyle colorPixelMin colorPixelMax (pi / 2) (blob black) "pixel"
 
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)
@@ -389,7 +378,7 @@ defaultSvgOptions :: SvgOptions
 defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoEscapeText NoCssOptions ScaleCharts (ManualAspect 1.5)
 
 defaultSvgFrame :: RectStyle
-defaultSvgFrame = border 0.01 blue 1.0
+defaultSvgFrame = border 0.01 colorFrame
 
 -- | In order to create huds, there are three main pieces of state that need to be kept track of:
 --
@@ -444,7 +433,7 @@ defaultHudOptions =
     Nothing
 
 defaultCanvas :: RectStyle
-defaultCanvas = blob grey 0.03
+defaultCanvas = blob colorCanvas
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -485,7 +474,7 @@ data Bar
   deriving (Show, Eq, Generic)
 
 defaultBar :: Bar
-defaultBar = Bar (RectStyle 0 grey 0 (PixelRGB8 95 3 145) 0.5) 0.005 0.01
+defaultBar = Bar (RectStyle 0 colorGlyphTick colorGlyphTick) 0.005 0.01
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 data Title
@@ -503,7 +492,7 @@ defaultTitle txt =
   Title
     txt
     ( (#size .~ 0.12)
-        . (#color .~ PixelRGB8 0 0 0)
+        . (#color .~ colorText)
         $ defaultTextStyle
     )
     PlaceTop
@@ -523,26 +512,25 @@ defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
     & #borderSize .~ 0.005
-    & #color .~ PixelRGB8 95 3 145
-    & #opacity .~ 1
-    & #shape .~ VLineGlyph
+    & #borderColor .~ colorGlyphTick
+    & #color .~ colorGlyphTick
+    & #shape .~ VLineGlyph 0.005
 
 defaultTextTick :: TextStyle
 defaultTextTick =
-  defaultTextStyle & #size .~ 0.05
+  defaultTextStyle & #size .~ 0.05 & #color .~ colorTextTick
 
 defaultLineTick :: LineStyle
 defaultLineTick =
   defaultLineStyle
-    & #color .~ PixelRGB8 168 229 238
+    & #color .~ colorLineTick
     & #width .~ 5.0e-3
-    & #opacity .~ 0.3
 
 defaultTick :: Tick
 defaultTick =
   Tick
     defaultTickStyle
-    (Just (defaultGlyphTick, 0.01))
+    (Just (defaultGlyphTick, 0.0125))
     (Just (defaultTextTick, 0.015))
     (Just (defaultLineTick, 0.005))
 
@@ -611,12 +599,12 @@ defaultLegendOptions =
     0.1
     ( defaultTextStyle
         & #size .~ 0.08
-        & #color .~ grey
+        & #color .~ colorGrey
     )
     10
     0.1
     0.1
-    (Just (RectStyle 0.02 (PixelRGB8 55 100 160) 0.5 (PixelRGB8 255 255 255) 1))
+    (Just (RectStyle 0.02 (palette !! 0) black))
     PlaceBottom
     0.2
 

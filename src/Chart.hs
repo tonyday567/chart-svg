@@ -13,7 +13,6 @@ module Chart
     module Chart.Bar,
     module Chart.Pixel,
     module NumHask.Space,
-    PixelRGB8 (..),
   )
 where
 
@@ -27,5 +26,4 @@ import Chart.Pixel
 import Chart.Render
 import Chart.Svg
 import Chart.Types
-import Codec.Picture.Types
 import NumHask.Space

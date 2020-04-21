@@ -16,94 +16,133 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Color
-  ( blue,
-    grey,
-    black,
-    white,
-    red,
-    toColour,
-    fromColour,
-    d3Palette1,
-    chartPalette,
-    chartPalette2,
+  ( Colour,
+    pattern Colour,
+    opac,
+    hex,
+    palette,
     blend,
-    blend',
     toHex,
     fromHex,
+    unsafeFromHex,
+    fromHexOpac,
+
+    -- * named colors
+    colorText,
+    colorPixelMin,
+    colorPixelMax,
+    colorFrame,
+    colorCanvas,
+    colorGlyphTick,
+    colorLineTick,
+    colorTextTick,
+    colorGrey,
+    transparent,
+    black,
+    white,
+
+    -- * re-exports
+    module Graphics.Color.Model,
   )
 where
 
-import Codec.Picture.Types
 import Data.Attoparsec.Text hiding (take)
-import qualified Data.Colour.Palette.ColorSet as C
-import qualified Data.Colour.RGBSpace as C
-import qualified Data.Colour.SRGB.Linear as C
 import Data.Generics.Labels ()
 import GHC.Exts
 import Protolude
-import Web.Page.Html
+import qualified Data.Text.Lazy as Lazy
+import Data.Text.Lazy.Builder (toLazyText)
+import qualified Data.Text.Format
+import Data.Text (justifyRight)
+import Graphics.Color.Model
+import Data.Text (pack)
 
--- * color
+type Colour = Color (Alpha RGB) Double
 
--- | the official chart-unit blue
-blue :: PixelRGB8
-blue = PixelRGB8 93 165 218
+-- | Constructor.
+pattern Colour :: Double -> Double -> Double -> Double -> Colour
+pattern Colour r g b a = ColorRGBA r g b a
+{-# COMPLETE Colour #-}
 
--- | the official chart-unit grey
-grey :: PixelRGB8
-grey = PixelRGB8 102 102 102
+opac :: Colour -> Double
+opac c = getAlpha c
 
--- | black
-black :: PixelRGB8
-black = PixelRGB8 0 0 0
+hex :: Colour -> Text
+hex c = toHex c
 
--- | white
-white :: PixelRGB8
-white = PixelRGB8 255 255 255
-
--- | red
-red :: PixelRGB8
-red = PixelRGB8 255 0 0
-
--- | convert a 'PixelRGB8' to a 'Colour' representation.
-toColour :: PixelRGB8 -> C.Colour Double
-toColour (PixelRGB8 r g b) =
-  C.rgb (fromIntegral r / 256.0) (fromIntegral g / 256.0) (fromIntegral b / 256.0)
-
--- | convert a 'Colour' to a 'PixelRGB8' representation.
-fromColour :: C.Colour Double -> PixelRGB8
-fromColour (C.toRGB -> C.RGB r g b) =
-  PixelRGB8 (floor (256 * r)) (floor (256 * g)) (floor (256 * b))
-
--- | the d3 palette
-d3Palette1 :: [PixelRGB8]
-d3Palette1 = fromColour . C.d3Colors1 <$> [0 .. 9]
-
-chartPalette :: [PixelRGB8]
-chartPalette = rights $ parseOnly fromHex <$> ["#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e", "#31331c", "#454e56", "#94a7b5", "#ab7257"]
-
--- https://twitter.com/PalettesCinema/status/1221263628592009225/photo/1
-chartPalette2 :: [PixelRGB8]
-chartPalette2 = rights $ parseOnly fromHex <$> reverse ["#001114", "#042f1e", "#033d26", "#034243", "#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e"]
+palette :: [Colour]
+palette = unsafeFromHex <$> ["#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e", "#31331c", "#454e56", "#94a7b5", "#ab7257", "#001114", "#042f1e", "#033d26", "#034243", "#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e"]
 
 -- | interpolate between 2 colors
-blend :: Double -> PixelRGB8 -> PixelRGB8 -> PixelRGB8
-blend c = mixWithAlpha f (f (0 :: Int))
+blend :: Double -> Colour -> Colour -> Colour
+blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
   where
-    f _ x0 x1 = fromIntegral (round (fromIntegral x0 + c * (fromIntegral x1 - fromIntegral x0)) :: Integer)
+    r'' = r + c * (r' - r)
+    g'' = g + c * (g' - g)
+    b'' = b + c * (b' - b)
+    a'' = a + c * (a' - a)
 
--- | interpolate between 2 alpha colors
-blend' :: Double -> (PixelRGB8, Double) -> (PixelRGB8, Double) -> (PixelRGB8, Double)
-blend' c (c0, o0) (c1, o1) = (blend c c0 c1, f' c o0 o1)
-  where
-    f' c' x0 x1 = x0 + c' * (x1 - x0)
-{-
--- | convert from 'PixelRGB8' to #xxxxxx
-toHex :: PixelRGB8 -> Text
-toHex (PixelRGB8 r g b) =
+parseHex :: Parser Colour
+parseHex = (\x -> addAlpha x 1) . fmap toDouble <$>
+  ( \((r, g), b) ->
+      ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
+  )
+    . (\(f, b) -> (f `divMod` (256 :: Int), b))
+    . (`divMod` 256)
+    <$> (string "#" *> hexadecimal)
+
+fromHex :: Text -> Either Text Colour
+fromHex = first pack . parseOnly parseHex
+
+unsafeFromHex :: Text -> Colour
+unsafeFromHex t = either (const transparent) (\x -> x) $ parseOnly parseHex t
+
+-- | convert from 'Colour' to #xxxxxx
+toHex :: Colour -> Text
+toHex c =
   "#"
-    <> justifyRight 2 '0' (toStrict $ toLazyText $ hex r)
-    <> justifyRight 2 '0' (toStrict $ toLazyText $ hex g)
-    <> justifyRight 2 '0' (toStrict $ toLazyText $ hex b)
+    <> justifyRight 2 '0' (Lazy.toStrict $ toLazyText $ Data.Text.Format.hex r)
+    <> justifyRight 2 '0' (Lazy.toStrict $ toLazyText $ Data.Text.Format.hex g)
+    <> justifyRight 2 '0' (Lazy.toStrict $ toLazyText $ Data.Text.Format.hex b)
+  where
+    (ColorRGBA r g b _) = toWord8 <$> c
 
--}
+fromHexOpac :: Text -> Double -> Colour
+fromHexOpac t o = setAlpha (unsafeFromHex t) o
+
+-- some colors used
+colorText :: Colour
+colorText = Colour 0.2 0.2 0.2 1
+
+colorPixelMin :: Colour
+colorPixelMin = Colour 0.8 0.8 0.8 1
+
+colorPixelMax :: Colour
+colorPixelMax = Colour 0.1 0.1 1 1
+
+colorFrame :: Colour
+colorFrame = Colour 0 0 1 0.4
+
+colorCanvas :: Colour
+colorCanvas = Colour 0.8 0.8 0.8 0.1
+
+colorGlyphTick :: Colour
+colorGlyphTick = Colour 0.34 0.05 0.4 0.5
+
+colorLineTick :: Colour
+colorLineTick = Colour 0.5 0.5 0.5 0.1
+
+colorTextTick :: Colour
+colorTextTick = Colour 0.2 0.2 0.2 0.8
+
+colorGrey :: Colour
+colorGrey = Colour 0.5 0.5 0.5 1
+
+black :: Colour
+black = Colour 0 0 0 1
+
+white :: Colour
+white = Colour 1 1 1 1
+
+transparent :: Colour
+transparent = Colour 0 0 0 0

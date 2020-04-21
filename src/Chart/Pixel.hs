@@ -27,7 +27,6 @@ import Chart.Core
 import Chart.Hud
 import Chart.Svg (styleBox)
 import Chart.Types
-import Codec.Picture.Types
 import Control.Category (id)
 import Control.Lens
 import Data.Generics.Labels ()
@@ -51,17 +50,16 @@ defaultPixelOptions =
 data PixelData
   = PixelData
       { pixelRect :: Rect Double,
-        pixelColor :: PixelRGB8,
-        pixelOpacity :: Double
+        pixelColor :: Colour
       }
   deriving (Show, Eq, Generic)
 
 -- | pixel chart without any hud trimmings
 pixels :: RectStyle -> [PixelData] -> [Chart Double]
 pixels rs ps =
-  ( \(PixelData r c o) ->
+  ( \(PixelData r c) ->
       Chart
-        (RectA (rs & #color .~ c & #opacity .~ o))
+        (RectA (rs & #color .~ c))
         [SpotRect r]
   )
     <$> ps
@@ -71,10 +69,10 @@ pixelate ::
   (Point Double -> Double) ->
   Rect Double ->
   Grid (Rect Double) ->
-  (PixelRGB8, Double) ->
-  (PixelRGB8, Double) ->
+  Colour ->
+  Colour ->
   ([PixelData], Range Double)
-pixelate f r g c0 c1 = ((\(x, y) -> let (c, o) = blend' y c0 c1 in PixelData x c o) <$> ps', space1 rs)
+pixelate f r g c0 c1 = ((\(x, y) -> let c = blend y c0 c1 in PixelData x c) <$> ps', space1 rs)
   where
     ps = gridF f r g
     rs = realToFrac . snd <$> ps
@@ -89,8 +87,8 @@ pixelf f cfg =
       f
       (cfg ^. #poRange)
       (cfg ^. #poGrain)
-      (cfg ^. #poStyle . #pixelColorMin, cfg ^. #poStyle . #pixelOpacityMin)
-      (cfg ^. #poStyle . #pixelColorMax, cfg ^. #poStyle . #pixelOpacityMax)
+      (cfg ^. #poStyle . #pixelColorMin)
+      (cfg ^. #poStyle . #pixelColorMax)
 
 pixelfl :: (Point Double -> Double) -> PixelOptions -> PixelLegendOptions -> ([Chart Double], [Hud Double])
 pixelfl f po plo = (cs, [legendHud (plo ^. #ploLegendOptions) (pixelLegendChart dr plo)])
@@ -109,7 +107,7 @@ pixelAxisOptions =
     Nothing
     ( Tick
         (TickRound (FormatComma 0) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph & #borderSize .~ 0.002, 0.01))
+        (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph 0.005, 0.01))
         (Just (defaultTextTick, 0.03))
         Nothing
     )

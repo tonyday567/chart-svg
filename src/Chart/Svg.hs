@@ -16,7 +16,7 @@ module Chart.Svg
   )
 where
 
-import Chart.Color (toHex)
+import Chart.Color
 import Chart.Types
 import Control.Category (id)
 import Control.Lens hiding (transform)
@@ -58,8 +58,8 @@ styleBoxGlyph s = move p' $ sw $ case sh of
   EllipseGlyph a -> NH.scale (Point sz (a * sz)) unitRect
   RectSharpGlyph a -> NH.scale (Point sz (a * sz)) unitRect
   RectRoundedGlyph a _ _ -> NH.scale (Point sz (a * sz)) unitRect
-  VLineGlyph -> NH.scale (Point ((s ^. #borderSize) * sz) sz) unitRect
-  HLineGlyph -> NH.scale (Point sz ((s ^. #borderSize) * sz)) unitRect
+  VLineGlyph _ -> NH.scale (Point ((s ^. #borderSize) * sz) sz) unitRect
+  HLineGlyph _ -> NH.scale (Point sz ((s ^. #borderSize) * sz)) unitRect
   TriangleGlyph a b c -> (sz *) <$> sconcat (toRect . SpotPoint <$> (a :| [b, c]) :: NonEmpty (Rect Double))
   _ -> (sz *) <$> unitRect
   where
@@ -94,12 +94,12 @@ lgPixel o =
     ]
     ( mconcat
         [ stop_
-            [ stop_opacity_ (show $ o ^. #pixelOpacityMin),
+            [ stop_opacity_ (show $ opac $ o ^. #pixelColorMin),
               stop_color_ (toHex (o ^. #pixelColorMin)),
               offset_ "0"
             ],
           stop_
-            [ stop_opacity_ (show $ o ^. #pixelOpacityMax),
+            [ stop_opacity_ (show $ opac $ o ^. #pixelColorMax),
               stop_color_ (toHex (o ^. #pixelColorMax)),
               offset_ "1"
             ]
@@ -185,9 +185,9 @@ svgShape (EllipseGlyph x') s (Point x y) =
       rx_ (show $ 0.5 * s),
       ry_ (show $ 0.5 * s * x')
     ]
-svgShape VLineGlyph s (Point x y) =
-  polyline_ [points_ (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
-svgShape HLineGlyph s (Point x y) =
+svgShape (VLineGlyph _) s (Point x y) =
+  polyline_ [points_ (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x  <> "," <> show (- (y + s / 2)))]
+svgShape (HLineGlyph _) s (Point x y) =
   polyline_ [points_ (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
 svgShape (PathGlyph path) _ p =
   path_ [d_ path, transform_ (toTranslateText p)]
@@ -231,17 +231,17 @@ svgt (Chart BlankA _) _ = mempty
 attsRect :: RectStyle -> [Attribute]
 attsRect o =
   [ stroke_width_ (show $ o ^. #borderSize),
-    stroke_ (toHex $ o ^. #borderColor),
-    stroke_opacity_ (show $ o ^. #borderOpacity),
-    fill_ (toHex $ o ^. #color),
-    fill_opacity_ (show $ o ^. #opacity)
+    stroke_ (hex $ o ^. #borderColor),
+    stroke_opacity_ (show $ opac $ o ^. #borderColor),
+    fill_ (hex $ o ^. #color),
+    fill_opacity_ (show $ opac $ o ^. #color)
   ]
 
 attsPixel :: PixelStyle -> [Attribute]
 attsPixel o =
   [ stroke_width_ (show $ o ^. #pixelRectStyle . #borderSize),
     stroke_ (toHex $ o ^. #pixelRectStyle . #borderColor),
-    stroke_opacity_ (show $ o ^. #pixelRectStyle . #borderOpacity),
+    stroke_opacity_ (show $ opac $ o ^. #pixelRectStyle . #borderColor),
     fill_ ("url(#" <> (o ^. #pixelTextureId) <> ")")
   ]
 
@@ -250,7 +250,7 @@ attsText o =
   [ stroke_width_ "0.0",
     stroke_ "none",
     fill_ (toHex $ o ^. #color),
-    fill_opacity_ (show $ o ^. #opacity),
+    fill_opacity_ (show $ opac $ o ^. #color),
     font_size_ (show $ o ^. #size),
     text_anchor_ (toTextAnchor $ o ^. #anchor)
   ]
@@ -265,9 +265,9 @@ attsGlyph :: GlyphStyle -> [Attribute]
 attsGlyph o =
   [ stroke_width_ (show $ o ^. #borderSize),
     stroke_ (toHex $ o ^. #borderColor),
-    stroke_opacity_ (show $ o ^. #borderOpacity),
+    stroke_opacity_ (show $ opac $ o ^. #borderColor),
     fill_ (toHex $ o ^. #color),
-    fill_opacity_ (show $ o ^. #opacity)
+    fill_opacity_ (show $ opac $ o ^. #color)
   ]
     <> maybe [] ((: []) . transform_ . toTranslateText) (o ^. #translate)
 
@@ -275,7 +275,7 @@ attsLine :: LineStyle -> [Attribute]
 attsLine o =
   [ stroke_width_ (show $ o ^. #width),
     stroke_ (toHex $ o ^. #color),
-    stroke_opacity_ (show $ o ^. #opacity),
+    stroke_opacity_ (show $ opac $ o ^. #color),
     fill_ "none"
   ]
 
