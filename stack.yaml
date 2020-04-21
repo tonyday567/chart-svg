@@ -2,7 +2,7 @@ resolver: lts-15.6
 
 packages:
   - .
-  - ../web-rep
+  # - ../web-rep
 
 extra-deps:
   - box-0.3.0
@@ -13,6 +13,5 @@ extra-deps:
   - tdigest-0.2.1
   - text-format-0.3.2
   # - web-rep-0.3.2
-
-#ghc-options:
-#  "$locals": -fwrite-ide-info
+  - git: https://github.com/tonyday567/web-rep
+    commit: 0863a2974af30ece6cb46fb8a1198cb9b053c5e2
