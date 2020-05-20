@@ -1,6 +1,6 @@
 cabal-version: >= 1.10
 name:           chart-svg
-version:        0.0.1
+version:        0.0.2
 synopsis:       See readme.md
 description:    See readme.md for description.
 category:       project

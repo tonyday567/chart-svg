@@ -54,19 +54,12 @@ packages:
   original:
     hackage: text-format-0.3.2
 - completed:
-    cabal-file:
-      size: 2542
-      sha256: 2db24be9af0df6c27fe4edd68a9038fc4f8c848c0633543a86f5c8142b74723d
-    name: web-rep
-    version: 0.4.0
-    git: https://github.com/tonyday567/web-rep
+    hackage: web-rep-0.4.0@sha256:2db24be9af0df6c27fe4edd68a9038fc4f8c848c0633543a86f5c8142b74723d,2542
     pantry-tree:
-      size: 2323
-      sha256: c7706bb3bbd45811d53ec9ff9458760d5fa2e60395cc599d5e74dc77d154b14d
-    commit: 0863a2974af30ece6cb46fb8a1198cb9b053c5e2
+      size: 1062
+      sha256: 834f3f05a730e9bfde938b24c73267f256289e643990d2b59466bb5b1d778e4e
   original:
-    git: https://github.com/tonyday567/web-rep
-    commit: 0863a2974af30ece6cb46fb8a1198cb9b053c5e2
+    hackage: web-rep-0.4.0
 snapshots:
 - completed:
     size: 491387
