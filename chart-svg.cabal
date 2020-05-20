@@ -42,7 +42,7 @@ library
     , base >=4.7 && <5
     , bifunctors
     , foldl
-    , generic-lens
+    , generic-lens >= 1.2 && < 2.0
     , lucid
     , lucid-svg
     , lens
@@ -89,7 +89,7 @@ executable venn
     , bifunctors
     , containers
     , chart-svg
-    , generic-lens
+    , generic-lens >= 1.2 && < 2.0
     , lucid-svg
     , lens
     , javascript-bridge

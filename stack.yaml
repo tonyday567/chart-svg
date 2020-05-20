@@ -9,6 +9,7 @@ extra-deps:
   - numhask-space-0.4.0
   - web-rep-0.5.0
   # external non-stack libraries
+  - generic-lens-1.2.0.1
   - Color-0.1.4
   - interpolatedstring-perl6-1.0.2
   - javascript-bridge-0.2.0
