@@ -60,6 +60,13 @@ packages:
       sha256: 834f3f05a730e9bfde938b24c73267f256289e643990d2b59466bb5b1d778e4e
   original:
     hackage: web-rep-0.4.0
+- completed:
+    hackage: Color-0.1.4@sha256:bd63ebe43000228a0ce087f2aee91b99d3c5d2a0c8506551ce37dad8eb5e44e8,8070
+    pantry-tree:
+      size: 6542
+      sha256: bf8d32156533b4c7725fbd0834d0cfcf441bf13a09dc713c117b1554f9e8b90a
+  original:
+    hackage: Color-0.1.4
 snapshots:
 - completed:
     size: 491387
