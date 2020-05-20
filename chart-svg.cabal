@@ -1,15 +1,15 @@
-cabal-version: >= 1.10
+cabal-version: 3.0
 name:           chart-svg
-version:        0.0.2
-synopsis:       See readme.md
-description:    See readme.md for description.
+version:        0.0.3
+synopsis:       Charts in SVG
+description:    Chart library targetting SVG.
 category:       project
 homepage:       https://github.com/tonyday567/chart-svg#readme
 bug-reports:    https://github.com/tonyday567/chart-svg/issues
 author:         Tony Day
 maintainer:     tonyday567@gmail.com
 copyright:      Tony Day (c) 2017
-license:        BSD3
+license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -46,16 +46,16 @@ library
     , lucid
     , lucid-svg
     , lens
-    , numhask-space
+    , numhask-space >= 0.4 && < 0.5
     , pretty-simple
-    , protolude
+    , protolude >= 0.3 && < 0.4
     , scientific
     , tagsoup
     , text
     , text-format
     , time
     , transformers
-    , web-rep
+    , web-rep >= 0.5 && < 0.6
   default-language: Haskell2010
 
 executable examples
@@ -69,14 +69,14 @@ executable examples
     , chart-svg
     , lens
     , javascript-bridge
-    , numhask-space
-    , protolude
+    , numhask-space >= 0.4 && < 0.5
+    , protolude >= 0.3 && < 0.4
     , scotty
     , text
     , transformers
     , unordered-containers
     , wai-middleware-static
-    , web-rep
+    , web-rep >= 0.5 && < 0.6
   default-language: Haskell2010
 
 executable venn
@@ -93,13 +93,13 @@ executable venn
     , lucid-svg
     , lens
     , javascript-bridge
-    , numhask-space
-    , protolude
+    , numhask-space >= 0.4 && < 0.5
+    , protolude >= 0.3 && < 0.4
     , scotty
     , text
     , transformers
     , unordered-containers
     , wai-middleware-static
-    , web-rep
+    , web-rep >= 0.5 && < 0.6
   default-language: Haskell2010
 

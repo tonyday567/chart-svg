@@ -1,16 +1,16 @@
-resolver: lts-15.6
+resolver: lts-15.13
 
 packages:
   - .
 
 extra-deps:
-  - box-0.3.0
-  - numhask-space-0.3.1
-  - web-rep-0.4.0
+  - protolude-0.3.0
+  - box-0.4.0
+  - numhask-space-0.4.0
+  - web-rep-0.5.0
   # external non-stack libraries
   - Color-0.1.4
   - interpolatedstring-perl6-1.0.2
   - javascript-bridge-0.2.0
   - lucid-svg-0.7.1
-  - tdigest-0.2.1
   - text-format-0.3.2

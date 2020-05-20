@@ -5,3 +5,4 @@ TAGS
 /.projectile
 /other/mempty.md
 dist-newstyle
+/stack.yaml.lock
