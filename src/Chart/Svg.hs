@@ -146,6 +146,7 @@ svgText s t p@(Point x y) =
 
 -- | line svg
 svgLine :: [Point Double] -> Svg ()
+svgLine [] = mempty
 svgLine xs = polyline_ [points_ (toPointsText xs)]
   where
     toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> show x <> "," <> show (- y)) <$> xs'
