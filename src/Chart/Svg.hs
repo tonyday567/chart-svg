@@ -11,6 +11,7 @@ module Chart.Svg
     chartDefs,
     styleBox,
     styleBoxes,
+    noStyleBoxes,
     styleBoxText,
     styleBoxGlyph,
   )
@@ -80,6 +81,10 @@ styleBox (Chart (PixelA s) xs) = foldRect (padRect (0.5 * s ^. #pixelRectStyle .
 -- | the extra geometric dimensions of a [Chart]
 styleBoxes :: [Chart Double] -> Maybe (Rect Double)
 styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
+
+-- | geometric dimensions of a [Chart] not including style
+noStyleBoxes :: [Chart Double] -> Maybe (Rect Double)
+noStyleBoxes cs = foldRect $ toRect <$> mconcat (view #spots <$> cs)
 
 -- | calculate the linear gradient to shove in defs
 -- FIXME: Only works for #pixelGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image

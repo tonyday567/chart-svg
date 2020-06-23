@@ -604,7 +604,7 @@ defaultLegendOptions =
     10
     0.1
     0.1
-    (Just (RectStyle 0.02 (palette !! 0) black))
+    (Just (RectStyle 0.02 (palette !! 0) white))
     PlaceBottom
     0.2
 
