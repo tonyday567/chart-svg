@@ -17,6 +17,7 @@ module Chart.Hud
     precision,
     adjustTick,
     makeTickDates,
+    makeTickDatesContinuous,
     legendHud,
     legendEntry,
     legendChart,
@@ -541,12 +542,10 @@ adjustedTickHud c = Hud $ \cs -> do
           (c ^. #adjust)
   unhud (tick (c ^. #place) adjTick) cs
 
--- | Convert a UTCTime list into sensible ticks
+-- | Convert a UTCTime list into sensible ticks, placed exactly
 makeTickDates :: PosDiscontinuous -> Maybe Text -> Int -> [UTCTime] -> [(Int, Text)]
 makeTickDates pc fmt n dates =
-  lastOnes (\(_, x0) (_, x1) -> x0 == x1)
-    $ fst
-    $ placedTimeLabelDiscontinuous pc fmt n dates
+  lastOnes (\(_, x0) (_, x1) -> x0 == x1) . fst $ placedTimeLabelDiscontinuous pc fmt n dates
   where
     lastOnes :: (a -> a -> Bool) -> [a] -> [a]
     lastOnes _ [] = []
@@ -554,6 +553,13 @@ makeTickDates pc fmt n dates =
     lastOnes f (x : xs) = L.fold (L.Fold step (x, []) (\(x0, x1) -> reverse $ x0 : x1)) xs
       where
         step (a0, rs) a1 = if f a0 a1 then (a1, rs) else (a1, a0 : rs)
+
+-- | Convert a UTCTime list into sensible ticks, placed on the (0,1) space
+makeTickDatesContinuous :: PosDiscontinuous -> Maybe Text -> Int -> [UTCTime] -> [(Double, Text)]
+makeTickDatesContinuous pc fmt n dates = placedTimeLabelContinuous pc fmt n (l,u)
+  where
+    l = minimum dates
+    u = maximum dates
 
 legendHud :: LegendOptions -> [Chart Double] -> Hud Double
 legendHud l lcs = Hud $ \cs -> do

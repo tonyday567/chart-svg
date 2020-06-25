@@ -6,7 +6,9 @@ packages:
 extra-deps:
   - protolude-0.3.0
   - box-0.4.0
-  - numhask-space-0.4.0
+  #- numhask-space-0.4.0
+  - git: https://github.com/tonyday567/numhask-space
+    commit: 2ead54071a5b2ee8b9bc3961838080bb69c2ed4e
   # - web-rep-0.5.0
   - git: https://github.com/tonyday567/web-rep
     commit: 3838a75847cedac786d95eda50deaefc24bf22ef 
