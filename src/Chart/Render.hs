@@ -38,7 +38,8 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import qualified Data.Text.Lazy as Lazy
 import qualified Lucid.Base as Lucid
-import Lucid.Svg hiding (z)
+import Lucid
+import Lucid.Base
 import NumHask.Space hiding (Element)
 import Protolude hiding (writeFile)
 
@@ -83,22 +84,27 @@ svg2_ m =
     ]
     m
 
-renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Svg ()
+renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Html ()
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
-  with (svg2_ (bool id (cssCrisp <>) (csso == UseCssCrisp) $ chartDefs cs <> mconcat (svg <$> cs))) [width_ (show w'), height_ (show h'), viewBox_ (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))]
+  with (svg2_
+        (bool id (cssCrisp <>) (csso == UseCssCrisp) $
+          chartDefs cs <> mconcat (svg <$> cs)))
+  [width_ (show w'),
+   height_ (show h'),
+   makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))]
 
-cssCrisp :: Svg ()
-cssCrisp = style_ [type_ "text/css"] "{ shape-rendering: 'crispEdges'; }"
+cssCrisp :: Html ()
+cssCrisp = style_ [type_ "text/css"] ("{ shape-rendering: 'crispEdges'; }" :: Text)
 
 -- | render Charts with the supplied css options, size and viewbox.
 renderCharts_ :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Text.Text
 renderCharts_ csso p r cs =
-  Lazy.toStrict $ prettyText (renderToSvg csso p r cs)
+  Lazy.toStrict $ renderText (renderToSvg csso p r cs)
 
 -- | render Charts with the supplied options.
 renderChartsWith :: SvgOptions -> [Chart Double] -> Text.Text
 renderChartsWith so cs =
-  Lazy.toStrict $ prettyText (renderToSvg (so ^. #useCssCrisp) (getSize so cs'') r' cs'')
+  Lazy.toStrict $ renderText (renderToSvg (so ^. #useCssCrisp) (getSize so cs'') r' cs'')
   where
     r' = r & maybe id padRect (so ^. #outerPad)
     cs'' =

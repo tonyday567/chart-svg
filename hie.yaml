@@ -1,0 +1,8 @@
+cradle:
+  stack:
+    - path: "./src/"
+      component: "chart-svg:lib"
+    - path: "./app/examples.hs"
+      component: "chart-svg:exe:examples"
+    - path: "./app/venn.hs"
+      component: "chart-svg:exe:venn"

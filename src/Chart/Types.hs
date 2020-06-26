@@ -15,6 +15,7 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 
 module Chart.Types
   ( Chart (..),
@@ -317,13 +318,11 @@ instance (Ord a, Num a, Fractional a) => Num (Spot a) where
 -- | pattern for SP x y
 pattern SP :: a -> a -> Spot a
 pattern SP a b = SpotPoint (Point a b)
-
 {-# COMPLETE SP #-}
 
 -- | pattern for SA lowerx upperx lowery uppery
 pattern SR :: a -> a -> a -> a -> Spot a
 pattern SR a b c d = SpotRect (Rect a b c d)
-
 {-# COMPLETE SR #-}
 
 -- | Convert a spot to an Rect

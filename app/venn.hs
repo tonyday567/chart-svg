@@ -18,8 +18,9 @@ import Data.Generics.Labels ()
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Lazy
-import Lucid.Svg hiding (z)
 import Protolude
+import Lucid
+import Lucid.Base
 
 xs :: Map.Map Text (Point Double)
 xs =
@@ -184,13 +185,19 @@ mainPhrases =
   where
     c = black
 
-renderToSvgt :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> [(TextStyle, Text)] -> Svg ()
+renderToSvgt :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> [(TextStyle, Text)] -> Html ()
 renderToSvgt csso (Point w' h') (Rect x z y w) cs tts =
-  with (svg2_ (bool id (cssCrisp <>) (csso == UseCssCrisp) $ chartDefs cs <> mconcat (zipWith svgt cs tts))) [width_ (show w'), height_ (show h'), viewBox_ (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))]
+  with
+  (svg2_ (bool id (cssCrisp <>) (csso == UseCssCrisp) $
+          chartDefs cs <>
+          mconcat (zipWith svgt cs tts)))
+  [width_ (show w'),
+   height_ (show h'),
+   makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))]
 
 writeVennWords :: IO ()
 writeVennWords =
-  writeFile "other/venn2.svg" $ Lazy.toStrict $ prettyText $
+  writeFile "other/venn2.svg" $ Lazy.toStrict $ renderText $
   renderToSvgt NoCssOptions (Point 300 300) (Rect (-2) 2 (-2) 2)
   (phrases <> venns <> [Chart BlankA [SR (-2.0) 2.0 (-2.0) 2.0]]) $
   (defaultTextStyle & set #color colorText,) <$>

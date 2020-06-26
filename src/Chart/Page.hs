@@ -59,7 +59,7 @@ import Control.Category (id)
 import Control.Lens
 import Data.Attoparsec.Text
 import Data.Biapplicative
-import Data.List
+import qualified Data.List as List
 import qualified Data.Text as Text
 import Lucid
 import NumHask.Space
@@ -803,13 +803,13 @@ repChoice initt xs =
     ts = fst <$> xs
     cs = snd <$> xs
     dd = dropdownSum takeText id Nothing ts t0
-    t0 = ts !! initt
+    t0 = ts List.!! initt
     hmap dd' cs' =
       div_
         ( dd'
             <> mconcat (zipWith (\c t -> subtype c t0 t) cs' ts)
         )
-    mmap dd' cs' = maybe (Data.List.head cs') (cs' !!) (elemIndex dd' ts)
+    mmap dd' cs' = maybe (List.head cs') (cs' List.!!) (List.elemIndex dd' ts)
 
 repLegendOptions :: (Monad m) => LegendOptions -> SharedRep m LegendOptions
 repLegendOptions initl =

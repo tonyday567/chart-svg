@@ -25,11 +25,14 @@ import Data.Generics.Labels ()
 import Data.Maybe
 import Data.Monoid
 import qualified Data.Text as Text
-import qualified Lucid
-import Lucid.Svg hiding (z)
+import Lucid
+import Lucid.Base
 import NumHask.Space as NH hiding (Element)
 import Protolude hiding (writeFile)
 import Text.HTML.TagSoup hiding (Attribute)
+
+terms :: Text -> [Attribute] -> Html ()
+terms t = with $ makeXmlElementNoEnd t
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -88,25 +91,25 @@ noStyleBoxes cs = foldRect $ toRect <$> mconcat (view #spots <$> cs)
 
 -- | calculate the linear gradient to shove in defs
 -- FIXME: Only works for #pixelGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
-lgPixel :: PixelStyle -> Svg ()
+lgPixel :: PixelStyle -> Html ()
 lgPixel o =
-  linearGradient_
+  term "linearGradient"
     [ id_ (o ^. #pixelTextureId),
-      x1_ (show x0),
-      y1_ (show y0),
-      x2_ (show x1),
-      y2_ (show y1)
+      makeAttribute "x1" (show x0),
+      makeAttribute "y1" (show y0),
+      makeAttribute "x2" (show x1),
+      makeAttribute "y2" (show y1)
     ]
     ( mconcat
-        [ stop_
-            [ stop_opacity_ (show $ opac $ o ^. #pixelColorMin),
-              stop_color_ (toHex (o ^. #pixelColorMin)),
-              offset_ "0"
+        [ terms "stop"
+            [ makeAttribute "stop_opacity" (show $ opac $ o ^. #pixelColorMin),
+              makeAttribute "stop_color" (toHex (o ^. #pixelColorMin)),
+              makeAttribute "offset" "0"
             ],
-          stop_
-            [ stop_opacity_ (show $ opac $ o ^. #pixelColorMax),
-              stop_color_ (toHex (o ^. #pixelColorMax)),
-              offset_ "1"
+          terms "stop"
+            [ makeAttribute "stop_opacity" (show $ opac $ o ^. #pixelColorMax),
+              makeAttribute "stop_color" (toHex (o ^. #pixelColorMax)),
+              makeAttribute "offset" "1"
             ]
         ]
     )
@@ -117,150 +120,150 @@ lgPixel o =
     y1 = min 0 (sin (o ^. #pixelGradient))
 
 -- | get chart definitions
-chartDefs :: [Chart a] -> Svg ()
-chartDefs cs = bool (defs_ (mconcat ds)) mempty (0 == length ds)
+chartDefs :: [Chart a] -> Html ()
+chartDefs cs = bool (term "defs" (mconcat ds)) mempty (0 == length ds)
   where
     ds = mconcat $ chartDef <$> cs
 
-chartDef :: Chart a -> [Svg ()]
+chartDef :: Chart a -> [Html ()]
 chartDef c = case c of
   (Chart (PixelA s) _) -> [lgPixel s]
   _ -> []
 
 -- | Rectangle svg
-svgRect :: Rect Double -> Svg ()
+svgRect :: Rect Double -> Html ()
 svgRect (Rect x z y w) =
-  rect_
+  terms "rect"
     [ width_ (show $ z - x),
       height_ (show $ w - y),
-      x_ (show x),
-      y_ (show $ - w)
+      term "x" (show x),
+      term "y" (show $ - w)
     ]
 
 -- | Text svg
-svgText :: TextStyle -> Text -> Point Double -> Svg ()
+svgText :: TextStyle -> Text -> Point Double -> Html ()
 svgText s t p@(Point x y) =
-  bool id (g_ [class_ "hasmathjax"]) (s ^. #hasMathjax) $
-    text_
-      ( [ x_ (show x),
-          y_ (show $ - y)
+  bool id (term "g" [class_ "hasmathjax"]) (s ^. #hasMathjax) $
+    term "text"
+      ( [ term "x" (show x),
+          term "y" (show $ - y)
         ]
-          <> maybe [] (\x' -> [transform_ (toRotateText x' p)]) (s ^. #rotation)
+          <> maybe [] (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
       )
       (toHtmlRaw t)
 
 -- | line svg
-svgLine :: [Point Double] -> Svg ()
+svgLine :: [Point Double] -> Html ()
 svgLine [] = mempty
-svgLine xs = polyline_ [points_ (toPointsText xs)]
+svgLine xs = terms "polyline" [term "points" (toPointsText xs)]
   where
     toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> show x <> "," <> show (- y)) <$> xs'
 
 -- | GlyphShape to svg Tree
-svgShape :: GlyphShape -> Double -> Point Double -> Svg ()
+svgShape :: GlyphShape -> Double -> Point Double -> Html ()
 svgShape CircleGlyph s (Point x y) =
-  circle_
-    [ cx_ (show x),
-      cy_ (show $ - y),
-      r_ (show $ 0.5 * s)
+  terms "circle"
+    [ term "cx" (show x),
+      term "cy" (show $ - y),
+      term "r" (show $ 0.5 * s)
     ]
 svgShape SquareGlyph s p =
   svgRect (move p ((s *) <$> unitRect))
 svgShape (RectSharpGlyph x') s p =
   svgRect (move p (NH.scale (Point s (x' * s)) unitRect))
 svgShape (RectRoundedGlyph x' rx ry) s p =
-  rect_
-    [ width_ (show $ z - x),
-      height_ (show $ w - y),
-      x_ (show x),
-      y_ (show $ - w),
-      rx_ (show rx),
-      ry_ (show ry)
+  terms "rect"
+    [ term "width" (show $ z - x),
+      term "height" (show $ w - y),
+      term "x" (show x),
+      term "y" (show $ - w),
+      term "rx" (show rx),
+      term "ry" (show ry)
     ]
   where
     (Rect x z y w) = move p (NH.scale (Point s (x' * s)) unitRect)
 svgShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
-  polygon_
-    [ transform_ (toTranslateText p),
-      points_ (show (s * xa) <> "," <> show (- (s * ya)) <> " " <> show (s * xb) <> "," <> show (- (s * yb)) <> " " <> show (s * xc) <> "," <> show (- (s * yc)))
+  terms "polygon"
+    [ term "transform" (toTranslateText p),
+      term "points" (show (s * xa) <> "," <> show (- (s * ya)) <> " " <> show (s * xb) <> "," <> show (- (s * yb)) <> " " <> show (s * xc) <> "," <> show (- (s * yc)))
     ]
 svgShape (EllipseGlyph x') s (Point x y) =
-  ellipse_
-    [ cx_ (show x),
-      cy_ (show $ - y),
-      rx_ (show $ 0.5 * s),
-      ry_ (show $ 0.5 * s * x')
+  terms "ellipse"
+    [ term "cx" (show x),
+      term "cy" (show $ - y),
+      term "rx" (show $ 0.5 * s),
+      term "ry" (show $ 0.5 * s * x')
     ]
 svgShape (VLineGlyph _) s (Point x y) =
-  polyline_ [points_ (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x  <> "," <> show (- (y + s / 2)))]
+  terms "polyline" [term "points" (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x  <> "," <> show (- (y + s / 2)))]
 svgShape (HLineGlyph _) s (Point x y) =
-  polyline_ [points_ (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
+  terms "polyline" [term "points" (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
 svgShape (PathGlyph path) _ p =
-  path_ [d_ path, transform_ (toTranslateText p)]
+  terms "path" [term "d" path, term "transform" (toTranslateText p)]
 
 -- | GlyphStyle to svg Tree
-svgGlyph :: GlyphStyle -> Point Double -> Svg ()
+svgGlyph :: GlyphStyle -> Point Double -> Html ()
 svgGlyph s p =
   svgShape (s ^. #shape) (s ^. #size) (realToFrac <$> p)
-    & maybe id (\r -> g_ [transform_ (toRotateText r p)]) (s ^. #rotation)
+    & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
 
 -- | convert a Chart to svg
-svg :: Chart Double -> Svg ()
+svg :: Chart Double -> Html ()
 svg (Chart (TextA s ts) xs) =
-  g_ (attsText s) (mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs)
+  term "g" (attsText s) (mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs)
 svg (Chart (GlyphA s) xs) =
-  g_ (attsGlyph s) (mconcat $ svgGlyph s . toPoint <$> xs)
+  term "g" (attsGlyph s) (mconcat $ svgGlyph s . toPoint <$> xs)
 svg (Chart (LineA s) xs) =
-  g_ (attsLine s) (svgLine $ toPoint <$> xs)
+  term "g" (attsLine s) (svgLine $ toPoint <$> xs)
 svg (Chart (RectA s) xs) =
-  g_ (attsRect s) (mconcat $ svgRect . toRect <$> xs)
+  term "g" (attsRect s) (mconcat $ svgRect . toRect <$> xs)
 svg (Chart (PixelA s) xs) =
-  g_ (attsPixel s) (mconcat $ svgRect . toRect <$> xs)
+  term "g" (attsPixel s) (mconcat $ svgRect . toRect <$> xs)
 svg (Chart BlankA _) = mempty
 
 -- | add a tooltip to a chart
-svgt :: Chart Double -> (TextStyle, Text) -> Svg ()
+svgt :: Chart Double -> (TextStyle, Text) -> Html ()
 svgt (Chart (TextA s ts) xs) (s', ts') =
-  g_ (attsText s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (zipWith (\t p -> svgText s t (toPoint p)) ts xs))
+  term "g" (attsText s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (zipWith (\t p -> svgText s t (toPoint p)) ts xs))
 svgt (Chart (GlyphA s) xs) (s', ts') =
-  g_ (attsGlyph s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgGlyph s . toPoint <$> xs))
+  term "g" (attsGlyph s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgGlyph s . toPoint <$> xs))
 svgt (Chart (LineA s) xs) (s', ts') =
-  g_ (attsLine s) (title_ (attsText s') (Lucid.toHtml ts') <> svgLine (toPoint <$> xs))
+  term "g" (attsLine s) (title_ (attsText s') (Lucid.toHtml ts') <> svgLine (toPoint <$> xs))
 svgt (Chart (RectA s) xs) (s', ts') =
-  g_ (attsRect s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
+  term "g" (attsRect s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
 svgt (Chart (PixelA s) xs) (s', ts') =
-  g_ (attsPixel s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
+  term "g" (attsPixel s) (title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
 svgt (Chart BlankA _) _ = mempty
 
 -- * Style to Attributes
 
 attsRect :: RectStyle -> [Attribute]
 attsRect o =
-  [ stroke_width_ (show $ o ^. #borderSize),
-    stroke_ (hex $ o ^. #borderColor),
-    stroke_opacity_ (show $ opac $ o ^. #borderColor),
-    fill_ (hex $ o ^. #color),
-    fill_opacity_ (show $ opac $ o ^. #color)
+  [ term "stroke_width" (show $ o ^. #borderSize),
+    term "stroke" (hex $ o ^. #borderColor),
+    term "stroke_opacity" (show $ opac $ o ^. #borderColor),
+    term "fill" (hex $ o ^. #color),
+    term "fill_opacity" (show $ opac $ o ^. #color)
   ]
 
 attsPixel :: PixelStyle -> [Attribute]
 attsPixel o =
-  [ stroke_width_ (show $ o ^. #pixelRectStyle . #borderSize),
-    stroke_ (toHex $ o ^. #pixelRectStyle . #borderColor),
-    stroke_opacity_ (show $ opac $ o ^. #pixelRectStyle . #borderColor),
-    fill_ ("url(#" <> (o ^. #pixelTextureId) <> ")")
+  [ term "stroke_width" (show $ o ^. #pixelRectStyle . #borderSize),
+    term "stroke" (toHex $ o ^. #pixelRectStyle . #borderColor),
+    term "stroke_opacity" (show $ opac $ o ^. #pixelRectStyle . #borderColor),
+    term "fill" ("url(#" <> (o ^. #pixelTextureId) <> ")")
   ]
 
 attsText :: TextStyle -> [Attribute]
 attsText o =
-  [ stroke_width_ "0.0",
-    stroke_ "none",
-    fill_ (toHex $ o ^. #color),
-    fill_opacity_ (show $ opac $ o ^. #color),
-    font_size_ (show $ o ^. #size),
-    text_anchor_ (toTextAnchor $ o ^. #anchor)
+  [ term "stroke_width" "0.0",
+    term "stroke" "none",
+    term "fill" (toHex $ o ^. #color),
+    term "fill_opacity" (show $ opac $ o ^. #color),
+    term "font_size" (show $ o ^. #size),
+    term "text_anchor" (toTextAnchor $ o ^. #anchor)
   ]
-    <> maybe [] ((: []) . transform_ . toTranslateText) (o ^. #translate)
+    <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
   where
     toTextAnchor :: Anchor -> Text
     toTextAnchor AnchorMiddle = "middle"
@@ -269,20 +272,20 @@ attsText o =
 
 attsGlyph :: GlyphStyle -> [Attribute]
 attsGlyph o =
-  [ stroke_width_ (show $ o ^. #borderSize),
-    stroke_ (toHex $ o ^. #borderColor),
-    stroke_opacity_ (show $ opac $ o ^. #borderColor),
-    fill_ (toHex $ o ^. #color),
-    fill_opacity_ (show $ opac $ o ^. #color)
+  [ term "stroke_width" (show $ o ^. #borderSize),
+    term "stroke" (toHex $ o ^. #borderColor),
+    term "stroke_opacity" (show $ opac $ o ^. #borderColor),
+    term "fill" (toHex $ o ^. #color),
+    term "fill_opacity" (show $ opac $ o ^. #color)
   ]
-    <> maybe [] ((: []) . transform_ . toTranslateText) (o ^. #translate)
+    <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
 
 attsLine :: LineStyle -> [Attribute]
 attsLine o =
-  [ stroke_width_ (show $ o ^. #width),
-    stroke_ (toHex $ o ^. #color),
-    stroke_opacity_ (show $ opac $ o ^. #color),
-    fill_ "none"
+  [ term "stroke_width" (show $ o ^. #width),
+    term "stroke" (toHex $ o ^. #color),
+    term "stroke_opacity" (show $ opac $ o ^. #color),
+    term "fill" "none"
   ]
 
 toTranslateText :: Point Double -> Text
