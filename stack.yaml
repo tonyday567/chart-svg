@@ -5,13 +5,17 @@ packages:
 
 extra-deps:
   - git: https://github.com/tonyday567/numhask-space
-    commit: 74de4262c333568c53c57c991c9f581d1ff6d474
-  - git: https://github.com/tonyday567/web-rep
-    commit: a13e55c3991353e552a67f8728e5fc228fff5d3e
+    commit: 6525f5096525196fe367dabdfe596a7bd0c0aa6c
+  - git: https://github.com/tonyday567/numhask
+    commit: 37ee8dced120f60a511baa6bb6c7ac382b1e8827
+    subdir: numhask-prelude
+  - git: https://github.com/tonyday567/numhask
+    commit: 37ee8dced120f60a511baa6bb6c7ac382b1e8827
+    subdir: numhask
   - git: https://github.com/tonyday567/box
-    commit: d4a90748d3925b39df5aeeb88996d98cd9602ca9
+    commit: d496d333524d5a64a799dd390f4cc98b0d35bb67
+  - git: https://github.com/tonyday567/web-rep
+    commit: 340751aff13ce23c13b55960f78c51d52a8ad6f7
   - javascript-bridge-0.2.0
-  - lucid-svg-0.7.1
-  - text-format-0.3.2
 
 allow-newer: true

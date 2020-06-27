@@ -30,18 +30,14 @@ import Chart.Core
 import Chart.Hud (makeHud, runHud)
 import Chart.Svg
 import Chart.Types
-import Control.Category (id)
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()
-import Data.Maybe
-import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
 import qualified Data.Text.Lazy as Lazy
-import qualified Lucid.Base as Lucid
 import Lucid
+import qualified Lucid.Base as Lucid
 import Lucid.Base
+import NumHask.Prelude
 import NumHask.Space hiding (Element)
-import Protolude hiding (writeFile)
 
 -- | scale chart data, projecting to the supplied Rect, and expanding the resultant Rect for chart style if necessary.
 --
@@ -57,12 +53,12 @@ scaleCharts cs r = (defRect $ styleBoxes cs', cs')
 
 getAspect :: SvgAspect -> [Chart Double] -> Double
 getAspect (ManualAspect a) _ = a
-getAspect ChartAspect cs = toAspect $ defRect $ styleBoxes cs
+getAspect ChartAspect cs = toAspect . defRect $ styleBoxes cs
 
 getSize :: SvgOptions -> [Chart Double] -> Point Double
 getSize o cs = case view #svgAspect o of
   ManualAspect a -> (view #svgHeight o *) <$> Point a 1
-  ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) $ defRect $ styleBoxes cs
+  ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . defRect $ styleBoxes cs
 
 getViewbox :: SvgOptions -> [Chart Double] -> Rect Double
 getViewbox o cs =
@@ -86,23 +82,27 @@ svg2_ m =
 
 renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Html ()
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
-  with (svg2_
-        (bool id (cssCrisp <>) (csso == UseCssCrisp) $
-          chartDefs cs <> mconcat (svg <$> cs)))
-  [width_ (show w'),
-   height_ (show h'),
-   makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))]
+  with
+    ( svg2_
+        ( bool id (cssCrisp <>) (csso == UseCssCrisp) $
+            chartDefs cs <> mconcat (svg <$> cs)
+        )
+    )
+    [ width_ (show w'),
+      height_ (show h'),
+      makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
+    ]
 
 cssCrisp :: Html ()
 cssCrisp = style_ [type_ "text/css"] ("{ shape-rendering: 'crispEdges'; }" :: Text)
 
 -- | render Charts with the supplied css options, size and viewbox.
-renderCharts_ :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Text.Text
+renderCharts_ :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Text
 renderCharts_ csso p r cs =
   Lazy.toStrict $ renderText (renderToSvg csso p r cs)
 
 -- | render Charts with the supplied options.
-renderChartsWith :: SvgOptions -> [Chart Double] -> Text.Text
+renderChartsWith :: SvgOptions -> [Chart Double] -> Text
 renderChartsWith so cs =
   Lazy.toStrict $ renderText (renderToSvg (so ^. #useCssCrisp) (getSize so cs'') r' cs'')
   where
@@ -117,19 +117,19 @@ renderChartsWith so cs =
         (ScaleCharts == so ^. #scaleCharts')
 
 -- | render charts with the default options.
-renderCharts :: [Chart Double] -> Text.Text
+renderCharts :: [Chart Double] -> Text
 renderCharts = renderChartsWith defaultSvgOptions
 
 writeChartsWith :: FilePath -> SvgOptions -> [Chart Double] -> IO ()
-writeChartsWith fp so cs = Text.writeFile fp (renderChartsWith so cs)
+writeChartsWith fp so cs = writeFile fp (renderChartsWith so cs)
 
 writeCharts :: FilePath -> [Chart Double] -> IO ()
-writeCharts fp cs = Text.writeFile fp (renderCharts cs)
+writeCharts fp cs = writeFile fp (renderCharts cs)
 
 -- | write Charts to a file with the supplied css options, size and viewbox.
 writeCharts_ :: FilePath -> CssOptions -> Point Double -> Rect Double -> [Chart Double] -> IO ()
 writeCharts_ fp csso p r cs =
-  Text.writeFile fp (renderCharts_ csso p r cs)
+  writeFile fp (renderCharts_ csso p r cs)
 
 -- * rendering huds and charts
 
@@ -145,4 +145,4 @@ renderHudOptionsChart so hc hs cs = renderHudChart so (hs <> hs') (cs <> cs')
 
 writeHudOptionsChart :: FilePath -> SvgOptions -> HudOptions -> [Hud Double] -> [Chart Double] -> IO ()
 writeHudOptionsChart fp so hc hs cs =
-  Text.writeFile fp (renderHudOptionsChart so hc hs cs)
+  writeFile fp (renderHudOptionsChart so hc hs cs)

@@ -25,14 +25,10 @@ where
 
 import Chart.Svg (styleBox, styleBoxes)
 import Chart.Types
-import Control.Category (id)
 import Control.Lens hiding (transform)
-import Data.Foldable
-import Data.Maybe
-import Data.Monoid
-import Data.Semigroup hiding (getLast)
 import NumHask.Space
-import Protolude
+import NumHask.Prelude
+import qualified Prelude as P
 
 -- | additively pad a [Chart]
 padChart :: Double -> [Chart Double] -> [Chart Double]
@@ -71,10 +67,10 @@ projectTo2 vb xss = fmap (maybe id (projectOn vb) (fold $ foldRect . fmap toRect
 defRect :: (Fractional a) => Maybe (Rect a) -> Rect a
 defRect = fromMaybe unitRect
 
-defRectS :: (Eq a, Fractional a) => Maybe (Rect a) -> Rect a
+defRectS :: (Subtractive a, Eq a, Fractional a) => Maybe (Rect a) -> Rect a
 defRectS r = maybe unitRect singletonUnit r
   where
-    singletonUnit :: (Eq a, Fractional a) => Rect a -> Rect a
+    singletonUnit :: (Subtractive a, Eq a, Fractional a) => Rect a -> Rect a
     singletonUnit (Rect x z y w)
       | x == z && y == w = Rect (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
       | x == z = Rect (x - 0.5) (x + 0.5) y w
@@ -95,7 +91,7 @@ projectSpotsWith new old cs = cs'
     ss = annotation <$> cs
     cs' = zipWith Chart ss xss
 
-toAspect :: (Fractional a) => Rect a -> a
+toAspect :: (Divisive a, Subtractive a) => Rect a -> a
 toAspect (Rect x z y w) = (z - x) / (w - y)
 
 -- |
@@ -111,14 +107,14 @@ scaleAnn x (PixelA a) = PixelA $ a & #pixelRectStyle . #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
 moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
-moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs
+moveChart sp cs = fmap (#spots %~ fmap (sp P.+)) cs
 
 -- horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: Double -> [[Chart Double]] -> [Chart Double]
 hori _ [] = []
 hori gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 - SP (origx x) 0 + s)))
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 P.- SP (origx x) 0 P.+ s)))
     z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
@@ -127,7 +123,7 @@ vert :: Double -> [[Chart Double]] -> [Chart Double]
 vert _ [] = []
 vert gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (origx x - origx a) (w x) + s)))
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (origx x - origx a) (w x) P.+ s)))
     w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 

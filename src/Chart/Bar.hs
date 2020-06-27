@@ -22,18 +22,11 @@ import Chart.Format
 import Chart.Hud
 import Chart.Types
 import Control.Lens
-import Data.Bifunctor
-import Data.Bool
 import Data.Generics.Labels ()
-import Data.List (scanl', transpose)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe
-import Data.Semigroup
-import Data.Text (Text, pack)
-import GHC.Exts
-import GHC.Generics
+import NumHask.Prelude
 import NumHask.Space
-import Prelude
+import qualified Prelude as P
 
 -- | the usual bar chart eye-candy
 data BarOptions
@@ -109,7 +102,7 @@ barRects (BarOptions _ _ ogap igap _ _ _ add orient _) bs = rects'' orient
     batSet z ys =
       zipWith
         ( \x (yl, yh) ->
-            abs
+            P.abs
               ( Rect
                   (x + (ogap / 2) + z * bstep)
                   (x + (ogap / 2) + z * bstep + bstep - igap')

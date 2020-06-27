@@ -4,7 +4,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -12,7 +12,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Chart.Color
@@ -48,20 +47,17 @@ where
 
 import Data.Attoparsec.Text hiding (take)
 import Data.Generics.Labels ()
-import GHC.Exts
-import Protolude
-import qualified Data.Text.Lazy as Lazy
-import Data.Text.Lazy.Builder (toLazyText)
-import qualified Data.Text.Format
-import Data.Text (justifyRight)
+import Data.Text (justifyRight, singleton)
+import GHC.Base hiding (($!), (.), id)
 import Graphics.Color.Model
-import Data.Text (pack)
+import NumHask.Prelude as P
 
 type Colour = Color (Alpha RGB) Double
 
 -- | Constructor.
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
 pattern Colour r g b a = ColorRGBA r g b a
+
 {-# COMPLETE Colour #-}
 
 opac :: Colour -> Double
@@ -71,7 +67,7 @@ hex :: Colour -> Text
 hex c = toHex c
 
 palette :: [Colour]
-palette = unsafeFromHex <$> ["#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e", "#31331c", "#454e56", "#94a7b5", "#ab7257", "#001114", "#042f1e", "#033d26", "#034243", "#026062", "#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e"]
+palette = unsafeFromHex <$> ["#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e", "#31331c", "#454e56", "#94a7b5", "#ab7257", "#001114", "#042f1e", "#033d26", "#034243", "#026062"]
 
 -- | interpolate between 2 colors
 blend :: Double -> Colour -> Colour -> Colour
@@ -83,10 +79,11 @@ blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
     a'' = a + c * (a' - a)
 
 parseHex :: Parser Colour
-parseHex = (\x -> addAlpha x 1) . fmap toDouble <$>
-  ( \((r, g), b) ->
-      ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
-  )
+parseHex =
+  (`addAlpha` 1) . fmap toDouble
+    . ( \((r, g), b) ->
+            ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
+        )
     . (\(f, b) -> (f `divMod` (256 :: Int), b))
     . (`divMod` 256)
     <$> (string "#" *> hexadecimal)
@@ -95,17 +92,35 @@ fromHex :: Text -> Either Text Colour
 fromHex = first pack . parseOnly parseHex
 
 unsafeFromHex :: Text -> Colour
-unsafeFromHex t = either (const transparent) (\x -> x) $ parseOnly parseHex t
+unsafeFromHex t = either (const transparent) id $ parseOnly parseHex t
 
 -- | convert from 'Colour' to #xxxxxx
 toHex :: Colour -> Text
 toHex c =
   "#"
-    <> justifyRight 2 '0' (Lazy.toStrict $ toLazyText $ Data.Text.Format.hex r)
-    <> justifyRight 2 '0' (Lazy.toStrict $ toLazyText $ Data.Text.Format.hex g)
-    <> justifyRight 2 '0' (Lazy.toStrict $ toLazyText $ Data.Text.Format.hex b)
+    <> justifyRight 2 '0' (hex' r)
+    <> justifyRight 2 '0' (hex' g)
+    <> justifyRight 2 '0' (hex' b)
   where
     (ColorRGBA r g b _) = toWord8 <$> c
+
+hex' :: (FromInteger a, ToIntegral a Integer, Integral a, Ord a, Subtractive a) => a -> Text
+hex' i
+  | i < 0 = "-" <> go (- i)
+  | otherwise = go i
+  where
+    go n
+      | n < 16 = hexDigit n
+      | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
+
+hexDigit :: (Ord a, FromInteger a, ToIntegral a Integer) => a -> Text
+hexDigit n
+  | n <= 9 = singleton P.$! i2d (fromIntegral n)
+  | otherwise = singleton P.$! toEnum (fromIntegral n + 87)
+
+{-# INLINE i2d #-}
+i2d :: Int -> Char
+i2d (I# i#) = C# (chr# (ord# '0'# +# i#))
 
 fromHexOpac :: Text -> Double -> Colour
 fromHexOpac t o = setAlpha (unsafeFromHex t) o

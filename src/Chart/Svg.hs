@@ -19,17 +19,15 @@ where
 
 import Chart.Color
 import Chart.Types
-import Control.Category (id)
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()
-import Data.Maybe
-import Data.Monoid
 import qualified Data.Text as Text
 import Lucid
 import Lucid.Base
+import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
-import Protolude hiding (writeFile)
 import Text.HTML.TagSoup hiding (Attribute)
+import qualified Prelude as P
 
 terms :: Text -> [Attribute] -> Html ()
 terms t = with $ makeXmlElementNoEnd t
@@ -37,17 +35,17 @@ terms t = with $ makeXmlElementNoEnd t
 -- | the extra area from text styling
 styleBoxText ::
   TextStyle ->
-  Text.Text ->
+  Text ->
   Point Double ->
   Rect Double
-styleBoxText o t p = move (p + p') $ maybe flat (`rotateRect` flat) (o ^. #rotation)
+styleBoxText o t p = move (p P.+ p') $ maybe flat (`rotateRect` flat) (o ^. #rotation)
   where
     flat = Rect ((- x' / 2.0) + x' * a') (x' / 2 + x' * a') ((- y' / 2) - n1') (y' / 2 - n1')
     s = o ^. #size
     h = o ^. #hsize
     v = o ^. #vsize
     n1 = o ^. #nudge1
-    x' = s * h * fromIntegral (Protolude.sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
+    x' = s * h * fromIntegral (sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
     y' = s * v
     n1' = s * n1
     a' = case o ^. #anchor of
@@ -93,7 +91,8 @@ noStyleBoxes cs = foldRect $ toRect <$> mconcat (view #spots <$> cs)
 -- FIXME: Only works for #pixelGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
 lgPixel :: PixelStyle -> Html ()
 lgPixel o =
-  term "linearGradient"
+  term
+    "linearGradient"
     [ id_ (o ^. #pixelTextureId),
       makeAttribute "x1" (show x0),
       makeAttribute "y1" (show y0),
@@ -101,14 +100,16 @@ lgPixel o =
       makeAttribute "y2" (show y1)
     ]
     ( mconcat
-        [ terms "stop"
-            [ makeAttribute "stop_opacity" (show $ opac $ o ^. #pixelColorMin),
-              makeAttribute "stop_color" (toHex (o ^. #pixelColorMin)),
+        [ terms
+            "stop"
+            [ makeAttribute "stop-opacity" (show $ opac $ o ^. #pixelColorMin),
+              makeAttribute "stop-color" (toHex (o ^. #pixelColorMin)),
               makeAttribute "offset" "0"
             ],
-          terms "stop"
-            [ makeAttribute "stop_opacity" (show $ opac $ o ^. #pixelColorMax),
-              makeAttribute "stop_color" (toHex (o ^. #pixelColorMax)),
+          terms
+            "stop"
+            [ makeAttribute "stop-opacity" (show $ opac $ o ^. #pixelColorMax),
+              makeAttribute "stop-color" (toHex (o ^. #pixelColorMax)),
               makeAttribute "offset" "1"
             ]
         ]
@@ -133,7 +134,8 @@ chartDef c = case c of
 -- | Rectangle svg
 svgRect :: Rect Double -> Html ()
 svgRect (Rect x z y w) =
-  terms "rect"
+  terms
+    "rect"
     [ width_ (show $ z - x),
       height_ (show $ w - y),
       term "x" (show x),
@@ -144,7 +146,8 @@ svgRect (Rect x z y w) =
 svgText :: TextStyle -> Text -> Point Double -> Html ()
 svgText s t p@(Point x y) =
   bool id (term "g" [class_ "hasmathjax"]) (s ^. #hasMathjax) $
-    term "text"
+    term
+      "text"
       ( [ term "x" (show x),
           term "y" (show $ - y)
         ]
@@ -162,7 +165,8 @@ svgLine xs = terms "polyline" [term "points" (toPointsText xs)]
 -- | GlyphShape to svg Tree
 svgShape :: GlyphShape -> Double -> Point Double -> Html ()
 svgShape CircleGlyph s (Point x y) =
-  terms "circle"
+  terms
+    "circle"
     [ term "cx" (show x),
       term "cy" (show $ - y),
       term "r" (show $ 0.5 * s)
@@ -172,7 +176,8 @@ svgShape SquareGlyph s p =
 svgShape (RectSharpGlyph x') s p =
   svgRect (move p (NH.scale (Point s (x' * s)) unitRect))
 svgShape (RectRoundedGlyph x' rx ry) s p =
-  terms "rect"
+  terms
+    "rect"
     [ term "width" (show $ z - x),
       term "height" (show $ w - y),
       term "x" (show x),
@@ -183,19 +188,21 @@ svgShape (RectRoundedGlyph x' rx ry) s p =
   where
     (Rect x z y w) = move p (NH.scale (Point s (x' * s)) unitRect)
 svgShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
-  terms "polygon"
+  terms
+    "polygon"
     [ term "transform" (toTranslateText p),
       term "points" (show (s * xa) <> "," <> show (- (s * ya)) <> " " <> show (s * xb) <> "," <> show (- (s * yb)) <> " " <> show (s * xc) <> "," <> show (- (s * yc)))
     ]
 svgShape (EllipseGlyph x') s (Point x y) =
-  terms "ellipse"
+  terms
+    "ellipse"
     [ term "cx" (show x),
       term "cy" (show $ - y),
       term "rx" (show $ 0.5 * s),
       term "ry" (show $ 0.5 * s * x')
     ]
 svgShape (VLineGlyph _) s (Point x y) =
-  terms "polyline" [term "points" (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x  <> "," <> show (- (y + s / 2)))]
+  terms "polyline" [term "points" (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
 svgShape (HLineGlyph _) s (Point x y) =
   terms "polyline" [term "points" (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
 svgShape (PathGlyph path) _ p =
@@ -239,29 +246,29 @@ svgt (Chart BlankA _) _ = mempty
 
 attsRect :: RectStyle -> [Attribute]
 attsRect o =
-  [ term "stroke_width" (show $ o ^. #borderSize),
+  [ term "stroke-width" (show $ o ^. #borderSize),
     term "stroke" (hex $ o ^. #borderColor),
-    term "stroke_opacity" (show $ opac $ o ^. #borderColor),
+    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
     term "fill" (hex $ o ^. #color),
-    term "fill_opacity" (show $ opac $ o ^. #color)
+    term "fill-opacity" (show $ opac $ o ^. #color)
   ]
 
 attsPixel :: PixelStyle -> [Attribute]
 attsPixel o =
-  [ term "stroke_width" (show $ o ^. #pixelRectStyle . #borderSize),
+  [ term "stroke-width" (show $ o ^. #pixelRectStyle . #borderSize),
     term "stroke" (toHex $ o ^. #pixelRectStyle . #borderColor),
-    term "stroke_opacity" (show $ opac $ o ^. #pixelRectStyle . #borderColor),
+    term "stroke-opacity" (show $ opac $ o ^. #pixelRectStyle . #borderColor),
     term "fill" ("url(#" <> (o ^. #pixelTextureId) <> ")")
   ]
 
 attsText :: TextStyle -> [Attribute]
 attsText o =
-  [ term "stroke_width" "0.0",
+  [ term "stroke-width" "0.0",
     term "stroke" "none",
     term "fill" (toHex $ o ^. #color),
-    term "fill_opacity" (show $ opac $ o ^. #color),
-    term "font_size" (show $ o ^. #size),
-    term "text_anchor" (toTextAnchor $ o ^. #anchor)
+    term "fill-opacity" (show $ opac $ o ^. #color),
+    term "font-size" (show $ o ^. #size),
+    term "text-anchor" (toTextAnchor $ o ^. #anchor)
   ]
     <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
   where
@@ -272,19 +279,19 @@ attsText o =
 
 attsGlyph :: GlyphStyle -> [Attribute]
 attsGlyph o =
-  [ term "stroke_width" (show $ o ^. #borderSize),
+  [ term "stroke-width" (show $ o ^. #borderSize),
     term "stroke" (toHex $ o ^. #borderColor),
-    term "stroke_opacity" (show $ opac $ o ^. #borderColor),
+    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
     term "fill" (toHex $ o ^. #color),
-    term "fill_opacity" (show $ opac $ o ^. #color)
+    term "fill-opacity" (show $ opac $ o ^. #color)
   ]
     <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
 
 attsLine :: LineStyle -> [Attribute]
 attsLine o =
-  [ term "stroke_width" (show $ o ^. #width),
+  [ term "stroke-width" (show $ o ^. #width),
     term "stroke" (toHex $ o ^. #color),
-    term "stroke_opacity" (show $ opac $ o ^. #color),
+    term "stroke-opacity" (show $ opac $ o ^. #color),
     term "fill" "none"
   ]
 

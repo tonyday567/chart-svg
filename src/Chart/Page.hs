@@ -33,7 +33,6 @@ module Chart.Page
     repRounded,
     repTriple,
     repGlyphShape,
-    repChoice,
     repLegendOptions,
     repChartsWithSharedData,
     repChartsWithStaticData,
@@ -46,6 +45,7 @@ module Chart.Page
     repPixelOptions,
     repPixelLegendOptions,
     repPixelChart,
+    repNoData,
   )
 where
 
@@ -55,17 +55,14 @@ import Chart.Format
 import Chart.Pixel
 import Chart.Render (renderHudOptionsChart)
 import Chart.Types
-import Control.Category (id)
 import Control.Lens
 import Data.Attoparsec.Text
-import Data.Biapplicative
-import qualified Data.List as List
 import qualified Data.Text as Text
 import Lucid
+import NumHask.Prelude
 import NumHask.Space
-import Protolude hiding ((<<*>>))
 import Text.Pretty.Simple (pShowNoColor)
-import Web.Page hiding (bool)
+import Web.Page
 
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor
@@ -88,15 +85,6 @@ chartStyler doDebug =
         )
   where
     sec d n = divClass_ d (with div_ [id_ n] mempty)
-
-subtype :: With a => a -> Text -> Text -> a
-subtype h origt t =
-  with
-    h
-    [ class__ "subtype ",
-      data_ "sumtype" t,
-      style_ ("display:" <> bool "block" "none" (origt /= t))
-    ]
 
 repChartStaticData :: (Monad m) => Chart a -> SharedRep m (Chart a)
 repChartStaticData c = do
@@ -153,7 +141,7 @@ repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls
 repRectStyle :: (Monad m) => RectStyle -> SharedRep m RectStyle
 repRectStyle s = do
   bs <- slider (Just "border size") 0.0 0.1 0.001 (s ^. #borderSize)
-  bc <- colorPicker (Just "border color") (hex $  s ^. #borderColor)
+  bc <- colorPicker (Just "border color") (hex $ s ^. #borderColor)
   bo <- slider (Just "border opacity") 0 1 0.1 (opac $ s ^. #borderColor)
   c <- colorPicker (Just "color") (hex $ s ^. #color)
   o <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
@@ -617,7 +605,7 @@ repTickStyle cfg =
       _ -> TickNone
     dtDef = case cfg of
       TickPlaced x -> x
-      _ -> zip [0 .. 5] (Text.pack . show <$> [0 .. 5 :: Int])
+      _ -> zip [0 .. 5] (pack . show <$> [0 .. 5 :: Int])
     dt _ (x, l) = (,) <$> slider (Just "placement") 0 1 0.01 x <*> textbox (Just "label") l
     defLabels = case cfg of
       TickLabels xs -> xs
@@ -795,22 +783,6 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
       TriangleGlyph a b c -> (a, b, c)
       _ -> (Point 0.0 0.0, Point 1 1, Point 1 0)
 
-repChoice :: (Monad m) => Int -> [(Text, SharedRep m (Text, Text))] -> SharedRep m (Text, Text)
-repChoice initt xs =
-  bimap hmap mmap dd
-    <<*>> foldr (\x a -> bimap (:) (:) x <<*>> a) (pure []) cs
-  where
-    ts = fst <$> xs
-    cs = snd <$> xs
-    dd = dropdownSum takeText id Nothing ts t0
-    t0 = ts List.!! initt
-    hmap dd' cs' =
-      div_
-        ( dd'
-            <> mconcat (zipWith (\c t -> subtype c t0 t) cs' ts)
-        )
-    mmap dd' cs' = maybe (List.head cs') (cs' List.!!) (List.elemIndex dd' ts)
-
 repLegendOptions :: (Monad m) => LegendOptions -> SharedRep m LegendOptions
 repLegendOptions initl =
   bimap
@@ -958,7 +930,7 @@ debugHtml debug css hc cs =
       ( mconcat $
           (\x -> "<p style='white-space: pre'>" <> x <> "</p>")
             <$> [ "<h2>chart value</h2>",
-                  Text.pack $ show cs
+                  pack $ show cs
                 ]
       )
       ((\(_, _, a) -> a) debug)
@@ -1180,3 +1152,7 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
           ("Pixel Legend Options", rplo'),
           ("Debug", debug)
         ]
+
+repNoData :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
+repNoData css ann hc =
+  repChartsWithStaticData css hc 10 [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]

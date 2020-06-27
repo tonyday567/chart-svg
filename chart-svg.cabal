@@ -1,6 +1,6 @@
-cabal-version: 3.0
+cabal-version:  2.4
 name:           chart-svg
-version:        0.0.3
+version:        0.1.0
 synopsis:       Charts in SVG
 description:    Chart library targetting SVG.
 category:       project
@@ -13,7 +13,7 @@ license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
-    stack.yaml
+  stack.yaml
 
 source-repository head
   type: git
@@ -34,67 +34,93 @@ library
     Chart.Page
     Chart.Types
   hs-source-dirs:
-      src
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+    src
   build-depends:
-      Color
-    , attoparsec
-    , base >=4.7 && <5
-    , bifunctors
-    , foldl
-    , generic-lens >= 1.2 && < 3.0
-    , lucid
-    , lens
-    , numhask-space
-    , pretty-simple
-    , protolude >= 0.3 && < 0.4
-    , scientific
-    , tagsoup
-    , text
-    , text-format
-    , time
-    , transformers
-    , web-rep
+    Color >= 0.1.4,
+    attoparsec >= 0.13,
+    base >=4.7 && <5,
+    foldl >= 1.4,
+    generic-lens >= 1.2 && < 3.0,
+    lucid >= 2.9,
+    lens >= 4.0,
+    numhask-prelude >= 0.6,
+    numhask-space >= 0.5,
+    pretty-simple >= 3.2,
+    scientific >= 0.3,
+    tagsoup >= 0.14,
+    text >= 1.2,
+    time >= 1.9,
+    transformers >= 0.5,
+    web-rep >= 0.6
   default-language: Haskell2010
+  default-extensions:
+    NegativeLiterals
+    NoImplicitPrelude
+    OverloadedStrings
+    UnicodeSyntax
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
 
 executable examples
   main-is: examples.hs
   hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+    app
   build-depends:
-      base >=4.7 && <5
-    , chart-svg
-    , lens
-    , javascript-bridge
-    , protolude >= 0.3 && < 0.4
-    , scotty
-    , text
-    , transformers
-    , unordered-containers
-    , wai-middleware-static
-    , web-rep
+    base >=4.7 && <5,
+    chart-svg,
+    lens >= 4.0,
+    numhask-prelude >= 0.6,
+    scotty >= 0.11,
+    text >= 1.2,
+    transformers >= 0.5,
+    unordered-containers >= 0.2.10,
+    wai-middleware-static >= 0.8,
+    web-rep >= 0.6
   default-language: Haskell2010
+  default-extensions:
+    NegativeLiterals
+    NoImplicitPrelude
+    OverloadedStrings
+    UnicodeSyntax
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
 
 executable venn
   main-is: venn.hs
   hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+    app
   build-depends:
-      base >=4.7 && <5
-    , containers
-    , chart-svg
-    , generic-lens >= 1.2 && < 3.0
-    , lucid
-    , lens
-    , javascript-bridge
-    , numhask-space
-    , protolude >= 0.3 && < 0.4
-    , scotty
-    , text
-    , transformers
-    , unordered-containers
-    , wai-middleware-static
-    , web-rep
+    base >=4.7 && <5,
+    containers >= 0.6,
+    chart-svg,
+    generic-lens >= 1.2 && < 3.0,
+    lucid >= 2.9,
+    lens >= 4.0,
+    numhask-prelude >= 0.6,
+    numhask-space >= 0.5,
+    scotty >= 0.11,
+    text >= 1.2,
+    transformers >= 0.5,
+    unordered-containers >= 0.2.10,
+    wai-middleware-static >= 0.8,
+    web-rep >= 0.6
   default-language: Haskell2010
+  default-extensions:
+    NegativeLiterals
+    NoImplicitPrelude
+    OverloadedStrings
+    UnicodeSyntax
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints

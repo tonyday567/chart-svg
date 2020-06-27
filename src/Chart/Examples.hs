@@ -8,13 +8,11 @@
 module Chart.Examples where
 
 import Chart
-import Control.Applicative
 import Control.Lens
-import Data.Maybe
-import qualified Data.Text as Text
-import GHC.Generics
-import Protolude
 import Data.List ((!!))
+import qualified Data.Text as Text
+import NumHask.Prelude
+import Web.Page
 
 data Ex
   = Ex
@@ -28,6 +26,10 @@ data Ex
 
 makeExample :: HudOptions -> [Chart Double] -> Ex
 makeExample hs cs = Ex defaultSvgOptions hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #spots <$> cs)
+
+repEx :: (Monad m) => Ex -> SharedRep m (Text, Text)
+repEx (Ex css hc maxcs anns xs) =
+  repChartsWithStaticData css hc maxcs (zipWith Chart anns xs)
 
 writeChartExample :: FilePath -> Ex -> IO ()
 writeChartExample fp (Ex css' hc' _ anns' spots') =
@@ -132,7 +134,7 @@ textExample =
     (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) . (: []) . fst <$> ts)
     ((: []) . SpotPoint . snd <$> ts)
   where
-    ts :: [(Text.Text, Point Double)]
+    ts :: [(Text, Point Double)]
     ts =
       zip
         (fmap Text.singleton ['a' .. 'y'])
@@ -173,8 +175,8 @@ barDataExample :: BarData
 barDataExample =
   BarData
     [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]]
-    (Just (("row " <>) . Text.pack . show <$> [1 .. 11]))
-    (Just (("column " <>) . Text.pack . show <$> [1 .. 2]))
+    (Just (("row " <>) . pack . show <$> [1 .. 11]))
+    (Just (("column " <>) . pack . show <$> [1 .. 2]))
 
 barExample :: Ex
 barExample = makeExample hc cs
@@ -185,7 +187,7 @@ barExample = makeExample hc cs
 pixelEx :: ([Chart Double], [Hud Double])
 pixelEx = pixelfl f1 (defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2) (defaultPixelLegendOptions "pixel test")
 
-f1 :: (Floating a) => Point a -> a
+f1 :: (TrigField a) => Point a -> a
 f1 (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 
 -- * stuff
@@ -235,9 +237,9 @@ glines = cs <> gs
     cs = zipWith (\d s -> Chart (LineA s) (SpotPoint <$> d)) ls lopts
     gs = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) ls gopts3
 
-lgdata :: [(Text.Text, Point Double)]
+lgdata :: [(Text, Point Double)]
 lgdata =
-  (\p@(Point x y) -> (Text.pack (show x <> "," <> show y), fromIntegral <$> p))
+  (\p@(Point x y) -> (pack (show x <> "," <> show y), fromIntegral <$> p))
     <$> (Point <$> [0 .. 5] <*> [0 .. 5] :: [Point Int])
 
 lglyph :: [Chart Double]
@@ -248,7 +250,7 @@ lglyph = txt <> gly
           Chart
             ( TextA
                 ( defaultTextStyle
-                    & #color %~ (\x -> setAlpha x 0.2)
+                    & #color %~ (`setAlpha` 0.2)
                     & #translate ?~ Point 0 0.04
                 )
                 [t]
@@ -280,7 +282,7 @@ labelExample =
     (annotation <$> label)
     (spots <$> label)
 
-placedLabel :: (Chartable a) => Point a -> a -> Text.Text -> Chart a
+placedLabel :: (Chartable a) => Point a -> a -> Text -> Chart a
 placedLabel p d t =
   Chart (TextA (defaultTextStyle & #rotation ?~ realToFrac d) [t]) [SpotPoint p]
 

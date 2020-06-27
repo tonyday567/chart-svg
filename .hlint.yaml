@@ -5,10 +5,11 @@
 - ignore: {name: Reduce duplication, within: Chart.Examples}
 - ignore: {name: Reduce duplication, within: Chart.Bar}
 # Replace a $ b $ c with a . b $ c
-- group: {name: dollar, enabled: true}
+#- group: {name: dollar, enabled: true}
 
 # Generalise map to fmap, ++ to <>
 - group: {name: generalise, enabled: true}
+- ignore: {name: Use head, within: [Chart.Types, Chart.Examples]}
 
 # To generate a suitable file for HLint do:
 # $ hlint --default > .hlint.yaml

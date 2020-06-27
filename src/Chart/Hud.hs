@@ -29,14 +29,13 @@ import Chart.Core
 import Chart.Format
 import Chart.Svg (styleBox, styleBoxText, styleBoxes)
 import Chart.Types
-import Control.Category (id)
 import qualified Control.Foldl as L
 import Control.Lens
-import Control.Monad.Trans.State.Lazy
+-- import Control.Monad.Trans.State.Lazy
 import Data.Time
-import GHC.Generics
+import NumHask.Prelude
 import NumHask.Space
-import Protolude
+import qualified Prelude as P
 
 -- | combine huds and charts to form a new Chart using the supplied
 -- initial canvas and data dimensions.
@@ -174,7 +173,7 @@ title_ t a =
   Chart
     ( TextA
         ( style'
-            & #translate ?~ (realToFrac <$> (placePos' a + alignPos a))
+            & #translate ?~ (realToFrac <$> (placePos' a P.+ alignPos a))
             & #rotation ?~ rot
         )
         [t ^. #text]
@@ -344,7 +343,7 @@ tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> Rect Double -> Rect 
 tickGlyph_ pl (g, b) ts ca da xs =
   Chart
     (GlyphA (g & #rotation .~ (realToFrac <$> placeRot pl)))
-    ( SpotPoint . (placePos pl b ca +) . placeOrigin pl
+    ( SpotPoint . (placePos pl b ca P.+) . placeOrigin pl
         <$> positions
           (ticksPlaced ts pl da xs)
     )
@@ -383,7 +382,7 @@ tickText_ pl (txts, b) ts ca da xs =
           [SpotPoint sp]
     )
     (labels $ ticksPlaced ts pl da xs)
-    ( (placePos pl b ca + textPos pl txts b +) . placeOrigin pl
+    ( (placePos pl b ca P.+ textPos pl txts b P.+) . placeOrigin pl
         <$> positions (ticksPlaced ts pl da xs)
     )
 
@@ -556,7 +555,7 @@ makeTickDates pc fmt n dates =
 
 -- | Convert a UTCTime list into sensible ticks, placed on the (0,1) space
 makeTickDatesContinuous :: PosDiscontinuous -> Maybe Text -> Int -> [UTCTime] -> [(Double, Text)]
-makeTickDatesContinuous pc fmt n dates = placedTimeLabelContinuous pc fmt n (l,u)
+makeTickDatesContinuous pc fmt n dates = placedTimeLabelContinuous pc fmt n (l, u)
   where
     l = minimum dates
     u = maximum dates

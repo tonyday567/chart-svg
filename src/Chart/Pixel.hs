@@ -27,12 +27,10 @@ import Chart.Core
 import Chart.Hud
 import Chart.Svg (styleBox)
 import Chart.Types
-import Control.Category (id)
 import Control.Lens
 import Data.Generics.Labels ()
-import GHC.Generics
+import NumHask.Prelude
 import NumHask.Space
-import Protolude
 
 data PixelOptions
   = PixelOptions

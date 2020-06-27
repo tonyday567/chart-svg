@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -18,12 +17,9 @@ module Chart.Format
 where
 
 import Chart.Types
-import Data.Foldable
 import Data.List (nub)
-import Data.Monoid
 import Data.Scientific
-import qualified Data.Text as Text
-import Protolude
+import NumHask.Prelude
 
 fromFormatN :: (IsString s) => FormatN -> s
 fromFormatN (FormatFixed _) = "Fixed"
@@ -43,25 +39,25 @@ toFormatN "None" _ = FormatNone
 toFormatN _ _ = FormatNone
 
 fixed :: Int -> Double -> Text
-fixed x n = Text.pack $ formatScientific Fixed (Just x) (fromFloatDigits n)
+fixed x n = pack $ formatScientific Fixed (Just x) (fromFloatDigits n)
 
 comma :: Int -> Double -> Text
 comma n a
   | a < 1000 = fixed n a
-  | otherwise = go (floor a) ""
+  | otherwise = go (fromInteger $ floor a) ""
   where
     go :: Int -> Text -> Text
     go x t
       | x < 0 = "-" <> go (- x) ""
-      | x < 1000 = Text.pack (show x) <> t
+      | x < 1000 = pack (show x) <> t
       | otherwise =
         let (d, m) = divMod x 1000
-         in go d ("," <> Text.pack (show' m))
+         in go d ("," <> pack (show' m))
       where
         show' n' = let x' = show n' in (replicate (3 - length x') '0' <> x')
 
 expt :: Int -> Double -> Text
-expt x n = Text.pack $ formatScientific Exponent (Just x) (fromFloatDigits n)
+expt x n = pack $ formatScientific Exponent (Just x) (fromFloatDigits n)
 
 dollar :: Double -> Text
 dollar = ("$" <>) . comma 2
@@ -75,7 +71,7 @@ formatN (FormatComma n) x = comma n x
 formatN (FormatExpt n) x = expt n x
 formatN FormatDollar x = dollar x
 formatN (FormatPercent n) x = percent n x
-formatN FormatNone x = Text.pack (show x)
+formatN FormatNone x = pack (show x)
 
 -- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
 precision :: (Int -> Double -> Text) -> Int -> [Double] -> [Text]
@@ -94,4 +90,4 @@ formatNs (FormatComma n) xs = precision comma n xs
 formatNs (FormatExpt n) xs = precision expt n xs
 formatNs FormatDollar xs = precision (const dollar) 2 xs
 formatNs (FormatPercent n) xs = precision percent n xs
-formatNs FormatNone xs = Text.pack . show <$> xs
+formatNs FormatNone xs = pack . show <$> xs

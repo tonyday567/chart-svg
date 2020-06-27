@@ -7,21 +7,10 @@
 
 import Chart
 import Chart.Examples
-import Control.Category (id)
 import Control.Lens
-import Control.Monad.Trans.State.Lazy
-import Network.Wai.Middleware.Static ((>->), addBase, noDots, staticPolicy)
-import Protolude hiding ((<<*>>), Rep, replace)
+import NumHask.Prelude hiding (replace)
 import Web.Page
 import Web.Scotty
-
-repNoData :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
-repNoData css ann hc =
-  repChartsWithStaticData css hc 10 [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]
-
-repEx :: (Monad m) => Ex -> SharedRep m (Text, Text)
-repEx (Ex css hc maxcs anns xs) =
-  repChartsWithStaticData css hc maxcs (zipWith Chart anns xs)
 
 midChart ::
   SharedRep IO (Text, Text) ->
@@ -55,7 +44,6 @@ updateChart e (Right (_, Right (c, d))) = do
 main :: IO ()
 main =
   scotty 3000 $ do
-    middleware $ staticPolicy (noDots >-> addBase "other")
     middleware
       ( midChart
           ( repChoice

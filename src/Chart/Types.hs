@@ -6,7 +6,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -94,11 +93,11 @@ import Chart.Color
 import Control.Lens
 import Data.Generics.Labels ()
 import Data.List ((!!))
-import qualified Data.Text as Text
-import GHC.Exts
-import GHC.Generics
+-- import qualified Data.Text as Text
+
+import NumHask.Prelude
 import NumHask.Space hiding (Element)
-import Protolude
+import qualified Prelude as P
 
 -- * Chart
 
@@ -120,7 +119,7 @@ type Chartable a =
 -- | The use of #rowName with Annotation doesn't seem to mesh well with polymorphism, so a switch to concrete types (which fit it with svg-tree methods) occurs at this layer, and the underlying ADTs use a lot of Doubles
 data Annotation
   = RectA RectStyle
-  | TextA TextStyle [Text.Text]
+  | TextA TextStyle [Text]
   | GlyphA GlyphStyle
   | LineA LineStyle
   | BlankA
@@ -298,31 +297,33 @@ data Spot a
   deriving (Eq, Show, Functor)
 
 instance (Ord a, Num a, Fractional a) => Num (Spot a) where
-  SpotPoint (Point x y) + SpotPoint (Point x' y') = SpotPoint (Point (x + x') (y + y'))
-  SpotPoint (Point x' y') + SpotRect (Rect x z y w) = SpotRect $ Rect (x + x') (z + x') (y + y') (w + y')
-  SpotRect (Rect x z y w) + SpotPoint (Point x' y') = SpotRect $ Rect (x + x') (z + x') (y + y') (w + y')
+  SpotPoint (Point x y) + SpotPoint (Point x' y') = SpotPoint (Point (x P.+ x') (y P.+ y'))
+  SpotPoint (Point x' y') + SpotRect (Rect x z y w) = SpotRect $ Rect (x P.+ x') (z P.+ x') (y P.+ y') (w P.+ y')
+  SpotRect (Rect x z y w) + SpotPoint (Point x' y') = SpotRect $ Rect (x P.+ x') (z P.+ x') (y P.+ y') (w P.+ y')
   SpotRect (Rect x z y w) + SpotRect (Rect x' z' y' w') =
-    SpotRect $ Rect (x + x') (z + z') (y + y') (w + w')
+    SpotRect $ Rect (x P.+ x') (z P.+ z') (y P.+ y') (w P.+ w')
 
   x * y = SpotRect $ toRect x `multRect` toRect y
 
-  abs x = SpotPoint $ abs <$> toPoint x
+  abs x = SpotPoint $ P.abs <$> toPoint x
 
   signum x = SpotPoint $ signum <$> toPoint x
 
-  negate (SpotPoint (Point x y)) = SpotPoint (Point (- x) (- y))
-  negate (SpotRect (Rect x z y w)) = SpotRect (Rect (- x) (- z) (- y) (- w))
+  negate (SpotPoint (Point x y)) = SpotPoint (Point (P.negate x) (P.negate y))
+  negate (SpotRect (Rect x z y w)) = SpotRect (Rect (P.negate x) (P.negate z) (P.negate y) (P.negate w))
 
-  fromInteger x = SP (fromInteger x) (fromInteger x)
+  fromInteger x = SP (P.fromInteger x) (P.fromInteger x)
 
 -- | pattern for SP x y
 pattern SP :: a -> a -> Spot a
 pattern SP a b = SpotPoint (Point a b)
+
 {-# COMPLETE SP #-}
 
 -- | pattern for SA lowerx upperx lowery uppery
 pattern SR :: a -> a -> a -> a -> Spot a
 pattern SR a b c d = SpotRect (Rect a b c d)
+
 {-# COMPLETE SR #-}
 
 -- | Convert a spot to an Rect
@@ -340,7 +341,7 @@ instance (Ord a) => Semigroup (Spot a) where
 
 -- | additive padding
 padRect :: (Num a) => a -> Rect a -> Rect a
-padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
+padRect p (Rect x z y w) = Rect (x P.- p) (z P.+ p) (y P.- p) (w P.+ p)
 
 data EscapeText = EscapeText | NoEscapeText deriving (Show, Eq, Generic)
 
