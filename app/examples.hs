@@ -15,9 +15,9 @@ import Lucid
 chartServer :: SharedRep IO (Text, Text) -> IO ()
 chartServer srep = sharedServer srep defaultSocketConfig (chartStyler True) defaultInputCode chartOutputCode
 
-chartOutputCode :: Either Text (Text,Text) -> [Code]
+chartOutputCode :: Either Text (Text,Text) -> IO [Code]
 chartOutputCode ea = do
-    case ea of
+    pure $ case ea of
         Left err -> [Append "debug" ("hashmap error: " <> err)]
         Right (chart',debug') ->
           [ Replace "output" chart',
