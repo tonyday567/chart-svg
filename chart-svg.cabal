@@ -73,12 +73,11 @@ executable examples
     base >=4.7 && <5,
     chart-svg,
     lens >= 4.0,
+    lucid >= 2.9,
     numhask-prelude >= 0.6,
-    scotty >= 0.11,
     text >= 1.2,
     transformers >= 0.5,
     unordered-containers >= 0.2.10,
-    wai-middleware-static >= 0.8,
     web-rep >= 0.6
   default-language: Haskell2010
   default-extensions:
@@ -106,11 +105,9 @@ executable venn
     lens >= 4.0,
     numhask-prelude >= 0.6,
     numhask-space >= 0.5,
-    scotty >= 0.11,
     text >= 1.2,
     transformers >= 0.5,
     unordered-containers >= 0.2.10,
-    wai-middleware-static >= 0.8,
     web-rep >= 0.6
   default-language: Haskell2010
   default-extensions:

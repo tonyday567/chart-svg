@@ -4,6 +4,7 @@ packages:
   - .
 
 extra-deps:
+  # numhask pack
   - git: https://github.com/tonyday567/numhask-space
     commit: 6525f5096525196fe367dabdfe596a7bd0c0aa6c
   - git: https://github.com/tonyday567/numhask
@@ -12,10 +13,13 @@ extra-deps:
   - git: https://github.com/tonyday567/numhask
     commit: 37ee8dced120f60a511baa6bb6c7ac382b1e8827
     subdir: numhask
+
+  # box pack
   - git: https://github.com/tonyday567/box
-    commit: 6df3c4542ead135d31d0e1d7d06dcc2052915079
+    commit: c646bd417574366b0c2d5ff529974ad55e202783
+  - git: https://github.com/tonyday567/box-socket
+    commit: c22ff8122f10ca5a709ff1ec73bd80924687271d
   - git: https://github.com/tonyday567/web-rep
-    commit: 3bd6b82c33a80b4f7c785e042839be9d12fab3de
-  - javascript-bridge-0.2.0
+    commit: 6b0c25395538b59bb28edad3fd1b4d69b94477b9
 
 allow-newer: true

@@ -7,8 +7,7 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Chart.Page
-  ( chartStyler,
-    repChartStaticData,
+  ( repChartStaticData,
     repAnnotation,
     repRectStyle,
     repTextStyle,
@@ -66,25 +65,6 @@ import Web.Page
 
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor
-
-chartStyler :: Bool -> Page
-chartStyler doDebug =
-  mathjaxSvgPage "hasmathjax"
-    <> bootstrapPage
-    <> bridgePage
-    & #htmlHeader .~ title_ "chart styler"
-    & #htmlBody
-      .~ divClass_
-        "container"
-        ( divClass_
-            "row d-flex justify-content-between"
-            ( sec "col4" "input"
-                <> sec "col8" "output"
-            )
-            <> bool mempty (divClass_ "row" (with div_ [id_ "debug"] mempty)) doDebug
-        )
-  where
-    sec d n = divClass_ d (with div_ [id_ n] mempty)
 
 repChartStaticData :: (Monad m) => Chart a -> SharedRep m (Chart a)
 repChartStaticData c = do
@@ -1073,9 +1053,6 @@ repPixelOptions cfg =
           ("Range", pr'),
           ("Style", ps')
         ]
-
--- PixelLegendOptions
---      {ploStyle :: PixelStyle, ploTitle :: Text, ploWidth :: Double, ploAxisOptions :: AxisOptions, ploLegendOptions :: LegendOptions}
 
 repPixelLegendOptions ::
   (Monad m) =>
