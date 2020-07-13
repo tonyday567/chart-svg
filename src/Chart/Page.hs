@@ -61,7 +61,7 @@ import Lucid
 import NumHask.Prelude
 import NumHask.Space
 import Text.Pretty.Simple (pShowNoColor)
-import Web.Page
+import Web.Rep
 
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor
@@ -605,7 +605,7 @@ repTickStyle cfg =
 repTick :: (Monad m) => Tick -> SharedRep m Tick
 repTick cfg = SharedRep $ do
   (Rep h fa) <-
-    unrep $ bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
+    unshare $ bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
   h' <- zoom _1 h
   pure (Rep h' fa)
   where

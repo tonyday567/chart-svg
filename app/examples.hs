@@ -9,7 +9,7 @@ import Chart
 import Chart.Examples
 import Control.Lens
 import NumHask.Prelude hiding (replace)
-import Web.Page
+import Web.Rep
 import Lucid
 
 chartServer :: SharedRep IO (Text, Text) -> IO ()

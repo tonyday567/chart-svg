@@ -12,7 +12,7 @@ import Control.Lens
 import Data.List ((!!))
 import qualified Data.Text as Text
 import NumHask.Prelude
-import Web.Page
+import Web.Rep
 
 data Ex
   = Ex
