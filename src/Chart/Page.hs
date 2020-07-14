@@ -602,15 +602,12 @@ repTickStyle cfg =
       TickRound _ _ e -> e == TickExtend
       _ -> True
 
+
 repTick :: (Monad m) => Tick -> SharedRep m Tick
-repTick cfg = SharedRep $ do
-  (Rep h fa) <-
-    unshare $ bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
-  h' <- zoom _1 h
-  pure (Rep h' fa)
+repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
   where
     hmap ts' gt' tt' lt' =
-      accordion
+      accordion_
         "acctick"
         Nothing
         [ ("style", ts'),
