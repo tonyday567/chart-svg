@@ -26,16 +26,8 @@ module Chart.Color
     unsafeFromHex,
     fromHexOpac,
 
-    -- * named colors
+    grayscale,
     colorText,
-    colorPixelMin,
-    colorPixelMax,
-    colorFrame,
-    colorCanvas,
-    colorGlyphTick,
-    colorLineTick,
-    colorTextTick,
-    colorGrey,
     transparent,
     black,
     white,
@@ -65,9 +57,6 @@ opac c = getAlpha c
 
 hex :: Colour -> Text
 hex c = toHex c
-
-palette :: [Colour]
-palette = unsafeFromHex <$> ["#0ea194", "#0a865a", "#9d1102", "#f8a631", "#695b1e", "#31331c", "#454e56", "#94a7b5", "#ab7257", "#001114", "#042f1e", "#033d26", "#034243", "#026062"]
 
 -- | interpolate between 2 colors
 blend :: Double -> Colour -> Colour -> Colour
@@ -125,39 +114,20 @@ i2d (I# i#) = C# (chr# (ord# '0'# +# i#))
 fromHexOpac :: Text -> Double -> Colour
 fromHexOpac t o = setAlpha (unsafeFromHex t) o
 
--- some colors used
+palette :: [Colour]
+palette = unsafeFromHex <$> ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928"]
+
+grayscale :: Double -> Colour
+grayscale n = Colour n n n 1
+
 colorText :: Colour
-colorText = Colour 0.2 0.2 0.2 1
-
-colorPixelMin :: Colour
-colorPixelMin = Colour 0.8 0.8 0.8 1
-
-colorPixelMax :: Colour
-colorPixelMax = Colour 0.1 0.1 1 1
-
-colorFrame :: Colour
-colorFrame = Colour 0 0 1 0.4
-
-colorCanvas :: Colour
-colorCanvas = Colour 0.8 0.8 0.8 0.1
-
-colorGlyphTick :: Colour
-colorGlyphTick = Colour 0.34 0.05 0.4 0.5
-
-colorLineTick :: Colour
-colorLineTick = Colour 0.5 0.5 0.5 0.1
-
-colorTextTick :: Colour
-colorTextTick = Colour 0.2 0.2 0.2 0.8
-
-colorGrey :: Colour
-colorGrey = Colour 0.5 0.5 0.5 1
+colorText = grayscale 0.2
 
 black :: Colour
-black = Colour 0 0 0 1
+black = grayscale 0
 
 white :: Colour
-white = Colour 1 1 1 1
+white = grayscale 1
 
 transparent :: Colour
 transparent = Colour 0 0 0 0

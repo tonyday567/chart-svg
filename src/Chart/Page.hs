@@ -182,7 +182,7 @@ repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Noth
 
 repTextStyle :: (Monad m) => TextStyle -> SharedRep m TextStyle
 repTextStyle s = do
-  ts <- slider (Just "size") 0.02 0.3 0.01 (s ^. #size)
+  ts <- slider (Just "size") 0.02 0.2 0.01 (s ^. #size)
   tc <- colorPicker (Just "color") (toHex $ s ^. #color)
   to' <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
   ta <- repAnchor (s ^. #anchor)
@@ -268,8 +268,8 @@ repOrientation a =
 repBar :: (Monad m) => Bar -> SharedRep m Bar
 repBar cfg = do
   r <- repRectStyle (cfg ^. #rstyle)
-  w <- slider (Just "width") 0 0.1 0.01 (cfg ^. #wid)
-  b <- slider (Just "buffer") 0 0.2 0.01 (cfg ^. #buff)
+  w <- slider (Just "width") 0 0.04 0.001 (cfg ^. #wid)
+  b <- slider (Just "buffer") 0 0.08 0.001 (cfg ^. #buff)
   pure $ Bar r w b
 
 repAdjustments :: (Monad m) => Adjustments -> SharedRep m Adjustments
@@ -433,12 +433,12 @@ repSvgOptions s =
       maybeRep
         (Just "outer pad")
         (isJust (s ^. #outerPad))
-        (slider Nothing 1 1.2 0.01 (fromMaybe 1 (s ^. #outerPad)))
+        (slider Nothing 0 0.1 0.01 (fromMaybe 1 (s ^. #outerPad)))
     ip =
       maybeRep
         (Just "inner pad")
         (isJust (s ^. #innerPad))
-        (slider Nothing 1 1.2 0.01 (fromMaybe 1 (s ^. #innerPad)))
+        (slider Nothing 0 0.1 0.01 (fromMaybe 1 (s ^. #innerPad)))
     fr =
       maybeRep
         (Just "frame")
@@ -896,10 +896,11 @@ debugHtml debug css hc cs =
     <> bool
       mempty
       ( mconcat $
-          (\x -> "<p style='white-space: pre'>" <> x <> "</p>")
-            <$> [ "<h2>chart svg</h2>",
-                  renderHudOptionsChart css hc [] cs
-                ]
+          [ "<h2>chart svg</h2>",
+            "<xmp>",
+            renderHudOptionsChart css hc [] cs,
+            "</xmp>"
+          ]
       )
       ((\(_, a, _) -> a) debug)
     <> bool
@@ -948,6 +949,7 @@ repBarOptions nrows defrs defts cfg =
     <<*>> og
     <<*>> ig
     <<*>> tg
+    <<*>> tgn
     <<*>> dv
     <<*>> fn
     <<*>> av
@@ -975,6 +977,7 @@ repBarOptions nrows defrs defts cfg =
     og = slider (Just "outer gap") 0.0 1.0 0.001 (cfg ^. #outerGap)
     ig = slider (Just "inner gap") (-1.0) 1 0.001 (cfg ^. #innerGap)
     tg = slider (Just "text gap") (-0.05) 0.05 0.001 (cfg ^. #textGap)
+    tgn = slider (Just "neg. text gap") 0 0.1 0.001 (cfg ^. #textGapNegative)
     dv = checkbox (Just "display values") (cfg ^. #displayValues)
     fn = repFormatN (cfg ^. #valueFormatN)
     av = checkbox (Just "accumulate values") (cfg ^. #accumulateValues)
@@ -991,13 +994,13 @@ repBarOptions nrows defrs defts cfg =
         BlankA
         ""
         (cfg ^. #barHudOptions)
-    hmap rs' ts' og' ig' tg' dv' fn' av' or' ho' =
+    hmap rs' ts' og' ig' tg' tgn' dv' fn' av' or' ho' =
       accordion_
         "accbo"
         Nothing
         [ ("Bar Styles", rs'),
           ("Text Styles", ts'),
-          ("Gaps", og' <> ig' <> tg'),
+          ("Gaps", og' <> ig' <> tg' <> tgn'),
           ("Style", dv' <> fn' <> av' <> or'),
           ("Hud", ho')
         ]

@@ -47,31 +47,28 @@ chartStyler doDebug =
 main :: IO ()
 main =
   chartServer 
-          ( repChoice
-              0
-              [ ( "examples",
-                  repChoice
-                    0
-                    [ ("mempty", repEx memptyExample),
-                      ("unit", repEx unitExample),
-                      ("hud", repEx hudExample),
-                      ("rect", repEx rectExample),
-                      ("line", repEx lineExample),
-                      ("text", repEx textExample),
-                      ("glyph", repEx glyphExample),
-                      ("bar", repBarChart defaultSvgOptions barDataExample defaultBarOptions),
-                      ("pixel", repPixelChart (defaultSvgOptions, defaultPixelOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2, defaultHudOptions, defaultPixelLegendOptions "pixel test", f1))
-                    ]
-                ),
-                ( "stuff",
-                  repChoice
-                    0
-                    [ ("bound text bug", repEx (makeExample defaultHudOptions boundTextBug)),
-                      ("compound chart", repEx (makeExample defaultHudOptions (lglyph <> glines))),
-                      ("label", repEx (makeExample defaultHudOptions label)),
-                      ("legend test", repNoData defaultSvgOptions BlankA legendTest)
-                    ]
-                ),
-                ("main", repEx mainExample)
-              ]
-          )
+  ( repChoice
+    5
+    [ ("mempty", repEx memptyExample),
+      ("unit", repEx unitExample),
+      ("hud", repEx hudExample),
+      ("rect", repEx rectExample),
+      ("line", repEx lineExample),
+      ("wave", repEx mainExample),
+      ("text", repEx textExample),
+      ("glyphs", repEx glyphExample),
+      ("bar", repBarChart defaultSvgOptions barDataExample defaultBarOptions),
+      ("pixel", repPixelChart
+        (defaultSvgOptions,
+          defaultPixelOptions &
+          #poGrain .~ Point 20 20 &
+          #poRange .~ Rect 1 2 1 2,
+          defaultHudOptions,
+          defaultPixelLegendOptions "pixel test",
+          f1)),
+      ("bound text bug", repEx (makeExample defaultHudOptions boundTextBug)),
+      ("compound chart", repEx (makeExample defaultHudOptions (lglyph <> glines))),
+      ("label", repEx (makeExample defaultHudOptions label)),
+      ("legend test", repNoData defaultSvgOptions BlankA legendTest)
+    ]
+  )

@@ -36,6 +36,7 @@ data BarOptions
         outerGap :: Double,
         innerGap :: Double,
         textGap :: Double,
+        textGapNegative :: Double,
         displayValues :: Bool,
         valueFormatN :: FormatN,
         accumulateValues :: Bool,
@@ -52,6 +53,7 @@ defaultBarOptions =
     0.1
     0
     0.04
+    0.1
     True
     (FormatFixed 0)
     False
@@ -68,15 +70,15 @@ defaultBarOptions =
             ( defaultLegendOptions
                 & #lplace .~ PlaceRight
                 & #lsize .~ 0.12
-                & #vgap .~ 0.16
+                & #vgap .~ 0.4
                 & #hgap .~ 0.14
-                & #ltext . #size .~ 0.16
-                & #lscale .~ 0.33,
+                & #ltext . #size .~ 0.12
+                & #lscale .~ 0.4,
               []
             )
     )
   where
-    gs = (\x -> RectStyle 0.002 colorGrey x) <$> palette
+    gs = (\x -> RectStyle 0.002 x x) <$> palette
     ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette
 
 -- | imagine a data frame ...
@@ -93,7 +95,7 @@ barRects ::
   BarOptions ->
   [[Double]] ->
   [[Rect Double]]
-barRects (BarOptions _ _ ogap igap _ _ _ add orient _) bs = rects'' orient
+barRects (BarOptions _ _ ogap igap _ _ _ _ add orient _) bs = rects'' orient
   where
     bs' = bool bs (appendZero bs) add
     rects'' Hori = rects'
@@ -181,11 +183,11 @@ barChart bo bd =
   )
 
 -- | convert data to a text and Point
-barDataTP :: Bool -> FormatN -> Double -> [[Double]] -> [[(Text, Double)]]
-barDataTP add fn d bs =
+barDataTP :: Bool -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]
+barDataTP add fn d negd bs =
   zipWith (zipWith (\x y' -> (formatN fn x, drop' y'))) bs' (bool bs' (accRows bs') add)
   where
-    drop' x = bool (x - (d * (w - y))) (x + (d * (w - y))) (x >= 0)
+    drop' x = bool (x - (negd * (w - y))) (x + (d * (w - y))) (x >= 0)
     bs' = appendZero bs
     (Rect _ _ y w) = barRange bs'
 
@@ -194,12 +196,12 @@ barTexts ::
   BarOptions ->
   [[Double]] ->
   [[(Text, Point Double)]]
-barTexts (BarOptions _ _ ogap igap tgap _ fn add orient _) bs = zipWith zip (fmap fst <$> barDataTP add fn tgap bs') (txs'' orient)
+barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = zipWith zip (fmap fst <$> barDataTP add fn tgap tgapneg bs') (txs'' orient)
   where
     bs' = bool bs (appendZero bs) add
     txs'' Hori = txs'
     txs'' Vert = fmap (\(Point x y) -> Point y x) <$> txs'
-    txs' = zipWith addX [0 ..] (fmap snd <$> barDataTP add fn tgap bs')
+    txs' = zipWith addX [0 ..] (fmap snd <$> barDataTP add fn tgap tgapneg bs')
     addX z y =
       zipWith
         ( \x y' ->

@@ -109,7 +109,7 @@ renderChartsWith so cs =
     r' = r & maybe id padRect (so ^. #outerPad)
     cs'' =
       cs'
-        & maybe id (\x -> frameChart x (fromMaybe 1 (so ^. #innerPad))) (so ^. #chartFrame)
+        & maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad))) (so ^. #chartFrame)
     (r, cs') =
       bool
         (getViewbox so cs, cs)

@@ -64,7 +64,9 @@ rss =
   ]
 
 ropts :: [RectStyle]
-ropts = zipWith (\c o -> blob (setAlpha c o)) palette [0.2, 0.7]
+ropts = [ blob (setAlpha (palette !! 0) 0.4),
+          blob (setAlpha (palette !! 5) 0.4)
+        ]
 
 -- | line example
 lineExample :: Ex
@@ -92,7 +94,7 @@ lopts :: [LineStyle]
 lopts =
   [ defaultLineStyle & #color .~ (palette !! 0) & #width .~ 0.015,
     defaultLineStyle & #color .~ (palette !! 1) & #width .~ 0.03,
-    defaultLineStyle & #color .~ (palette !! 2) & #width .~ 0.01
+    defaultLineStyle & #color .~ (palette !! 5) & #width .~ 0.01
   ]
 
 legopts :: LegendOptions

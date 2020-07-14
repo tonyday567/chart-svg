@@ -50,7 +50,6 @@ Huds & HudOptions
 
 ![](other/hud.svg)
 
-
 Chart Types
 ===
 
@@ -103,10 +102,3 @@ recipe
 ```
 stack build --exec "$(stack path --local-install-root)/bin/examples" --file-watch
 ```
-
-reference
----------
-
--   [SVG2](https://www.w3.org/TR/SVG2/)
--   [MDN svg](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial)
-

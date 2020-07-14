@@ -145,7 +145,7 @@ data RectStyle
 
 -- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.02 (palette !! 0) (palette !! 1)
+defaultRectStyle = RectStyle 0.01 (setAlpha (palette !! 1) 0.8) (setAlpha (palette !! 1) 0.3)
 
 -- | solid rectangle, no border
 blob :: Colour -> RectStyle
@@ -209,13 +209,13 @@ data GlyphStyle
       }
   deriving (Show, Eq, Generic)
 
--- | the offical circle style
+-- | the offical glyph style
 defaultGlyphStyle :: GlyphStyle
 defaultGlyphStyle =
   GlyphStyle
     0.03
-    (setAlpha (palette !! 0) 0.8)
-    (setAlpha (palette !! 1) 0.4)
+    (setAlpha (palette !! 0) 0.3)
+    (setAlpha (palette !! 1) 0.8)
     0.003
     SquareGlyph
     Nothing
@@ -274,7 +274,7 @@ data PixelStyle
 
 defaultPixelStyle :: PixelStyle
 defaultPixelStyle =
-  PixelStyle colorPixelMin colorPixelMax (pi / 2) (blob black) "pixel"
+  PixelStyle (palette !! 0) (palette !! 1) (pi / 2) (blob black) "pixel"
 
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)
@@ -378,7 +378,7 @@ defaultSvgOptions :: SvgOptions
 defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoEscapeText NoCssOptions ScaleCharts (ManualAspect 1.5)
 
 defaultSvgFrame :: RectStyle
-defaultSvgFrame = border 0.01 colorFrame
+defaultSvgFrame = border 0.01 (grayscale 0.7)
 
 -- | In order to create huds, there are three main pieces of state that need to be kept track of:
 --
@@ -433,7 +433,7 @@ defaultHudOptions =
     Nothing
 
 defaultCanvas :: RectStyle
-defaultCanvas = blob colorCanvas
+defaultCanvas = blob (setAlpha (grayscale 0.5) 0.025)
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -474,7 +474,7 @@ data Bar
   deriving (Show, Eq, Generic)
 
 defaultBar :: Bar
-defaultBar = Bar (RectStyle 0 colorGlyphTick colorGlyphTick) 0.005 0.01
+defaultBar = Bar (RectStyle 0 (grayscale 0.5) (grayscale 0.5)) 0.005 0.01
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 data Title
@@ -512,18 +512,18 @@ defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
     & #borderSize .~ 0.005
-    & #borderColor .~ colorGlyphTick
-    & #color .~ colorGlyphTick
+    & #borderColor .~ grayscale 0.5
+    & #color .~ grayscale 0.5
     & #shape .~ VLineGlyph 0.005
 
 defaultTextTick :: TextStyle
 defaultTextTick =
-  defaultTextStyle & #size .~ 0.05 & #color .~ colorTextTick
+  defaultTextStyle & #size .~ 0.05 & #color .~ grayscale 0.5
 
 defaultLineTick :: LineStyle
 defaultLineTick =
   defaultLineStyle
-    & #color .~ colorLineTick
+    & #color .~ setAlpha (grayscale 0.5) 0.05
     & #width .~ 5.0e-3
 
 defaultTick :: Tick
@@ -532,7 +532,7 @@ defaultTick =
     defaultTickStyle
     (Just (defaultGlyphTick, 0.0125))
     (Just (defaultTextTick, 0.015))
-    (Just (defaultLineTick, 0.005))
+    (Just (defaultLineTick, 0))
 
 -- | Style of tick marks on an axis.
 data TickStyle
@@ -599,12 +599,11 @@ defaultLegendOptions =
     0.1
     ( defaultTextStyle
         & #size .~ 0.08
-        & #color .~ colorGrey
     )
     10
     0.1
     0.1
-    (Just (RectStyle 0.02 (palette !! 0) white))
+    (Just (RectStyle 0.02 (grayscale 0.5) white))
     PlaceBottom
     0.2
 
