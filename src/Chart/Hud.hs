@@ -108,6 +108,7 @@ freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip
       _ -> Rect a0 a1 y w
 freezeTicks _ _ ts = (ts, Nothing)
 
+-- | 
 flipAxis :: AxisOptions -> AxisOptions
 flipAxis ac = case ac ^. #place of
   PlaceBottom -> ac & #place .~ PlaceLeft

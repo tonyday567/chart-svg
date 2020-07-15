@@ -18,7 +18,6 @@ module Chart.Bar
 where
 
 
-import Chart.Hud
 import Chart.Types
 import Control.Lens
 import Data.Generics.Labels ()
@@ -27,7 +26,17 @@ import NumHask.Prelude
 import NumHask.Space
 import qualified Prelude as P
 
+{- $setup
+
+>>> :set -XOverloadedLabels
+>>> :set -XNoImplicitPrelude
+>>> -- import NumHask.Prelude
+>>> import Control.Lens
+
+-}
+
 -- | the usual bar chart eye-candy
+--
 data BarOptions
   = BarOptions
       { barRectStyles :: [RectStyle],
@@ -39,11 +48,12 @@ data BarOptions
         displayValues :: Bool,
         valueFormatN :: FormatN,
         accumulateValues :: Bool,
-        orientation :: Orientation,
+        barOrientation :: Direction,
         barHudOptions :: HudOptions
       }
   deriving (Show, Eq, Generic)
 
+-- | The official bar options.
 defaultBarOptions :: BarOptions
 defaultBarOptions =
   BarOptions
@@ -80,7 +90,16 @@ defaultBarOptions =
     gs = (\x -> RectStyle 0.002 x x) <$> palette1
     ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette1
 
--- | imagine a data frame ...
+{- | imagine a dataframe you get in other languages:
+
+- definietly some [[Double]]
+
+- maybe some row names
+
+- maybe some column names
+
+-}
+
 data BarData
   = BarData
       { barData :: [[Double]],
@@ -90,6 +109,11 @@ data BarData
   deriving (Show, Eq, Generic)
 
 -- | Convert BarData to rectangles
+--
+-- >>> barRects defaultBarOptions [[1,2],[2,3]]
+-- [[Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],[Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0]]
+--
+-- FIXME: slows!
 barRects ::
   BarOptions ->
   [[Double]] ->
@@ -119,6 +143,9 @@ barRects (BarOptions _ _ ogap igap _ _ _ _ add orient _) bs = rects'' orient
 
 -- | convert data to a range assuming a zero bound
 -- a very common but implicit assumption in a lot of bar charts
+--
+-- >>> barDataLowerUpper False [[1,2],[2,3]]
+-- [[(0.0,1.0),(0.0,2.0)],[(0.0,2.0),(0.0,3.0)]]
 barDataLowerUpper :: Bool -> [[Double]] -> [[(Double, Double)]]
 barDataLowerUpper add bs =
   case add of
@@ -126,6 +153,9 @@ barDataLowerUpper add bs =
     True -> fmap (0,) <$> accRows bs
 
 -- | calculate the Rect range of a bar data set.
+--
+-- >>> barRange [[1,2],[2,3]]
+-- Rect 0.0 2.0 0.0 3.0
 barRange ::
   [[Double]] -> Rect Double
 barRange [] = Rect 0 0 0 0
@@ -134,11 +164,16 @@ barRange ys'@(y : ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0 
     (Range l u) = sconcat $ space1 <$> (y NonEmpty.:| ys)
 
 -- | A bar chart without hud trimmings.
+--
+-- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] Nothing Nothing)
+-- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.65 0.81 0.89 1.00, color = RGBA 0.65 0.81 0.89 1.00}), spots = [SpotRect Rect 5.0e-2 0.45 0.0 1.0,SpotRect Rect 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.12 0.47 0.71 1.00, color = RGBA 0.12 0.47 0.71 1.00}), spots = [SpotRect Rect 0.45 0.8500000000000001 0.0 2.0,SpotRect Rect 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, spots = [SpotRect Rect -5.0e-2 1.9500000000000002 0.0 3.0]}]
+--
 bars :: BarOptions -> BarData -> [Chart Double]
 bars bo bd =
   zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (fmap SpotRect <$> barRects bo (bd ^. #barData)) <> [Chart BlankA [SpotRect (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)]]
   where
     (Rect x z y w) = fromMaybe unitRect $ foldRect $ catMaybes $ foldRect <$> barRects bo (bd ^. #barData)
+
 
 maxRows :: [[Double]] -> Int
 maxRows [] = 0
@@ -150,6 +185,7 @@ appendZero xs = (\x -> take (maxRows xs) (x <> repeat 0)) <$> xs
 accRows :: [[Double]] -> [[Double]]
 accRows xs = transpose $ drop 1 . scanl' (+) 0 <$> transpose xs
 
+-- | sensible ticks
 barTicks :: BarData -> TickStyle
 barTicks bd
   | bd ^. #barData == [] = TickNone
@@ -159,13 +195,11 @@ barTicks bd
     TickLabels $ take (maxRows (bd ^. #barData)) $
       fromMaybe [] (bd ^. #barRowLabels) <> repeat ""
 
-flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
-flipAllAxes o = fmap (bool id flipAxis (o == Vert))
-
 tickFirstAxis :: BarData -> [AxisOptions] -> [AxisOptions]
 tickFirstAxis _ [] = []
 tickFirstAxis bd (x : xs) = (x & #atick . #tstyle .~ barTicks bd) : xs
 
+-- | bar legend
 barLegend :: BarData -> BarOptions -> [(Annotation, Text)]
 barLegend bd bo
   | bd ^. #barData == [] = []
@@ -175,13 +209,16 @@ barLegend bd bo
 -- | A bar chart with hud trimmings.
 --
 -- By convention only, the first axis (if any) is the bar axis.
+--
 barChart :: BarOptions -> BarData -> (HudOptions, [Chart Double])
 barChart bo bd =
-  ( bo ^. #barHudOptions & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (bo ^. #orientation),
+  ( bo ^. #barHudOptions & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo),
     bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
   )
 
--- | convert data to a text and Point
+flipAllAxes :: Direction -> [AxisOptions] -> [AxisOptions]
+flipAllAxes o = fmap (bool id flipAxis (o == Vert))
+
 barDataTP :: Bool -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]
 barDataTP add fn d negd bs =
   zipWith (zipWith (\x y' -> (formatN fn x, drop' y'))) bs' (bool bs' (accRows bs') add)
@@ -214,6 +251,16 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = zipWith 
     bstep = (1 - (1 + 1) * ogap + (n - 1) * igap') / n
     igap' = igap * (1 - (1 + 1) * ogap)
 
+-- | text, hold the bars
 barTextCharts :: BarOptions -> BarData -> [Chart Double]
 barTextCharts bo bd =
   zipWith (\o d -> Chart (TextA o (fst <$> d)) (SpotPoint . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))
+
+-- | 
+flipAxis :: AxisOptions -> AxisOptions
+flipAxis ac = case ac ^. #place of
+  PlaceBottom -> ac & #place .~ PlaceLeft
+  PlaceTop -> ac & #place .~ PlaceRight
+  PlaceLeft -> ac & #place .~ PlaceBottom
+  PlaceRight -> ac & #place .~ PlaceTop
+  PlaceAbsolute _ -> ac

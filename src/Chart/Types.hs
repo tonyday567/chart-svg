@@ -38,9 +38,9 @@ module Chart.Types
     defaultLineStyle,
     PixelStyle (..),
     defaultPixelStyle,
-    Orientation (..),
-    fromOrientation,
-    toOrientation,
+    Direction (..),
+    fromDirection,
+    toDirection,
     Spot (..),
     toRect,
     toPoint,
@@ -188,15 +188,27 @@ defaultRectStyle = RectStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette
 blob :: Colour -> RectStyle
 blob = RectStyle 0 transparent
 
--- | clear and utrans rect
+-- | transparent rect
+--
+-- >>> clear
+-- RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 0.00}
+--
 clear :: RectStyle
 clear = RectStyle 0 transparent transparent
 
 -- | transparent rectangle, with border
+--
+-- >>> border 0.01 transparent
+-- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 0.00}
+--
 border :: Double -> Colour -> RectStyle
 border s c = RectStyle s c transparent
 
 -- | Text styling
+--
+-- >>> defaultTextStyle
+-- TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}
+--
 data TextStyle
   = TextStyle
       { size :: Double,
@@ -211,13 +223,16 @@ data TextStyle
       }
   deriving (Show, Eq, Generic)
 
+-- | position anchor
 data Anchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
 
+-- | text
 fromAnchor :: (IsString s) => Anchor -> s
 fromAnchor AnchorMiddle = "Middle"
 fromAnchor AnchorStart = "Start"
 fromAnchor AnchorEnd = "End"
 
+-- | from text
 toAnchor :: (Eq s, IsString s) => s -> Anchor
 toAnchor "Middle" = AnchorMiddle
 toAnchor "Start" = AnchorStart
@@ -230,6 +245,10 @@ defaultTextStyle =
   TextStyle 0.08 colorText AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing False
 
 -- | Glyph styling
+--
+-- >>> defaultGlyphStyle
+-- GlyphStyle {size = 3.0e-2, color = RGBA 0.65 0.81 0.89 0.30, borderColor = RGBA 0.12 0.47 0.71 0.80, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
+--
 data GlyphStyle
   = GlyphStyle
       { -- | glyph radius
@@ -271,6 +290,7 @@ data GlyphShape
   | PathGlyph Text
   deriving (Show, Eq, Generic)
 
+-- | textifier
 glyphText :: GlyphShape -> Text
 glyphText sh =
   case sh of
@@ -285,6 +305,10 @@ glyphText sh =
     PathGlyph _ -> "Path"
 
 -- | line style
+--
+-- >>> defaultLineStyle
+-- LineStyle {width = 1.2e-2, color = RGBA 0.65 0.81 0.89 0.30}
+--
 data LineStyle
   = LineStyle
       { width :: Double,
@@ -296,6 +320,11 @@ data LineStyle
 defaultLineStyle :: LineStyle
 defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3)
 
+-- | A pixel chart is a specialization of a 'RectA' chart
+--
+-- >>> defaultPixelStyle
+-- PixelStyle {pixelColorMin = RGBA 0.65 0.81 0.89 1.00, pixelColorMax = RGBA 0.12 0.47 0.71 1.00, pixelGradient = 1.5707963267948966, pixelRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}, pixelTextureId = "pixel"}
+--
 data PixelStyle
   = PixelStyle
       { pixelColorMin :: Colour,
@@ -309,23 +338,24 @@ data PixelStyle
       }
   deriving (Show, Eq, Generic)
 
+-- | The official pixel style.
 defaultPixelStyle :: PixelStyle
 defaultPixelStyle =
   PixelStyle (fromRGB (palette !! 0) 1) (fromRGB (palette !! 1) 1) (pi / 2) (blob black) "pixel"
 
 -- | Verticle or Horizontal
-data Orientation = Vert | Hori deriving (Eq, Show, Generic)
+data Direction = Vert | Hori deriving (Eq, Show, Generic)
 
-fromOrientation :: (IsString s) => Orientation -> s
-fromOrientation Hori = "Hori"
-fromOrientation Vert = "Vert"
+-- | textifier
+fromDirection :: (IsString s) => Direction -> s
+fromDirection Hori = "Hori"
+fromDirection Vert = "Vert"
 
-toOrientation :: (Eq s, IsString s) => s -> Orientation
-toOrientation "Hori" = Hori
-toOrientation "Vert" = Vert
-toOrientation _ = Hori
-
--- * primitive Chart elements
+-- | readifier
+toDirection :: (Eq s, IsString s) => s -> Direction
+toDirection "Hori" = Hori
+toDirection "Vert" = Vert
+toDirection _ = Hori
 
 -- | unification of a point and rect on the plane
 data Spot a
@@ -368,24 +398,34 @@ instance (Ord a) => Semigroup (Spot a) where
 padRect :: (Num a) => a -> Rect a -> Rect a
 padRect p (Rect x z y w) = Rect (x P.- p) (z P.+ p) (y P.- p) (w P.+ p)
 
+-- | or html
 data EscapeText = EscapeText | NoEscapeText deriving (Show, Eq, Generic)
 
+-- | pixel chart helper
 data CssOptions = UseCssCrisp | NoCssOptions deriving (Show, Eq, Generic)
 
+-- | turns off scaling.  Usually not what you want.
 data ScaleCharts = ScaleCharts | NoScaleCharts deriving (Show, Eq, Generic)
 
+-- | The x-y ratio of the viewing box
 data SvgAspect = ManualAspect Double | ChartAspect deriving (Show, Eq, Generic)
 
+-- | textifier
 fromSvgAspect :: (IsString s) => SvgAspect -> s
 fromSvgAspect (ManualAspect _) = "ManualAspect"
 fromSvgAspect ChartAspect = "ChartAspect"
 
+-- | readifier
 toSvgAspect :: (Eq s, IsString s) => s -> Double -> SvgAspect
 toSvgAspect "ManualAspect" a = ManualAspect a
 toSvgAspect "ChartAspect" _ = ChartAspect
 toSvgAspect _ _ = ChartAspect
 
 -- | Top-level SVG options.
+--
+-- >>> defaultSvgOptions
+-- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, escapeText = NoEscapeText, useCssCrisp = NoCssOptions, scaleCharts' = ScaleCharts, svgAspect = ManualAspect 1.5}
+--
 data SvgOptions
   = SvgOptions
       { svgHeight :: Double,
@@ -399,9 +439,11 @@ data SvgOptions
       }
   deriving (Eq, Show, Generic)
 
+-- | The official svg options
 defaultSvgOptions :: SvgOptions
 defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoEscapeText NoCssOptions ScaleCharts (ManualAspect 1.5)
 
+-- | frame style
 defaultSvgFrame :: RectStyle
 defaultSvgFrame = border 0.01 (fromRGB (grayscale 0.7) 0.5)
 
@@ -420,6 +462,7 @@ data ChartDims a
       }
   deriving (Eq, Show, Generic)
 
+-- | Hud monad transformer
 newtype HudT m a = Hud {unhud :: [Chart a] -> StateT (ChartDims a) m [Chart a]}
 
 type Hud = HudT Identity
@@ -431,6 +474,10 @@ instance (Monad m) => Monoid (HudT m a) where
   mempty = Hud pure
 
 -- | Practically, the configuration of a Hud is going to be in decimals, typed into config files and the like, and so we concrete at the configuration level, and settle on doubles for specifying the geomtry of hud elements.
+--
+-- >>> defaultHudOptions
+-- HudOptions {hudCanvas = Just (RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.50 0.50 0.50 0.02}), hudTitles = [], hudAxes = [AxisOptions {abar = Just (Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}), adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), atick = Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}, place = PlaceBottom},AxisOptions {abar = Just (Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}), adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), atick = Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}, place = PlaceLeft}], hudLegend = Nothing}
+--
 data HudOptions
   = HudOptions
       { hudCanvas :: Maybe RectStyle,
@@ -447,6 +494,7 @@ instance Semigroup HudOptions where
 instance Monoid HudOptions where
   mempty = HudOptions Nothing [] [] Nothing
 
+-- | The official hud options.
 defaultHudOptions :: HudOptions
 defaultHudOptions =
   HudOptions
@@ -457,6 +505,7 @@ defaultHudOptions =
     ]
     Nothing
 
+-- | The official hud canvas
 defaultCanvas :: RectStyle
 defaultCanvas = blob (fromRGB (grayscale 0.5) 0.025)
 
@@ -469,6 +518,7 @@ data Place
   | PlaceAbsolute (Point Double)
   deriving (Show, Eq, Generic)
 
+-- | textifier
 placeText :: Place -> Text
 placeText p =
   case p of
@@ -478,6 +528,11 @@ placeText p =
     PlaceRight -> "Right"
     PlaceAbsolute _ -> "Absolute"
 
+-- | axis options
+--
+-- >>> defaultAxisOptions
+-- AxisOptions {abar = Just (Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}), adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), atick = Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}, place = PlaceBottom}
+--
 data AxisOptions
   = AxisOptions
       { abar :: Maybe Bar,
@@ -487,9 +542,15 @@ data AxisOptions
       }
   deriving (Eq, Show, Generic)
 
+-- | The official axis
 defaultAxisOptions :: AxisOptions
 defaultAxisOptions = AxisOptions (Just defaultBar) (Just defaultAdjustments) defaultTick PlaceBottom
 
+-- | The bar on an axis representing the x or y plane.
+--
+-- >>> defaultBar
+-- Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}
+--
 data Bar
   = Bar
       { rstyle :: RectStyle,
@@ -498,6 +559,7 @@ data Bar
       }
   deriving (Show, Eq, Generic)
 
+-- | The official axis bar
 defaultBar :: Bar
 defaultBar = Bar (RectStyle 0 (fromRGB (grayscale 0.5) 1) (fromRGB (grayscale 0.5) 1)) 0.005 0.01
 
@@ -512,6 +574,7 @@ data Title
       }
   deriving (Show, Eq, Generic)
 
+-- | The official hud title
 defaultTitle :: Text -> Title
 defaultTitle txt =
   Title
@@ -524,6 +587,11 @@ defaultTitle txt =
     AnchorMiddle
     0.04
 
+-- | xy coordinate markings
+--
+-- >>> defaultTick
+-- Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}
+--
 data Tick
   = Tick
       { tstyle :: TickStyle,
@@ -533,6 +601,7 @@ data Tick
       }
   deriving (Show, Eq, Generic)
 
+-- | The official glyph tick
 defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
@@ -541,16 +610,19 @@ defaultGlyphTick =
     & #color .~ fromRGB (grayscale 0.5) 1
     & #shape .~ VLineGlyph 0.005
 
+-- | The official text tick
 defaultTextTick :: TextStyle
 defaultTextTick =
   defaultTextStyle & #size .~ 0.05 & #color .~ fromRGB (grayscale 0.5) 1
 
+-- | The official line tick
 defaultLineTick :: LineStyle
 defaultLineTick =
   defaultLineStyle
     & #color .~ fromRGB (grayscale 0.5) 0.05
     & #width .~ 5.0e-3
 
+-- | The official tick
 defaultTick :: Tick
 defaultTick =
   Tick
@@ -573,9 +645,11 @@ data TickStyle
     TickPlaced [(Double, Text)]
   deriving (Show, Eq, Generic)
 
+-- | The official tick style
 defaultTickStyle :: TickStyle
 defaultTickStyle = TickRound (FormatComma 0) 8 TickExtend
 
+-- | textifier
 tickStyleText :: TickStyle -> Text
 tickStyleText TickNone = "TickNone"
 tickStyleText TickLabels {} = "TickLabels"
@@ -583,9 +657,14 @@ tickStyleText TickRound {} = "TickRound"
 tickStyleText TickExact {} = "TickExact"
 tickStyleText TickPlaced {} = "TickPlaced"
 
+-- | Whether Ticks are allowed to extend the data range
 data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Generic)
 
 -- | options for prettifying axis decorations
+--
+-- >>> defaultAdjustments
+-- Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}
+--
 data Adjustments
   = Adjustments
       { maxXRatio :: Double,
@@ -595,12 +674,17 @@ data Adjustments
       }
   deriving (Show, Eq, Generic)
 
+-- | The official hud adjustments.
 defaultAdjustments :: Adjustments
 defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 
 -- You're all Legends!
 
 -- | Legend options
+--
+-- >>> defaultLegendOptions
+-- LegendOptions {lsize = 0.1, vgap = 0.2, hgap = 0.1, ltext = TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}, lmax = 10, innerPad = 0.1, outerPad = 0.1, legendFrame = Just (RectStyle {borderSize = 2.0e-2, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 1.00 1.00 1.00 1.00}), lplace = PlaceBottom, lscale = 0.2}
+--
 data LegendOptions
   = LegendOptions
       { lsize :: Double,
@@ -616,6 +700,7 @@ data LegendOptions
       }
   deriving (Show, Eq, Generic)
 
+-- | The official legend options
 defaultLegendOptions :: LegendOptions
 defaultLegendOptions =
   LegendOptions
@@ -632,11 +717,13 @@ defaultLegendOptions =
     PlaceBottom
     0.2
 
+-- | snatching Colour as the library color representation.
 newtype Colour = Colour' { color' :: Color (Alpha RGB) Double } deriving (Eq, Generic)
 
 -- | Constructor.
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
 pattern Colour r g b a = Colour' (ColorRGBA r g b a)
+{-# COMPLETE Colour #-}
 
 instance Show Colour where
   show (Colour r g b a) =
@@ -646,18 +733,19 @@ instance Show Colour where
     fixed 2 b <> " " <> 
     fixed 2 a
 
-
-{-# COMPLETE Colour #-}
-
+-- | get opacity
 opac :: Colour -> Double
 opac c = getAlpha (color' c)
 
+-- | set opacity
 setOpac :: Double -> Colour -> Colour
 setOpac o (Colour r g b _) = Colour r g b o
 
+-- |
 fromRGB :: Color RGB Double -> Double -> Colour
 fromRGB (ColorRGB r b g) o = Colour' $ ColorRGBA r b g o
 
+-- |
 hex :: Colour -> Text
 hex c = toHex c
 
@@ -670,6 +758,7 @@ blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
     b'' = b + c * (b' - b)
     a'' = a + c * (a' - a)
 
+-- |
 parseHex :: A.Parser (Color RGB Double)
 parseHex =
   (fmap toDouble
@@ -680,9 +769,11 @@ parseHex =
     . (`divMod` 256)
     <$> (A.string "#" *> A.hexadecimal))
 
+-- |
 fromHex :: Text -> Either Text (Color RGB Double)
 fromHex = first pack . A.parseOnly parseHex
 
+-- |
 unsafeFromHex :: Text -> Color RGB Double
 unsafeFromHex t = either (const (ColorRGB 0 0 0)) id $ A.parseOnly parseHex t
 
@@ -696,6 +787,7 @@ toHex c =
   where
     (ColorRGBA r g b _) = toWord8 <$> color' c
 
+-- |
 hex' :: (FromInteger a, ToIntegral a Integer, Integral a, Ord a, Subtractive a) => a -> Text
 hex' i
   | i < 0 = "-" <> go (- i)
@@ -705,36 +797,49 @@ hex' i
       | n < 16 = hexDigit n
       | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
 
+-- |
 hexDigit :: (Ord a, FromInteger a, ToIntegral a Integer) => a -> Text
 hexDigit n
   | n <= 9 = Text.singleton P.$! i2d (fromIntegral n)
   | otherwise = Text.singleton P.$! toEnum (fromIntegral n + 87)
 
-{-# INLINE i2d #-}
+-- |
 i2d :: Int -> Char
 i2d i = (chr (ord '0' + i))
 
+-- | some RGB colors to work with
 palette :: [Color RGB Double]
 palette = unsafeFromHex <$> ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928"]
 
+-- | some RGBA colors
 palette1 :: [Colour]
 palette1 = (\c -> fromRGB c 1) <$> palette 
 
+-- | gray with 1 opacity
 grayscale :: Double -> Color RGB Double
 grayscale n = ColorRGB n n n
 
+-- | standard text color
 colorText :: Colour
 colorText = fromRGB (grayscale 0.2) 1
 
+-- |
 black :: Colour
 black = fromRGB (grayscale 0) 1
 
+-- |
 white :: Colour
 white = fromRGB (grayscale 1) 1
 
+-- |
 transparent :: Colour
 transparent = Colour 0 0 0 0
 
+-- | Number formatting options.
+--
+-- >>> defaultFormatN
+-- FormatComma 2
+--
 data FormatN
   = FormatFixed Int
   | FormatComma Int
@@ -744,9 +849,11 @@ data FormatN
   | FormatNone
   deriving (Eq, Show, Generic)
 
+-- | The official format
 defaultFormatN :: FormatN
 defaultFormatN = FormatComma 2
 
+-- | textifier
 fromFormatN :: (IsString s) => FormatN -> s
 fromFormatN (FormatFixed _) = "Fixed"
 fromFormatN (FormatComma _) = "Comma"
@@ -755,6 +862,7 @@ fromFormatN FormatDollar = "Dollar"
 fromFormatN (FormatPercent _) = "Percent"
 fromFormatN FormatNone = "None"
 
+-- | readifier
 toFormatN :: (Eq s, IsString s) => s -> Int -> FormatN
 toFormatN "Fixed" n = FormatFixed n
 toFormatN "Comma" n = FormatComma n
@@ -764,9 +872,11 @@ toFormatN "Percent" n = FormatPercent n
 toFormatN "None" _ = FormatNone
 toFormatN _ _ = FormatNone
 
+-- | to x decimal places
 fixed :: Int -> Double -> Text
 fixed x n = pack $ formatScientific Fixed (Just x) (fromFloatDigits n)
 
+-- | comma format
 comma :: Int -> Double -> Text
 comma n a
   | a < 1000 = fixed n a
@@ -782,15 +892,19 @@ comma n a
       where
         show' n' = let x' = show n' in (replicate (3 - length x') '0' <> x')
 
+-- | scientific exponential
 expt :: Int -> Double -> Text
 expt x n = pack $ formatScientific Exponent (Just x) (fromFloatDigits n)
 
+-- | dollars and cents
 dollar :: Double -> Text
 dollar = ("$" <>) . comma 2
 
+-- | fixed percent
 percent :: Int -> Double -> Text
 percent x n = (<> "%") $ fixed x (100 * n)
 
+-- | make text
 formatN :: FormatN -> Double -> Text
 formatN (FormatFixed n) x = fixed n x
 formatN (FormatComma n) x = comma n x
@@ -810,6 +924,7 @@ precision f n0 xs =
             then s
             else precLoop f' (n + 1) xs'
 
+-- | textifier
 formatNs :: FormatN -> [Double] -> [Text]
 formatNs (FormatFixed n) xs = precision fixed n xs
 formatNs (FormatComma n) xs = precision comma n xs

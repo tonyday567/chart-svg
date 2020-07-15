@@ -253,15 +253,15 @@ repAnchor a =
       (fromAnchor <$> [AnchorStart, AnchorMiddle, AnchorEnd])
       (fromAnchor a)
 
-repOrientation :: (Monad m) => Orientation -> SharedRep m Orientation
-repOrientation a =
-  toOrientation
+repDirection :: (Monad m) => Direction -> SharedRep m Direction
+repDirection a =
+  toDirection
     <$> dropdown
       takeText
       id
-      (Just "Orientation")
-      (fromOrientation <$> [Vert, Hori])
-      (fromOrientation a)
+      (Just "Direction")
+      (fromDirection <$> [Vert, Hori])
+      (fromDirection a)
 
 repBar :: (Monad m) => Bar -> SharedRep m Bar
 repBar cfg = do
@@ -979,7 +979,7 @@ repBarOptions nrows defrs defts cfg =
     dv = checkbox (Just "display values") (cfg ^. #displayValues)
     fn = repFormatN (cfg ^. #valueFormatN)
     av = checkbox (Just "accumulate values") (cfg ^. #accumulateValues)
-    or = repOrientation (cfg ^. #orientation)
+    or = repDirection (cfg ^. #barOrientation)
     ho =
       repHudOptions
         2
