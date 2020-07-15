@@ -4,22 +4,10 @@ packages:
   - .
 
 extra-deps:
-  # numhask pack
-  - git: https://github.com/tonyday567/numhask-space
-    commit: 6525f5096525196fe367dabdfe596a7bd0c0aa6c
-  - git: https://github.com/tonyday567/numhask
-    commit: 37ee8dced120f60a511baa6bb6c7ac382b1e8827
-    subdir: numhask-prelude
-  - git: https://github.com/tonyday567/numhask
-    commit: 37ee8dced120f60a511baa6bb6c7ac382b1e8827
-    subdir: numhask
-
-  # box pack
-  - git: https://github.com/tonyday567/box
-    commit: c646bd417574366b0c2d5ff529974ad55e202783
-  - git: https://github.com/tonyday567/box-socket
-    commit: aa68eefd2804b1b659c18e98c994d4ba08156d82
-  - git: https://github.com/tonyday567/web-rep
-    commit: 710edc3756027a6f0c492a91a506dbabb05d23d9
+  - box-0.5.0
+  - box-socket-0.0.1
+  - numhask-0.6.0
+  - numhask-space-0.5.0
+  - web-rep-0.5.0
 
 allow-newer: true
