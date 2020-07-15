@@ -14,6 +14,13 @@ module Chart.Svg
     noStyleBoxes,
     styleBoxText,
     styleBoxGlyph,
+    padChart,
+    frameChart,
+    hori,
+    vert,
+    stack,
+    addChartBox,
+    addChartBoxes,
   )
 where
 
@@ -302,3 +309,49 @@ toTranslateText (Point x y) =
 toRotateText :: Double -> Point Double -> Text
 toRotateText r (Point x y) =
   "rotate(" <> show r <> ", " <> show x <> ", " <> show (- y) <> ")"
+
+-- | additively pad a [Chart]
+--
+-- >>> padChart 0.1 blank
+--
+padChart :: Double -> [Chart Double] -> [Chart Double]
+padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
+
+-- | overlay a frame on some charts with some additive padding between
+--
+-- >>> frameChart defaultRectStyle 0.1 blank
+--
+frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
+frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
+
+-- horizontally stack a list of list of charts (proceeding to the right) with a gap between
+hori :: Double -> [[Chart Double]] -> [Chart Double]
+hori _ [] = []
+hori gap cs = foldl step [] cs
+  where
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SpotPoint (Point (z x) 0) P.- SpotPoint (Point (origx x) 0) P.+ s)))
+    z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
+    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+
+-- vertically stack a list of charts (proceeding upwards), aligning them to the left
+vert :: Double -> [[Chart Double]] -> [Chart Double]
+vert _ [] = []
+vert gap cs = foldl step [] cs
+  where
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SpotPoint (Point (origx x - origx a) (w x)) P.+ s)))
+    w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
+    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+
+-- stack a list of charts horizontally, then vertically
+stack :: Int -> Double -> [[Chart Double]] -> [Chart Double]
+stack _ _ [] = []
+stack n gap cs = vert gap (hori gap <$> group' cs [])
+  where
+    group' [] acc = reverse acc
+    group' x acc = group' (drop n x) (take n x : acc)
+
+addChartBox :: Chart Double -> Rect Double -> Rect Double
+addChartBox c r = sconcat (r :| maybeToList (styleBox c))
+
+addChartBoxes :: [Chart Double] -> Rect Double -> Rect Double
+addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))

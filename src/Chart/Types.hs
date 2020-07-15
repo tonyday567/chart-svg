@@ -15,11 +15,13 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Chart.Types
   ( Chart (..),
     Annotation (..),
     annotationText,
+    blank,
     RectStyle (..),
     defaultRectStyle,
     blob,
@@ -117,9 +119,19 @@ module Chart.Types
     formatN,
     precision,
     formatNs,
+
+    -- $core
+    projectTo,
+    projectSpots,
+    projectSpotsWith,
+    dataBox,
+    toAspect,
+    scaleAnn,
+    defRect,
+    defRectS,
+    moveChart,
   )
 where
-
 
 import Control.Lens
 import qualified Data.Attoparsec.Text as A
@@ -162,6 +174,9 @@ annotationText (GlyphA _) = "GlyphA"
 annotationText (LineA _) = "LineA"
 annotationText BlankA = "BlankA"
 annotationText (PixelA _) = "PixelA"
+
+blank :: [Chart Double]
+blank = [Chart BlankA []]
 
 -- | Rectangle styling
 --
@@ -932,3 +947,80 @@ formatNs (FormatExpt n) xs = precision expt n xs
 formatNs FormatDollar xs = precision (const dollar) 2 xs
 formatNs (FormatPercent n) xs = precision percent n xs
 formatNs FormatNone xs = pack . show <$> xs
+
+-- | project a Spot from one Rect to another, preserving relative position.
+--
+-- >>> projectOn unitRect (Rect 0 1 0 1) (SpotPoint $ Point 0 0)
+-- SpotPoint Point -0.5 -0.5
+projectOn :: (Ord a, Fractional a) => Rect a -> Rect a -> Spot a -> Spot a
+projectOn new old@(Rect x z y w) po@(SpotPoint (Point px py))
+  | x == z && y == w = po
+  | x == z = SpotPoint (Point px py')
+  | y == w = SpotPoint (Point px' py)
+  | otherwise = SpotPoint (Point px' py')
+  where
+    (Point px' py') = project old new (toPoint po)
+projectOn new old@(Rect x z y w) ao@(SpotRect (Rect ox oz oy ow))
+  | x == z && y == w = ao
+  | x == z = SpotRect (Rect ox oz ny nw)
+  | y == w = SpotRect (Rect nx nz oy ow)
+  | otherwise = SpotRect a
+  where
+    a@(Rect nx nz ny nw) = projectRect old new (toRect ao)
+
+-- | project a [Spot a] from it's folded space to the given area
+--
+-- >>> projectTo unitRect (SpotPoint <$> zipWith Point [0..2] [0..2])
+-- [SpotPoint Point -0.5 -0.5,SpotPoint Point 0.0 0.0,SpotPoint Point 0.5 0.5]
+projectTo :: (Ord a, Fractional a) => Rect a -> [Spot a] -> [Spot a]
+projectTo _ [] = []
+projectTo vb (x : xs) = projectOn vb (toRect $ sconcat (x :| xs)) <$> (x : xs)
+
+defRect :: (Fractional a) => Maybe (Rect a) -> Rect a
+defRect = fromMaybe unitRect
+
+defRectS :: (Subtractive a, Eq a, FromRational a, Fractional a) => Maybe (Rect a) -> Rect a
+defRectS r = maybe unitRect singletonUnit r
+  where
+    singletonUnit :: (Subtractive a, Eq a, FromRational a) => Rect a -> Rect a
+    singletonUnit (Rect x z y w)
+      | x == z && y == w = Rect (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
+      | x == z = Rect (x - 0.5) (x + 0.5) y w
+      | y == w = Rect x z (y - 0.5) (y + 0.5)
+      | otherwise = Rect x z y w
+
+projectSpots :: (Ord a, Fractional a) => Rect a -> [Chart a] -> [Chart a]
+projectSpots a cs = cs'
+  where
+    xss = projectTo2 a (spots <$> cs)
+    ss = annotation <$> cs
+    cs' = zipWith Chart ss xss
+    projectTo2 vb xss =
+      fmap (maybe id (projectOn vb)
+             (fold $ foldRect . fmap toRect <$> xss)) <$> xss
+
+projectSpotsWith :: (Ord a, Fractional a) => Rect a -> Rect a -> [Chart a] -> [Chart a]
+projectSpotsWith new old cs = cs'
+  where
+    xss = fmap (projectOn new old) . spots <$> cs
+    ss = annotation <$> cs
+    cs' = zipWith Chart ss xss
+
+toAspect :: (Divisive a, Subtractive a) => Rect a -> a
+toAspect (Rect x z y w) = (z - x) / (w - y)
+
+-- |
+dataBox :: (Ord a) =>[Chart a] -> Maybe (Rect a)
+dataBox cs = foldRect . mconcat $ fmap toRect <$> (spots <$> cs)
+
+scaleAnn :: Double -> Annotation -> Annotation
+scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
+scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (* x)
+scaleAnn x (TextA a txs) = TextA (a & #size %~ (* x)) txs
+scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
+scaleAnn x (PixelA a) = PixelA $ a & #pixelRectStyle . #borderSize %~ (* x)
+scaleAnn _ BlankA = BlankA
+
+moveChart :: (Ord a, Fractional a) => Spot a -> [Chart a] -> [Chart a]
+moveChart sp cs = fmap (#spots %~ fmap (sp P.+)) cs
+

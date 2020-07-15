@@ -26,13 +26,10 @@ module Chart.Hud
   )
 where
 
-import Chart.Core
-
-import Chart.Svg (styleBox, styleBoxText, styleBoxes)
+import Chart.Svg (styleBox, styleBoxText, styleBoxes, padChart, vert, hori, frameChart, addChartBoxes, addChartBox)
 import Chart.Types
 import qualified Control.Foldl as L
 import Control.Lens
--- import Control.Monad.Trans.State.Lazy
 import Data.Time
 import NumHask.Prelude
 import NumHask.Space

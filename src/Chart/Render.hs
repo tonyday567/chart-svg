@@ -7,7 +7,6 @@
 module Chart.Render
   ( scaleCharts,
     frameChart,
-    padChart,
     getAspect,
     getViewbox,
     getSize,
@@ -26,7 +25,6 @@ module Chart.Render
   )
 where
 
-import Chart.Core
 import Chart.Hud (makeHud, runHud)
 import Chart.Svg
 import Chart.Types

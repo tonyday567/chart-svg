@@ -101,7 +101,14 @@ module Chart
     formatN,
     formatNs,
 
-    module Chart.Core,
+    -- $core
+    dataBox,
+    toAspect,
+    scaleAnn,
+    defRect,
+    defRectS,
+    moveChart,
+
     module Chart.Svg,
     module Chart.Hud,
     module Chart.Page,
@@ -113,7 +120,6 @@ module Chart
 where
 
 import Chart.Bar
-import Chart.Core
 import Chart.Hud
 import Chart.Page
 import Chart.Pixel
