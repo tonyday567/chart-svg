@@ -25,10 +25,8 @@ library
     Chart
     Chart.Bar
     Chart.Examples
-    Chart.Hud
     Chart.Pixel
     Chart.Render
-    Chart.Svg
     Chart.Page
     Chart.Types
   hs-source-dirs:

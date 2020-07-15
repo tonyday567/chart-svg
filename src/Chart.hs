@@ -109,8 +109,42 @@ module Chart
     defRectS,
     moveChart,
 
-    module Chart.Svg,
-    module Chart.Hud,
+    -- $hud
+    runHudWith,
+    runHud,
+    makeHud,
+    freezeTicks,
+    flipAxis,
+    canvas,
+    title,
+    tick,
+    precision,
+    adjustTick,
+    makeTickDates,
+    makeTickDatesContinuous,
+    legendHud,
+    legendEntry,
+    legendChart,
+    legendFromChart,
+    
+    -- $svg
+    svg,
+    svgt,
+    chartDef,
+    chartDefs,
+    styleBox,
+    styleBoxes,
+    noStyleBoxes,
+    styleBoxText,
+    styleBoxGlyph,
+    padChart,
+    frameChart,
+    hori,
+    vert,
+    stack,
+    addChartBox,
+    addChartBoxes,
+    
     module Chart.Page,
     module Chart.Render,
     module Chart.Bar,
@@ -120,11 +154,9 @@ module Chart
 where
 
 import Chart.Bar
-import Chart.Hud
 import Chart.Page
 import Chart.Pixel
 import Chart.Render
-import Chart.Svg
 import Chart.Types
 import NumHask.Space
 

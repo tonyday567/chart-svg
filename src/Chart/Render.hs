@@ -6,7 +6,6 @@
 
 module Chart.Render
   ( scaleCharts,
-    frameChart,
     getAspect,
     getViewbox,
     getSize,
@@ -25,8 +24,6 @@ module Chart.Render
   )
 where
 
-import Chart.Hud (makeHud, runHud)
-import Chart.Svg
 import Chart.Types
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()

@@ -256,11 +256,3 @@ barTextCharts :: BarOptions -> BarData -> [Chart Double]
 barTextCharts bo bd =
   zipWith (\o d -> Chart (TextA o (fst <$> d)) (SpotPoint . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))
 
--- | 
-flipAxis :: AxisOptions -> AxisOptions
-flipAxis ac = case ac ^. #place of
-  PlaceBottom -> ac & #place .~ PlaceLeft
-  PlaceTop -> ac & #place .~ PlaceRight
-  PlaceLeft -> ac & #place .~ PlaceBottom
-  PlaceRight -> ac & #place .~ PlaceTop
-  PlaceAbsolute _ -> ac

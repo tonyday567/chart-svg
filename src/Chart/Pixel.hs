@@ -22,8 +22,6 @@ module Chart.Pixel
   )
 where
 
-import Chart.Hud
-import Chart.Svg (styleBox, padChart, frameChart, vert)
 import Chart.Types
 import Control.Lens
 import Data.Generics.Labels ()
