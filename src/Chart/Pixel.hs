@@ -22,10 +22,6 @@ module Chart.Pixel
   )
 where
 
-import Chart.Color
-import Chart.Core
-import Chart.Hud
-import Chart.Svg (styleBox)
 import Chart.Types
 import Control.Lens
 import Data.Generics.Labels ()
@@ -138,10 +134,10 @@ pixelLegendChart dataRange l =
     pchart
       | l ^. #ploLegendOptions . #lplace == PlaceBottom
           || l ^. #ploLegendOptions . #lplace == PlaceTop =
-        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ 0)) [SR x0 x1 0 (l ^. #ploWidth)]
+        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ 0)) [SpotRect (Rect x0 x1 0 (l ^. #ploWidth))]
       | otherwise =
-        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ (pi / 2))) [SR 0 (l ^. #ploWidth) x0 x1]
-    t = Chart (TextA (l ^. #ploLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #ploTitle]) [SP 0 0]
+        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ (pi / 2))) [SpotRect (Rect 0 (l ^. #ploWidth) x0 x1)]
+    t = Chart (TextA (l ^. #ploLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #ploTitle]) [SpotPoint (Point 0 0)]
     hs = vert (l ^. #ploLegendOptions . #vgap) [a, [t]]
 
 isHori :: PixelLegendOptions -> Bool

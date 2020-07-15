@@ -12,8 +12,9 @@ copyright:      Tony Day (c) 2017
 license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
-extra-source-files:
-  stack.yaml
+extra-doc-files:
+  readme.md,
+  other/*.svg
 
 source-repository head
   type: git
@@ -23,14 +24,9 @@ library
   exposed-modules:
     Chart
     Chart.Bar
-    Chart.Color
-    Chart.Core
     Chart.Examples
-    Chart.Format
-    Chart.Hud
     Chart.Pixel
     Chart.Render
-    Chart.Svg
     Chart.Page
     Chart.Types
   hs-source-dirs:
@@ -148,3 +144,27 @@ executable startup
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: test.hs
+  hs-source-dirs:
+    test
+  build-depends:
+    base >=4.7 && <5,
+    chart-svg,
+    doctest >= 0.16,
+    numhask-prelude >= 0.6
+  default-language: Haskell2010
+  default-extensions:
+    NegativeLiterals
+    NoImplicitPrelude
+    OverloadedStrings
+    UnicodeSyntax
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -funbox-strict-fields

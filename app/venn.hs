@@ -145,7 +145,7 @@ seg :: Text -> Colour -> GlyphStyle
 seg p c = defaultGlyphStyle & set #shape (PathGlyph p) & set #color c & set #borderColor white & set #borderSize 0.06
 
 venns :: [Chart Double]
-venns = zipWith (\p c -> Chart (GlyphA $ seg p c) [SP 0.0 0.0]) vennGlyphs palette
+venns = zipWith (\p c -> Chart (GlyphA $ seg p c) [SpotPoint (Point 0.0 0.0)]) vennGlyphs palette1
 
 phrases :: [Chart Double]
 phrases = phraseChart <$> mainPhrases
@@ -198,14 +198,14 @@ writeVennWords :: IO ()
 writeVennWords =
   writeFile "other/venn2.svg" $ Lazy.toStrict $ renderText $
   renderToSvgt NoCssOptions (Point 300 300) (Rect (-2) 2 (-2) 2)
-  (phrases <> venns <> [Chart BlankA [SR (-2.0) 2.0 (-2.0) 2.0]]) $
+  (phrases <> venns <> [Chart BlankA [SpotRect (Rect (-2.0) 2.0 (-2.0) 2.0)]]) $
   (defaultTextStyle & set #color colorText,) <$>
   (replicate 7 "" <> (phraseText <$> mainPhrases) <> [""])
 
 writeVenn :: [Colour] -> IO ()
-writeVenn cs = writeChartsWith "other/venn.svg" (defaultSvgOptions & set #scaleCharts' NoScaleCharts & set #svgAspect ChartAspect & set #svgHeight 100) ([phraseChart (Phrase "λ" (Point 0 (-0.2)) 0.8 0 (Colour 0.1 0 0.2 1) "chart-svg" 1)] <> zipWith (\p c -> Chart (GlyphA $ seg p c) [SP 0.0 0.0]) [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3] cs <> [Chart BlankA [SR (-1.5) 1.5 (-1.5) 1.5]])
+writeVenn cs = writeChartsWith "other/venn.svg" (defaultSvgOptions & set #scaleCharts' NoScaleCharts & set #svgAspect ChartAspect & set #svgHeight 100) ([phraseChart (Phrase "λ" (Point 0 (-0.2)) 0.8 0 (Colour 0.1 0 0.2 1) "chart-svg" 1)] <> zipWith (\p c -> Chart (GlyphA $ seg p c) [SpotPoint (Point 0.0 0.0)]) [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3] cs <> [Chart BlankA [SpotRect (Rect (-1.5) 1.5 (-1.5) 1.5)]])
 
 main :: IO ()
 main = do
   writeVennWords
-  writeVenn palette
+  writeVenn palette1
