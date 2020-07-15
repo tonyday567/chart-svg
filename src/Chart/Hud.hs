@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -- | A hud (heads-up display) are decorations in and around a chart that assist with data interpretation.
@@ -26,7 +27,7 @@ module Chart.Hud
 where
 
 import Chart.Core
-import Chart.Format
+
 import Chart.Svg (styleBox, styleBoxText, styleBoxes)
 import Chart.Types
 import qualified Control.Foldl as L
@@ -36,6 +37,20 @@ import Data.Time
 import NumHask.Prelude
 import NumHask.Space
 import qualified Prelude as P
+
+
+-- | pattern for SP x y
+pattern SP' :: a -> a -> Spot a
+pattern SP' a b = SpotPoint (Point a b)
+
+{-# COMPLETE SP' #-}
+
+-- | pattern for SA lowerx upperx lowery uppery
+pattern SR' :: a -> a -> a -> a -> Spot a
+pattern SR' a b c d = SpotRect (Rect a b c d)
+
+{-# COMPLETE SR' #-}
+
 
 -- | combine huds and charts to form a new Chart using the supplied
 -- initial canvas and data dimensions.
@@ -117,7 +132,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceTop ->
       Chart
         (RectA (rstyle b))
-        [ SR
+        [ SR'
             x
             z
             (w' + b ^. #buff)
@@ -126,7 +141,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceBottom ->
       Chart
         (RectA (rstyle b))
-        [ SR
+        [ SR'
             x
             z
             (y' - b ^. #wid - b ^. #buff)
@@ -135,7 +150,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceLeft ->
       Chart
         (RectA (rstyle b))
-        [ SR
+        [ SR'
             (x' - b ^. #wid - b ^. #buff)
             (x' - b ^. #buff)
             y
@@ -144,7 +159,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceRight ->
       Chart
         (RectA (rstyle b))
-        [ SR
+        [ SR'
             (z' + (b ^. #buff))
             (z' + (b ^. #buff) + (b ^. #wid))
             y
@@ -153,7 +168,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceAbsolute (Point x'' _) ->
       Chart
         (RectA (rstyle b))
-        [ SR
+        [ SR'
             (x'' + (b ^. #buff))
             (x'' + (b ^. #buff) + (b ^. #wid))
             y
@@ -178,7 +193,7 @@ title_ t a =
         )
         [t ^. #text]
     )
-    [SP 0 0]
+    [SP' 0 0]
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -279,8 +294,8 @@ placeTextAnchor pl
 
 placeGridLines :: Place -> Rect Double -> Double -> Double -> [Spot Double]
 placeGridLines pl (Rect x z y w) a b
-  | pl `elem` [PlaceTop, PlaceBottom] = [SP a (y - b), SP a (w + b)]
-  | otherwise = [SP (x - b) a, SP (z + b) a]
+  | pl `elem` [PlaceTop, PlaceBottom] = [SP' a (y - b), SP' a (w + b)]
+  | otherwise = [SP' (x - b) a, SP' (z + b) a]
 
 -- | compute tick values and labels given options, ranges and formatting
 ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
@@ -588,33 +603,33 @@ legendEntry ::
   (Chart Double, Chart Double)
 legendEntry l a t =
   ( Chart ann sps,
-    Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) [SP 0 0]
+    Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) [SP' 0 0]
   )
   where
     (ann, sps) = case a of
       RectA rs ->
         ( RectA rs,
-          [SR 0 (l ^. #lsize) 0 (l ^. #lsize)]
+          [SR' 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
       PixelA ps ->
         ( PixelA ps,
-          [SR 0 (l ^. #lsize) 0 (l ^. #lsize)]
+          [SR' 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
       TextA ts txts ->
         ( TextA (ts & #size .~ realToFrac (l ^. #lsize)) (take 1 txts),
-          [SP 0 0]
+          [SP' 0 0]
         )
       GlyphA gs ->
         ( GlyphA (gs & #size .~ realToFrac (l ^. #lsize)),
-          [SP (0.5 * l ^. #lsize) (0.33 * l ^. #lsize)]
+          [SP' (0.5 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
       LineA ls ->
         ( LineA (ls & #width %~ (/ (realToFrac $ l ^. #lscale))),
-          [SP 0 (0.33 * l ^. #lsize), SP (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
+          [SP' 0 (0.33 * l ^. #lsize), SP' (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
       BlankA ->
         ( BlankA,
-          [SP 0 0]
+          [SP' 0 0]
         )
 
 legendChart :: [(Annotation, Text)] -> LegendOptions -> [Chart Double]

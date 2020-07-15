@@ -40,17 +40,17 @@ frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> st
 
 -- | project a Spot from one Rect to another, preserving relative position.
 projectOn :: (Ord a, Fractional a) => Rect a -> Rect a -> Spot a -> Spot a
-projectOn new old@(Rect x z y w) po@(SP px py)
+projectOn new old@(Rect x z y w) po@(SpotPoint (Point px py))
   | x == z && y == w = po
-  | x == z = SP px py'
-  | y == w = SP px' py
-  | otherwise = SP px' py'
+  | x == z = SpotPoint (Point px py')
+  | y == w = SpotPoint (Point px' py)
+  | otherwise = SpotPoint (Point px' py')
   where
     (Point px' py') = project old new (toPoint po)
-projectOn new old@(Rect x z y w) ao@(SR ox oz oy ow)
+projectOn new old@(Rect x z y w) ao@(SpotRect (Rect ox oz oy ow))
   | x == z && y == w = ao
-  | x == z = SR ox oz ny nw
-  | y == w = SR nx nz oy ow
+  | x == z = SpotRect (Rect ox oz ny nw)
+  | y == w = SpotRect (Rect nx nz oy ow)
   | otherwise = SpotRect a
   where
     a@(Rect nx nz ny nw) = projectRect old new (toRect ao)
@@ -77,14 +77,14 @@ defRectS r = maybe unitRect singletonUnit r
       | y == w = Rect x z (y - 0.5) (y + 0.5)
       | otherwise = Rect x z y w
 
-projectSpots :: (Chartable a) => Rect a -> [Chart a] -> [Chart a]
+projectSpots :: (Ord a, Fractional a) => Rect a -> [Chart a] -> [Chart a]
 projectSpots a cs = cs'
   where
     xss = projectTo2 a (spots <$> cs)
     ss = annotation <$> cs
     cs' = zipWith Chart ss xss
 
-projectSpotsWith :: (Chartable a) => Rect a -> Rect a -> [Chart a] -> [Chart a]
+projectSpotsWith :: (Ord a, Fractional a) => Rect a -> Rect a -> [Chart a] -> [Chart a]
 projectSpotsWith new old cs = cs'
   where
     xss = fmap (projectOn new old) . spots <$> cs
@@ -95,7 +95,7 @@ toAspect :: (Divisive a, Subtractive a) => Rect a -> a
 toAspect (Rect x z y w) = (z - x) / (w - y)
 
 -- |
-dataBox :: Chartable a => [Chart a] -> Maybe (Rect a)
+dataBox :: (Ord a) =>[Chart a] -> Maybe (Rect a)
 dataBox cs = foldRect . mconcat $ fmap toRect <$> (spots <$> cs)
 
 scaleAnn :: Double -> Annotation -> Annotation
@@ -106,7 +106,7 @@ scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
 scaleAnn x (PixelA a) = PixelA $ a & #pixelRectStyle . #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
-moveChart :: Chartable a => Spot a -> [Chart a] -> [Chart a]
+moveChart :: (Ord a, Fractional a) => Spot a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#spots %~ fmap (sp P.+)) cs
 
 -- horizontally stack a list of list of charts (proceeding to the right) with a gap between
@@ -114,7 +114,7 @@ hori :: Double -> [[Chart Double]] -> [Chart Double]
 hori _ [] = []
 hori gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (z x) 0 P.- SP (origx x) 0 P.+ s)))
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SpotPoint (Point (z x) 0) P.- SpotPoint (Point (origx x) 0) P.+ s)))
     z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
@@ -123,7 +123,7 @@ vert :: Double -> [[Chart Double]] -> [Chart Double]
 vert _ [] = []
 vert gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SP (origx x - origx a) (w x) P.+ s)))
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SpotPoint (Point (origx x - origx a) (w x)) P.+ s)))
     w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 

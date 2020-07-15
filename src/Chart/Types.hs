@@ -18,10 +18,9 @@
 
 module Chart.Types
   ( Chart (..),
-    Chartable,
     Annotation (..),
     annotationText,
-    RectStyle (RectStyle),
+    RectStyle (..),
     defaultRectStyle,
     blob,
     clear,
@@ -45,8 +44,6 @@ module Chart.Types
     Spot (..),
     toRect,
     toPoint,
-    pattern SR,
-    pattern SP,
     padRect,
     SvgAspect (..),
     toSvgAspect,
@@ -84,26 +81,63 @@ module Chart.Types
     defaultAdjustments,
     LegendOptions (..),
     defaultLegendOptions,
-    FormatN (..),
+
+    -- $color
+    Colour,
+    pattern Colour,
+    opac,
+    setOpac,
+    fromRGB,
+    hex,
+    palette,
+    palette1,
+    blend,
+    toHex,
+    fromHex,
+    unsafeFromHex,
+
+    grayscale,
+    colorText,
+    transparent,
+    black,
+    white,
+
+    -- * re-exports
+    module Graphics.Color.Model,
+
+    -- $formats
+    FormatN(..),
     defaultFormatN,
+    fromFormatN,
+    toFormatN,
+    fixed,
+    comma,
+    expt,
+    dollar,
+    formatN,
+    precision,
+    formatNs,
   )
 where
 
-import Chart.Color
+
 import Control.Lens
+import qualified Data.Attoparsec.Text as A
 import Data.Generics.Labels ()
 import Data.List ((!!))
--- import qualified Data.Text as Text
-
+import Graphics.Color.Model
 import NumHask.Prelude
 import NumHask.Space hiding (Element)
 import qualified Prelude as P
+import qualified Data.Text as Text
+import Data.List (nub)
+import Data.Scientific
 
 -- * Chart
 
 -- | A `Chart` consists of
 -- - a list of spots on the xy-plane, and
--- - specific style of representation for each spot (an Annotation)
+-- - specific style of representation for each spot.
 data Chart a
   = Chart
       { annotation :: Annotation,
@@ -111,12 +145,7 @@ data Chart a
       }
   deriving (Eq, Show, Generic)
 
--- | the aspects a number needs to be to form the data for a chart
-type Chartable a =
-  (Real a, Fractional a, RealFrac a, RealFloat a, Floating a)
-
--- | a piece of chart structure
--- | The use of #rowName with Annotation doesn't seem to mesh well with polymorphism, so a switch to concrete types (which fit it with svg-tree methods) occurs at this layer, and the underlying ADTs use a lot of Doubles
+-- | Manifestation of the data on a screen.
 data Annotation
   = RectA RectStyle
   | TextA TextStyle [Text]
@@ -135,6 +164,10 @@ annotationText BlankA = "BlankA"
 annotationText (PixelA _) = "PixelA"
 
 -- | Rectangle styling
+--
+-- >>> defaultRectStyle
+-- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}
+--
 data RectStyle
   = RectStyle
       { borderSize :: Double,
@@ -145,9 +178,13 @@ data RectStyle
 
 -- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (setAlpha (palette !! 1) 0.8) (setAlpha (palette !! 1) 0.3)
+defaultRectStyle = RectStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette !! 1) 0.3)
 
 -- | solid rectangle, no border
+--
+-- >>> blob black
+-- RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}
+--
 blob :: Colour -> RectStyle
 blob = RectStyle 0 transparent
 
@@ -214,8 +251,8 @@ defaultGlyphStyle :: GlyphStyle
 defaultGlyphStyle =
   GlyphStyle
     0.03
-    (setAlpha (palette !! 0) 0.3)
-    (setAlpha (palette !! 1) 0.8)
+    (fromRGB (palette !! 0) 0.3)
+    (fromRGB (palette !! 1) 0.8)
     0.003
     SquareGlyph
     Nothing
@@ -257,7 +294,7 @@ data LineStyle
 
 -- | the official default line style
 defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 (palette !! 0)
+defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3)
 
 data PixelStyle
   = PixelStyle
@@ -274,7 +311,7 @@ data PixelStyle
 
 defaultPixelStyle :: PixelStyle
 defaultPixelStyle =
-  PixelStyle (palette !! 0) (palette !! 1) (pi / 2) (blob black) "pixel"
+  PixelStyle (fromRGB (palette !! 0) 1) (fromRGB (palette !! 1) 1) (pi / 2) (blob black) "pixel"
 
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)
@@ -312,28 +349,16 @@ instance (Ord a, Num a, Fractional a) => Num (Spot a) where
   negate (SpotPoint (Point x y)) = SpotPoint (Point (P.negate x) (P.negate y))
   negate (SpotRect (Rect x z y w)) = SpotRect (Rect (P.negate x) (P.negate z) (P.negate y) (P.negate w))
 
-  fromInteger x = SP (P.fromInteger x) (P.fromInteger x)
-
--- | pattern for SP x y
-pattern SP :: a -> a -> Spot a
-pattern SP a b = SpotPoint (Point a b)
-
-{-# COMPLETE SP #-}
-
--- | pattern for SA lowerx upperx lowery uppery
-pattern SR :: a -> a -> a -> a -> Spot a
-pattern SR a b c d = SpotRect (Rect a b c d)
-
-{-# COMPLETE SR #-}
+  fromInteger x = SpotPoint (Point (P.fromInteger x) (P.fromInteger x))
 
 -- | Convert a spot to an Rect
 toRect :: Spot a -> Rect a
-toRect (SP x y) = Rect x x y y
+toRect (SpotPoint (Point x y)) = Rect x x y y
 toRect (SpotRect a) = a
 
 -- | Convert a spot to a Point
 toPoint :: (Ord a, Fractional a) => Spot a -> Point a
-toPoint (SP x y) = Point x y
+toPoint (SpotPoint (Point x y)) = Point x y
 toPoint (SpotRect (Ranges x y)) = Point (mid x) (mid y)
 
 instance (Ord a) => Semigroup (Spot a) where
@@ -378,7 +403,7 @@ defaultSvgOptions :: SvgOptions
 defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoEscapeText NoCssOptions ScaleCharts (ManualAspect 1.5)
 
 defaultSvgFrame :: RectStyle
-defaultSvgFrame = border 0.01 (grayscale 0.7)
+defaultSvgFrame = border 0.01 (fromRGB (grayscale 0.7) 0.5)
 
 -- | In order to create huds, there are three main pieces of state that need to be kept track of:
 --
@@ -433,7 +458,7 @@ defaultHudOptions =
     Nothing
 
 defaultCanvas :: RectStyle
-defaultCanvas = blob (setAlpha (grayscale 0.5) 0.025)
+defaultCanvas = blob (fromRGB (grayscale 0.5) 0.025)
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -474,7 +499,7 @@ data Bar
   deriving (Show, Eq, Generic)
 
 defaultBar :: Bar
-defaultBar = Bar (RectStyle 0 (grayscale 0.5) (grayscale 0.5)) 0.005 0.01
+defaultBar = Bar (RectStyle 0 (fromRGB (grayscale 0.5) 1) (fromRGB (grayscale 0.5) 1)) 0.005 0.01
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 data Title
@@ -512,18 +537,18 @@ defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
     & #borderSize .~ 0.005
-    & #borderColor .~ grayscale 0.5
-    & #color .~ grayscale 0.5
+    & #borderColor .~ fromRGB (grayscale 0.5) 1
+    & #color .~ fromRGB (grayscale 0.5) 1
     & #shape .~ VLineGlyph 0.005
 
 defaultTextTick :: TextStyle
 defaultTextTick =
-  defaultTextStyle & #size .~ 0.05 & #color .~ grayscale 0.5
+  defaultTextStyle & #size .~ 0.05 & #color .~ fromRGB (grayscale 0.5) 1
 
 defaultLineTick :: LineStyle
 defaultLineTick =
   defaultLineStyle
-    & #color .~ setAlpha (grayscale 0.5) 0.05
+    & #color .~ fromRGB (grayscale 0.5) 0.05
     & #width .~ 5.0e-3
 
 defaultTick :: Tick
@@ -603,9 +628,112 @@ defaultLegendOptions =
     10
     0.1
     0.1
-    (Just (RectStyle 0.02 (grayscale 0.5) white))
+    (Just (RectStyle 0.02 (fromRGB (grayscale 0.5) 1) white))
     PlaceBottom
     0.2
+
+newtype Colour = Colour' { color' :: Color (Alpha RGB) Double } deriving (Eq, Generic)
+
+-- | Constructor.
+pattern Colour :: Double -> Double -> Double -> Double -> Colour
+pattern Colour r g b a = Colour' (ColorRGBA r g b a)
+
+instance Show Colour where
+  show (Colour r g b a) =
+    Text.unpack $ "RGBA " <>
+    fixed 2 r <> " " <>
+    fixed 2 g <> " " <> 
+    fixed 2 b <> " " <> 
+    fixed 2 a
+
+
+{-# COMPLETE Colour #-}
+
+opac :: Colour -> Double
+opac c = getAlpha (color' c)
+
+setOpac :: Double -> Colour -> Colour
+setOpac o (Colour r g b _) = Colour r g b o
+
+fromRGB :: Color RGB Double -> Double -> Colour
+fromRGB (ColorRGB r b g) o = Colour' $ ColorRGBA r b g o
+
+hex :: Colour -> Text
+hex c = toHex c
+
+-- | interpolate between 2 colors
+blend :: Double -> Colour -> Colour -> Colour
+blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
+  where
+    r'' = r + c * (r' - r)
+    g'' = g + c * (g' - g)
+    b'' = b + c * (b' - b)
+    a'' = a + c * (a' - a)
+
+parseHex :: A.Parser (Color RGB Double)
+parseHex =
+  (fmap toDouble
+    . ( \((r, g), b) ->
+            ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
+        )
+    . (\(f, b) -> (f `divMod` (256 :: Int), b))
+    . (`divMod` 256)
+    <$> (A.string "#" *> A.hexadecimal))
+
+fromHex :: Text -> Either Text (Color RGB Double)
+fromHex = first pack . A.parseOnly parseHex
+
+unsafeFromHex :: Text -> Color RGB Double
+unsafeFromHex t = either (const (ColorRGB 0 0 0)) id $ A.parseOnly parseHex t
+
+-- | convert from 'Colour' to #xxxxxx
+toHex :: Colour -> Text
+toHex c =
+  "#"
+    <> Text.justifyRight 2 '0' (hex' r)
+    <> Text.justifyRight 2 '0' (hex' g)
+    <> Text.justifyRight 2 '0' (hex' b)
+  where
+    (ColorRGBA r g b _) = toWord8 <$> color' c
+
+hex' :: (FromInteger a, ToIntegral a Integer, Integral a, Ord a, Subtractive a) => a -> Text
+hex' i
+  | i < 0 = "-" <> go (- i)
+  | otherwise = go i
+  where
+    go n
+      | n < 16 = hexDigit n
+      | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
+
+hexDigit :: (Ord a, FromInteger a, ToIntegral a Integer) => a -> Text
+hexDigit n
+  | n <= 9 = Text.singleton P.$! i2d (fromIntegral n)
+  | otherwise = Text.singleton P.$! toEnum (fromIntegral n + 87)
+
+{-# INLINE i2d #-}
+i2d :: Int -> Char
+i2d i = (chr (ord '0' + i))
+
+palette :: [Color RGB Double]
+palette = unsafeFromHex <$> ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928"]
+
+palette1 :: [Colour]
+palette1 = (\c -> fromRGB c 1) <$> palette 
+
+grayscale :: Double -> Color RGB Double
+grayscale n = ColorRGB n n n
+
+colorText :: Colour
+colorText = fromRGB (grayscale 0.2) 1
+
+black :: Colour
+black = fromRGB (grayscale 0) 1
+
+white :: Colour
+white = fromRGB (grayscale 1) 1
+
+transparent :: Colour
+transparent = Colour 0 0 0 0
 
 data FormatN
   = FormatFixed Int
@@ -618,3 +746,74 @@ data FormatN
 
 defaultFormatN :: FormatN
 defaultFormatN = FormatComma 2
+
+fromFormatN :: (IsString s) => FormatN -> s
+fromFormatN (FormatFixed _) = "Fixed"
+fromFormatN (FormatComma _) = "Comma"
+fromFormatN (FormatExpt _) = "Expt"
+fromFormatN FormatDollar = "Dollar"
+fromFormatN (FormatPercent _) = "Percent"
+fromFormatN FormatNone = "None"
+
+toFormatN :: (Eq s, IsString s) => s -> Int -> FormatN
+toFormatN "Fixed" n = FormatFixed n
+toFormatN "Comma" n = FormatComma n
+toFormatN "Expt" n = FormatExpt n
+toFormatN "Dollar" _ = FormatDollar
+toFormatN "Percent" n = FormatPercent n
+toFormatN "None" _ = FormatNone
+toFormatN _ _ = FormatNone
+
+fixed :: Int -> Double -> Text
+fixed x n = pack $ formatScientific Fixed (Just x) (fromFloatDigits n)
+
+comma :: Int -> Double -> Text
+comma n a
+  | a < 1000 = fixed n a
+  | otherwise = go (fromInteger $ floor a) ""
+  where
+    go :: Int -> Text -> Text
+    go x t
+      | x < 0 = "-" <> go (- x) ""
+      | x < 1000 = pack (show x) <> t
+      | otherwise =
+        let (d, m) = divMod x 1000
+         in go d ("," <> pack (show' m))
+      where
+        show' n' = let x' = show n' in (replicate (3 - length x') '0' <> x')
+
+expt :: Int -> Double -> Text
+expt x n = pack $ formatScientific Exponent (Just x) (fromFloatDigits n)
+
+dollar :: Double -> Text
+dollar = ("$" <>) . comma 2
+
+percent :: Int -> Double -> Text
+percent x n = (<> "%") $ fixed x (100 * n)
+
+formatN :: FormatN -> Double -> Text
+formatN (FormatFixed n) x = fixed n x
+formatN (FormatComma n) x = comma n x
+formatN (FormatExpt n) x = expt n x
+formatN FormatDollar x = dollar x
+formatN (FormatPercent n) x = percent n x
+formatN FormatNone x = pack (show x)
+
+-- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
+precision :: (Int -> Double -> Text) -> Int -> [Double] -> [Text]
+precision f n0 xs =
+  precLoop f (fromIntegral n0) xs
+  where
+    precLoop f' n xs' =
+      let s = f' n <$> xs'
+       in if s == nub s || n > 4
+            then s
+            else precLoop f' (n + 1) xs'
+
+formatNs :: FormatN -> [Double] -> [Text]
+formatNs (FormatFixed n) xs = precision fixed n xs
+formatNs (FormatComma n) xs = precision comma n xs
+formatNs (FormatExpt n) xs = precision expt n xs
+formatNs FormatDollar xs = precision (const dollar) 2 xs
+formatNs (FormatPercent n) xs = precision percent n xs
+formatNs FormatNone xs = pack . show <$> xs

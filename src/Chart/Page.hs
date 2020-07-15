@@ -49,8 +49,6 @@ module Chart.Page
 where
 
 import Chart.Bar
-import Chart.Color
-import Chart.Format
 import Chart.Pixel
 import Chart.Render (renderHudOptionsChart)
 import Chart.Types
@@ -125,16 +123,16 @@ repRectStyle s = do
   bo <- slider (Just "border opacity") 0 1 0.1 (opac $ s ^. #borderColor)
   c <- colorPicker (Just "color") (hex $ s ^. #color)
   o <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
-  pure $ RectStyle bs (fromHexOpac bc bo) (fromHexOpac c o)
+  pure $ RectStyle bs (fromRGB (unsafeFromHex bc) bo) (fromRGB (unsafeFromHex c) o)
 
 repPixelStyle ::
   (Monad m) =>
   PixelStyle ->
   SharedRep m PixelStyle
 repPixelStyle cfg =
-  bimap hmap mmap pcmin
+  bimap hmap mmap (unsafeFromHex <$> pcmin)
     <<*>> pomin
-    <<*>> pcmax
+    <<*>> (unsafeFromHex <$> pcmax)
     <<*>> pomax
     <<*>> pd
     <<*>> prs
@@ -150,7 +148,7 @@ repPixelStyle cfg =
     hmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
       pcmin' <> pomin' <> pcmax' <> pomax' <> pd' <> prs' <> pt'
     mmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
-      PixelStyle (fromHexOpac pcmin' pomin') (fromHexOpac pcmax' pomax') pd' prs' pt'
+      PixelStyle (fromRGB pcmin' pomin') (fromRGB pcmax' pomax') pd' prs' pt'
 
 repGlyphStyle :: (Monad m) => GlyphStyle -> SharedRep m GlyphStyle
 repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Nothing (x, [])) $ do
@@ -178,7 +176,7 @@ repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Noth
           (Point 0.001 0.001)
           (Point 0 0)
       )
-  pure (GlyphStyle sz (fromHexOpac gc go) (fromHexOpac gbc gbo) bsz sh tr tt)
+  pure (GlyphStyle sz (fromRGB (unsafeFromHex gc) go) (fromRGB (unsafeFromHex gbc) gbo) bsz sh tr tt)
 
 repTextStyle :: (Monad m) => TextStyle -> SharedRep m TextStyle
 repTextStyle s = do
@@ -204,14 +202,14 @@ repTextStyle s = do
           (Point 0 0)
       )
   tm <- checkbox (Just "mathjax") (s ^. #hasMathjax)
-  pure $ TextStyle ts (fromHexOpac tc to') ta th tv tn tr tt tm
+  pure $ TextStyle ts (fromRGB (unsafeFromHex tc) to') ta th tv tn tr tt tm
 
 repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
 repLineStyle s = do
   w <- slider (Just "width") 0.000 0.05 0.001 (s ^. #width)
   c <- colorPicker (Just "color") (toHex $ s ^. #color)
   o <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
-  pure $ LineStyle w (fromHexOpac c o)
+  pure $ LineStyle w (fromRGB (unsafeFromHex c) o)
 
 repPlace :: (Monad m) => Place -> SharedRep m Place
 repPlace initpl = bimap hmap mmap rplace <<*>> rp
@@ -484,7 +482,7 @@ repData d = do
         "line" ->
           SpotPoint . uncurry Point
             <$> [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)]
-        "one" -> [SR 0 1 0 1]
+        "one" -> [SpotRect (Rect 0 1 0 1)]
         "dist" -> SpotRect <$> gridR (\x -> exp (- (x ** 2) / 2)) (Range (-5) 5) 50
         _ -> SpotPoint <$> gridP sin (Range 0 (2 * pi)) 30
     )
@@ -1132,4 +1130,4 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
 
 repNoData :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
 repNoData css ann hc =
-  repChartsWithStaticData css hc 10 [Chart ann [SR (-0.5) 0.5 (-0.5) 0.5]]
+  repChartsWithStaticData css hc 10 [Chart ann [SpotRect (Rect (-0.5) 0.5 (-0.5) 0.5)]]

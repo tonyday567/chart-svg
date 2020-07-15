@@ -17,8 +17,7 @@ module Chart.Bar
   )
 where
 
-import Chart.Color
-import Chart.Format
+
 import Chart.Hud
 import Chart.Types
 import Control.Lens
@@ -78,8 +77,8 @@ defaultBarOptions =
             )
     )
   where
-    gs = (\x -> RectStyle 0.002 x x) <$> palette
-    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette
+    gs = (\x -> RectStyle 0.002 x x) <$> palette1
+    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette1
 
 -- | imagine a data frame ...
 data BarData
@@ -137,7 +136,7 @@ barRange ys'@(y : ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0 
 -- | A bar chart without hud trimmings.
 bars :: BarOptions -> BarData -> [Chart Double]
 bars bo bd =
-  zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (fmap SpotRect <$> barRects bo (bd ^. #barData)) <> [Chart BlankA [SR (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]
+  zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (fmap SpotRect <$> barRects bo (bd ^. #barData)) <> [Chart BlankA [SpotRect (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)]]
   where
     (Rect x z y w) = fromMaybe unitRect $ foldRect $ catMaybes $ foldRect <$> barRects bo (bd ^. #barData)
 

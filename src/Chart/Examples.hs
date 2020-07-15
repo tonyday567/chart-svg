@@ -64,8 +64,8 @@ rss =
   ]
 
 ropts :: [RectStyle]
-ropts = [ blob (setAlpha (palette !! 0) 0.4),
-          blob (setAlpha (palette !! 5) 0.4)
+ropts = [ blob (fromRGB (palette !! 0) 0.4),
+          blob (fromRGB (palette !! 5) 0.4)
         ]
 
 -- | line example
@@ -92,9 +92,9 @@ ls =
 
 lopts :: [LineStyle]
 lopts =
-  [ defaultLineStyle & #color .~ (palette !! 0) & #width .~ 0.015,
-    defaultLineStyle & #color .~ (palette !! 1) & #width .~ 0.03,
-    defaultLineStyle & #color .~ (palette !! 5) & #width .~ 0.01
+  [ defaultLineStyle & #color .~ (palette1 !! 0) & #width .~ 0.015,
+    defaultLineStyle & #color .~ (palette1 !! 1) & #width .~ 0.03,
+    defaultLineStyle & #color .~ (palette1 !! 5) & #width .~ 0.01
   ]
 
 legopts :: LegendOptions
@@ -170,7 +170,7 @@ glyphs =
       (TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0), 0.01),
       (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z", 0.01)
     ]
-    [SP x 0 | x <- [0 .. (8 :: Double)]]
+    [SpotPoint (Point x 0) | x <- [0 .. (8 :: Double)]]
 
 -- | bar example
 barDataExample :: BarData
@@ -209,14 +209,14 @@ boundTextBug =
             (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
             ["a pretty long piece of text"]
         )
-        [SP 0.0 0.0]
+        [SpotPoint (Point 0.0 0.0)]
     t2 =
       Chart
         ( TextA
             (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
             ["another pretty long piece of text"]
         )
-        [SP 1 1]
+        [SpotPoint (Point 1 1)]
 
 -- | compound chart
 gopts3 :: [GlyphStyle]
@@ -230,7 +230,7 @@ gopts3 =
           . (#size .~ 0.08)
           $ defaultGlyphStyle
     )
-    palette
+    palette1
     [EllipseGlyph 1.5, SquareGlyph, CircleGlyph]
 
 glines :: [Chart Double]
@@ -252,8 +252,8 @@ lglyph = txt <> gly
           Chart
             ( TextA
                 ( defaultTextStyle
-                    & #color %~ (`setAlpha` 0.2)
                     & #translate ?~ Point 0 0.04
+                    & #color %~ setOpac 0.2
                 )
                 [t]
             )
@@ -284,7 +284,7 @@ labelExample =
     (annotation <$> label)
     (spots <$> label)
 
-placedLabel :: (Chartable a) => Point a -> a -> Text -> Chart a
+placedLabel :: (Real a) => Point a -> a -> Text -> Chart a
 placedLabel p d t =
   Chart (TextA (defaultTextStyle & #rotation ?~ realToFrac d) [t]) [SpotPoint p]
 

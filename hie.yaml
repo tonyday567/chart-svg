@@ -6,3 +6,5 @@ cradle:
       component: "chart-svg:exe:examples"
     - path: "./app/venn.hs"
       component: "chart-svg:exe:venn"
+    - path: "./test/"
+      component: "chart-svg:test"

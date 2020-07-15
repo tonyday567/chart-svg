@@ -17,7 +17,7 @@ module Chart.Svg
   )
 where
 
-import Chart.Color
+
 import Chart.Types
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()
