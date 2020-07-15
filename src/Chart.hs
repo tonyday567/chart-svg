@@ -230,7 +230,6 @@ Physical, on-the-page representations of data is separate to need to be consider
 
 ![hud example](other/linehud.svg)
 
-
 chart-svg takes inspiration from gaming heads-up display aesthetics. Chart decorations such as titles and axes are tools to interpret the landscape of data being viewed, should be readily transparent, have sane defaults but be fully configurable.
 
 The library considers a hud to be a recipe for the creation of a 'Chart' list, in the domain of the viewbox of an svg file or similar conception.

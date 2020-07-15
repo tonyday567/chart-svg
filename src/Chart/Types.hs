@@ -196,11 +196,24 @@ import Text.HTML.TagSoup hiding (Attribute)
 import Lucid.Base (makeXmlElementNoEnd)
 import qualified Lucid.Base as Lucid
 
+
+{- $setup
+
+>>> :set -XOverloadedLabels
+>>> :set -XNoImplicitPrelude
+>>> -- import NumHask.Prelude
+>>> import Control.Lens
+>>> import Chart.Render
+
+-}
+
+
 -- * Chart
 
 -- | A `Chart` consists of
 -- - a list of spots on the xy-plane, and
 -- - specific style of representation for each spot.
+--
 data Chart a
   = Chart
       { annotation :: Annotation,
@@ -233,6 +246,10 @@ blank = [Chart BlankA []]
 --
 -- >>> defaultRectStyle
 -- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}
+--
+-- >writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [SpotRect (unitRect::Rect Double)]]
+--
+-- ![unit example](other/unit.svg)
 --
 data RectStyle
   = RectStyle
@@ -270,11 +287,18 @@ clear = RectStyle 0 transparent transparent
 border :: Double -> Colour -> RectStyle
 border s c = RectStyle s c transparent
 
--- | Text styling
---
--- >>> defaultTextStyle
--- TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}
---
+{- | Text styling
+
+>>> defaultTextStyle
+TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}
+
+>>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [SpotPoint y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
+
+> writeCharts "other/text.svg" t
+
+![text example](other/text.svg)
+
+-}
 data TextStyle
   = TextStyle
       { size :: Double,
@@ -314,6 +338,8 @@ defaultTextStyle =
 --
 -- >>> defaultGlyphStyle
 -- GlyphStyle {size = 3.0e-2, color = RGBA 0.65 0.81 0.89 0.30, borderColor = RGBA 0.12 0.47 0.71 0.80, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
+--
+-- ![glyph example](other/glyph.svg)
 --
 data GlyphStyle
   = GlyphStyle
@@ -390,6 +416,8 @@ defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3)
 --
 -- >>> defaultPixelStyle
 -- PixelStyle {pixelColorMin = RGBA 0.65 0.81 0.89 1.00, pixelColorMax = RGBA 0.12 0.47 0.71 1.00, pixelGradient = 1.5707963267948966, pixelRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}, pixelTextureId = "pixel"}
+--
+-- ![pixel example](other/pixel.svg)
 --
 data PixelStyle
   = PixelStyle
@@ -492,6 +520,10 @@ toSvgAspect _ _ = ChartAspect
 -- >>> defaultSvgOptions
 -- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, escapeText = NoEscapeText, useCssCrisp = NoCssOptions, scaleCharts' = ScaleCharts, svgAspect = ManualAspect 1.5}
 --
+-- > writeChartsWith "other/svgoptions.svg" (defaultSvgOptions & #svgAspect .~ ManualAspect 0.7) lines
+--
+-- ![svgoptions example](other/svgoptions.svg)
+--
 data SvgOptions
   = SvgOptions
       { svgHeight :: Double,
@@ -541,9 +573,9 @@ instance (Monad m) => Monoid (HudT m a) where
 
 -- | Practically, the configuration of a Hud is going to be in decimals, typed into config files and the like, and so we concrete at the configuration level, and settle on doubles for specifying the geomtry of hud elements.
 --
--- >>> defaultHudOptions
--- HudOptions {hudCanvas = Just (RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.50 0.50 0.50 0.02}), hudTitles = [], hudAxes = [AxisOptions {abar = Just (Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}), adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), atick = Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}, place = PlaceBottom},AxisOptions {abar = Just (Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}), adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), atick = Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}, place = PlaceLeft}], hudLegend = Nothing}
+-- > writeHudOptionsChart "other/hud.svg" defaultSvgOptions defaultHudOptions [] []
 --
+-- ![hud example](other/hud.svg)
 data HudOptions
   = HudOptions
       { hudCanvas :: Maybe RectStyle,
@@ -595,9 +627,6 @@ placeText p =
     PlaceAbsolute _ -> "Absolute"
 
 -- | axis options
---
--- >>> defaultAxisOptions
--- AxisOptions {abar = Just (Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}), adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), atick = Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}, place = PlaceBottom}
 --
 data AxisOptions
   = AxisOptions
@@ -750,6 +779,8 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 --
 -- >>> defaultLegendOptions
 -- LegendOptions {lsize = 0.1, vgap = 0.2, hgap = 0.1, ltext = TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}, lmax = 10, innerPad = 0.1, outerPad = 0.1, legendFrame = Just (RectStyle {borderSize = 2.0e-2, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 1.00 1.00 1.00 1.00}), lplace = PlaceBottom, lscale = 0.2}
+--
+-- ![legend example](other/legend.svg)
 --
 data LegendOptions
   = LegendOptions

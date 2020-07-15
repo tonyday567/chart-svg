@@ -324,21 +324,31 @@ mainExample =
 
 writeAllExamples :: IO ()
 writeAllExamples = do
+
+  -- haddocks
+  let ls' = fmap (SpotPoint . uncurry Point) <$>
+          [ [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0 :: Double)],
+            [(0.0, 0.0), (3.0, 3.0)],
+            [(0.5, 4.0), (0.5, 0)] ]
+  let anns = LineA <$>
+            [ defaultLineStyle & #color .~ (palette1 !! 0) & #width .~ 0.015,
+              defaultLineStyle & #color .~ (palette1 !! 1) & #width .~ 0.03,
+              defaultLineStyle & #color .~ (palette1 !! 5) & #width .~ 0.01
+            ]
+  let lines' = zipWith Chart anns ls'
+  writeCharts "other/lines.svg" lines'
+  writeHudOptionsChart "other/linehud.svg" defaultSvgOptions defaultHudOptions [] lines'
+  writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [SpotRect (unitRect::Rect Double)]]
+  let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [SpotPoint y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
+  writeCharts "other/text.svg" t
+  writeCharts "other/glyph.svg" glyphs
+  writeHudOptionsChart "other/pixel.svg" defaultSvgOptions defaultHudOptions (snd pixelEx) (fst pixelEx)
+  writeChartsWith "other/svgoptions.svg" (defaultSvgOptions & #svgAspect .~ ManualAspect 0.7) lines'
+  writeHudOptionsChart "other/hud.svg" defaultSvgOptions defaultHudOptions [] []
+  
   -- basics
   writeCharts "other/mempty.svg" []
-  writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [SpotRect unitRect]]
-  writeHudOptionsChart "other/hud.svg" defaultSvgOptions defaultHudOptions [] []
-  writeChartExample "other/rect.svg" rectExample
-  writeChartExample "other/line.svg" lineExample
-  writeChartExample "other/text.svg" textExample
-  writeChartExample "other/glyph.svg" glyphExample
   writeChartExample "other/bar.svg" barExample
-  writeHudOptionsChart "other/pixel.svg" defaultSvgOptions defaultHudOptions (snd pixelEx) (fst pixelEx)
-  -- stuff
   writeCharts "other/boundText.svg" boundTextBug
-  writeCharts "other/compound.svg" (lglyph <> glines)
-  writeCharts "other/label.svg" label
   writeHudOptionsChart "other/legend.svg" defaultSvgOptions legendTest [] []
-  -- main
-  writeChartExample "other/main.svg" mainExample
   putStrLn (" 👍" :: Text)

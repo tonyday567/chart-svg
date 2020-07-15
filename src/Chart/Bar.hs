@@ -37,6 +37,8 @@ import qualified Prelude as P
 
 -- | the usual bar chart eye-candy
 --
+-- ![bar chart example](other/bar.svg)
+--
 data BarOptions
   = BarOptions
       { barRectStyles :: [RectStyle],
