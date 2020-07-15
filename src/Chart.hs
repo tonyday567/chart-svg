@@ -113,9 +113,7 @@ module Chart
 where
 
 import Chart.Bar
-
 import Chart.Core
-
 import Chart.Hud
 import Chart.Page
 import Chart.Pixel
@@ -184,13 +182,13 @@ lines :: [Chart Double]
 
 Most charts will, in reality, be a list of charts, and much of the library API is designed for this.
 
->>> writeCharts "other/lines.svg" lines
+> writeCharts "other/lines.svg" lines
 
 ![lines example](other/lines.svg)
 
 Physical, on-the-page representations of data is separate to need to be considered separately to the domain of the data itself but their concerns bleed into each other. An axis on a chart needs to know the range of the data to render a tick value.
 
->>> writeHudOptionsChart "other/linehud.svg" defaultSvgOptions defaultHudOptions [] lines
+> writeHudOptionsChart "other/linehud.svg" defaultSvgOptions defaultHudOptions [] lines
 
 ![hud example](other/linehud.svg)
 
