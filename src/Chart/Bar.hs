@@ -17,7 +17,6 @@ module Chart.Bar
   )
 where
 
-
 import Chart.Types
 import Control.Lens
 import Data.Generics.Labels ()
@@ -26,19 +25,16 @@ import NumHask.Prelude
 import NumHask.Space
 import qualified Prelude as P
 
-{- $setup
-
->>> :set -XOverloadedLabels
->>> :set -XNoImplicitPrelude
->>> -- import NumHask.Prelude
->>> import Control.Lens
-
--}
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XNoImplicitPrelude
+-- >>> -- import NumHask.Prelude
+-- >>> import Control.Lens
 
 -- | the usual bar chart eye-candy
 --
 -- ![bar chart example](other/bar.svg)
---
 data BarOptions
   = BarOptions
       { barRectStyles :: [RectStyle],
@@ -92,16 +88,13 @@ defaultBarOptions =
     gs = (\x -> RectStyle 0.002 x x) <$> palette1
     ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette1
 
-{- | imagine a dataframe you get in other languages:
-
-- definietly some [[Double]]
-
-- maybe some row names
-
-- maybe some column names
-
--}
-
+-- | imagine a dataframe you get in other languages:
+--
+-- - definietly some [[Double]]
+--
+-- - maybe some row names
+--
+-- - maybe some column names
 data BarData
   = BarData
       { barData :: [[Double]],
@@ -169,13 +162,11 @@ barRange ys'@(y : ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0 
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] Nothing Nothing)
 -- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.65 0.81 0.89 1.00, color = RGBA 0.65 0.81 0.89 1.00}), spots = [SpotRect Rect 5.0e-2 0.45 0.0 1.0,SpotRect Rect 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.12 0.47 0.71 1.00, color = RGBA 0.12 0.47 0.71 1.00}), spots = [SpotRect Rect 0.45 0.8500000000000001 0.0 2.0,SpotRect Rect 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, spots = [SpotRect Rect -5.0e-2 1.9500000000000002 0.0 3.0]}]
---
 bars :: BarOptions -> BarData -> [Chart Double]
 bars bo bd =
   zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (fmap SpotRect <$> barRects bo (bd ^. #barData)) <> [Chart BlankA [SpotRect (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)]]
   where
     (Rect x z y w) = fromMaybe unitRect $ foldRect $ catMaybes $ foldRect <$> barRects bo (bd ^. #barData)
-
 
 maxRows :: [[Double]] -> Int
 maxRows [] = 0
@@ -211,7 +202,6 @@ barLegend bd bo
 -- | A bar chart with hud trimmings.
 --
 -- By convention only, the first axis (if any) is the bar axis.
---
 barChart :: BarOptions -> BarData -> (HudOptions, [Chart Double])
 barChart bo bd =
   ( bo ^. #barHudOptions & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo),
@@ -257,4 +247,3 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = zipWith 
 barTextCharts :: BarOptions -> BarData -> [Chart Double]
 barTextCharts bo bd =
   zipWith (\o d -> Chart (TextA o (fst <$> d)) (SpotPoint . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))
-

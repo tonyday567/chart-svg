@@ -600,7 +600,6 @@ repTickStyle cfg =
       TickRound _ _ e -> e == TickExtend
       _ -> True
 
-
 repTick :: (Monad m) => Tick -> SharedRep m Tick
 repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
   where
@@ -893,7 +892,7 @@ debugHtml debug css hc cs =
     ((\(a, _, _) -> a) debug)
     <> bool
       mempty
-      ( mconcat $
+      ( mconcat
           [ "<h2>chart svg</h2>",
             "<xmp>",
             renderHudOptionsChart css hc [] cs,

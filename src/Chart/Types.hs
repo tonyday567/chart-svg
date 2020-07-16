@@ -1,9 +1,3 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
@@ -17,11 +11,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 
 module Chart.Types
   ( Chart (..),
@@ -89,7 +83,6 @@ module Chart.Types
     defaultAdjustments,
     LegendOptions (..),
     defaultLegendOptions,
-
     -- $color
     Colour,
     pattern Colour,
@@ -103,7 +96,6 @@ module Chart.Types
     toHex,
     fromHex,
     unsafeFromHex,
-
     grayscale,
     colorText,
     transparent,
@@ -112,9 +104,8 @@ module Chart.Types
 
     -- * re-exports
     module Graphics.Color.Model,
-
     -- $formats
-    FormatN(..),
+    FormatN (..),
     defaultFormatN,
     fromFormatN,
     toFormatN,
@@ -125,7 +116,6 @@ module Chart.Types
     formatN,
     precision,
     formatNs,
-
     -- $core
     projectTo,
     projectSpots,
@@ -136,7 +126,6 @@ module Chart.Types
     defRect,
     defRectS,
     moveChart,
-
     -- $hud
     runHudWith,
     runHud,
@@ -153,7 +142,6 @@ module Chart.Types
     legendEntry,
     legendChart,
     legendFromChart,
-
     -- $svg
     svg,
     svgt,
@@ -171,49 +159,40 @@ module Chart.Types
     stack,
     addChartBox,
     addChartBoxes,
-    
-    )
+  )
 where
 
+import qualified Control.Foldl as L
 import Control.Lens
 import qualified Data.Attoparsec.Text as A
 import Data.Generics.Labels ()
-import Data.List ((!!))
-import Graphics.Color.Model
-import NumHask.Prelude
-import NumHask.Space hiding (Element)
-import qualified Prelude as P
-import qualified Data.Text as Text
-import Data.List (nub)
+import Data.List ((!!), nub)
 import Data.Scientific
+import qualified Data.Text as Text
 import Data.Time
-import qualified Control.Foldl as L
-import Data.Generics.Labels ()
+import Graphics.Color.Model
 import qualified Lucid
-import Lucid (with, term, width_, height_, id_, class_, toHtmlRaw)
-import NumHask.Space as NH hiding (Element)
-import Text.HTML.TagSoup hiding (Attribute)
+import Lucid (class_, height_, id_, term, toHtmlRaw, width_, with)
 import Lucid.Base (makeXmlElementNoEnd)
 import qualified Lucid.Base as Lucid
+import NumHask.Prelude
+import NumHask.Space as NH hiding (Element)
+import Text.HTML.TagSoup hiding (Attribute)
+import qualified Prelude as P
 
-
-{- $setup
-
->>> :set -XOverloadedLabels
->>> :set -XNoImplicitPrelude
->>> -- import NumHask.Prelude
->>> import Control.Lens
->>> import Chart.Render
-
--}
-
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XNoImplicitPrelude
+-- >>> -- import NumHask.Prelude
+-- >>> import Control.Lens
+-- >>> import Chart.Render
 
 -- * Chart
 
 -- | A `Chart` consists of
 -- - a list of spots on the xy-plane, and
 -- - specific style of representation for each spot.
---
 data Chart a
   = Chart
       { annotation :: Annotation,
@@ -250,7 +229,6 @@ blank = [Chart BlankA []]
 -- >writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [SpotRect (unitRect::Rect Double)]]
 --
 -- ![unit example](other/unit.svg)
---
 data RectStyle
   = RectStyle
       { borderSize :: Double,
@@ -267,7 +245,6 @@ defaultRectStyle = RectStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette
 --
 -- >>> blob black
 -- RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}
---
 blob :: Colour -> RectStyle
 blob = RectStyle 0 transparent
 
@@ -275,7 +252,6 @@ blob = RectStyle 0 transparent
 --
 -- >>> clear
 -- RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 0.00}
---
 clear :: RectStyle
 clear = RectStyle 0 transparent transparent
 
@@ -283,22 +259,19 @@ clear = RectStyle 0 transparent transparent
 --
 -- >>> border 0.01 transparent
 -- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 0.00}
---
 border :: Double -> Colour -> RectStyle
 border s c = RectStyle s c transparent
 
-{- | Text styling
-
->>> defaultTextStyle
-TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}
-
->>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [SpotPoint y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
-
-> writeCharts "other/text.svg" t
-
-![text example](other/text.svg)
-
--}
+-- | Text styling
+--
+-- >>> defaultTextStyle
+-- TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}
+--
+-- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [SpotPoint y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
+--
+-- > writeCharts "other/text.svg" t
+--
+-- ![text example](other/text.svg)
 data TextStyle
   = TextStyle
       { size :: Double,
@@ -340,7 +313,6 @@ defaultTextStyle =
 -- GlyphStyle {size = 3.0e-2, color = RGBA 0.65 0.81 0.89 0.30, borderColor = RGBA 0.12 0.47 0.71 0.80, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
 --
 -- ![glyph example](other/glyph.svg)
---
 data GlyphStyle
   = GlyphStyle
       { -- | glyph radius
@@ -400,7 +372,6 @@ glyphText sh =
 --
 -- >>> defaultLineStyle
 -- LineStyle {width = 1.2e-2, color = RGBA 0.65 0.81 0.89 0.30}
---
 data LineStyle
   = LineStyle
       { width :: Double,
@@ -418,7 +389,6 @@ defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3)
 -- PixelStyle {pixelColorMin = RGBA 0.65 0.81 0.89 1.00, pixelColorMax = RGBA 0.12 0.47 0.71 1.00, pixelGradient = 1.5707963267948966, pixelRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}, pixelTextureId = "pixel"}
 --
 -- ![pixel example](other/pixel.svg)
---
 data PixelStyle
   = PixelStyle
       { pixelColorMin :: Colour,
@@ -523,7 +493,6 @@ toSvgAspect _ _ = ChartAspect
 -- > writeChartsWith "other/svgoptions.svg" (defaultSvgOptions & #svgAspect .~ ManualAspect 0.7) lines
 --
 -- ![svgoptions example](other/svgoptions.svg)
---
 data SvgOptions
   = SvgOptions
       { svgHeight :: Double,
@@ -627,7 +596,6 @@ placeText p =
     PlaceAbsolute _ -> "Absolute"
 
 -- | axis options
---
 data AxisOptions
   = AxisOptions
       { abar :: Maybe Bar,
@@ -645,7 +613,6 @@ defaultAxisOptions = AxisOptions (Just defaultBar) (Just defaultAdjustments) def
 --
 -- >>> defaultBar
 -- Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}
---
 data Bar
   = Bar
       { rstyle :: RectStyle,
@@ -686,7 +653,6 @@ defaultTitle txt =
 --
 -- >>> defaultTick
 -- Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}
---
 data Tick
   = Tick
       { tstyle :: TickStyle,
@@ -759,7 +725,6 @@ data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Generic)
 --
 -- >>> defaultAdjustments
 -- Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}
---
 data Adjustments
   = Adjustments
       { maxXRatio :: Double,
@@ -781,7 +746,6 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- LegendOptions {lsize = 0.1, vgap = 0.2, hgap = 0.1, ltext = TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}, lmax = 10, innerPad = 0.1, outerPad = 0.1, legendFrame = Just (RectStyle {borderSize = 2.0e-2, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 1.00 1.00 1.00 1.00}), lplace = PlaceBottom, lscale = 0.2}
 --
 -- ![legend example](other/legend.svg)
---
 data LegendOptions
   = LegendOptions
       { lsize :: Double,
@@ -815,20 +779,25 @@ defaultLegendOptions =
     0.2
 
 -- | snatching Colour as the library color representation.
-newtype Colour = Colour' { color' :: Color (Alpha RGB) Double } deriving (Eq, Generic)
+newtype Colour = Colour' {color' :: Color (Alpha RGB) Double} deriving (Eq, Generic)
 
 -- | Constructor.
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
 pattern Colour r g b a = Colour' (ColorRGBA r g b a)
+
 {-# COMPLETE Colour #-}
 
 instance Show Colour where
   show (Colour r g b a) =
-    Text.unpack $ "RGBA " <>
-    fixed 2 r <> " " <>
-    fixed 2 g <> " " <> 
-    fixed 2 b <> " " <> 
-    fixed 2 a
+    Text.unpack $
+      "RGBA "
+        <> fixed 2 r
+        <> " "
+        <> fixed 2 g
+        <> " "
+        <> fixed 2 b
+        <> " "
+        <> fixed 2 a
 
 -- | get opacity
 opac :: Colour -> Double
@@ -858,13 +827,13 @@ blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
 -- |
 parseHex :: A.Parser (Color RGB Double)
 parseHex =
-  (fmap toDouble
-    . ( \((r, g), b) ->
+  fmap toDouble
+      . ( \((r, g), b) ->
             ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
         )
-    . (\(f, b) -> (f `divMod` (256 :: Int), b))
-    . (`divMod` 256)
-    <$> (A.string "#" *> A.hexadecimal))
+      . (\(f, b) -> (f `divMod` (256 :: Int), b))
+      . (`divMod` 256)
+      <$> (A.string "#" *> A.hexadecimal)
 
 -- |
 fromHex :: Text -> Either Text (Color RGB Double)
@@ -902,15 +871,15 @@ hexDigit n
 
 -- |
 i2d :: Int -> Char
-i2d i = (chr (ord '0' + i))
+i2d i = chr (ord '0' + i)
 
 -- | some RGB colors to work with
 palette :: [Color RGB Double]
-palette = unsafeFromHex <$> ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928"]
+palette = unsafeFromHex <$> ["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a", "#ffff99", "#b15928"]
 
 -- | some RGBA colors
 palette1 :: [Colour]
-palette1 = (\c -> fromRGB c 1) <$> palette 
+palette1 = (\c -> fromRGB c 1) <$> palette
 
 -- | gray with 1 opacity
 grayscale :: Double -> Color RGB Double
@@ -936,7 +905,6 @@ transparent = Colour 0 0 0 0
 --
 -- >>> defaultFormatN
 -- FormatComma 2
---
 data FormatN
   = FormatFixed Int
   | FormatComma Int
@@ -1078,8 +1046,13 @@ projectSpots a cs = cs'
     ss = annotation <$> cs
     cs' = zipWith Chart ss xss
     projectTo2 vb xss =
-      fmap (maybe id (projectOn vb)
-             (fold $ foldRect . fmap toRect <$> xss)) <$> xss
+      fmap
+        ( maybe
+            id
+            (projectOn vb)
+            (fold $ foldRect . fmap toRect <$> xss)
+        )
+        <$> xss
 
 projectSpotsWith :: (Ord a, Fractional a) => Rect a -> Rect a -> [Chart a] -> [Chart a]
 projectSpotsWith new old cs = cs'
@@ -1092,7 +1065,7 @@ toAspect :: (Divisive a, Subtractive a) => Rect a -> a
 toAspect (Rect x z y w) = (z - x) / (w - y)
 
 -- |
-dataBox :: (Ord a) =>[Chart a] -> Maybe (Rect a)
+dataBox :: (Ord a) => [Chart a] -> Maybe (Rect a)
 dataBox cs = foldRect . mconcat $ fmap toRect <$> (spots <$> cs)
 
 scaleAnn :: Double -> Annotation -> Annotation
@@ -1117,7 +1090,6 @@ pattern SR' :: a -> a -> a -> a -> Spot a
 pattern SR' a b c d = SpotRect (Rect a b c d)
 
 {-# COMPLETE SR' #-}
-
 
 -- | combine huds and charts to form a new Chart using the supplied
 -- initial canvas and data dimensions.
@@ -1175,7 +1147,7 @@ freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip
       _ -> Rect a0 a1 y w
 freezeTicks _ _ ts = (ts, Nothing)
 
--- | 
+-- |
 flipAxis :: AxisOptions -> AxisOptions
 flipAxis ac = case ac ^. #place of
   PlaceBottom -> ac & #place .~ PlaceLeft
@@ -1993,7 +1965,6 @@ toRotateText r (Point x y) =
 --
 -- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [SpotRect unitRect]]
 -- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), spots = [SpotRect Rect -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, spots = [SpotRect Rect -0.605 0.605 -0.605 0.605]}]
---
 padChart :: Double -> [Chart Double] -> [Chart Double]
 padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
 
@@ -2001,7 +1972,6 @@ padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> style
 --
 -- >>> frameChart defaultRectStyle 0.1 blank
 -- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), spots = []},Chart {annotation = BlankA, spots = []}]
---
 frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
 frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
 
