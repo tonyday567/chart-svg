@@ -118,33 +118,6 @@ executable venn
     -Wincomplete-uni-patterns
     -Wredundant-constraints
 
-executable startup
-  main-is: startup.hs
-  hs-source-dirs:
-    app
-  build-depends:
-    base >=4.7 && <5,
-    chart-svg,
-    lens >= 4.0,
-    lucid >= 2.9,
-    numhask >= 0.6 && < 0.7,
-    text >= 1.2,
-    transformers >= 0.5,
-    unordered-containers >= 0.2.10,
-    web-rep >= 0.6
-  default-language: Haskell2010
-  default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
-  ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
-
 test-suite test
   type: exitcode-stdio-1.0
   main-is: test.hs
