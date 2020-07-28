@@ -86,17 +86,22 @@ module Chart
     transparent,
     black,
     white,
+
     -- $formats
     FormatN (..),
     defaultFormatN,
     fromFormatN,
     toFormatN,
     fixed,
+    decimal,
+    prec,
     comma,
     expt,
     dollar,
     formatN,
+    precision,
     formatNs,
+
     -- $core
     dataBox,
     toAspect,
@@ -113,7 +118,6 @@ module Chart
     canvas,
     title,
     tick,
-    precision,
     adjustTick,
     makeTickDates,
     makeTickDatesContinuous,
@@ -147,6 +151,7 @@ module Chart
 where
 
 import Chart.Bar
+import Chart.FormatN
 import Chart.Page
 import Chart.Pixel
 import Chart.Render

@@ -133,10 +133,11 @@ renderHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Text
 renderHudChart so hs cs = renderChartsWith so (runHud (getViewbox so cs) hs cs)
 
 -- | Render a chart using the supplied svg and hud config.
+-- FIXME: defRectS usage
 renderHudOptionsChart :: SvgOptions -> HudOptions -> [Hud Double] -> [Chart Double] -> Text
 renderHudOptionsChart so hc hs cs = renderHudChart so (hs <> hs') (cs <> cs')
   where
-    (hs', cs') = makeHud (defRect $ styleBoxes cs) hc
+    (hs', cs') = makeHud (defRectS $ dataBox cs) hc
 
 writeHudOptionsChart :: FilePath -> SvgOptions -> HudOptions -> [Hud Double] -> [Chart Double] -> IO ()
 writeHudOptionsChart fp so hc hs cs =

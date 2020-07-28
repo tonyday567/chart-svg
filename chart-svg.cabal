@@ -1,6 +1,6 @@
 cabal-version:  2.4
 name:           chart-svg
-version:        0.1.1
+version:        0.1.2
 synopsis:       Charts in SVG
 description:    Chart library targetting SVG.
 category:       project
@@ -24,6 +24,7 @@ library
     Chart
     Chart.Bar
     Chart.Examples
+    Chart.FormatN
     Chart.Pixel
     Chart.Render
     Chart.Page

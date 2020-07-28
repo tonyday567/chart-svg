@@ -11,11 +11,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 module Chart.Types
   ( Chart (..),
@@ -104,18 +105,6 @@ module Chart.Types
 
     -- * re-exports
     module Graphics.Color.Model,
-    -- $formats
-    FormatN (..),
-    defaultFormatN,
-    fromFormatN,
-    toFormatN,
-    fixed,
-    comma,
-    expt,
-    dollar,
-    formatN,
-    precision,
-    formatNs,
     -- $core
     projectTo,
     projectSpots,
@@ -162,15 +151,15 @@ module Chart.Types
   )
 where
 
+import Chart.FormatN
 import qualified Control.Foldl as L
 import Control.Lens
 import qualified Data.Attoparsec.Text as A
 import Data.Generics.Labels ()
-import Data.List ((!!), nub)
-import Data.Scientific
+import Data.List ((!!))
 import qualified Data.Text as Text
 import Data.Time
-import Graphics.Color.Model
+import Graphics.Color.Model hiding (toRealFloat)
 import qualified Lucid
 import Lucid (class_, height_, id_, term, toHtmlRaw, width_, with)
 import Lucid.Base (makeXmlElementNoEnd)
@@ -652,7 +641,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTick
--- Tick {tstyle = TickRound (FormatComma 0) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}
+-- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}
 data Tick
   = Tick
       { tstyle :: TickStyle,
@@ -708,7 +697,7 @@ data TickStyle
 
 -- | The official tick style
 defaultTickStyle :: TickStyle
-defaultTickStyle = TickRound (FormatComma 0) 8 TickExtend
+defaultTickStyle = TickRound (FormatComma (Just 2)) 8 TickExtend
 
 -- | textifier
 tickStyleText :: TickStyle -> Text
@@ -791,13 +780,13 @@ instance Show Colour where
   show (Colour r g b a) =
     Text.unpack $
       "RGBA "
-        <> fixed 2 r
+        <> fixed (Just 2) r
         <> " "
-        <> fixed 2 g
+        <> fixed (Just 2) g
         <> " "
-        <> fixed 2 b
+        <> fixed (Just 2) b
         <> " "
-        <> fixed 2 a
+        <> fixed (Just 2) a
 
 -- | get opacity
 opac :: Colour -> Double
@@ -828,12 +817,12 @@ blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
 parseHex :: A.Parser (Color RGB Double)
 parseHex =
   fmap toDouble
-      . ( \((r, g), b) ->
-            ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
-        )
-      . (\(f, b) -> (f `divMod` (256 :: Int), b))
-      . (`divMod` 256)
-      <$> (A.string "#" *> A.hexadecimal)
+    . ( \((r, g), b) ->
+          ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
+      )
+    . (\(f, b) -> (f `divMod` (256 :: Int), b))
+    . (`divMod` 256)
+    <$> (A.string "#" *> A.hexadecimal)
 
 -- |
 fromHex :: Text -> Either Text (Color RGB Double)
@@ -901,103 +890,6 @@ white = fromRGB (grayscale 1) 1
 transparent :: Colour
 transparent = Colour 0 0 0 0
 
--- | Number formatting options.
---
--- >>> defaultFormatN
--- FormatComma 2
-data FormatN
-  = FormatFixed Int
-  | FormatComma Int
-  | FormatExpt Int
-  | FormatDollar
-  | FormatPercent Int
-  | FormatNone
-  deriving (Eq, Show, Generic)
-
--- | The official format
-defaultFormatN :: FormatN
-defaultFormatN = FormatComma 2
-
--- | textifier
-fromFormatN :: (IsString s) => FormatN -> s
-fromFormatN (FormatFixed _) = "Fixed"
-fromFormatN (FormatComma _) = "Comma"
-fromFormatN (FormatExpt _) = "Expt"
-fromFormatN FormatDollar = "Dollar"
-fromFormatN (FormatPercent _) = "Percent"
-fromFormatN FormatNone = "None"
-
--- | readifier
-toFormatN :: (Eq s, IsString s) => s -> Int -> FormatN
-toFormatN "Fixed" n = FormatFixed n
-toFormatN "Comma" n = FormatComma n
-toFormatN "Expt" n = FormatExpt n
-toFormatN "Dollar" _ = FormatDollar
-toFormatN "Percent" n = FormatPercent n
-toFormatN "None" _ = FormatNone
-toFormatN _ _ = FormatNone
-
--- | to x decimal places
-fixed :: Int -> Double -> Text
-fixed x n = pack $ formatScientific Fixed (Just x) (fromFloatDigits n)
-
--- | comma format
-comma :: Int -> Double -> Text
-comma n a
-  | a < 1000 = fixed n a
-  | otherwise = go (fromInteger $ floor a) ""
-  where
-    go :: Int -> Text -> Text
-    go x t
-      | x < 0 = "-" <> go (- x) ""
-      | x < 1000 = pack (show x) <> t
-      | otherwise =
-        let (d, m) = divMod x 1000
-         in go d ("," <> pack (show' m))
-      where
-        show' n' = let x' = show n' in (replicate (3 - length x') '0' <> x')
-
--- | scientific exponential
-expt :: Int -> Double -> Text
-expt x n = pack $ formatScientific Exponent (Just x) (fromFloatDigits n)
-
--- | dollars and cents
-dollar :: Double -> Text
-dollar = ("$" <>) . comma 2
-
--- | fixed percent
-percent :: Int -> Double -> Text
-percent x n = (<> "%") $ fixed x (100 * n)
-
--- | make text
-formatN :: FormatN -> Double -> Text
-formatN (FormatFixed n) x = fixed n x
-formatN (FormatComma n) x = comma n x
-formatN (FormatExpt n) x = expt n x
-formatN FormatDollar x = dollar x
-formatN (FormatPercent n) x = percent n x
-formatN FormatNone x = pack (show x)
-
--- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means give the tick labels as much precision as is needed for them to be distinguished, but with at least 2 significant figures, and format Integers with commas.
-precision :: (Int -> Double -> Text) -> Int -> [Double] -> [Text]
-precision f n0 xs =
-  precLoop f (fromIntegral n0) xs
-  where
-    precLoop f' n xs' =
-      let s = f' n <$> xs'
-       in if s == nub s || n > 4
-            then s
-            else precLoop f' (n + 1) xs'
-
--- | textifier
-formatNs :: FormatN -> [Double] -> [Text]
-formatNs (FormatFixed n) xs = precision fixed n xs
-formatNs (FormatComma n) xs = precision comma n xs
-formatNs (FormatExpt n) xs = precision expt n xs
-formatNs FormatDollar xs = precision (const dollar) 2 xs
-formatNs (FormatPercent n) xs = precision percent n xs
-formatNs FormatNone xs = pack . show <$> xs
-
 -- | project a Spot from one Rect to another, preserving relative position.
 --
 -- >>> projectOn unitRect (Rect 0 1 0 1) (SpotPoint $ Point 0 0)
@@ -1026,9 +918,11 @@ projectTo :: (Ord a, Fractional a) => Rect a -> [Spot a] -> [Spot a]
 projectTo _ [] = []
 projectTo vb (x : xs) = projectOn vb (toRect $ sconcat (x :| xs)) <$> (x : xs)
 
+-- | substitues unitRect
 defRect :: (Fractional a) => Maybe (Rect a) -> Rect a
 defRect = fromMaybe unitRect
 
+-- | guard substituting singleton dimensions
 defRectS :: (Subtractive a, Eq a, FromRational a, Fractional a) => Maybe (Rect a) -> Rect a
 defRectS r = maybe unitRect singletonUnit r
   where

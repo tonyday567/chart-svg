@@ -17,6 +17,7 @@ module Chart.Bar
   )
 where
 
+import Chart.FormatN
 import Chart.Types
 import Control.Lens
 import Data.Generics.Labels ()
@@ -62,7 +63,7 @@ defaultBarOptions =
     0.04
     0.1
     True
-    (FormatFixed 0)
+    (FormatComma (Just 2))
     False
     Hori
     ( defaultHudOptions
@@ -71,7 +72,7 @@ defaultBarOptions =
                  & #atick . #ltick .~ Nothing,
                defaultAxisOptions & #place .~ PlaceLeft
              ]
-        & #hudTitles .~ [defaultTitle "Default Bar Chart"]
+        & #hudTitles .~ []
         & #hudLegend
           .~ Just
             ( defaultLegendOptions
@@ -183,7 +184,7 @@ barTicks :: BarData -> TickStyle
 barTicks bd
   | bd ^. #barData == [] = TickNone
   | isNothing (bd ^. #barRowLabels) =
-    TickLabels $ pack . show <$> [1 .. maxRows (bd ^. #barData)]
+    TickLabels $ pack . show <$> [0 .. (maxRows (bd ^. #barData) - 1)]
   | otherwise =
     TickLabels $ take (maxRows (bd ^. #barData)) $
       fromMaybe [] (bd ^. #barRowLabels) <> repeat ""

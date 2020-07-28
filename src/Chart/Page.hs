@@ -49,6 +49,7 @@ module Chart.Page
 where
 
 import Chart.Bar
+import Chart.FormatN
 import Chart.Pixel
 import Chart.Render (renderHudOptionsChart)
 import Chart.Types
@@ -488,7 +489,7 @@ repData d = do
     )
 
 repFormatN :: (Monad m) => FormatN -> SharedRep m FormatN
-repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed <<*>> texpt <<*>> tpercent
+repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed <<*>> texpt <<*>> tpercent <<*>> tprec <<*>> tdecimal <<*>> tdollar
   where
     tformat =
       dropdownSum
@@ -497,33 +498,57 @@ repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed <<*>> texpt <
         (Just "Format")
         [ "Comma",
           "Fixed",
+          "Decimal",
+          "Prec",
           "Expt",
           "Dollar",
           "Percent",
           "None"
         ]
         (fromFormatN tf)
-    tcommas = sliderI (Just "prec") 0 8 1 (defInt tf)
-    tfixed = sliderI (Just "prec") 0 8 1 (defInt tf)
-    texpt = sliderI (Just "prec") 0 8 1 (defInt tf)
-    tpercent = sliderI (Just "prec") 0 8 1 (defInt tf)
+    tcommas = maybeRep Nothing (defSig tf) (sliderI (Just "prec") 0 8 1 (defInt tf))
+    tfixed = maybeRep Nothing (defSig tf) $ sliderI (Just "prec") 0 8 1 (defInt tf)
+    texpt = maybeRep Nothing (defSig tf) $ sliderI (Just "prec") 0 8 1 (defInt tf)
+    tpercent = maybeRep Nothing (defSig tf) $ sliderI (Just "prec") 0 8 1 (defInt tf)
+    tprec = maybeRep Nothing (defSig tf) $ sliderI (Just "prec") 0 8 1 (defInt tf)
+    tdecimal = maybeRep Nothing (defSig tf) $ sliderI (Just "prec") 0 8 1 (defInt tf)
+    tdollar = maybeRep Nothing (defSig tf) $ sliderI (Just "prec") 0 8 1 (defInt tf)
     defInt tf' = case tf' of
-      FormatComma n -> n
-      FormatFixed n -> n
+      FormatComma (Just n) -> n
+      FormatFixed (Just n) -> n
+      FormatDecimal (Just n) -> n
+      FormatPrec (Just n) -> n
+      FormatExpt (Just n) -> n
+      FormatDollar (Just n) -> n
+      FormatPercent (Just n) -> n
       _ -> 3
-    hmap tformat' tcommas' tfixed' texpt' tpercent' =
+    defSig tf' = case tf' of
+      FormatComma (Just _) -> True
+      FormatFixed (Just _) -> True
+      FormatDecimal (Just _) -> True
+      FormatPrec (Just _) -> True
+      FormatExpt (Just _) -> True
+      FormatDollar (Just _) -> True
+      FormatPercent (Just _) -> True
+      _ -> False
+    hmap tformat' tcommas' tfixed' texpt' tpercent' tprec' tdecimal' tdollar' =
       div_
         ( tformat'
             <> subtype tcommas' (fromFormatN tf) "Comma"
             <> subtype tfixed' (fromFormatN tf) "Fixed"
             <> subtype texpt' (fromFormatN tf) "Expt"
             <> subtype tpercent' (fromFormatN tf) "Percent"
+            <> subtype tprec' (fromFormatN tf) "Prec"
+            <> subtype tdecimal' (fromFormatN tf) "Decimal"
+            <> subtype tdollar' (fromFormatN tf) "Dollar"
         )
-    mmap tformat' tcommas' tfixed' texpt' tpercent' = case tformat' of
+    mmap tformat' tcommas' tfixed' texpt' tpercent' tprec' tdecimal' tdollar' = case tformat' of
       "Comma" -> FormatComma tcommas'
       "Fixed" -> FormatFixed tfixed'
+      "Decimal" -> FormatDecimal tdecimal'
+      "Prec" -> FormatPrec tprec'
       "Expt" -> FormatExpt texpt'
-      "Dollar" -> FormatDollar
+      "Dollar" -> FormatDollar tdollar'
       "Percent" -> FormatPercent tpercent'
       "None" -> FormatNone
       _ -> FormatNone
@@ -595,7 +620,7 @@ repTickStyle cfg =
     defTf = case cfg of
       TickRound x _ _ -> x
       TickExact x _ -> x
-      _ -> FormatComma 2
+      _ -> FormatPrec (Just 3)
     defExtend = case cfg of
       TickRound _ _ e -> e == TickExtend
       _ -> True

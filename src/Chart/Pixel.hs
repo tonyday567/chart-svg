@@ -22,6 +22,7 @@ module Chart.Pixel
   )
 where
 
+import Chart.FormatN
 import Chart.Types
 import Control.Lens
 import Data.Generics.Labels ()
@@ -100,7 +101,7 @@ pixelAxisOptions =
     Nothing
     Nothing
     ( Tick
-        (TickRound (FormatComma 0) 4 NoTickExtend)
+        (TickRound (FormatPrec (Just 3)) 4 NoTickExtend)
         (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph 0.005, 0.01))
         (Just (defaultTextTick, 0.03))
         Nothing
