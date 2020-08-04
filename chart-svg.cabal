@@ -24,18 +24,18 @@ library
     Chart
     Chart.Bar
     Chart.Examples
-    Chart.FormatN
     Chart.Pixel
     Chart.Render
     Chart.Page
     Chart.Types
+    Data.Colour
+    Data.FormatN
   hs-source-dirs:
     src
   build-depends:
     Color >= 0.1.4,
     attoparsec >= 0.13,
     base >=4.7 && <5,
-    foldl >= 1.4,
     generic-lens >= 1.2 && < 3.0,
     lucid >= 2.9,
     lens >= 4.0,

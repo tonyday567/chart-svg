@@ -11,16 +11,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
-module Chart.FormatN
-  (
-    -- $formats
+module Data.FormatN
+  ( -- $formats
     FormatN (..),
     defaultFormatN,
     fromFormatN,
@@ -38,10 +37,10 @@ module Chart.FormatN
 where
 
 import Data.Generics.Labels ()
+import Data.List (nub)
 import Data.Scientific
 import qualified Data.Text as Text
 import NumHask.Prelude
-import Data.List (nub)
 
 -- $setup
 --
@@ -97,7 +96,6 @@ toFormatN _ _ = FormatNone
 --
 -- >>> fixed (Just 2) 0.001
 -- "0.00"
---
 fixed :: Maybe Int -> Double -> Text
 fixed x n = pack $ formatScientific Fixed x (fromFloatDigits n)
 
@@ -105,7 +103,6 @@ fixed x n = pack $ formatScientific Fixed x (fromFloatDigits n)
 --
 -- >>> expt (Just 2) 1234
 -- "1.23e3"
---
 expt :: Maybe Int -> Double -> Text
 expt x n = pack $ formatScientific Exponent x (fromFloatDigits n)
 
@@ -116,15 +113,14 @@ expt x n = pack $ formatScientific Exponent x (fromFloatDigits n)
 --
 -- >>> roundSig 2 0.001234
 -- 1.23e-3
---
 roundSig :: Int -> Double -> Scientific
 roundSig n x = scientific r' (e - length ds0)
   where
-    (ds,e) = toDecimalDigits $ fromFloatDigits x
-    (ds0,ds1) = splitAt (n+1) ds
+    (ds, e) = toDecimalDigits $ fromFloatDigits x
+    (ds0, ds1) = splitAt (n + 1) ds
     r =
-      (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds0 :: Double) +
-      (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0 ^ (length ds1 :: Int))
+      (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds0 :: Double)
+        + (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0 ^ (length ds1 :: Int))
     r' = round r :: Integer
 
 -- | format numbers between 0.001 and 1,000,000 using digit and comma notation and exponential outside this range, with x significant figures.
@@ -142,10 +138,9 @@ roundSig n x = scientific r' (e - length ds0)
 --
 -- >>> prec (Just 1) 1234567
 -- "1.2e6"
---
 prec :: Maybe Int -> Double -> Text
 prec n x
-  | x < 0 = "-" <> prec n (-x)
+  | x < 0 = "-" <> prec n (- x)
   | x == 0 = "0"
   | x < 0.001 = expt n x
   | x > 1e6 = expt n x
@@ -159,7 +154,6 @@ prec n x
 --
 -- >>> decimal (Just 2) 1234567
 -- "1230000"
---
 decimal :: Maybe Int -> Double -> Text
 decimal n x = x''
   where
@@ -173,14 +167,13 @@ decimal n x = x''
 --
 -- >>> comma (Just 2) 1234
 -- "1,230"
---
 comma :: Maybe Int -> Double -> Text
 comma n x
-  | x < 0 = "-" <> comma n (-x)
+  | x < 0 = "-" <> comma n (- x)
   | x < 1000 || x > 1e6 = prec n x
   | otherwise = case n of
-      Nothing -> addcomma (show x)
-      Just _ -> addcomma (prec n x)
+    Nothing -> addcomma (show x)
+    Just _ -> addcomma (prec n x)
   where
     addcomma :: Text -> Text
     addcomma x = (\x -> fst x <> snd x) . first (Text.reverse . Text.intercalate "," . Text.chunksOf 3 . Text.reverse) $ Text.breakOn "." x
@@ -192,17 +185,15 @@ comma n x
 --
 -- >>> dollar (Just 2) 0.01234
 -- "$0.0123"
---
 dollar :: (Maybe Int) -> Double -> Text
 dollar n x
-  | x < 0 = "-" <> dollar n (-x)
+  | x < 0 = "-" <> dollar n (- x)
   | otherwise = "$" <> comma n x
 
 -- | fixed percent, always decimal notation
 --
 -- >>> percent (Just 2) 0.001234
 -- "0.123%"
---
 percent :: Maybe Int -> Double -> Text
 percent n x = (<> "%") $ decimal n (100 * x)
 

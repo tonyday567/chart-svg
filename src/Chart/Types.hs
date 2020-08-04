@@ -22,7 +22,6 @@ module Chart.Types
   ( Chart (..),
     Annotation (..),
     annotationText,
-    blank,
     RectStyle (..),
     defaultRectStyle,
     blob,
@@ -45,6 +44,7 @@ module Chart.Types
     fromDirection,
     toDirection,
     padRect,
+
     SvgAspect (..),
     toSvgAspect,
     fromSvgAspect,
@@ -54,6 +54,8 @@ module Chart.Types
     SvgOptions (..),
     defaultSvgOptions,
     defaultSvgFrame,
+
+    -- $hud machinery
     ChartDims (..),
     HudT (..),
     Hud,
@@ -81,35 +83,14 @@ module Chart.Types
     defaultAdjustments,
     LegendOptions (..),
     defaultLegendOptions,
-    -- $color
-    Colour,
-    pattern Colour,
-    opac,
-    setOpac,
-    fromRGB,
-    hex,
-    palette,
-    palette1,
-    blend,
-    toHex,
-    fromHex,
-    unsafeFromHex,
-    grayscale,
-    colorText,
-    transparent,
-    black,
-    white,
-
-    -- * re-exports
-    module Graphics.Color.Model,
-
     -- $core
-    projectSpots,
-    projectSpotsWith,
+    projectXYs,
+    projectXYsWith,
     dataBox,
     toAspect,
     scaleAnn,
     moveChart,
+    
     -- $hud
     runHudWith,
     runHud,
@@ -146,15 +127,13 @@ module Chart.Types
   )
 where
 
-import Chart.FormatN
-import qualified Control.Foldl as L
 import Control.Lens
-import qualified Data.Attoparsec.Text as A
+import Data.Colour
+import Data.FormatN
 import Data.Generics.Labels ()
 import Data.List ((!!))
 import qualified Data.Text as Text
 import Data.Time
-import Graphics.Color.Model hiding (toRealFloat, one, zero)
 import qualified Lucid
 import Lucid (class_, height_, id_, term, toHtmlRaw, width_, with)
 import Lucid.Base (makeXmlElementNoEnd)
@@ -175,12 +154,12 @@ import qualified Prelude as P
 -- * Chart
 
 -- | A `Chart` consists of
--- - a list of spots on the xy-plane, and
--- - specific style of representation for each spot.
+-- - specific style of representation for each xy point or xy rectangle.
+-- - a list of points or rectangles on the xy-plane, and
 data Chart a
   = Chart
       { annotation :: Annotation,
-        spots :: [XY a]
+        xys :: [XY a]
       }
   deriving (Eq, Show, Generic)
 
@@ -194,6 +173,7 @@ data Annotation
   | PixelA PixelStyle
   deriving (Eq, Show, Generic)
 
+-- | textifier
 annotationText :: Annotation -> Text
 annotationText (RectA _) = "RectA"
 annotationText TextA {} = "TextA"
@@ -201,9 +181,6 @@ annotationText (GlyphA _) = "GlyphA"
 annotationText (LineA _) = "LineA"
 annotationText BlankA = "BlankA"
 annotationText (PixelA _) = "PixelA"
-
-blank :: [Chart Double]
-blank = [Chart BlankA []]
 
 -- | Rectangle styling
 --
@@ -725,133 +702,11 @@ defaultLegendOptions =
     PlaceBottom
     0.2
 
--- | snatching Colour as the library color representation.
-newtype Colour = Colour' {color' :: Color (Alpha RGB) Double} deriving (Eq, Generic)
-
--- | Constructor.
-pattern Colour :: Double -> Double -> Double -> Double -> Colour
-pattern Colour r g b a = Colour' (ColorRGBA r g b a)
-
-{-# COMPLETE Colour #-}
-
-instance Show Colour where
-  show (Colour r g b a) =
-    Text.unpack $
-      "RGBA "
-        <> fixed (Just 2) r
-        <> " "
-        <> fixed (Just 2) g
-        <> " "
-        <> fixed (Just 2) b
-        <> " "
-        <> fixed (Just 2) a
-
--- | get opacity
-opac :: Colour -> Double
-opac c = getAlpha (color' c)
-
--- | set opacity
-setOpac :: Double -> Colour -> Colour
-setOpac o (Colour r g b _) = Colour r g b o
-
--- |
-fromRGB :: Color RGB Double -> Double -> Colour
-fromRGB (ColorRGB r b g) o = Colour' $ ColorRGBA r b g o
-
--- |
-hex :: Colour -> Text
-hex c = toHex c
-
--- | interpolate between 2 colors
-blend :: Double -> Colour -> Colour -> Colour
-blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
+-- | Project the xys of a chart to a new XY Space.
+projectXYs :: Rect Double -> [Chart Double] -> [Chart Double]
+projectXYs a cs = cs'
   where
-    r'' = r + c * (r' - r)
-    g'' = g + c * (g' - g)
-    b'' = b + c * (b' - b)
-    a'' = a + c * (a' - a)
-
--- |
-parseHex :: A.Parser (Color RGB Double)
-parseHex =
-  fmap toDouble
-    . ( \((r, g), b) ->
-          ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
-      )
-    . (\(f, b) -> (f `divMod` (256 :: Int), b))
-    . (`divMod` 256)
-    <$> (A.string "#" *> A.hexadecimal)
-
--- |
-fromHex :: Text -> Either Text (Color RGB Double)
-fromHex = first pack . A.parseOnly parseHex
-
--- |
-unsafeFromHex :: Text -> Color RGB Double
-unsafeFromHex t = either (const (ColorRGB 0 0 0)) id $ A.parseOnly parseHex t
-
--- | convert from 'Colour' to #xxxxxx
-toHex :: Colour -> Text
-toHex c =
-  "#"
-    <> Text.justifyRight 2 '0' (hex' r)
-    <> Text.justifyRight 2 '0' (hex' g)
-    <> Text.justifyRight 2 '0' (hex' b)
-  where
-    (ColorRGBA r g b _) = toWord8 <$> color' c
-
--- |
-hex' :: (FromInteger a, ToIntegral a Integer, Integral a, Ord a, Subtractive a) => a -> Text
-hex' i
-  | i < 0 = "-" <> go (- i)
-  | otherwise = go i
-  where
-    go n
-      | n < 16 = hexDigit n
-      | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
-
--- |
-hexDigit :: (Ord a, FromInteger a, ToIntegral a Integer) => a -> Text
-hexDigit n
-  | n <= 9 = Text.singleton P.$! i2d (fromIntegral n)
-  | otherwise = Text.singleton P.$! toEnum (fromIntegral n + 87)
-
--- |
-i2d :: Int -> Char
-i2d i = chr (ord '0' + i)
-
--- | some RGB colors to work with
-palette :: [Color RGB Double]
-palette = unsafeFromHex <$> ["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a", "#ffff99", "#b15928"]
-
--- | some RGBA colors
-palette1 :: [Colour]
-palette1 = (\c -> fromRGB c 1) <$> palette
-
--- | gray with 1 opacity
-grayscale :: Double -> Color RGB Double
-grayscale n = ColorRGB n n n
-
--- | standard text color
-colorText :: Colour
-colorText = fromRGB (grayscale 0.2) 1
-
--- |
-black :: Colour
-black = fromRGB (grayscale 0) 1
-
--- |
-white :: Colour
-white = fromRGB (grayscale 1) 1
-
--- |
-transparent :: Colour
-transparent = Colour 0 0 0 0
-
-projectSpots :: Rect Double -> [Chart Double] -> [Chart Double]
-projectSpots a cs = cs'
-  where
-    xss = projectTo2 a (spots <$> cs)
+    xss = projectTo2 a (xys <$> cs)
     ss = annotation <$> cs
     cs' = zipWith Chart ss xss
     projectTo2 vb xss =
@@ -863,19 +718,21 @@ projectSpots a cs = cs'
         )
         <$> xss
 
-projectSpotsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
-projectSpotsWith new old cs = cs'
+-- | Project chart xys to a new XY Space from an old XY Space
+projectXYsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
+projectXYsWith new old cs = cs'
   where
-    xss = fmap (projectOn new old) . spots <$> cs
+    xss = fmap (projectOn new old) . xys <$> cs
     ss = annotation <$> cs
     cs' = zipWith Chart ss xss
 
+-- | convert to a ratio
 toAspect :: (Divisive a, Subtractive a) => Rect a -> a
 toAspect (Rect x z y w) = (z - x) / (w - y)
 
--- |
+-- | get the Space of a [Chart a]
 dataBox :: (Ord a) => [Chart a] -> Maybe (Rect a)
-dataBox cs = foldRect . mconcat $ fmap toRect <$> (spots <$> cs)
+dataBox cs = foldRect . mconcat $ fmap toRect <$> (xys <$> cs)
 
 scaleAnn :: Double -> Annotation -> Annotation
 scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
@@ -886,7 +743,7 @@ scaleAnn x (PixelA a) = PixelA $ a & #pixelRectStyle . #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
 moveChart :: (Additive a) => XY a -> [Chart a] -> [Chart a]
-moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs
+moveChart sp cs = fmap (#xys %~ fmap (sp +)) cs
 
 -- | combine huds and charts to form a new Chart using the supplied
 -- initial canvas and data dimensions.
@@ -909,7 +766,7 @@ runHudWith ca xs hs cs =
   where
     da' = fromMaybe one $ dataBox cs'
     ca' = fromMaybe one $ styleBoxes cs'
-    cs' = projectSpotsWith ca xs cs
+    cs' = projectXYsWith ca xs cs
 
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
@@ -1401,7 +1258,7 @@ makeTickDates pc fmt n dates =
     lastOnes :: (a -> a -> Bool) -> [a] -> [a]
     lastOnes _ [] = []
     lastOnes _ [x] = [x]
-    lastOnes f (x : xs) = L.fold (L.Fold step (x, []) (\(x0, x1) -> reverse $ x0 : x1)) xs
+    lastOnes f (x : xs) = (\(x0, x1) -> reverse $ x0 : x1) $ foldl' step (x, []) xs
       where
         step (a0, rs) a1 = if f a0 a1 then (a1, rs) else (a1, a0 : rs)
 
@@ -1421,7 +1278,7 @@ legendHud l lcs = Hud $ \cs -> do
   where
     scaledleg =
       (#annotation %~ scaleAnn (realToFrac $ l ^. #lscale))
-        . (#spots %~ fmap (fmap (* l ^. #lscale)))
+        . (#xys %~ fmap (fmap (* l ^. #lscale)))
         <$> lcs
     movedleg ca' leg =
       maybe id (moveChart . PointXY . placel (l ^. #lplace) ca') (styleBoxes leg) leg
@@ -1540,7 +1397,7 @@ styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
 
 -- | geometric dimensions of a [Chart] not including style
 noStyleBoxes :: [Chart Double] -> Maybe (Rect Double)
-noStyleBoxes cs = foldRect $ toRect <$> mconcat (view #spots <$> cs)
+noStyleBoxes cs = foldRect $ toRect <$> mconcat (view #xys <$> cs)
 
 -- | calculate the linear gradient to shove in defs
 -- FIXME: Only works for #pixelGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
@@ -1761,14 +1618,14 @@ toRotateText r (Point x y) =
 -- | additively pad a [Chart]
 --
 -- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [RectXY one]]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), spots = [RectXY Rect -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, spots = [RectXY Rect -0.605 0.605 -0.605 0.605]}]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), xys = [RectXY Rect -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, xys = [RectXY Rect -0.605 0.605 -0.605 0.605]}]
 padChart :: Double -> [Chart Double] -> [Chart Double]
 padChart p cs = cs <> [Chart BlankA (maybeToList (RectXY . padRect p <$> styleBoxes cs))]
 
 -- | overlay a frame on some charts with some additive padding between
 --
--- >>> frameChart defaultRectStyle 0.1 blank
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), spots = []},Chart {annotation = BlankA, spots = []}]
+-- >>> frameChart defaultRectStyle 0.1 [Chart BlankA []]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), xys = []},Chart {annotation = BlankA, xys = []}]
 frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
 frameChart rs p cs = [Chart (RectA rs) (maybeToList (RectXY . padRect p <$> styleBoxes cs))] <> cs
 
@@ -1777,7 +1634,7 @@ hori :: Double -> [[Chart Double]] -> [Chart Double]
 hori _ [] = []
 hori gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> P (z x) 0 - P (origx x) 0 + s)))
+    step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (z x) 0 - P (origx x) 0 + s)))
     z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
@@ -1786,7 +1643,7 @@ vert :: Double -> [[Chart Double]] -> [Chart Double]
 vert _ [] = []
 vert gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> P (origx x - origx a) (w x) + s)))
+    step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (origx x - origx a) (w x) + s)))
     w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 

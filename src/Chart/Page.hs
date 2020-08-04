@@ -49,12 +49,13 @@ module Chart.Page
 where
 
 import Chart.Bar
-import Chart.FormatN
+import Data.FormatN
 import Chart.Pixel
 import Chart.Render (renderHudOptionsChart)
 import Chart.Types
 import Control.Lens
 import Data.Attoparsec.Text
+import Data.Colour
 import qualified Data.Text as Text
 import Lucid
 import NumHask.Prelude
@@ -68,7 +69,7 @@ pShow' = toStrict . pShowNoColor
 repChartStaticData :: (Monad m) => Chart a -> SharedRep m (Chart a)
 repChartStaticData c = do
   ann <- repAnnotation (c ^. #annotation)
-  pure $ Chart ann (c ^. #spots)
+  pure $ Chart ann (c ^. #xys)
 
 repAnnotation :: (Monad m) => Annotation -> SharedRep m Annotation
 repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls <<*>> ps
@@ -844,17 +845,17 @@ repChartsWithSharedData ::
   [Chart Double] ->
   ([[XY Double]] -> SharedRep m [[XY Double]]) ->
   SharedRep m (Text, Text)
-repChartsWithSharedData css' hc' maxcs' cs' sspots =
+repChartsWithSharedData css' hc' maxcs' cs' sxys =
   bimap
     hmap
     mmap
     cssr
     <<*>> annsr
-    <<*>> sspots spots'
+    <<*>> sxys xys'
     <<*>> hr
     <<*>> debugFlags
   where
-    spots' = view #spots <$> cs'
+    xys' = view #xys <$> cs'
     anns' = view #annotation <$> cs'
     hr =
       repHudOptions

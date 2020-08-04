@@ -22,9 +22,10 @@ module Chart.Pixel
   )
 where
 
-import Chart.FormatN
 import Chart.Types
 import Control.Lens
+import Data.Colour
+import Data.FormatN
 import Data.Generics.Labels ()
 import NumHask.Prelude
 import NumHask.Space

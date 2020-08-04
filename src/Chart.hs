@@ -65,45 +65,13 @@ module Chart
     defaultAdjustments,
     LegendOptions (..),
     defaultLegendOptions,
-    -- $color
-    Colour,
-    pattern Colour,
-    opac,
-    setOpac,
-    fromRGB,
-    hex,
-    palette,
-    palette1,
-    blend,
-    toHex,
-    fromHex,
-    unsafeFromHex,
-    grayscale,
-    colorText,
-    transparent,
-    black,
-    white,
-
-    -- $formats
-    FormatN (..),
-    defaultFormatN,
-    fromFormatN,
-    toFormatN,
-    fixed,
-    decimal,
-    prec,
-    comma,
-    expt,
-    dollar,
-    formatN,
-    precision,
-    formatNs,
 
     -- $core
     dataBox,
     toAspect,
     scaleAnn,
     moveChart,
+
     -- $hud
     runHudWith,
     runHud,
@@ -120,6 +88,7 @@ module Chart
     legendEntry,
     legendChart,
     legendFromChart,
+
     -- $svg
     svg,
     svgt,
@@ -137,20 +106,25 @@ module Chart
     stack,
     addChartBox,
     addChartBoxes,
+
+    -- * re-exports
     module Chart.Page,
     module Chart.Render,
     module Chart.Bar,
     module Chart.Pixel,
+    module Data.Colour,
+    module Data.FormatN,
     module NumHask.Space,
   )
 where
 
 import Chart.Bar
-import Chart.FormatN
+import Data.FormatN
 import Chart.Page
 import Chart.Pixel
 import Chart.Render
 import Chart.Types
+import Data.Colour
 import NumHask.Space
 
 -- $setup

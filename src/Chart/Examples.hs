@@ -20,20 +20,20 @@ data Ex
         exhc :: HudOptions,
         exmaxcs :: Int,
         exanns :: [Annotation],
-        exspots :: [[XY Double]]
+        exxys :: [[XY Double]]
       }
   deriving (Eq, Show, Generic)
 
 makeExample :: HudOptions -> [Chart Double] -> Ex
-makeExample hs cs = Ex defaultSvgOptions hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #spots <$> cs)
+makeExample hs cs = Ex defaultSvgOptions hs (length cs) (view #annotation <$> cs) (fmap (fmap realToFrac) . view #xys <$> cs)
 
 repEx :: (Monad m) => Ex -> SharedRep m (Text, Text)
 repEx (Ex css hc maxcs anns xs) =
   repChartsWithStaticData css hc maxcs (zipWith Chart anns xs)
 
 writeChartExample :: FilePath -> Ex -> IO ()
-writeChartExample fp (Ex css' hc' _ anns' spots') =
-  writeHudOptionsChart fp css' hc' [] (zipWith Chart anns' spots')
+writeChartExample fp (Ex css' hc' _ anns' xys') =
+  writeHudOptionsChart fp css' hc' [] (zipWith Chart anns' xys')
 
 -- | minimal example
 memptyExample :: Ex
@@ -283,7 +283,7 @@ labelExample =
     defaultHudOptions
     1
     (annotation <$> label)
-    (spots <$> label)
+    (xys <$> label)
 
 placedLabel :: (Real a) => Point a -> a -> Text -> Chart a
 placedLabel p d t =

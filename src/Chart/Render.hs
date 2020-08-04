@@ -44,7 +44,7 @@ scaleCharts ::
   (Rect Double, [Chart Double])
 scaleCharts cs r = (fromMaybe one $ styleBoxes cs', cs')
   where
-    cs' = projectSpots cs r
+    cs' = projectXYs cs r
 
 getAspect :: SvgAspect -> [Chart Double] -> Double
 getAspect (ManualAspect a) _ = a
