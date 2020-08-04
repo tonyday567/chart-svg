@@ -2,12 +2,13 @@ resolver: nightly-2020-06-25
 
 packages:
   - .
+  - ../numhask-space
 
 extra-deps:
   - box-0.5.0
   - box-socket-0.0.1
-  - numhask-0.6.0
-  - numhask-space-0.5.0
+  - numhask-0.6.0.2
+  # - numhask-space-0.6.0
   - web-rep-0.6.0
 
 allow-newer: true

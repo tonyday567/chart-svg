@@ -39,7 +39,7 @@ data PixelOptions
 
 defaultPixelOptions :: PixelOptions
 defaultPixelOptions =
-  PixelOptions defaultPixelStyle (Point 10 10) unitRect
+  PixelOptions defaultPixelStyle (Point 10 10) one
 
 -- | pixel elements
 data PixelData
@@ -55,7 +55,7 @@ pixels rs ps =
   ( \(PixelData r c) ->
       Chart
         (RectA (rs & #color .~ c))
-        [SpotRect r]
+        [RectXY r]
   )
     <$> ps
 
@@ -135,10 +135,10 @@ pixelLegendChart dataRange l =
     pchart
       | l ^. #ploLegendOptions . #lplace == PlaceBottom
           || l ^. #ploLegendOptions . #lplace == PlaceTop =
-        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ 0)) [SpotRect (Rect x0 x1 0 (l ^. #ploWidth))]
+        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ 0)) [R x0 x1 0 (l ^. #ploWidth)]
       | otherwise =
-        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ (pi / 2))) [SpotRect (Rect 0 (l ^. #ploWidth) x0 x1)]
-    t = Chart (TextA (l ^. #ploLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #ploTitle]) [SpotPoint (Point 0 0)]
+        Chart (PixelA (l ^. #ploStyle & #pixelGradient .~ (pi / 2))) [R 0 (l ^. #ploWidth) x0 x1]
+    t = Chart (TextA (l ^. #ploLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #ploTitle]) [zero]
     hs = vert (l ^. #ploLegendOptions . #vgap) [a, [t]]
 
 isHori :: PixelLegendOptions -> Bool
@@ -149,7 +149,7 @@ isHori l =
 makePixelTick :: PixelLegendOptions -> Chart Double -> [Chart Double]
 makePixelTick l pchart = phud
   where
-    r = fromMaybe unitRect (styleBox pchart)
+    r = fromMaybe one (styleBox pchart)
     r' = bool (Rect 0 (l ^. #ploWidth) 0 (l ^. #ploLegendOptions . #lsize)) (Rect 0 (l ^. #ploLegendOptions . #lsize) 0 (l ^. #ploWidth)) (isHori l)
     (hs, _) =
       makeHud

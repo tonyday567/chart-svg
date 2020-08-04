@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | bar charts
@@ -24,7 +25,6 @@ import Data.Generics.Labels ()
 import qualified Data.List.NonEmpty as NonEmpty
 import NumHask.Prelude
 import NumHask.Space
-import qualified Prelude as P
 
 -- $setup
 --
@@ -123,7 +123,7 @@ barRects (BarOptions _ _ ogap igap _ _ _ _ add orient _) bs = rects'' orient
     batSet z ys =
       zipWith
         ( \x (yl, yh) ->
-            P.abs
+            abs
               ( Rect
                   (x + (ogap / 2) + z * bstep)
                   (x + (ogap / 2) + z * bstep + bstep - igap')
@@ -162,12 +162,12 @@ barRange ys'@(y : ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0 
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] Nothing Nothing)
--- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.65 0.81 0.89 1.00, color = RGBA 0.65 0.81 0.89 1.00}), spots = [SpotRect Rect 5.0e-2 0.45 0.0 1.0,SpotRect Rect 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.12 0.47 0.71 1.00, color = RGBA 0.12 0.47 0.71 1.00}), spots = [SpotRect Rect 0.45 0.8500000000000001 0.0 2.0,SpotRect Rect 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, spots = [SpotRect Rect -5.0e-2 1.9500000000000002 0.0 3.0]}]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.65 0.81 0.89 1.00, color = RGBA 0.65 0.81 0.89 1.00}), spots = [RectXY Rect 5.0e-2 0.45 0.0 1.0,RectXY Rect 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.12 0.47 0.71 1.00, color = RGBA 0.12 0.47 0.71 1.00}), spots = [RectXY Rect 0.45 0.8500000000000001 0.0 2.0,RectXY Rect 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, spots = [RectXY Rect -5.0e-2 1.9500000000000002 0.0 3.0]}]
 bars :: BarOptions -> BarData -> [Chart Double]
 bars bo bd =
-  zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (fmap SpotRect <$> barRects bo (bd ^. #barData)) <> [Chart BlankA [SpotRect (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)]]
+  zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (fmap RectXY <$> barRects bo (bd ^. #barData)) <> [Chart BlankA [RectXY (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)]]
   where
-    (Rect x z y w) = fromMaybe unitRect $ foldRect $ catMaybes $ foldRect <$> barRects bo (bd ^. #barData)
+    (Rect x z y w) = fromMaybe one $ foldRect $ catMaybes $ foldRect <$> barRects bo (bd ^. #barData)
 
 maxRows :: [[Double]] -> Int
 maxRows [] = 0
@@ -247,4 +247,4 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = zipWith 
 -- | text, hold the bars
 barTextCharts :: BarOptions -> BarData -> [Chart Double]
 barTextCharts bo bd =
-  zipWith (\o d -> Chart (TextA o (fst <$> d)) (SpotPoint . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))
+  zipWith (\o d -> Chart (TextA o (fst <$> d)) (PointXY . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))

@@ -42,27 +42,27 @@ scaleCharts ::
   Rect Double ->
   [Chart Double] ->
   (Rect Double, [Chart Double])
-scaleCharts cs r = (defRect $ styleBoxes cs', cs')
+scaleCharts cs r = (fromMaybe one $ styleBoxes cs', cs')
   where
     cs' = projectSpots cs r
 
 getAspect :: SvgAspect -> [Chart Double] -> Double
 getAspect (ManualAspect a) _ = a
-getAspect ChartAspect cs = toAspect . defRect $ styleBoxes cs
+getAspect ChartAspect cs = toAspect . fromMaybe one $ styleBoxes cs
 
 getSize :: SvgOptions -> [Chart Double] -> Point Double
 getSize o cs = case view #svgAspect o of
   ManualAspect a -> (view #svgHeight o *) <$> Point a 1
-  ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . defRect $ styleBoxes cs
+  ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . fromMaybe one $ styleBoxes cs
 
 getViewbox :: SvgOptions -> [Chart Double] -> Rect Double
 getViewbox o cs =
-  bool asp (defRect $ styleBoxes cs) (NoScaleCharts == view #scaleCharts' o)
+  bool asp (fromMaybe one $ styleBoxes cs) (NoScaleCharts == view #scaleCharts' o)
   where
     asp =
       case view #svgAspect o of
         ManualAspect a -> Rect (a * (-0.5)) (a * 0.5) (-0.5) 0.5
-        ChartAspect -> defRect $ styleBoxes cs
+        ChartAspect -> fromMaybe one $ styleBoxes cs
 
 -- * rendering
 
@@ -133,11 +133,11 @@ renderHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Text
 renderHudChart so hs cs = renderChartsWith so (runHud (getViewbox so cs) hs cs)
 
 -- | Render a chart using the supplied svg and hud config.
--- FIXME: defRectS usage
+-- FIXME: fixRect usage
 renderHudOptionsChart :: SvgOptions -> HudOptions -> [Hud Double] -> [Chart Double] -> Text
 renderHudOptionsChart so hc hs cs = renderHudChart so (hs <> hs') (cs <> cs')
   where
-    (hs', cs') = makeHud (defRectS $ dataBox cs) hc
+    (hs', cs') = makeHud (fixRect $ dataBox cs) hc
 
 writeHudOptionsChart :: FilePath -> SvgOptions -> HudOptions -> [Hud Double] -> [Chart Double] -> IO ()
 writeHudOptionsChart fp so hc hs cs =

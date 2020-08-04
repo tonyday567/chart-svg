@@ -44,9 +44,6 @@ module Chart.Types
     Direction (..),
     fromDirection,
     toDirection,
-    Spot (..),
-    toRect,
-    toPoint,
     padRect,
     SvgAspect (..),
     toSvgAspect,
@@ -105,15 +102,13 @@ module Chart.Types
 
     -- * re-exports
     module Graphics.Color.Model,
+
     -- $core
-    projectTo,
     projectSpots,
     projectSpotsWith,
     dataBox,
     toAspect,
     scaleAnn,
-    defRect,
-    defRectS,
     moveChart,
     -- $hud
     runHudWith,
@@ -159,7 +154,7 @@ import Data.Generics.Labels ()
 import Data.List ((!!))
 import qualified Data.Text as Text
 import Data.Time
-import Graphics.Color.Model hiding (toRealFloat)
+import Graphics.Color.Model hiding (toRealFloat, one, zero)
 import qualified Lucid
 import Lucid (class_, height_, id_, term, toHtmlRaw, width_, with)
 import Lucid.Base (makeXmlElementNoEnd)
@@ -185,7 +180,7 @@ import qualified Prelude as P
 data Chart a
   = Chart
       { annotation :: Annotation,
-        spots :: [Spot a]
+        spots :: [XY a]
       }
   deriving (Eq, Show, Generic)
 
@@ -215,7 +210,7 @@ blank = [Chart BlankA []]
 -- >>> defaultRectStyle
 -- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}
 --
--- >writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [SpotRect (unitRect::Rect Double)]]
+-- > writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [one]]
 --
 -- ![unit example](other/unit.svg)
 data RectStyle
@@ -256,7 +251,7 @@ border s c = RectStyle s c transparent
 -- >>> defaultTextStyle
 -- TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}
 --
--- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [SpotPoint y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
+-- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
 --
 -- > writeCharts "other/text.svg" t
 --
@@ -409,43 +404,6 @@ toDirection :: (Eq s, IsString s) => s -> Direction
 toDirection "Hori" = Hori
 toDirection "Vert" = Vert
 toDirection _ = Hori
-
--- | unification of a point and rect on the plane
-data Spot a
-  = SpotPoint (Point a)
-  | SpotRect (Rect a)
-  deriving (Eq, Show, Functor)
-
-instance (Ord a, Num a, Fractional a) => Num (Spot a) where
-  SpotPoint (Point x y) + SpotPoint (Point x' y') = SpotPoint (Point (x P.+ x') (y P.+ y'))
-  SpotPoint (Point x' y') + SpotRect (Rect x z y w) = SpotRect $ Rect (x P.+ x') (z P.+ x') (y P.+ y') (w P.+ y')
-  SpotRect (Rect x z y w) + SpotPoint (Point x' y') = SpotRect $ Rect (x P.+ x') (z P.+ x') (y P.+ y') (w P.+ y')
-  SpotRect (Rect x z y w) + SpotRect (Rect x' z' y' w') =
-    SpotRect $ Rect (x P.+ x') (z P.+ z') (y P.+ y') (w P.+ w')
-
-  x * y = SpotRect $ toRect x `multRect` toRect y
-
-  abs x = SpotPoint $ P.abs <$> toPoint x
-
-  signum x = SpotPoint $ signum <$> toPoint x
-
-  negate (SpotPoint (Point x y)) = SpotPoint (Point (P.negate x) (P.negate y))
-  negate (SpotRect (Rect x z y w)) = SpotRect (Rect (P.negate x) (P.negate z) (P.negate y) (P.negate w))
-
-  fromInteger x = SpotPoint (Point (P.fromInteger x) (P.fromInteger x))
-
--- | Convert a spot to an Rect
-toRect :: Spot a -> Rect a
-toRect (SpotPoint (Point x y)) = Rect x x y y
-toRect (SpotRect a) = a
-
--- | Convert a spot to a Point
-toPoint :: (Ord a, Fractional a) => Spot a -> Point a
-toPoint (SpotPoint (Point x y)) = Point x y
-toPoint (SpotRect (Ranges x y)) = Point (mid x) (mid y)
-
-instance (Ord a) => Semigroup (Spot a) where
-  (<>) a b = SpotRect (toRect a `union` toRect b)
 
 -- | additive padding
 padRect :: (Num a) => a -> Rect a -> Rect a
@@ -890,50 +848,7 @@ white = fromRGB (grayscale 1) 1
 transparent :: Colour
 transparent = Colour 0 0 0 0
 
--- | project a Spot from one Rect to another, preserving relative position.
---
--- >>> projectOn unitRect (Rect 0 1 0 1) (SpotPoint $ Point 0 0)
--- SpotPoint Point -0.5 -0.5
-projectOn :: (Ord a, Fractional a) => Rect a -> Rect a -> Spot a -> Spot a
-projectOn new old@(Rect x z y w) po@(SpotPoint (Point px py))
-  | x == z && y == w = po
-  | x == z = SpotPoint (Point px py')
-  | y == w = SpotPoint (Point px' py)
-  | otherwise = SpotPoint (Point px' py')
-  where
-    (Point px' py') = project old new (toPoint po)
-projectOn new old@(Rect x z y w) ao@(SpotRect (Rect ox oz oy ow))
-  | x == z && y == w = ao
-  | x == z = SpotRect (Rect ox oz ny nw)
-  | y == w = SpotRect (Rect nx nz oy ow)
-  | otherwise = SpotRect a
-  where
-    a@(Rect nx nz ny nw) = projectRect old new (toRect ao)
-
--- | project a [Spot a] from it's folded space to the given area
---
--- >>> projectTo unitRect (SpotPoint <$> zipWith Point [0..2] [0..2])
--- [SpotPoint Point -0.5 -0.5,SpotPoint Point 0.0 0.0,SpotPoint Point 0.5 0.5]
-projectTo :: (Ord a, Fractional a) => Rect a -> [Spot a] -> [Spot a]
-projectTo _ [] = []
-projectTo vb (x : xs) = projectOn vb (toRect $ sconcat (x :| xs)) <$> (x : xs)
-
--- | substitues unitRect
-defRect :: (Fractional a) => Maybe (Rect a) -> Rect a
-defRect = fromMaybe unitRect
-
--- | guard substituting singleton dimensions
-defRectS :: (Subtractive a, Eq a, FromRational a, Fractional a) => Maybe (Rect a) -> Rect a
-defRectS r = maybe unitRect singletonUnit r
-  where
-    singletonUnit :: (Subtractive a, Eq a, FromRational a) => Rect a -> Rect a
-    singletonUnit (Rect x z y w)
-      | x == z && y == w = Rect (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
-      | x == z = Rect (x - 0.5) (x + 0.5) y w
-      | y == w = Rect x z (y - 0.5) (y + 0.5)
-      | otherwise = Rect x z y w
-
-projectSpots :: (Ord a, Fractional a) => Rect a -> [Chart a] -> [Chart a]
+projectSpots :: Rect Double -> [Chart Double] -> [Chart Double]
 projectSpots a cs = cs'
   where
     xss = projectTo2 a (spots <$> cs)
@@ -948,7 +863,7 @@ projectSpots a cs = cs'
         )
         <$> xss
 
-projectSpotsWith :: (Ord a, Fractional a) => Rect a -> Rect a -> [Chart a] -> [Chart a]
+projectSpotsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
 projectSpotsWith new old cs = cs'
   where
     xss = fmap (projectOn new old) . spots <$> cs
@@ -970,20 +885,8 @@ scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
 scaleAnn x (PixelA a) = PixelA $ a & #pixelRectStyle . #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
-moveChart :: (Ord a, Fractional a) => Spot a -> [Chart a] -> [Chart a]
-moveChart sp cs = fmap (#spots %~ fmap (sp P.+)) cs
-
--- | pattern for SP x y
-pattern SP' :: a -> a -> Spot a
-pattern SP' a b = SpotPoint (Point a b)
-
-{-# COMPLETE SP' #-}
-
--- | pattern for SA lowerx upperx lowery uppery
-pattern SR' :: a -> a -> a -> a -> Spot a
-pattern SR' a b c d = SpotRect (Rect a b c d)
-
-{-# COMPLETE SR' #-}
+moveChart :: (Additive a) => XY a -> [Chart a] -> [Chart a]
+moveChart sp cs = fmap (#spots %~ fmap (sp +)) cs
 
 -- | combine huds and charts to form a new Chart using the supplied
 -- initial canvas and data dimensions.
@@ -1004,15 +907,15 @@ runHudWith ca xs hs cs =
   flip evalState (ChartDims ca' da' xs) $
     (unhud $ mconcat hs) cs'
   where
-    da' = defRect $ dataBox cs'
-    ca' = defRect $ styleBoxes cs'
+    da' = fromMaybe one $ dataBox cs'
+    ca' = fromMaybe one $ styleBoxes cs'
     cs' = projectSpotsWith ca xs cs
 
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
 -- used once in renderHudChart
 runHud :: Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
-runHud ca hs cs = runHudWith ca (defRectS $ dataBox cs) hs cs
+runHud ca hs cs = runHudWith ca (fixRect $ dataBox cs) hs cs
 
 -- | Make huds from a HudOptions
 -- Some huds, such as the creation of tick values, can extend the data dimension of a chart, so we also return a blank chart with the new data dimension.
@@ -1025,7 +928,7 @@ makeHud xs cfg =
     titles = title <$> (cfg ^. #hudTitles)
     newticks = (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle)) <$> (cfg ^. #hudAxes)
     axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
-    xsext = Chart BlankA (SpotRect <$> catMaybes (snd <$> newticks))
+    xsext = Chart BlankA (RectXY <$> catMaybes (snd <$> newticks))
     haxes = (\x -> maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <> adjustedTickHud x) <$> axes'
     l = maybe mempty (\(lo, ats) -> legendHud lo (legendChart ats lo)) (cfg ^. #hudLegend)
 
@@ -1056,7 +959,7 @@ addToRect r r' = sconcat $ r :| maybeToList r'
 canvas :: (Monad m) => RectStyle -> HudT m Double
 canvas s = Hud $ \cs -> do
   a <- use #canvasDim
-  let c = Chart (RectA s) [SpotRect a]
+  let c = Chart (RectA s) [RectXY a]
   #canvasDim .= addToRect a (styleBox c)
   pure $ c : cs
 
@@ -1066,7 +969,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceTop ->
       Chart
         (RectA (rstyle b))
-        [ SR'
+        [ R
             x
             z
             (w' + b ^. #buff)
@@ -1075,7 +978,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceBottom ->
       Chart
         (RectA (rstyle b))
-        [ SR'
+        [ R
             x
             z
             (y' - b ^. #wid - b ^. #buff)
@@ -1084,7 +987,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceLeft ->
       Chart
         (RectA (rstyle b))
-        [ SR'
+        [ R
             (x' - b ^. #wid - b ^. #buff)
             (x' - b ^. #buff)
             y
@@ -1093,7 +996,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceRight ->
       Chart
         (RectA (rstyle b))
-        [ SR'
+        [ R
             (z' + (b ^. #buff))
             (z' + (b ^. #buff) + (b ^. #wid))
             y
@@ -1102,7 +1005,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceAbsolute (Point x'' _) ->
       Chart
         (RectA (rstyle b))
-        [ SR'
+        [ R
             (x'' + (b ^. #buff))
             (x'' + (b ^. #buff) + (b ^. #wid))
             y
@@ -1122,12 +1025,12 @@ title_ t a =
   Chart
     ( TextA
         ( style'
-            & #translate ?~ (realToFrac <$> (placePos' a P.+ alignPos a))
+            & #translate ?~ (realToFrac <$> (placePos' a + alignPos a))
             & #rotation ?~ rot
         )
         [t ^. #text]
     )
-    [SP' 0 0]
+    [zero]
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -1226,10 +1129,10 @@ placeTextAnchor pl
   | pl == PlaceRight = #anchor .~ AnchorStart
   | otherwise = id
 
-placeGridLines :: Place -> Rect Double -> Double -> Double -> [Spot Double]
+placeGridLines :: Place -> Rect Double -> Double -> Double -> [XY Double]
 placeGridLines pl (Rect x z y w) a b
-  | pl `elem` [PlaceTop, PlaceBottom] = [SP' a (y - b), SP' a (w + b)]
-  | otherwise = [SP' (x - b) a, SP' (z + b) a]
+  | pl `elem` [PlaceTop, PlaceBottom] = [P a (y - b), P a (w + b)]
+  | otherwise = [P (x - b) a, P (z + b) a]
 
 -- | compute tick values and labels given options, ranges and formatting
 ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
@@ -1292,7 +1195,7 @@ tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> Rect Double -> Rect 
 tickGlyph_ pl (g, b) ts ca da xs =
   Chart
     (GlyphA (g & #rotation .~ (realToFrac <$> placeRot pl)))
-    ( SpotPoint . (placePos pl b ca P.+) . placeOrigin pl
+    ( PointXY . (placePos pl b ca +) . placeOrigin pl
         <$> positions
           (ticksPlaced ts pl da xs)
     )
@@ -1328,10 +1231,10 @@ tickText_ pl (txts, b) ts ca da xs =
               (placeTextAnchor pl txts)
               [txt]
           )
-          [SpotPoint sp]
+          [PointXY sp]
     )
     (labels $ ticksPlaced ts pl da xs)
-    ( (placePos pl b ca P.+ textPos pl txts b P.+) . placeOrigin pl
+    ( (placePos pl b ca + textPos pl txts b +) . placeOrigin pl
         <$> positions (ticksPlaced ts pl da xs)
     )
 
@@ -1513,7 +1416,7 @@ legendHud :: LegendOptions -> [Chart Double] -> Hud Double
 legendHud l lcs = Hud $ \cs -> do
   ca <- use #chartDim
   let cs' = cs <> movedleg ca scaledleg
-  #chartDim .= defRect (styleBoxes cs')
+  #chartDim .= fromMaybe one (styleBoxes cs')
   pure cs'
   where
     scaledleg =
@@ -1521,7 +1424,7 @@ legendHud l lcs = Hud $ \cs -> do
         . (#spots %~ fmap (fmap (* l ^. #lscale)))
         <$> lcs
     movedleg ca' leg =
-      maybe id (moveChart . SpotPoint . placel (l ^. #lplace) ca') (styleBoxes leg) leg
+      maybe id (moveChart . PointXY . placel (l ^. #lplace) ca') (styleBoxes leg) leg
     placel pl (Rect x z y w) (Rect x' z' y' w') =
       case pl of
         PlaceTop -> Point ((x + z) / 2.0) (w + (w' - y') / 2.0)
@@ -1537,33 +1440,33 @@ legendEntry ::
   (Chart Double, Chart Double)
 legendEntry l a t =
   ( Chart ann sps,
-    Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) [SP' 0 0]
+    Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) [zero]
   )
   where
     (ann, sps) = case a of
       RectA rs ->
         ( RectA rs,
-          [SR' 0 (l ^. #lsize) 0 (l ^. #lsize)]
+          [R 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
       PixelA ps ->
         ( PixelA ps,
-          [SR' 0 (l ^. #lsize) 0 (l ^. #lsize)]
+          [R 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
       TextA ts txts ->
         ( TextA (ts & #size .~ realToFrac (l ^. #lsize)) (take 1 txts),
-          [SP' 0 0]
+          [zero]
         )
       GlyphA gs ->
         ( GlyphA (gs & #size .~ realToFrac (l ^. #lsize)),
-          [SP' (0.5 * l ^. #lsize) (0.33 * l ^. #lsize)]
+          [P (0.5 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
       LineA ls ->
         ( LineA (ls & #width %~ (/ (realToFrac $ l ^. #lscale))),
-          [SP' 0 (0.33 * l ^. #lsize), SP' (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
+          [P 0 (0.33 * l ^. #lsize), P (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
       BlankA ->
         ( BlankA,
-          [SP' 0 0]
+          [zero]
         )
 
 legendChart :: [(Annotation, Text)] -> LegendOptions -> [Chart Double]
@@ -1590,7 +1493,7 @@ styleBoxText ::
   Text ->
   Point Double ->
   Rect Double
-styleBoxText o t p = move (p P.+ p') $ maybe flat (`rotateRect` flat) (o ^. #rotation)
+styleBoxText o t p = move (p + p') $ maybe flat (`rotateRect` flat) (o ^. #rotation)
   where
     flat = Rect ((- x' / 2.0) + x' * a') (x' / 2 + x' * a') ((- y' / 2) - n1') (y' / 2 - n1')
     s = o ^. #size
@@ -1609,13 +1512,13 @@ styleBoxText o t p = move (p P.+ p') $ maybe flat (`rotateRect` flat) (o ^. #rot
 -- | the extra area from glyph styling
 styleBoxGlyph :: GlyphStyle -> Rect Double
 styleBoxGlyph s = move p' $ sw $ case sh of
-  EllipseGlyph a -> NH.scale (Point sz (a * sz)) unitRect
-  RectSharpGlyph a -> NH.scale (Point sz (a * sz)) unitRect
-  RectRoundedGlyph a _ _ -> NH.scale (Point sz (a * sz)) unitRect
-  VLineGlyph _ -> NH.scale (Point ((s ^. #borderSize) * sz) sz) unitRect
-  HLineGlyph _ -> NH.scale (Point sz ((s ^. #borderSize) * sz)) unitRect
-  TriangleGlyph a b c -> (sz *) <$> sconcat (toRect . SpotPoint <$> (a :| [b, c]) :: NonEmpty (Rect Double))
-  _ -> (sz *) <$> unitRect
+  EllipseGlyph a -> NH.scale (Point sz (a * sz)) one
+  RectSharpGlyph a -> NH.scale (Point sz (a * sz)) one
+  RectRoundedGlyph a _ _ -> NH.scale (Point sz (a * sz)) one
+  VLineGlyph _ -> NH.scale (Point ((s ^. #borderSize) * sz) sz) one
+  HLineGlyph _ -> NH.scale (Point sz ((s ^. #borderSize) * sz)) one
+  TriangleGlyph a b c -> (sz *) <$> sconcat (toRect . PointXY <$> (a :| [b, c]) :: NonEmpty (Rect Double))
+  _ -> (sz *) <$> one
   where
     sh = s ^. #shape
     sz = s ^. #size
@@ -1724,9 +1627,9 @@ svgShape CircleGlyph s (Point x y) =
       term "r" (show $ 0.5 * s)
     ]
 svgShape SquareGlyph s p =
-  svgRect (move p ((s *) <$> unitRect))
+  svgRect (move p ((s *) <$> one))
 svgShape (RectSharpGlyph x') s p =
-  svgRect (move p (NH.scale (Point s (x' * s)) unitRect))
+  svgRect (move p (NH.scale (Point s (x' * s)) one))
 svgShape (RectRoundedGlyph x' rx ry) s p =
   terms
     "rect"
@@ -1738,7 +1641,7 @@ svgShape (RectRoundedGlyph x' rx ry) s p =
       term "ry" (show ry)
     ]
   where
-    (Rect x z y w) = move p (NH.scale (Point s (x' * s)) unitRect)
+    (Rect x z y w) = move p (NH.scale (Point s (x' * s)) one)
 svgShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   terms
     "polygon"
@@ -1857,24 +1760,24 @@ toRotateText r (Point x y) =
 
 -- | additively pad a [Chart]
 --
--- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [SpotRect unitRect]]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), spots = [SpotRect Rect -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, spots = [SpotRect Rect -0.605 0.605 -0.605 0.605]}]
+-- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [RectXY one]]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), spots = [RectXY Rect -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, spots = [RectXY Rect -0.605 0.605 -0.605 0.605]}]
 padChart :: Double -> [Chart Double] -> [Chart Double]
-padChart p cs = cs <> [Chart BlankA (maybeToList (SpotRect . padRect p <$> styleBoxes cs))]
+padChart p cs = cs <> [Chart BlankA (maybeToList (RectXY . padRect p <$> styleBoxes cs))]
 
 -- | overlay a frame on some charts with some additive padding between
 --
 -- >>> frameChart defaultRectStyle 0.1 blank
 -- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), spots = []},Chart {annotation = BlankA, spots = []}]
 frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
-frameChart rs p cs = [Chart (RectA rs) (maybeToList (SpotRect . padRect p <$> styleBoxes cs))] <> cs
+frameChart rs p cs = [Chart (RectA rs) (maybeToList (RectXY . padRect p <$> styleBoxes cs))] <> cs
 
 -- horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: Double -> [[Chart Double]] -> [Chart Double]
 hori _ [] = []
 hori gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SpotPoint (Point (z x) 0) P.- SpotPoint (Point (origx x) 0) P.+ s)))
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> P (z x) 0 - P (origx x) 0 + s)))
     z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
@@ -1883,7 +1786,7 @@ vert :: Double -> [[Chart Double]] -> [Chart Double]
 vert _ [] = []
 vert gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#spots %~ fmap (\s -> SpotPoint (Point (origx x - origx a) (w x)) P.+ s)))
+    step x a = x <> (a & fmap (#spots %~ fmap (\s -> P (origx x - origx a) (w x) + s)))
     w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 

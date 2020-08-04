@@ -7,6 +7,7 @@ module Chart
     Chart (..),
     Annotation (..),
     annotationText,
+    padRect,
     RectStyle (..),
     defaultRectStyle,
     blob,
@@ -28,10 +29,6 @@ module Chart
     Direction (..),
     fromDirection,
     toDirection,
-    Spot (..),
-    toRect,
-    toPoint,
-    padRect,
     SvgAspect (..),
     toSvgAspect,
     fromSvgAspect,
@@ -106,8 +103,6 @@ module Chart
     dataBox,
     toAspect,
     scaleAnn,
-    defRect,
-    defRectS,
     moveChart,
     -- $hud
     runHudWith,
@@ -174,28 +169,28 @@ import NumHask.Space
 -- 3. visual aids to help interpret the data, such as axes, gridlines and titles.
 --
 -- >>> :t Chart
--- Chart :: Annotation -> [Spot a] -> Chart a
+-- Chart :: Annotation -> [XY a] -> Chart a
 --
 -- A 'Chart' in this library specifically consists of
 --
--- - a list of values, either points or rectangles (unified as a 'Spot')
+-- - a list of values, either 2D points or rectangles (unified as a 'XY')
 --
 -- - an 'Annotation', which describes the way that the data should be represented on a 2-dimensional plane.
 --
--- What exactly is annotation and what is data is highly variant within charting practice. This construction treats position on a plane differently from other quantitative manifestations such as color and size. The chief advantage of priveleging position is that scaling and integrating data with other chart elements becomes much easier. The disadvantage is that, to use quantitative tools such as size, data needs to be consciously separated into that which is position orientated, and that which is defined as 'Annotation'.
+-- What exactly is annotation and what is data is highly variant within charting practice. This construction treats position on a plane differently from other quantitative manifestations such as color and size. The chief advantage of priveliging XY position is that scaling and integrating data with other chart elements becomes much easier. The disadvantage is that, to use quantitative tools such as size, data needs to be consciously separated into that which is position orientated, and that which is defined as 'Annotation'.
 --
 --
 -- Here's some data:
 --
 -- >>> :{
---  let ls = fmap (SpotPoint . uncurry Point) <$>
+--  let ls = fmap (uncurry P) <$>
 --           [ [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0 :: Double)],
 --             [(0.0, 0.0), (3.0, 3.0)],
 --             [(0.5, 4.0), (0.5, 0)] ]
 --  :}
 --
 -- >>> :t ls
--- ls :: [[Spot Double]]
+-- ls :: [[XY Double]]
 --
 -- and an Annotation to describe representation of this data.
 --

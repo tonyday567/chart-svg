@@ -20,7 +20,7 @@ data Ex
         exhc :: HudOptions,
         exmaxcs :: Int,
         exanns :: [Annotation],
-        exspots :: [[Spot Double]]
+        exspots :: [[XY Double]]
       }
   deriving (Eq, Show, Generic)
 
@@ -41,7 +41,7 @@ memptyExample = Ex defaultSvgOptions mempty 1 [] []
 
 -- | unit example
 unitExample :: Ex
-unitExample = Ex defaultSvgOptions mempty 1 [RectA defaultRectStyle] [[SpotRect unitRect]]
+unitExample = Ex defaultSvgOptions mempty 1 [RectA defaultRectStyle] [[one]]
 
 -- | hud example
 hudExample :: Ex
@@ -55,7 +55,7 @@ rectExample =
     (defaultHudOptions & set #hudAxes [defaultAxisOptions])
     2
     (RectA <$> ropts)
-    (fmap SpotRect <$> rss)
+    (fmap RectXY <$> rss)
 
 rss :: [[Rect Double]]
 rss =
@@ -81,7 +81,7 @@ lineExample =
     )
     3
     (LineA <$> lopts)
-    (fmap SpotPoint <$> ls)
+    (fmap PointXY <$> ls)
 
 ls :: [[Point Double]]
 ls =
@@ -135,7 +135,7 @@ textExample =
     defaultHudOptions
     26
     (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) . (: []) . fst <$> ts)
-    ((: []) . SpotPoint . snd <$> ts)
+    ((: []) . PointXY . snd <$> ts)
   where
     ts :: [(Text, Point Double)]
     ts =
@@ -171,7 +171,7 @@ glyphs =
       (TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0), 0.01),
       (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z", 0.01)
     ]
-    [SpotPoint (Point x 0) | x <- [0 .. (8 :: Double)]]
+    [P x 0 | x <- [0 .. (8 :: Double)]]
 
 -- | bar example
 barDataExample :: BarData
@@ -199,9 +199,9 @@ boundTextBug :: [Chart Double]
 boundTextBug =
   [ t1,
     t2,
-    Chart BlankA [SpotRect (Rect 0 0.1 (-0.5) 0.5)],
-    Chart (RectA defaultRectStyle) [SpotRect (defRectS $ styleBox t1)],
-    Chart (RectA defaultRectStyle) [SpotRect (defRectS $ styleBox t2)]
+    Chart BlankA [R 0 0.1 (-0.5) 0.5],
+    Chart (RectA defaultRectStyle) [RectXY (fixRect $ styleBox t1)],
+    Chart (RectA defaultRectStyle) [RectXY (fixRect $ styleBox t2)]
   ]
   where
     t1 =
@@ -210,14 +210,14 @@ boundTextBug =
             (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
             ["a pretty long piece of text"]
         )
-        [SpotPoint (Point 0.0 0.0)]
+        [zero]
     t2 =
       Chart
         ( TextA
             (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.45 & #size .~ 0.08)
             ["another pretty long piece of text"]
         )
-        [SpotPoint (Point 1 1)]
+        [P 1 1]
 
 -- | compound chart
 gopts3 :: [GlyphStyle]
@@ -237,8 +237,8 @@ gopts3 =
 glines :: [Chart Double]
 glines = cs <> gs
   where
-    cs = zipWith (\d s -> Chart (LineA s) (SpotPoint <$> d)) ls lopts
-    gs = zipWith (\d s -> Chart (GlyphA s) (SpotPoint <$> d)) ls gopts3
+    cs = zipWith (\d s -> Chart (LineA s) (PointXY <$> d)) ls lopts
+    gs = zipWith (\d s -> Chart (GlyphA s) (PointXY <$> d)) ls gopts3
 
 lgdata :: [(Text, Point Double)]
 lgdata =
@@ -258,7 +258,7 @@ lglyph = txt <> gly
                 )
                 [t]
             )
-            (SpotPoint <$> [p])
+            (PointXY <$> [p])
       )
         <$> lgdata
     gly =
@@ -271,7 +271,7 @@ lglyph = txt <> gly
                     & #color .~ black
                 )
             )
-            (SpotPoint <$> [d])
+            (PointXY <$> [d])
       )
         <$> (snd <$> lgdata)
 
@@ -287,7 +287,7 @@ labelExample =
 
 placedLabel :: (Real a) => Point a -> a -> Text -> Chart a
 placedLabel p d t =
-  Chart (TextA (defaultTextStyle & #rotation ?~ realToFrac d) [t]) [SpotPoint p]
+  Chart (TextA (defaultTextStyle & #rotation ?~ realToFrac d) [t]) [PointXY p]
 
 label :: [Chart Double]
 label =
@@ -321,13 +321,13 @@ mainExample :: Ex
 mainExample =
   makeExample
     defaultHudOptions
-    [Chart (GlyphA defaultGlyphStyle) (SpotPoint <$> gridP sin (Range 0 (2 * pi)) 30)]
+    [Chart (GlyphA defaultGlyphStyle) (PointXY <$> gridP sin (Range 0 (2 * pi)) 30)]
 
 writeAllExamples :: IO ()
 writeAllExamples = do
   -- haddocks
   let ls' =
-        fmap (SpotPoint . uncurry Point)
+        fmap (PointXY . uncurry Point)
           <$> [ [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0 :: Double)],
                 [(0.0, 0.0), (3.0, 3.0)],
                 [(0.5, 4.0), (0.5, 0)]
@@ -341,8 +341,8 @@ writeAllExamples = do
   let lines' = zipWith Chart anns ls'
   writeCharts "other/lines.svg" lines'
   writeHudOptionsChart "other/linehud.svg" defaultSvgOptions defaultHudOptions [] lines'
-  writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [SpotRect (unitRect :: Rect Double)]]
-  let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [SpotPoint y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
+  writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [one]]
+  let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
   writeCharts "other/text.svg" t
   writeCharts "other/glyph.svg" glyphs
   writeHudOptionsChart "other/pixel.svg" defaultSvgOptions defaultHudOptions (snd pixelEx) (fst pixelEx)

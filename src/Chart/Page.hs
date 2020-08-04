@@ -464,7 +464,7 @@ repSvgOptions s =
           ("Scale", scalec')
         ]
 
-repData :: (Monad m) => Text -> SharedRep m [Spot Double]
+repData :: (Monad m) => Text -> SharedRep m [XY Double]
 repData d = do
   a <-
     dropdown
@@ -479,13 +479,13 @@ repData d = do
       d
   pure
     ( case a of
-        "sin" -> SpotPoint <$> gridP sin (Range 0 (2 * pi)) 30
+        "sin" -> PointXY <$> gridP sin (Range 0 (2 * pi)) 30
         "line" ->
-          SpotPoint . uncurry Point
+          PointXY . uncurry Point
             <$> [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)]
-        "one" -> [SpotRect (Rect 0 1 0 1)]
-        "dist" -> SpotRect <$> gridR (\x -> exp (- (x ** 2) / 2)) (Range (-5) 5) 50
-        _ -> SpotPoint <$> gridP sin (Range 0 (2 * pi)) 30
+        "one" -> [R 0 1 0 1]
+        "dist" -> RectXY <$> gridR (\x -> exp (- (x ** 2) / 2)) (Range (-5) 5) 50
+        _ -> PointXY <$> gridP sin (Range 0 (2 * pi)) 30
     )
 
 repFormatN :: (Monad m) => FormatN -> SharedRep m FormatN
@@ -842,7 +842,7 @@ repChartsWithSharedData ::
   HudOptions ->
   Int ->
   [Chart Double] ->
-  ([[Spot Double]] -> SharedRep m [[Spot Double]]) ->
+  ([[XY Double]] -> SharedRep m [[XY Double]]) ->
   SharedRep m (Text, Text)
 repChartsWithSharedData css' hc' maxcs' cs' sspots =
   bimap
@@ -1154,4 +1154,4 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
 
 repNoData :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
 repNoData css ann hc =
-  repChartsWithStaticData css hc 10 [Chart ann [SpotRect (Rect (-0.5) 0.5 (-0.5) 0.5)]]
+  repChartsWithStaticData css hc 10 [Chart ann [one]]
