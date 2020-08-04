@@ -5,6 +5,8 @@ cache:
   - $HOME/.stack
   - $TRAVIS_BUILD_DIR/.stack-work
 
+addons: {apt: {packages: [libblas-dev, liblapack-dev, g++-4.8], sources: [ubuntu-toolchain-r-test]}}
+
 matrix:
   include:
     - env: BUILD=stack
