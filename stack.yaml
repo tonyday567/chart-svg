@@ -4,10 +4,10 @@ packages:
   - .
 
 extra-deps:
-  - box-0.5.0
-  - box-socket-0.0.1
+  - box-0.6.0
+  - box-socket-0.0.2
   - numhask-0.6.0.2
   - numhask-space-0.6.0
-  - web-rep-0.6.0
+  - web-rep-0.7.0
 
 allow-newer: true
