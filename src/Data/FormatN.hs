@@ -1,15 +1,12 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -120,7 +117,7 @@ roundSig n x = scientific r' (e - length ds0)
     (ds0, ds1) = splitAt (n + 1) ds
     r =
       (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds0 :: Double)
-        + (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0 ^ (length ds1 :: Int))
+        + fromIntegral (foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0 ^ (length ds1 :: Int))
     r' = round r :: Integer
 
 -- | format numbers between 0.001 and 1,000,000 using digit and comma notation and exponential outside this range, with x significant figures.
@@ -146,7 +143,7 @@ prec n x
   | x > 1e6 = expt n x
   | otherwise = decimal n (toRealFloat x')
   where
-    x' = maybe fromFloatDigits roundSig n $ x
+    x' = maybe fromFloatDigits roundSig n x
 
 -- | round to n significant figures and always use decimal notation
 -- >>> decimal (Just 2) 0.000001234
@@ -157,7 +154,7 @@ prec n x
 decimal :: Maybe Int -> Double -> Text
 decimal n x = x''
   where
-    x' = pack $ formatScientific Fixed Nothing $ maybe fromFloatDigits roundSig n $ x
+    x' = pack $ formatScientific Fixed Nothing $ maybe fromFloatDigits roundSig n x
     x'' = (\x -> bool x' (fst x) (snd x == ".0")) $ Text.breakOn "." x'
 
 -- | add commas format for numbers above 1,000 but below 1 million, otherwise use prec.
@@ -176,7 +173,7 @@ comma n x
     Just _ -> addcomma (prec n x)
   where
     addcomma :: Text -> Text
-    addcomma x = (\x -> fst x <> snd x) . first (Text.reverse . Text.intercalate "," . Text.chunksOf 3 . Text.reverse) $ Text.breakOn "." x
+    addcomma x = uncurry (<>) x . first (Text.reverse . Text.intercalate "," . Text.chunksOf 3 . Text.reverse) $ Text.breakOn "." x
 
 -- | dollars and cents, always decimal notation
 --
@@ -185,7 +182,7 @@ comma n x
 --
 -- >>> dollar (Just 2) 0.01234
 -- "$0.0123"
-dollar :: (Maybe Int) -> Double -> Text
+dollar :: Maybe Int -> Double -> Text
 dollar n x
   | x < 0 = "-" <> dollar n (- x)
   | otherwise = "$" <> comma n x

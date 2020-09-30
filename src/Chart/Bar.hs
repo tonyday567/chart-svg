@@ -75,7 +75,7 @@ defaultBarOptions =
              ]
         & #hudTitles .~ []
         & #hudLegend
-          .~ Just
+          ?~
             ( defaultLegendOptions
                 & #lplace .~ PlaceRight
                 & #lsize .~ 0.12
@@ -183,7 +183,7 @@ accRows xs = transpose $ drop 1 . scanl' (+) 0 <$> transpose xs
 -- | sensible ticks
 barTicks :: BarData -> TickStyle
 barTicks bd
-  | bd ^. #barData == [] = TickNone
+  | null (bd ^. #barData) = TickNone
   | isNothing (bd ^. #barRowLabels) =
     TickLabels $ pack . show <$> [0 .. (maxRows (bd ^. #barData) - 1)]
   | otherwise =
@@ -197,7 +197,7 @@ tickFirstAxis bd (x : xs) = (x & #atick . #tstyle .~ barTicks bd) : xs
 -- | bar legend
 barLegend :: BarData -> BarOptions -> [(Annotation, Text)]
 barLegend bd bo
-  | bd ^. #barData == [] = []
+  | null (bd ^. #barData) = []
   | isNothing (bd ^. #barColumnLabels) = []
   | otherwise = zip (RectA <$> bo ^. #barRectStyles) $ take (length (bd ^. #barData)) $ fromMaybe [] (bd ^. #barColumnLabels) <> repeat ""
 
