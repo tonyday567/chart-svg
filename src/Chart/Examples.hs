@@ -298,7 +298,7 @@ legendTest :: HudOptions
 legendTest =
   defaultHudOptions
     & #hudLegend
-    .~ Just
+    ?~
       ( defaultLegendOptions
           & #lscale .~ 0.3
           & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
