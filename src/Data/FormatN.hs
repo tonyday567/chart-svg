@@ -173,7 +173,7 @@ comma n x
     Just _ -> addcomma (prec n x)
   where
     addcomma :: Text -> Text
-    addcomma x = uncurry (<>) x . first (Text.reverse . Text.intercalate "," . Text.chunksOf 3 . Text.reverse) $ Text.breakOn "." x
+    addcomma x = uncurry (<>) . first (Text.reverse . Text.intercalate "," . Text.chunksOf 3 . Text.reverse) $ Text.breakOn "." x
 
 -- | dollars and cents, always decimal notation
 --
