@@ -203,8 +203,7 @@ repTextStyle s = do
           (Point 0.001 0.001)
           (Point 0 0)
       )
-  tm <- checkbox (Just "mathjax") (s ^. #hasMathjax)
-  pure $ TextStyle ts (fromRGB (unsafeFromHex tc) to') ta th tv tn tr tt tm
+  pure $ TextStyle ts (fromRGB (unsafeFromHex tc) to') ta th tv tn tr tt
 
 repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
 repLineStyle s = do

@@ -26,8 +26,7 @@ chartOutputCode ea =
 
 chartStyler :: Bool -> Page
 chartStyler doDebug =
-  mathjaxSvgPage "hasmathjax"
-    <> bootstrapPage
+  bootstrapPage
     <> socketPage
     & #htmlHeader .~ title_ "chart styler"
     & #htmlBody
