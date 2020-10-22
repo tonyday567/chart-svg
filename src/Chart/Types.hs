@@ -133,7 +133,7 @@ import Data.List ((!!))
 import qualified Data.Text as Text
 import Data.Time
 import qualified Lucid
-import Lucid (class_, height_, id_, term, toHtmlRaw, width_, with)
+import Lucid (height_, id_, term, toHtmlRaw, width_, with)
 import Lucid.Base (makeXmlElementNoEnd)
 import qualified Lucid.Base as Lucid
 import NumHask.Prelude
@@ -224,7 +224,7 @@ border s c = RectStyle s c transparent
 -- | Text styling
 --
 -- >>> defaultTextStyle
--- TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}
+-- TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing}
 --
 -- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
 --
@@ -240,8 +240,7 @@ data TextStyle
         vsize :: Double,
         nudge1 :: Double,
         rotation :: Maybe Double,
-        translate :: Maybe (Point Double),
-        hasMathjax :: Bool
+        translate :: Maybe (Point Double)
       }
   deriving (Show, Eq, Generic)
 
@@ -264,7 +263,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 colorText AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing False
+  TextStyle 0.08 colorText AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing
 
 -- | Glyph styling
 --
@@ -574,7 +573,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTick
--- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}
+-- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}
 data Tick
   = Tick
       { tstyle :: TickStyle,
@@ -665,7 +664,7 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- | Legend options
 --
 -- >>> defaultLegendOptions
--- LegendOptions {lsize = 0.1, vgap = 0.2, hgap = 0.1, ltext = TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing, hasMathjax = False}, lmax = 10, innerPad = 0.1, outerPad = 0.1, legendFrame = Just (RectStyle {borderSize = 2.0e-2, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 1.00 1.00 1.00 1.00}), lplace = PlaceBottom, lscale = 0.2}
+-- LegendOptions {lsize = 0.1, vgap = 0.2, hgap = 0.1, ltext = TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing}, lmax = 10, innerPad = 0.1, outerPad = 0.1, legendFrame = Just (RectStyle {borderSize = 2.0e-2, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 1.00 1.00 1.00 1.00}), lplace = PlaceBottom, lscale = 0.2}
 --
 -- ![legend example](other/legend.svg)
 data LegendOptions
@@ -743,10 +742,7 @@ scaleAnn _ BlankA = BlankA
 moveChart :: (Additive a) => XY a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#xys %~ fmap (sp +)) cs
 
--- | combine huds and charts to form a new Chart using the supplied
--- initial canvas and data dimensions.
--- Note that chart data is transformed by this computation.
--- used once in makePixelTick
+-- | combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation and could be helped by a linear type.
 runHudWith ::
   -- | initial canvas dimension
   Rect Double ->
@@ -1455,7 +1451,6 @@ svgRect (Rect x z y w) =
 -- | Text svg
 svgText :: TextStyle -> Text -> Point Double -> Lucid.Html ()
 svgText s t p@(Point x y) =
-  bool id (term "g" [class_ "hasmathjax"]) (s ^. #hasMathjax) $
     term
       "text"
       ( [ term "x" (show x),
