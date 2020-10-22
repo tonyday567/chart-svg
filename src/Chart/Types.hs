@@ -742,10 +742,7 @@ scaleAnn _ BlankA = BlankA
 moveChart :: (Additive a) => XY a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#xys %~ fmap (sp +)) cs
 
--- | combine huds and charts to form a new Chart using the supplied
--- initial canvas and data dimensions.
--- Note that chart data is transformed by this computation.
--- used once in makePixelTick
+-- | combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation and could be helped by a linear type.
 runHudWith ::
   -- | initial canvas dimension
   Rect Double ->
