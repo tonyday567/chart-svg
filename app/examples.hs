@@ -16,7 +16,7 @@ chartServer :: SharedRep IO (Text, Text) -> IO ()
 chartServer srep = sharedServer srep defaultSocketConfig (chartStyler True) defaultInputCode chartOutputCode
 
 chartOutputCode :: Either Text (Text, Text) -> IO [Code]
-chartOutputCode ea = 
+chartOutputCode ea =
   pure $ case ea of
     Left err -> [Append "debug" ("hashmap error: " <> err)]
     Right (chart', debug') ->
@@ -48,29 +48,29 @@ main =
   chartServer
     ( repChoice
         5
-        [ ("mempty", repEx memptyExample),
-          ("unit", repEx unitExample),
-          ("hud", repEx hudExample),
-          ("rect", repEx rectExample),
-          ("line", repEx lineExample),
-          ("wave", repEx mainExample),
-          ("text", repEx textExample),
-          ("glyphs", repEx glyphExample),
-          ("bar", repBarChart defaultSvgOptions barDataExample defaultBarOptions),
-          ( "pixel",
-            repPixelChart
+        [ ("mempty", repChartSvg 1 mempty),
+          ("unit", repChartSvg 1 unitExample),
+          ("hud", repChartSvg 1 hudOptionsExample),
+          ("rect", repChartSvg 1 rectExample),
+          ("text", repChartSvg 26 textExample),
+          ("glyphs", repChartSvg 10 glyphsExample),
+          ("line", repChartSvg 3 lineExample),
+          ( "surface",
+            repSurfaceChart
               ( defaultSvgOptions,
-                defaultPixelOptions
+                defaultSurfaceOptions
                   & #poGrain .~ Point 20 20
                   & #poRange .~ Rect 1 2 1 2,
                 defaultHudOptions,
-                defaultPixelLegendOptions "pixel test",
-                f1
+                defaultSurfaceLegendOptions "surface test",
+                sinCosTan
               )
           ),
-          ("bound text bug", repEx (makeExample defaultHudOptions boundTextBug)),
-          ("compound chart", repEx (makeExample defaultHudOptions (lglyph <> glines))),
-          ("label", repEx (makeExample defaultHudOptions label)),
-          ("legend test", repNoData defaultSvgOptions BlankA legendTest)
+          ("bar", repBarChart defaultSvgOptions barDataExample defaultBarOptions),
+          ("wave", repChartSvg 3 waveExample),
+          ("bound text bug", repChartSvg 10 boundTextBugExample),
+          ("compound chart", repChartSvg 10 (lglyphExample <> glinesExample)),
+          ("label", repChartSvg 10 labelExample),
+          ("legend", repChartSvg 10 legendExample)
         ]
     )

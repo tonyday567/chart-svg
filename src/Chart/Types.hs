@@ -16,10 +16,21 @@
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
+-- | Chart API
 module Chart.Types
-  ( Chart (..),
+  ( -- * Chart
+    Chart (..),
+    moveChart,
+    projectXYs,
+    projectXYsWith,
+
+    -- * Annotation
     Annotation (..),
     annotationText,
+    scaleAnn,
+    padRect,
+
+    -- * Styles
     RectStyle (..),
     defaultRectStyle,
     blob,
@@ -27,45 +38,40 @@ module Chart.Types
     border,
     TextStyle (..),
     defaultTextStyle,
-    Anchor (..),
-    fromAnchor,
-    toAnchor,
     GlyphStyle (..),
     defaultGlyphStyle,
     GlyphShape (..),
     glyphText,
     LineStyle (..),
     defaultLineStyle,
-    PixelStyle (..),
-    defaultPixelStyle,
-    Direction (..),
-    fromDirection,
-    toDirection,
-    padRect,
+    SurfaceStyle (..),
+    defaultSurfaceStyle,
+    Anchor (..),
+    fromAnchor,
+    toAnchor,
 
-    SvgAspect (..),
-    toSvgAspect,
-    fromSvgAspect,
-    EscapeText (..),
-    CssOptions (..),
-    ScaleCharts (..),
-    SvgOptions (..),
-    defaultSvgOptions,
-    defaultSvgFrame,
-
-    -- $hud machinery
+    -- * Hud types
     ChartDims (..),
     HudT (..),
     Hud,
     HudOptions (..),
     defaultHudOptions,
     defaultCanvas,
+    runHudWith,
+    runHud,
+    makeHud,
+    canvas,
+    title,
+    tick,
+
+    -- * Hud primitives
     AxisOptions (..),
     defaultAxisOptions,
+    flipAxis,
     Place (..),
     placeText,
-    Bar (..),
-    defaultBar,
+    AxisBar (..),
+    defaultAxisBar,
     Title (..),
     defaultTitle,
     Tick (..),
@@ -77,51 +83,43 @@ module Chart.Types
     defaultTickStyle,
     tickStyleText,
     TickExtend (..),
+    adjustTick,
+    makeTickDates,
+    makeTickDatesContinuous,
     Adjustments (..),
     defaultAdjustments,
     LegendOptions (..),
     defaultLegendOptions,
-    -- $core
-    projectXYs,
-    projectXYsWith,
-    dataBox,
-    toAspect,
-    scaleAnn,
-    moveChart,
-
-    -- $hud
-    runHudWith,
-    runHud,
-    makeHud,
-    freezeTicks,
-    flipAxis,
-    canvas,
-    title,
-    tick,
-    adjustTick,
-    makeTickDates,
-    makeTickDatesContinuous,
     legendHud,
-    legendEntry,
-    legendChart,
-    legendFromChart,
-    -- $svg
-    svg,
-    svgt,
-    chartDef,
-    chartDefs,
-    styleBox,
-    styleBoxes,
-    noStyleBoxes,
-    styleBoxText,
-    styleBoxGlyph,
+    Direction (..),
+    fromDirection,
+    toDirection,
+
+    -- * SVG primitives
+    SvgAspect (..),
+    toSvgAspect,
+    fromSvgAspect,
+    EscapeText (..),
+    CssOptions (..),
+    ScaleCharts (..),
+    SvgOptions (..),
+    defaultSvgOptions,
+    defaultSvgFrame,
+
+    -- * Chart manipulation
     padChart,
     frameChart,
     hori,
     vert,
     stack,
-    addChartBox,
-    addChartBoxes,
+
+    -- * Bounding box calculation
+    dataBox,
+    styleBox,
+    styleBoxes,
+    noStyleBoxes,
+    styleBoxText,
+    styleBoxGlyph,
   )
 where
 
@@ -132,10 +130,6 @@ import Data.Generics.Labels ()
 import Data.List ((!!))
 import qualified Data.Text as Text
 import Data.Time
-import qualified Lucid
-import Lucid (height_, id_, term, toHtmlRaw, width_, with)
-import Lucid.Base (makeXmlElementNoEnd)
-import qualified Lucid.Base as Lucid
 import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
 import Text.HTML.TagSoup hiding (Attribute)
@@ -151,24 +145,30 @@ import qualified Prelude as P
 
 -- * Chart
 
--- | A `Chart` consists of
--- - specific style of representation for each xy point or xy rectangle.
--- - a list of points or rectangles on the xy-plane, and
+-- | A `Chart` is annotated xy-data.
 data Chart a
   = Chart
-      { annotation :: Annotation,
+      { -- | annotation style for the data
+        annotation :: Annotation,
+        -- | list of data elements, either points or rectangles.
         xys :: [XY a]
       }
   deriving (Eq, Show, Generic)
 
--- | Manifestation of the data on a screen.
+-- | How data will be represented onscreen.
+--
+-- The definition of what might be an Annotation type is opinionated.
+--
+-- More complex combinations across Annotations can be constructed from combining charts.  See 'Chart.Example.glinesExample', 'Chart.Examples.lglyphExample' and "Chart.Bar" for examples.
+--
+-- There may be exceptions, but the approximate magnitude of annotation values are in reference to the size of the screen.  For example, a size of 0.01 (say), will means about 1% of the height and/or width of the screen height or width.
 data Annotation
   = RectA RectStyle
   | TextA TextStyle [Text]
   | GlyphA GlyphStyle
   | LineA LineStyle
+  | SurfaceA SurfaceStyle
   | BlankA
-  | PixelA PixelStyle
   deriving (Eq, Show, Generic)
 
 -- | textifier
@@ -177,15 +177,15 @@ annotationText (RectA _) = "RectA"
 annotationText TextA {} = "TextA"
 annotationText (GlyphA _) = "GlyphA"
 annotationText (LineA _) = "LineA"
+annotationText (SurfaceA _) = "SurfaceA"
 annotationText BlankA = "BlankA"
-annotationText (PixelA _) = "PixelA"
 
 -- | Rectangle styling
 --
 -- >>> defaultRectStyle
 -- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}
 --
--- > writeCharts "other/unit.svg" [Chart (RectA defaultRectStyle) [one]]
+-- > writeChartSvgDefault "other/unit.svg" [Chart (RectA defaultRectStyle) [one]]
 --
 -- ![unit example](other/unit.svg)
 data RectStyle
@@ -228,7 +228,7 @@ border s c = RectStyle s c transparent
 --
 -- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
 --
--- > writeCharts "other/text.svg" t
+-- > writeChartSvgDefault "other/text.svg" t
 --
 -- ![text example](other/text.svg)
 data TextStyle
@@ -270,7 +270,9 @@ defaultTextStyle =
 -- >>> defaultGlyphStyle
 -- GlyphStyle {size = 3.0e-2, color = RGBA 0.65 0.81 0.89 0.30, borderColor = RGBA 0.12 0.47 0.71 0.80, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
 --
--- ![glyph example](other/glyph.svg)
+-- See 'Chart.Examples.glyphsExample'.
+--
+-- ![glyph example](other/glyphs.svg)
 data GlyphStyle
   = GlyphStyle
       { -- | glyph radius
@@ -330,6 +332,8 @@ glyphText sh =
 --
 -- >>> defaultLineStyle
 -- LineStyle {width = 1.2e-2, color = RGBA 0.65 0.81 0.89 0.30}
+--
+-- ![line example](other/line.svg)
 data LineStyle
   = LineStyle
       { width :: Double,
@@ -341,29 +345,29 @@ data LineStyle
 defaultLineStyle :: LineStyle
 defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3)
 
--- | A pixel chart is a specialization of a 'RectA' chart
+-- | A surface chart is a specialization of a 'RectA' chart
 --
--- >>> defaultPixelStyle
--- PixelStyle {pixelColorMin = RGBA 0.65 0.81 0.89 1.00, pixelColorMax = RGBA 0.12 0.47 0.71 1.00, pixelGradient = 1.5707963267948966, pixelRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}, pixelTextureId = "pixel"}
+-- >>> defaultSurfaceStyle
+-- SurfaceStyle {surfaceColorMin = RGBA 0.65 0.81 0.89 1.00, surfaceColorMax = RGBA 0.12 0.47 0.71 1.00, surfaceGradient = 1.5707963267948966, surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}, surfaceTextureId = "surface"}
 --
--- ![pixel example](other/pixel.svg)
-data PixelStyle
-  = PixelStyle
-      { pixelColorMin :: Colour,
-        pixelColorMax :: Colour,
+-- ![surface example](other/surface.svg)
+data SurfaceStyle
+  = SurfaceStyle
+      { surfaceColorMin :: Colour,
+        surfaceColorMax :: Colour,
         -- | expressed in directional terms
         -- 0 for horizontal
         -- pi/2 for vertical
-        pixelGradient :: Double,
-        pixelRectStyle :: RectStyle,
-        pixelTextureId :: Text
+        surfaceGradient :: Double,
+        surfaceRectStyle :: RectStyle,
+        surfaceTextureId :: Text
       }
   deriving (Show, Eq, Generic)
 
--- | The official pixel style.
-defaultPixelStyle :: PixelStyle
-defaultPixelStyle =
-  PixelStyle (fromRGB (palette !! 0) 1) (fromRGB (palette !! 1) 1) (pi / 2) (blob black) "pixel"
+-- | The official surface style.
+defaultSurfaceStyle :: SurfaceStyle
+defaultSurfaceStyle =
+  SurfaceStyle (fromRGB (palette !! 0) 1) (fromRGB (palette !! 1) 1) (pi / 2) (blob black) "surface"
 
 -- | Verticle or Horizontal
 data Direction = Vert | Hori deriving (Eq, Show, Generic)
@@ -386,7 +390,7 @@ padRect p (Rect x z y w) = Rect (x P.- p) (z P.+ p) (y P.- p) (w P.+ p)
 -- | or html
 data EscapeText = EscapeText | NoEscapeText deriving (Show, Eq, Generic)
 
--- | pixel chart helper
+-- | surface chart helper
 data CssOptions = UseCssCrisp | NoCssOptions deriving (Show, Eq, Generic)
 
 -- | turns off scaling.  Usually not what you want.
@@ -406,12 +410,12 @@ toSvgAspect "ManualAspect" a = ManualAspect a
 toSvgAspect "ChartAspect" _ = ChartAspect
 toSvgAspect _ _ = ChartAspect
 
--- | Top-level SVG options.
+-- | SVG tag options.
 --
 -- >>> defaultSvgOptions
 -- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, escapeText = NoEscapeText, useCssCrisp = NoCssOptions, scaleCharts' = ScaleCharts, svgAspect = ManualAspect 1.5}
 --
--- > writeChartsWith "other/svgoptions.svg" (defaultSvgOptions & #svgAspect .~ ManualAspect 0.7) lines
+-- > writeChartSvg "other/svgoptions.svg" (SvgChart (defaultSvgOptions & #svgAspect .~ ManualAspect 0.7) mempty [] lines)
 --
 -- ![svgoptions example](other/svgoptions.svg)
 data SvgOptions
@@ -435,7 +439,7 @@ defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoEscapeText NoCs
 defaultSvgFrame :: RectStyle
 defaultSvgFrame = border 0.01 (fromRGB (grayscale 0.7) 0.5)
 
--- | In order to create huds, there are three main pieces of state that need to be kept track of:
+-- | Dimensions that are tracked in the 'HudT':
 --
 -- - chartDim: the rectangular dimension of the physical representation of a chart on the screen so that new hud elements can be appended. Adding a hud piece tends to expand the chart dimension.
 --
@@ -453,6 +457,7 @@ data ChartDims a
 -- | Hud monad transformer
 newtype HudT m a = Hud {unhud :: [Chart a] -> StateT (ChartDims a) m [Chart a]}
 
+-- | Heads-Up-Display for a 'Chart'
 type Hud = HudT Identity
 
 instance (Monad m) => Semigroup (HudT m a) where
@@ -461,11 +466,9 @@ instance (Monad m) => Semigroup (HudT m a) where
 instance (Monad m) => Monoid (HudT m a) where
   mempty = Hud pure
 
--- | Practically, the configuration of a Hud is going to be in decimals, typed into config files and the like, and so we concrete at the configuration level, and settle on doubles for specifying the geomtry of hud elements.
+-- | Typical configurable hud elements. Anything else can be hand-coded as a 'HudT'.
 --
--- > writeHudOptionsChart "other/hud.svg" defaultSvgOptions defaultHudOptions [] []
---
--- ![hud example](other/hud.svg)
+-- ![hud example](other/hudoptions.svg)
 data HudOptions
   = HudOptions
       { hudCanvas :: Maybe RectStyle,
@@ -519,7 +522,7 @@ placeText p =
 -- | axis options
 data AxisOptions
   = AxisOptions
-      { abar :: Maybe Bar,
+      { abar :: Maybe AxisBar,
         adjust :: Maybe Adjustments,
         atick :: Tick,
         place :: Place
@@ -528,14 +531,14 @@ data AxisOptions
 
 -- | The official axis
 defaultAxisOptions :: AxisOptions
-defaultAxisOptions = AxisOptions (Just defaultBar) (Just defaultAdjustments) defaultTick PlaceBottom
+defaultAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments) defaultTick PlaceBottom
 
 -- | The bar on an axis representing the x or y plane.
 --
--- >>> defaultBar
--- Bar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}
-data Bar
-  = Bar
+-- >>> defaultAxisBar
+-- AxisBar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}
+data AxisBar
+  = AxisBar
       { rstyle :: RectStyle,
         wid :: Double,
         buff :: Double
@@ -543,10 +546,13 @@ data Bar
   deriving (Show, Eq, Generic)
 
 -- | The official axis bar
-defaultBar :: Bar
-defaultBar = Bar (RectStyle 0 (fromRGB (grayscale 0.5) 1) (fromRGB (grayscale 0.5) 1)) 0.005 0.01
+defaultAxisBar :: AxisBar
+defaultAxisBar = AxisBar (RectStyle 0 (fromRGB (grayscale 0.5) 1) (fromRGB (grayscale 0.5) 1)) 0.005 0.01
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
+--
+-- >>> defaultTitle "title"
+-- Title {text = "title", style = TextStyle {size = 0.12, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing}, place = PlaceTop, anchor = AnchorMiddle, buff = 4.0e-2}
 data Title
   = Title
       { text :: Text,
@@ -659,8 +665,6 @@ data Adjustments
 defaultAdjustments :: Adjustments
 defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 
--- You're all Legends!
-
 -- | Legend options
 --
 -- >>> defaultLegendOptions
@@ -700,6 +704,8 @@ defaultLegendOptions =
     0.2
 
 -- | Project the xys of a chart to a new XY Space.
+--
+-- > projectXYs (dataBox cs) cs == cs if cs is non-empty
 projectXYs :: Rect Double -> [Chart Double] -> [Chart Double]
 projectXYs a cs = cs'
   where
@@ -716,6 +722,8 @@ projectXYs a cs = cs'
         <$> xss
 
 -- | Project chart xys to a new XY Space from an old XY Space
+--
+-- > projectXYsWith x x == id
 projectXYsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
 projectXYsWith new old cs = cs'
   where
@@ -723,26 +731,24 @@ projectXYsWith new old cs = cs'
     ss = annotation <$> cs
     cs' = zipWith Chart ss xss
 
--- | convert to a ratio
-toAspect :: (Divisive a, Subtractive a) => Rect a -> a
-toAspect (Rect x z y w) = (z - x) / (w - y)
-
--- | get the Space of a [Chart a]
+-- | Compute the 'Rect' of a chart.
 dataBox :: (Ord a) => [Chart a] -> Maybe (Rect a)
 dataBox cs = foldRect . mconcat $ fmap toRect <$> (xys <$> cs)
 
+-- | Generically scale an Annotation.
 scaleAnn :: Double -> Annotation -> Annotation
 scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
 scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (* x)
 scaleAnn x (TextA a txs) = TextA (a & #size %~ (* x)) txs
 scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
-scaleAnn x (PixelA a) = PixelA $ a & #pixelRectStyle . #borderSize %~ (* x)
+scaleAnn x (SurfaceA a) = SurfaceA $ a & #surfaceRectStyle . #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
+-- | Translate the data in a chart.
 moveChart :: (Additive a) => XY a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#xys %~ fmap (sp +)) cs
 
--- | combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation and could be helped by a linear type.
+-- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (and the use of a linear type is an open question).
 runHudWith ::
   -- | initial canvas dimension
   Rect Double ->
@@ -752,7 +758,7 @@ runHudWith ::
   [Hud Double] ->
   -- | underlying chart
   [Chart Double] ->
-  -- | chart list
+  -- | integrated chart list
   [Chart Double]
 runHudWith ca xs hs cs =
   flip evalState (ChartDims ca' da' xs) $
@@ -763,14 +769,23 @@ runHudWith ca xs hs cs =
     cs' = projectXYsWith ca xs cs
 
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
+--
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
--- used once in renderHudChart
-runHud :: Rect Double -> [Hud Double] -> [Chart Double] -> [Chart Double]
+runHud ::
+  -- | initial canvas dimension
+  Rect Double ->
+  -- | huds
+  [Hud Double] ->
+  -- | underlying charts
+  [Chart Double] ->
+  -- | integrated chart list
+  [Chart Double]
 runHud ca hs cs = runHudWith ca (fixRect $ dataBox cs) hs cs
 
--- | Make huds from a HudOptions
--- Some huds, such as the creation of tick values, can extend the data dimension of a chart, so we also return a blank chart with the new data dimension.
--- The complexity internally is due to the creation of ticks and, specifically, gridSensible, which is not idempotent. As a result, a tick calculation that does extends the data area, can then lead to new tick values when applying TickRound etc.
+-- | Make huds from a HudOptions.
+--
+-- Some huds, such as the creation of tick values, can extend the data dimension of a chart, so we return a blank chart with the new data dimension.
+-- The complexity internally to this function is due to the creation of ticks and, specifically, 'gridSensible', which is not idempotent. As a result, a tick calculation that does extends the data area, can then lead to new tick values when applying TickRound etc.
 makeHud :: Rect Double -> HudOptions -> ([Hud Double], [Chart Double])
 makeHud xs cfg =
   (haxes <> [can] <> titles <> [l], [xsext])
@@ -795,7 +810,7 @@ freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip
       _ -> Rect a0 a1 y w
 freezeTicks _ _ ts = (ts, Nothing)
 
--- |
+-- | flip an axis from being an X dimension to a Y one or vice-versa.
 flipAxis :: AxisOptions -> AxisOptions
 flipAxis ac = case ac ^. #place of
   PlaceBottom -> ac & #place .~ PlaceLeft
@@ -807,6 +822,7 @@ flipAxis ac = case ac ^. #place of
 addToRect :: (Ord a) => Rect a -> Maybe (Rect a) -> Rect a
 addToRect r r' = sconcat $ r :| maybeToList r'
 
+-- | Make a canvas hud element.
 canvas :: (Monad m) => RectStyle -> HudT m Double
 canvas s = Hud $ \cs -> do
   a <- use #canvasDim
@@ -814,7 +830,7 @@ canvas s = Hud $ \cs -> do
   #canvasDim .= addToRect a (styleBox c)
   pure $ c : cs
 
-bar_ :: Place -> Bar -> Rect Double -> Rect Double -> Chart Double
+bar_ :: Place -> AxisBar -> Rect Double -> Rect Double -> Chart Double
 bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
   case pl of
     PlaceTop ->
@@ -863,7 +879,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
             w
         ]
 
-bar :: (Monad m) => Place -> Bar -> HudT m Double
+bar :: (Monad m) => Place -> AxisBar -> HudT m Double
 bar pl b = Hud $ \cs -> do
   da <- use #chartDim
   ca <- use #canvasDim
@@ -1263,6 +1279,7 @@ makeTickDatesContinuous pc fmt n dates = placedTimeLabelContinuous pc fmt n (l, 
     l = minimum dates
     u = maximum dates
 
+-- | Make a legend hud element taking into account the chart.
 legendHud :: LegendOptions -> [Chart Double] -> Hud Double
 legendHud l lcs = Hud $ \cs -> do
   ca <- use #chartDim
@@ -1299,8 +1316,8 @@ legendEntry l a t =
         ( RectA rs,
           [R 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
-      PixelA ps ->
-        ( PixelA ps,
+      SurfaceA ps ->
+        ( SurfaceA ps,
           [R 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
       TextA ts txts ->
@@ -1331,12 +1348,6 @@ legendChart lrs l =
     es = reverse $ uncurry (legendEntry l) <$> lrs
     twidth = maybe 0 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (styleBox t)
-
-legendFromChart :: [Text] -> [Chart Double] -> [(Annotation, Text)]
-legendFromChart = zipWith (\t c -> (c ^. #annotation, t))
-
-terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
-terms t = with $ makeXmlElementNoEnd t
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -1383,7 +1394,7 @@ styleBox (Chart (GlyphA s) xs) = foldRect $ (\x -> move (toPoint x) (styleBoxGly
 styleBox (Chart (RectA s) xs) = foldRect (padRect (0.5 * s ^. #borderSize) . toRect <$> xs)
 styleBox (Chart (LineA s) xs) = foldRect (padRect (0.5 * s ^. #width) . toRect <$> xs)
 styleBox (Chart BlankA xs) = foldRect (toRect <$> xs)
-styleBox (Chart (PixelA s) xs) = foldRect (padRect (0.5 * s ^. #pixelRectStyle . #borderSize) . toRect <$> xs)
+styleBox (Chart (SurfaceA s) xs) = foldRect (padRect (0.5 * s ^. #surfaceRectStyle . #borderSize) . toRect <$> xs)
 
 -- | the extra geometric dimensions of a [Chart]
 styleBoxes :: [Chart Double] -> Maybe (Rect Double)
@@ -1392,221 +1403,6 @@ styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
 -- | geometric dimensions of a [Chart] not including style
 noStyleBoxes :: [Chart Double] -> Maybe (Rect Double)
 noStyleBoxes cs = foldRect $ toRect <$> mconcat (view #xys <$> cs)
-
--- | calculate the linear gradient to shove in defs
--- FIXME: Only works for #pixelGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
-lgPixel :: PixelStyle -> Lucid.Html ()
-lgPixel o =
-  term
-    "linearGradient"
-    [ Lucid.id_ (o ^. #pixelTextureId),
-      Lucid.makeAttribute "x1" (show x0),
-      Lucid.makeAttribute "y1" (show y0),
-      Lucid.makeAttribute "x2" (show x1),
-      Lucid.makeAttribute "y2" (show y1)
-    ]
-    ( mconcat
-        [ terms
-            "stop"
-            [ Lucid.makeAttribute "stop-opacity" (show $ opac $ o ^. #pixelColorMin),
-              Lucid.makeAttribute "stop-color" (toHex (o ^. #pixelColorMin)),
-              Lucid.makeAttribute "offset" "0"
-            ],
-          terms
-            "stop"
-            [ Lucid.makeAttribute "stop-opacity" (show $ opac $ o ^. #pixelColorMax),
-              Lucid.makeAttribute "stop-color" (toHex (o ^. #pixelColorMax)),
-              Lucid.makeAttribute "offset" "1"
-            ]
-        ]
-    )
-  where
-    x0 = min 0 (cos (o ^. #pixelGradient))
-    x1 = max 0 (cos (o ^. #pixelGradient))
-    y0 = max 0 (sin (o ^. #pixelGradient))
-    y1 = min 0 (sin (o ^. #pixelGradient))
-
--- | get chart definitions
-chartDefs :: [Chart a] -> Lucid.Html ()
-chartDefs cs = bool (term "defs" (mconcat ds)) mempty (0 == length ds)
-  where
-    ds = mconcat $ chartDef <$> cs
-
-chartDef :: Chart a -> [Lucid.Html ()]
-chartDef c = case c of
-  (Chart (PixelA s) _) -> [lgPixel s]
-  _ -> []
-
--- | Rectangle svg
-svgRect :: Rect Double -> Lucid.Html ()
-svgRect (Rect x z y w) =
-  terms
-    "rect"
-    [ width_ (show $ z - x),
-      height_ (show $ w - y),
-      term "x" (show x),
-      term "y" (show $ - w)
-    ]
-
--- | Text svg
-svgText :: TextStyle -> Text -> Point Double -> Lucid.Html ()
-svgText s t p@(Point x y) =
-    term
-      "text"
-      ( [ term "x" (show x),
-          term "y" (show $ - y)
-        ]
-          <> maybe [] (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
-      )
-      (toHtmlRaw t)
-
--- | line svg
-svgLine :: [Point Double] -> Lucid.Html ()
-svgLine [] = mempty
-svgLine xs = terms "polyline" [term "points" (toPointsText xs)]
-  where
-    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> show x <> "," <> show (- y)) <$> xs'
-
--- | GlyphShape to svg Tree
-svgShape :: GlyphShape -> Double -> Point Double -> Lucid.Html ()
-svgShape CircleGlyph s (Point x y) =
-  terms
-    "circle"
-    [ term "cx" (show x),
-      term "cy" (show $ - y),
-      term "r" (show $ 0.5 * s)
-    ]
-svgShape SquareGlyph s p =
-  svgRect (move p ((s *) <$> one))
-svgShape (RectSharpGlyph x') s p =
-  svgRect (move p (NH.scale (Point s (x' * s)) one))
-svgShape (RectRoundedGlyph x' rx ry) s p =
-  terms
-    "rect"
-    [ term "width" (show $ z - x),
-      term "height" (show $ w - y),
-      term "x" (show x),
-      term "y" (show $ - w),
-      term "rx" (show rx),
-      term "ry" (show ry)
-    ]
-  where
-    (Rect x z y w) = move p (NH.scale (Point s (x' * s)) one)
-svgShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
-  terms
-    "polygon"
-    [ term "transform" (toTranslateText p),
-      term "points" (show (s * xa) <> "," <> show (- (s * ya)) <> " " <> show (s * xb) <> "," <> show (- (s * yb)) <> " " <> show (s * xc) <> "," <> show (- (s * yc)))
-    ]
-svgShape (EllipseGlyph x') s (Point x y) =
-  terms
-    "ellipse"
-    [ term "cx" (show x),
-      term "cy" (show $ - y),
-      term "rx" (show $ 0.5 * s),
-      term "ry" (show $ 0.5 * s * x')
-    ]
-svgShape (VLineGlyph _) s (Point x y) =
-  terms "polyline" [term "points" (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
-svgShape (HLineGlyph _) s (Point x y) =
-  terms "polyline" [term "points" (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
-svgShape (PathGlyph path) _ p =
-  terms "path" [term "d" path, term "transform" (toTranslateText p)]
-
--- | GlyphStyle to svg Tree
-svgGlyph :: GlyphStyle -> Point Double -> Lucid.Html ()
-svgGlyph s p =
-  svgShape (s ^. #shape) (s ^. #size) (realToFrac <$> p)
-    & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
-
--- | convert a Chart to svg
-svg :: Chart Double -> Lucid.Html ()
-svg (Chart (TextA s ts) xs) =
-  term "g" (attsText s) (mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs)
-svg (Chart (GlyphA s) xs) =
-  term "g" (attsGlyph s) (mconcat $ svgGlyph s . toPoint <$> xs)
-svg (Chart (LineA s) xs) =
-  term "g" (attsLine s) (svgLine $ toPoint <$> xs)
-svg (Chart (RectA s) xs) =
-  term "g" (attsRect s) (mconcat $ svgRect . toRect <$> xs)
-svg (Chart (PixelA s) xs) =
-  term "g" (attsPixel s) (mconcat $ svgRect . toRect <$> xs)
-svg (Chart BlankA _) = mempty
-
--- | add a tooltip to a chart
-svgt :: Chart Double -> (TextStyle, Text) -> Lucid.Html ()
-svgt (Chart (TextA s ts) xs) (s', ts') =
-  term "g" (attsText s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (zipWith (\t p -> svgText s t (toPoint p)) ts xs))
-svgt (Chart (GlyphA s) xs) (s', ts') =
-  term "g" (attsGlyph s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgGlyph s . toPoint <$> xs))
-svgt (Chart (LineA s) xs) (s', ts') =
-  term "g" (attsLine s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> svgLine (toPoint <$> xs))
-svgt (Chart (RectA s) xs) (s', ts') =
-  term "g" (attsRect s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
-svgt (Chart (PixelA s) xs) (s', ts') =
-  term "g" (attsPixel s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
-svgt (Chart BlankA _) _ = mempty
-
--- * Style to Attributes
-
-attsRect :: RectStyle -> [Lucid.Attribute]
-attsRect o =
-  [ term "stroke-width" (show $ o ^. #borderSize),
-    term "stroke" (hex $ o ^. #borderColor),
-    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
-    term "fill" (hex $ o ^. #color),
-    term "fill-opacity" (show $ opac $ o ^. #color)
-  ]
-
-attsPixel :: PixelStyle -> [Lucid.Attribute]
-attsPixel o =
-  [ term "stroke-width" (show $ o ^. #pixelRectStyle . #borderSize),
-    term "stroke" (toHex $ o ^. #pixelRectStyle . #borderColor),
-    term "stroke-opacity" (show $ opac $ o ^. #pixelRectStyle . #borderColor),
-    term "fill" ("url(#" <> (o ^. #pixelTextureId) <> ")")
-  ]
-
-attsText :: TextStyle -> [Lucid.Attribute]
-attsText o =
-  [ term "stroke-width" "0.0",
-    term "stroke" "none",
-    term "fill" (toHex $ o ^. #color),
-    term "fill-opacity" (show $ opac $ o ^. #color),
-    term "font-size" (show $ o ^. #size),
-    term "text-anchor" (toTextAnchor $ o ^. #anchor)
-  ]
-    <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
-  where
-    toTextAnchor :: Anchor -> Text
-    toTextAnchor AnchorMiddle = "middle"
-    toTextAnchor AnchorStart = "start"
-    toTextAnchor AnchorEnd = "end"
-
-attsGlyph :: GlyphStyle -> [Lucid.Attribute]
-attsGlyph o =
-  [ term "stroke-width" (show $ o ^. #borderSize),
-    term "stroke" (toHex $ o ^. #borderColor),
-    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
-    term "fill" (toHex $ o ^. #color),
-    term "fill-opacity" (show $ opac $ o ^. #color)
-  ]
-    <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
-
-attsLine :: LineStyle -> [Lucid.Attribute]
-attsLine o =
-  [ term "stroke-width" (show $ o ^. #width),
-    term "stroke" (toHex $ o ^. #color),
-    term "stroke-opacity" (show $ opac $ o ^. #color),
-    term "fill" "none"
-  ]
-
-toTranslateText :: Point Double -> Text
-toTranslateText (Point x y) =
-  "translate(" <> show x <> ", " <> show (- y) <> ")"
-
-toRotateText :: Double -> Point Double -> Text
-toRotateText r (Point x y) =
-  "rotate(" <> show r <> ", " <> show x <> ", " <> show (- y) <> ")"
 
 -- | additively pad a [Chart]
 --
@@ -1622,7 +1418,7 @@ padChart p cs = cs <> [Chart BlankA (maybeToList (RectXY . padRect p <$> styleBo
 frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
 frameChart rs p cs = [Chart (RectA rs) (maybeToList (RectXY . padRect p <$> styleBoxes cs))] <> cs
 
--- horizontally stack a list of list of charts (proceeding to the right) with a gap between
+-- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: Double -> [[Chart Double]] -> [Chart Double]
 hori _ [] = []
 hori gap cs = foldl step [] cs
@@ -1631,7 +1427,7 @@ hori gap cs = foldl step [] cs
     z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
--- vertically stack a list of charts (proceeding upwards), aligning them to the left
+-- | vertically stack a list of charts (proceeding upwards), aligning them to the left
 vert :: Double -> [[Chart Double]] -> [Chart Double]
 vert _ [] = []
 vert gap cs = foldl step [] cs
@@ -1640,7 +1436,7 @@ vert gap cs = foldl step [] cs
     w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
     origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
--- stack a list of charts horizontally, then vertically
+-- | stack a list of charts horizontally, then vertically
 stack :: Int -> Double -> [[Chart Double]] -> [Chart Double]
 stack _ _ [] = []
 stack n gap cs = vert gap (hori gap <$> group' cs [])

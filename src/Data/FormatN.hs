@@ -15,9 +15,9 @@
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
+-- | Formatting of numeric values.
 module Data.FormatN
-  ( -- $formats
-    FormatN (..),
+  ( FormatN (..),
     defaultFormatN,
     fromFormatN,
     toFormatN,
