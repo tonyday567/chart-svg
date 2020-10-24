@@ -21,6 +21,9 @@ module Chart.Render
     svg,
     svgt,
     chartDefs,
+    getSize,
+    getViewbox,
+    scaleCharts,
   )
 where
 
@@ -65,11 +68,13 @@ scaleCharts cs r = (fromMaybe one $ styleBoxes cs', cs')
   where
     cs' = projectXYs cs r
 
+-- | get SVG size from options and chart details.
 getSize :: SvgOptions -> [Chart Double] -> Point Double
 getSize o cs = case view #svgAspect o of
   ManualAspect a -> (view #svgHeight o *) <$> Point a 1
   ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . fromMaybe one $ styleBoxes cs
 
+-- | Get SVG viewbox as a Rect from options and chart details.
 getViewbox :: SvgOptions -> [Chart Double] -> Rect Double
 getViewbox o cs =
   bool asp (fromMaybe one $ styleBoxes cs) (NoScaleCharts == view #scaleCharts' o)

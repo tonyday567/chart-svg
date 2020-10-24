@@ -66,6 +66,4 @@ surface
 
 ![](other/surface.svg)
 
-recipe
-------
 
