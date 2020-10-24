@@ -30,11 +30,18 @@ import NumHask.Space
 -- $setup
 --
 -- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
 -- >>> :set -XNoImplicitPrelude
--- >>> -- import NumHask.Prelude
+-- >>> import NumHask.Prelude
+-- >>> import Chart
 -- >>> import Control.Lens
 
--- | the usual bar chart eye-candy
+-- | Typical bar chart options.
+--
+-- >>> let barDataExample = BarData [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]] (Just (("row " <>) . pack . show <$> [1 .. 11])) (Just (("column " <>) . pack . show <$> [1 .. 2]))
+-- >>> let (ho, cs) = barChart defaultBarOptions barDataExample
+--
+-- > writeChartSvg "other/bar.svg" (ChartSvg defaultSvgOptions ho [] cs)
 --
 -- ![bar chart example](other/bar.svg)
 data BarOptions
@@ -75,16 +82,15 @@ defaultBarOptions =
              ]
         & #hudTitles .~ []
         & #hudLegend
-          ?~
-            ( defaultLegendOptions
-                & #lplace .~ PlaceRight
-                & #lsize .~ 0.12
-                & #vgap .~ 0.4
-                & #hgap .~ 0.14
-                & #ltext . #size .~ 0.12
-                & #lscale .~ 0.4,
-              []
-            )
+          ?~ ( defaultLegendOptions
+                 & #lplace .~ PlaceRight
+                 & #lsize .~ 0.12
+                 & #vgap .~ 0.4
+                 & #hgap .~ 0.14
+                 & #ltext . #size .~ 0.12
+                 & #lscale .~ 0.4,
+               []
+             )
     )
   where
     gs = (\x -> RectStyle 0.002 x x) <$> palette1
@@ -92,7 +98,7 @@ defaultBarOptions =
 
 -- | imagine a dataframe you get in other languages:
 --
--- - definietly some [[Double]]
+-- - definitely some [[Double]]
 --
 -- - maybe some row names
 --
@@ -109,8 +115,6 @@ data BarData
 --
 -- >>> barRects defaultBarOptions [[1,2],[2,3]]
 -- [[Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],[Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0]]
---
--- FIXME: slows!
 barRects ::
   BarOptions ->
   [[Double]] ->

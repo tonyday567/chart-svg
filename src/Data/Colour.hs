@@ -16,9 +16,9 @@
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
+-- | Colour representations and combinations, based on <https://hackage.haskell.org/package/Color>
 module Data.Colour
-  ( -- $color
-    Colour,
+  ( Colour,
     pattern Colour,
     opac,
     setOpac,
@@ -35,9 +35,6 @@ module Data.Colour
     transparent,
     black,
     white,
-
-    -- * re-exports
-    module Graphics.Color.Model,
   )
 where
 
@@ -45,21 +42,14 @@ import qualified Data.Attoparsec.Text as A
 import Data.FormatN
 import Data.Generics.Labels ()
 import qualified Data.Text as Text
-import Graphics.Color.Model hiding (one, toRealFloat, zero)
-import NumHask.Prelude
+import Graphics.Color.Model
+import NumHask.Prelude as NHP
 import qualified Prelude as P
 
--- $setup
---
--- >>> :set -XOverloadedLabels
--- >>> :set -XNoImplicitPrelude
--- >>> import Control.Lens
--- >>> import Chart.Render
-
--- | snatching Colour as the library color representation.
+-- | Wrapper for 'Color'.
 newtype Colour = Colour' {color' :: Color (Alpha RGB) Double} deriving (Eq, Generic)
 
--- | Constructor.
+-- | Constructor pattern.
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
 pattern Colour r g b a = Colour' (ColorRGBA r g b a)
 
@@ -153,7 +143,7 @@ i2d i = chr (ord '0' + i)
 
 -- | some RGB colors to work with
 palette :: [Color RGB Double]
-palette = unsafeFromHex <$> ["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a", "#ffff99", "#b15928"]
+palette = unsafeFromHex <$> ["#a6cee3", "#1f78b4", "#e31a1c", "#b2df8a", "#33a02c", "#fb9a99", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a", "#ffff99", "#b15928"]
 
 -- | some RGBA colors
 palette1 :: [Colour]

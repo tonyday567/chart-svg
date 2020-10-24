@@ -1,12 +1,29 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | A haskell Charting library targetting SVG
+-- | A haskell Charting library targetting SVGs
 module Chart
-  ( -- $overview
+  ( -- * Usage
+    --
+    -- $setup
+
+    -- * Overview
+    --
+    -- $overview
+
+    -- * Chart
     Chart (..),
+    moveChart,
+    projectXYs,
+    projectXYsWith,
+
+    -- * Annotation
     Annotation (..),
     annotationText,
+    scaleAnn,
     padRect,
+
+    -- * Styles
     RectStyle (..),
     defaultRectStyle,
     blob,
@@ -14,41 +31,42 @@ module Chart
     border,
     TextStyle (..),
     defaultTextStyle,
-    Anchor (..),
-    fromAnchor,
-    toAnchor,
     GlyphStyle (..),
     defaultGlyphStyle,
     GlyphShape (..),
     glyphText,
     LineStyle (..),
     defaultLineStyle,
-    PixelStyle (..),
-    defaultPixelStyle,
-    Direction (..),
-    fromDirection,
-    toDirection,
-    SvgAspect (..),
-    toSvgAspect,
-    fromSvgAspect,
-    EscapeText (..),
-    CssOptions (..),
-    ScaleCharts (..),
-    SvgOptions (..),
-    defaultSvgOptions,
-    defaultSvgFrame,
+    SurfaceStyle (..),
+    defaultSurfaceStyle,
+    Anchor (..),
+    fromAnchor,
+    toAnchor,
+
+    -- * Hud types
+    --
+    -- $hud
     ChartDims (..),
     HudT (..),
     Hud,
     HudOptions (..),
     defaultHudOptions,
     defaultCanvas,
+    runHudWith,
+    runHud,
+    makeHud,
+    canvas,
+    title,
+    tick,
+
+    -- * Hud primitives
     AxisOptions (..),
     defaultAxisOptions,
+    flipAxis,
     Place (..),
     placeText,
-    Bar (..),
-    defaultBar,
+    AxisBar (..),
+    defaultAxisBar,
     Title (..),
     defaultTitle,
     Tick (..),
@@ -60,57 +78,49 @@ module Chart
     defaultTickStyle,
     tickStyleText,
     TickExtend (..),
+    adjustTick,
+    makeTickDates,
+    makeTickDatesContinuous,
     Adjustments (..),
     defaultAdjustments,
     LegendOptions (..),
     defaultLegendOptions,
-
-    -- $core
-    dataBox,
-    toAspect,
-    scaleAnn,
-    moveChart,
-
-    -- $hud
-    runHudWith,
-    runHud,
-    makeHud,
-    freezeTicks,
-    flipAxis,
-    canvas,
-    title,
-    tick,
-    adjustTick,
-    makeTickDates,
-    makeTickDatesContinuous,
     legendHud,
-    legendEntry,
-    legendChart,
-    legendFromChart,
+    Direction (..),
+    fromDirection,
+    toDirection,
 
-    -- $svg
-    svg,
-    svgt,
-    chartDef,
-    chartDefs,
-    styleBox,
-    styleBoxes,
-    noStyleBoxes,
-    styleBoxText,
-    styleBoxGlyph,
+    -- * SVG primitives
+    SvgAspect (..),
+    toSvgAspect,
+    fromSvgAspect,
+    EscapeText (..),
+    CssOptions (..),
+    ScaleCharts (..),
+    SvgOptions (..),
+    defaultSvgOptions,
+    defaultSvgFrame,
+
+    -- * Chart manipulation
     padChart,
     frameChart,
     hori,
     vert,
     stack,
-    addChartBox,
-    addChartBoxes,
 
-    -- * re-exports
+    -- * Bounding box calculation
+    dataBox,
+    styleBox,
+    styleBoxes,
+    noStyleBoxes,
+    styleBoxText,
+    styleBoxGlyph,
+
+    -- * Re-exports
     module Chart.Page,
     module Chart.Render,
     module Chart.Bar,
-    module Chart.Pixel,
+    module Chart.Surface,
     module Data.Colour,
     module Data.FormatN,
     module NumHask.Space,
@@ -118,83 +128,101 @@ module Chart
 where
 
 import Chart.Bar
-import Data.FormatN
 import Chart.Page
-import Chart.Pixel
 import Chart.Render
+import Chart.Surface
 import Chart.Types
 import Data.Colour
+import Data.FormatN
 import NumHask.Space
 
 -- $setup
 --
+-- >>> import Chart
+--
+-- chart-svg works well with "NumHask.Prelude" and "Control.Lens" but neither are necessary.
+--
 -- >>> :set -XOverloadedLabels
 -- >>> :set -XNoImplicitPrelude
--- >>> -- import NumHask.Prelude
 -- >>> import Control.Lens
+-- >>> import NumHask.Prelude
 
 -- $overview
 --
--- A chart consists of related conceptual layers:
+-- Charting consists of three highly-coupled conceptual layers:
 --
--- 1. the data to be represented
--- 2. the manifestation of the data on the screen
--- 3. visual aids to help interpret the data, such as axes, gridlines and titles.
+-- 1. the data to be represented.
+-- 2. how the data will be represented on a screen, and.
+-- 3. the creation of visual aids that help interpret the data; such as axes, gridlines and titles.
+--
+-- == What is a 'Chart'?
+--
+-- A 'Chart' in this library consists of a specification of the first two items in the above list; data and data annotation.
+--
+-- - 'XY': a list of values, specified as either 2D points or rectangles.
+--
+-- - 'Annotation': a description of how the data should be represented on the screen.
 --
 -- >>> :t Chart
 -- Chart :: Annotation -> [XY a] -> Chart a
 --
--- A 'Chart' in this library specifically consists of
---
--- - a list of values, either 2D points or rectangles (unified as a 'XY')
---
--- - an 'Annotation', which describes the way that the data should be represented on a 2-dimensional plane.
---
--- What exactly is annotation and what is data is highly variant within charting practice. This construction treats position on a plane differently from other quantitative manifestations such as color and size. The chief advantage of priveliging XY position is that scaling and integrating data with other chart elements becomes much easier. The disadvantage is that, to use quantitative tools such as size, data needs to be consciously separated into that which is position orientated, and that which is defined as 'Annotation'.
+-- What exactly is annotation and what is data is highly variant within charting practice. This construction treats position on the XY plane differently from other quantitative manifests such as color and size. The chief advantage of priveliging XY position is that scaling and integrating data with other chart elements becomes much easier. The disadvantage is that, to use quantitative tools such as size, data needs to be consciously separated into that which is position-orientated, and that which is defined as 'Annotation'.
 --
 --
--- Here's some data:
+-- Here's some data; three lists of points that will form a line:
 --
--- >>> :{
---  let ls = fmap (uncurry P) <$>
---           [ [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0 :: Double)],
---             [(0.0, 0.0), (3.0, 3.0)],
---             [(0.5, 4.0), (0.5, 0)] ]
---  :}
+-- >>> let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
+-- >>> let ls = fmap (PointXY . uncurry Point) <$> xs
 --
 -- >>> :t ls
 -- ls :: [[XY Double]]
 --
--- and an Annotation to describe representation of this data.
+-- and an Annotation to describe representation of this data; three line styles with different colors and widths:
 --
--- >>> :{
---  let anns = LineA <$>
---             [ defaultLineStyle & #color .~ (palette1 !! 0) & #width .~ 0.015,
---               defaultLineStyle & #color .~ (palette1 !! 1) & #width .~ 0.03,
---               defaultLineStyle & #color .~ (palette1 !! 5) & #width .~ 0.01
---             ]
---  :}
+-- >>> let anns = zipWith (\w c -> LineA (LineStyle w c)) [0.015, 0.03, 0.01] palette1
 --
--- and this is enough to put together a Chart.
+-- and this is enough to create a Chart.
 --
--- >>> let lines = zipWith Chart anns ls
--- >>> :t lines
--- lines :: [Chart Double]
+-- >>> let lineChart = zipWith Chart anns ls
+-- >>> :t lineChart
+-- lineChart :: [Chart Double]
 --
--- Most charts will, in reality, be a list of charts, and much of the library API is designed for this.
+-- Most charts will, in reality, be a list of charts such as this, and much of the library API is designed for this.
 --
--- > writeCharts "other/lines.svg" lines
+-- > writeChartSvgDefault "other/lines.svg" lineChart
 --
 -- ![lines example](other/lines.svg)
 --
--- Physical, on-the-page representations of data is separate to need to be considered separately to the domain of the data itself but their concerns bleed into each other. An axis on a chart needs to know the range of the data to render a tick value.
+-- chart-svg takes inspiration from gaming heads-up display aesthetics. Chart decorations such as titles and axes are tools to interpret the landscape of data being viewed. They should be readily transparent, have sane defaults but be fully configurable.
 --
--- > writeHudOptionsChart "other/linehud.svg" defaultSvgOptions defaultHudOptions [] lines
+-- The library considers a hud to be a recipe for the creation of a 'Chart' list, but with the physical, on-the-page representation of the data in mind.
 --
--- ![hud example](other/linehud.svg)
+-- Here is the line chart presented with default hud options.
 --
--- chart-svg takes inspiration from gaming heads-up display aesthetics. Chart decorations such as titles and axes are tools to interpret the landscape of data being viewed, should be readily transparent, have sane defaults but be fully configurable.
+-- > writeChartSvgHud "other/lineshud.svg" lineChart
 --
--- The library considers a hud to be a recipe for the creation of a 'Chart' list, in the domain of the viewbox of an svg file or similar conception.
+-- ![hud example](other/lineshud.svg)
 --
--- Being charts all the way down creates a direct mapping between a chart and its representation. The best way to understand this would be to run the example app, which serves a websocket receiving chart options and updating a chart.
+-- 'Hud' creation is a process of integrating the data domain and the physical representation. In the chart above, for example, the axis placement takes into account the physical attributes of the thick blue line which extends slightly beyond the abstract data range. The data area (the canvas) has also been extended so that a tick value (3.5 on the x-axis) can be included.
+--
+-- Beyond this, there is nothing special about hud elements such as tick marks and titles, axes. Once they are created (with 'runHudWith') they themselves become charts.
+--
+
+-- $hud
+--
+-- Axes, titles, tick marks, grid lines and legends are chart elements that exist to provide references for the viewer that helps explain the data that is being represented by the chart. They can be clearly distinguished from data representations such as a mark where a value is.
+--
+-- Apart from this, hud elements are pretty much the same as data elements. They simulateously have two reference frames: a data domain (tick values reference the data value range) and a page domain (a title needs to be placed on the left say, and has a size of 0.1 versus the page size). They are also typically composed of the same sorts of primitives as data elements, such as rectangles and lines and text and colors.
+--
+-- Given this similarity, an efficient process for chart creation is roughly:
+--
+-- - collect the chart data and data annotations into a [Chart Double]
+--
+-- - measure the range of the data values
+--
+-- - begin a process of folding a [Hud Double] in with the charts, supplying the the data values to the hud elements if needed, and keeping track of the overall page size of the chart.
+--
+-- This process is encapsulated in 'runHud'.
+--
+-- An important quality of 'runHud' (and conversion of charts to svg in general)is that this is the point at which the 'XY's of the chart are converted from the data domain to the page domain. Once the hud and the chart has been integrated there is no going back and the original data is forgotten. This is an opinionated aspect of chart-svg. A counter-example is d3 which stores the raw data in the svg element it represents.
+

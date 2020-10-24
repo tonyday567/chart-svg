@@ -4,14 +4,40 @@ chart-svg
 [![Build
 Status](https://travis-ci.org/tonyday567/chart-svg.svg)](https://travis-ci.org/tonyday567/chart-svg)
 [![Hackage](https://img.shields.io/hackage/v/chart-svg.svg)](https://hackage.haskell.org/package/chart-svg)
-[![lts](https://www.stackage.org/package/chart-svg/badge/lts)](http://stackage.org/lts/package/chart-svg)
-[![nightly](https://www.stackage.org/package/chart-svg/badge/nightly)](http://stackage.org/nightly/package/chart-svg)
 
 A chart library targetting SVG.
 
-![](other/venn.svg)
+Usage
+===
 
-![hud example](other/linehud.svg)
+``` haskell
+import Chart
+
+main :: IO ()
+main = do
+  let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
+  let ls = fmap (PointXY . uncurry Point) <$> xs
+  let anns = zipWith (\w c -> LineA (LineStyle w c)) [0.015, 0.03, 0.01] palette1
+  let lineChart = zipWith Chart anns ls
+  writeChartSvgHud "lineshud.svg" lineChart
+```
+
+![chart-svg example](other/lineshud.svg)
+
+Examples
+===
+
+See the code in Chart.Examples for practical usage.
+
+The package includes a local chart server in app/example.hs which is a useful way to explore the api.
+
+```
+stack exec examples --file-watch
+```
+
+Also included is construction of this logo:
+
+![](other/venn.svg)
 
 Chart Types
 ===
@@ -36,17 +62,10 @@ bar
 
 ![](other/bar.svg)
 
-pixel
+surface
 
-![](other/pixel.svg)
-
-legend
-
-![](other/legend.svg)
+![](other/surface.svg)
 
 recipe
 ------
 
-```
-stack exec examples --file-watch
-```

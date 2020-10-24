@@ -6,16 +6,16 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
+-- | Representations of chart elements for use with the "Web.Rep" library.
 module Chart.Page
-  ( repChartStaticData,
-    repAnnotation,
+  ( repAnnotation,
     repRectStyle,
     repTextStyle,
     repGlyphStyle,
     repLineStyle,
     repPlace,
     repAnchor,
-    repBar,
+    repAxisBar,
     repAdjustments,
     repTitle,
     repHudOptions,
@@ -28,34 +28,30 @@ module Chart.Page
     repPoint,
     repPointI,
     repRect,
-    repRectOne,
-    repRounded,
-    repTriple,
     repGlyphShape,
     repLegendOptions,
     repChartsWithSharedData,
     repChartsWithStaticData,
-    debugHtml,
-    debugFlags,
+    repChartSvg,
     repHudOptionsDefault,
     repBarOptions,
     repBarData,
     repBarChart,
-    repPixelOptions,
-    repPixelLegendOptions,
-    repPixelChart,
+    repSurfaceOptions,
+    repSurfaceLegendOptions,
+    repSurfaceChart,
     repNoData,
   )
 where
 
 import Chart.Bar
-import Data.FormatN
-import Chart.Pixel
-import Chart.Render (renderHudOptionsChart)
+import Chart.Render (ChartSvg (..), chartSvg)
+import Chart.Surface
 import Chart.Types
 import Control.Lens
 import Data.Attoparsec.Text
 import Data.Colour
+import Data.FormatN
 import qualified Data.Text as Text
 import Lucid
 import NumHask.Prelude
@@ -66,11 +62,7 @@ import Web.Rep
 pShow' :: (Show a) => a -> Text
 pShow' = toStrict . pShowNoColor
 
-repChartStaticData :: (Monad m) => Chart a -> SharedRep m (Chart a)
-repChartStaticData c = do
-  ann <- repAnnotation (c ^. #annotation)
-  pure $ Chart ann (c ^. #xys)
-
+-- | Represent an Annotation.
 repAnnotation :: (Monad m) => Annotation -> SharedRep m Annotation
 repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls <<*>> ps
   where
@@ -79,20 +71,20 @@ repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls
         takeText
         id
         (Just "Chart Annotation")
-        ["RectA", "TextA", "GlyphA", "LineA", "BlankA", "PixelA"]
+        ["RectA", "TextA", "GlyphA", "LineA", "BlankA", "SurfaceA"]
         (annotationText initann)
     rs = repRectStyle defRectStyle
     ts = repTextStyle defText
     gs = repGlyphStyle defGlyph
     ls = repLineStyle defLine
-    ps = repPixelStyle defPixel
+    ps = repSurfaceStyle defSurface
     hmap ann rs ts gs ls ps =
       ann
         <> subtype rs (annotationText initann) "RectA"
         <> subtype ts (annotationText initann) "TextA"
         <> subtype gs (annotationText initann) "GlyphA"
         <> subtype ls (annotationText initann) "LineA"
-        <> subtype ps (annotationText initann) "PixelA"
+        <> subtype ps (annotationText initann) "SurfaceA"
     mmap ann rs ts gs ls ps =
       case ann of
         "RectA" -> RectA rs
@@ -100,14 +92,14 @@ repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls
         "GlyphA" -> GlyphA gs
         "LineA" -> LineA ls
         "BlankA" -> BlankA
-        "PixelA" -> PixelA ps
+        "SurfaceA" -> SurfaceA ps
         _ -> BlankA
     defRectStyle = case initann of
       RectA s -> s
       _ -> defaultRectStyle
-    defPixel = case initann of
-      PixelA s -> s
-      _ -> defaultPixelStyle
+    defSurface = case initann of
+      SurfaceA s -> s
+      _ -> defaultSurfaceStyle
     (defText, texts) = case initann of
       TextA s xs -> (s, xs)
       _ -> (defaultTextStyle, Text.singleton <$> ['a' .. 'z'])
@@ -118,6 +110,7 @@ repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls
       LineA s -> s
       _ -> defaultLineStyle
 
+-- | Represent a RectStyle.
 repRectStyle :: (Monad m) => RectStyle -> SharedRep m RectStyle
 repRectStyle s = do
   bs <- slider (Just "border size") 0.0 0.1 0.001 (s ^. #borderSize)
@@ -127,11 +120,12 @@ repRectStyle s = do
   o <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
   pure $ RectStyle bs (fromRGB (unsafeFromHex bc) bo) (fromRGB (unsafeFromHex c) o)
 
-repPixelStyle ::
+-- | Represent a SurfaceStyle
+repSurfaceStyle ::
   (Monad m) =>
-  PixelStyle ->
-  SharedRep m PixelStyle
-repPixelStyle cfg =
+  SurfaceStyle ->
+  SharedRep m SurfaceStyle
+repSurfaceStyle cfg =
   bimap hmap mmap (unsafeFromHex <$> pcmin)
     <<*>> pomin
     <<*>> (unsafeFromHex <$> pcmax)
@@ -140,18 +134,19 @@ repPixelStyle cfg =
     <<*>> prs
     <<*>> pt
   where
-    pcmax = colorPicker (Just "high color") (toHex $ cfg ^. #pixelColorMax)
-    pcmin = colorPicker (Just "low color") (toHex $ cfg ^. #pixelColorMin)
-    pomax = slider (Just "high opacity") 0.0 1.0 0.001 (opac $ cfg ^. #pixelColorMax)
-    pomin = slider (Just "low opacity") 0.0 1.0 0.001 (opac $ cfg ^. #pixelColorMin)
-    pd = slider (Just "gradient direction") 0.0 (2 * pi) 0.001 (cfg ^. #pixelGradient)
-    prs = repRectStyle (cfg ^. #pixelRectStyle)
-    pt = textbox (Just "texture id") (cfg ^. #pixelTextureId)
+    pcmax = colorPicker (Just "high color") (toHex $ cfg ^. #surfaceColorMax)
+    pcmin = colorPicker (Just "low color") (toHex $ cfg ^. #surfaceColorMin)
+    pomax = slider (Just "high opacity") 0.0 1.0 0.001 (opac $ cfg ^. #surfaceColorMax)
+    pomin = slider (Just "low opacity") 0.0 1.0 0.001 (opac $ cfg ^. #surfaceColorMin)
+    pd = slider (Just "gradient direction") 0.0 (2 * pi) 0.001 (cfg ^. #surfaceGradient)
+    prs = repRectStyle (cfg ^. #surfaceRectStyle)
+    pt = textbox (Just "texture id") (cfg ^. #surfaceTextureId)
     hmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
       pcmin' <> pomin' <> pcmax' <> pomax' <> pd' <> prs' <> pt'
     mmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
-      PixelStyle (fromRGB pcmin' pomin') (fromRGB pcmax' pomax') pd' prs' pt'
+      SurfaceStyle (fromRGB pcmin' pomin') (fromRGB pcmax' pomax') pd' prs' pt'
 
+-- | Represent a GlyphStyle
 repGlyphStyle :: (Monad m) => GlyphStyle -> SharedRep m GlyphStyle
 repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Nothing (x, [])) $ do
   sh <- repGlyphShape (gs ^. #shape)
@@ -180,6 +175,7 @@ repGlyphStyle gs = first (\x -> cardify (mempty, [style_ "width: 10 rem;"]) Noth
       )
   pure (GlyphStyle sz (fromRGB (unsafeFromHex gc) go) (fromRGB (unsafeFromHex gbc) gbo) bsz sh tr tt)
 
+-- | Represent a TextStyle
 repTextStyle :: (Monad m) => TextStyle -> SharedRep m TextStyle
 repTextStyle s = do
   ts <- slider (Just "size") 0.02 0.2 0.01 (s ^. #size)
@@ -205,6 +201,7 @@ repTextStyle s = do
       )
   pure $ TextStyle ts (fromRGB (unsafeFromHex tc) to') ta th tv tn tr tt
 
+-- | Represent a LineStyle
 repLineStyle :: (Monad m) => LineStyle -> SharedRep m LineStyle
 repLineStyle s = do
   w <- slider (Just "width") 0.000 0.05 0.001 (s ^. #width)
@@ -212,6 +209,7 @@ repLineStyle s = do
   o <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
   pure $ LineStyle w (fromRGB (unsafeFromHex c) o)
 
+-- | Represent a Place
 repPlace :: (Monad m) => Place -> SharedRep m Place
 repPlace initpl = bimap hmap mmap rplace <<*>> rp
   where
@@ -244,6 +242,7 @@ repPlace initpl = bimap hmap mmap rplace <<*>> rp
       "Absolute" -> PlaceAbsolute rp
       _ -> PlaceBottom
 
+-- | Represent an Anchor
 repAnchor :: (Monad m) => Anchor -> SharedRep m Anchor
 repAnchor a =
   toAnchor
@@ -254,6 +253,7 @@ repAnchor a =
       (fromAnchor <$> [AnchorStart, AnchorMiddle, AnchorEnd])
       (fromAnchor a)
 
+-- | Represent a Direction
 repDirection :: (Monad m) => Direction -> SharedRep m Direction
 repDirection a =
   toDirection
@@ -264,13 +264,15 @@ repDirection a =
       (fromDirection <$> [Vert, Hori])
       (fromDirection a)
 
-repBar :: (Monad m) => Bar -> SharedRep m Bar
-repBar cfg = do
+-- | Represent an AxisBar
+repAxisBar :: (Monad m) => AxisBar -> SharedRep m AxisBar
+repAxisBar cfg = do
   r <- repRectStyle (cfg ^. #rstyle)
   w <- slider (Just "width") 0 0.04 0.001 (cfg ^. #wid)
   b <- slider (Just "buffer") 0 0.08 0.001 (cfg ^. #buff)
-  pure $ Bar r w b
+  pure $ AxisBar r w b
 
+-- | Represent Adjustments
 repAdjustments :: (Monad m) => Adjustments -> SharedRep m Adjustments
 repAdjustments a = do
   maxx <- slider (Just "maximum x ratio") 0.000 0.2 0.001 (a ^. #maxXRatio)
@@ -279,6 +281,7 @@ repAdjustments a = do
   diag <- checkbox (Just "allow diagonal text") (a ^. #allowDiagonal)
   pure $ Adjustments maxx maxy angle diag
 
+-- | Represent a Title
 repTitle :: (Monad m) => Title -> SharedRep m Title
 repTitle cfg = do
   ttext <- textbox (Just "text") (cfg ^. #text)
@@ -288,6 +291,7 @@ repTitle cfg = do
   b <- slider (Just "buffer") 0 0.2 0.01 (cfg ^. #buff)
   pure $ Title ttext ts tp ta b
 
+-- | Represent HudOptions
 repHudOptions ::
   (Monad m) =>
   Int ->
@@ -364,6 +368,7 @@ repHudOptions naxes ntitles nlegendRows defaxis deftitle deflegend deflrs defann
           ("Legend", l')
         ]
 
+-- | Represent AxisOptions
 repAxisOptions :: (Monad m) => AxisOptions -> SharedRep m AxisOptions
 repAxisOptions cfg = bimap hmap AxisOptions b <<*>> adj <<*>> t <<*>> p
   where
@@ -371,7 +376,7 @@ repAxisOptions cfg = bimap hmap AxisOptions b <<*>> adj <<*>> t <<*>> p
       maybeRep
         (Just "axis bar")
         (isJust (cfg ^. #abar))
-        (repBar (fromMaybe defaultBar (cfg ^. #abar)))
+        (repAxisBar (fromMaybe defaultAxisBar (cfg ^. #abar)))
     adj =
       maybeRep
         (Just "adjustments")
@@ -389,6 +394,7 @@ repAxisOptions cfg = bimap hmap AxisOptions b <<*>> adj <<*>> t <<*>> p
           ("Place", p')
         ]
 
+-- | Represent an SvgAspect
 repSvgAspect :: (Monad m) => SvgAspect -> Double -> SharedRep m SvgAspect
 repSvgAspect sa ddef =
   bimap hmap toSvgAspect sa' <<*>> td
@@ -412,6 +418,7 @@ repSvgAspect sa ddef =
             <> subtype td' (fromSvgAspect sa) "ManualAspect"
         )
 
+-- | Represent SvgOptions
 repSvgOptions :: (Monad m) => SvgOptions -> SharedRep m SvgOptions
 repSvgOptions s =
   bimap
@@ -464,6 +471,7 @@ repSvgOptions s =
           ("Scale", scalec')
         ]
 
+-- | Represent XY Data
 repData :: (Monad m) => Text -> SharedRep m [XY Double]
 repData d = do
   a <-
@@ -488,6 +496,7 @@ repData d = do
         _ -> PointXY <$> gridP sin (Range 0 (2 * pi)) 30
     )
 
+-- | Represent a FormatN
 repFormatN :: (Monad m) => FormatN -> SharedRep m FormatN
 repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed <<*>> texpt <<*>> tpercent <<*>> tprec <<*>> tdecimal <<*>> tdollar
   where
@@ -553,6 +562,7 @@ repFormatN tf = bimap hmap mmap tformat <<*>> tcommas <<*>> tfixed <<*>> texpt <
       "None" -> FormatNone
       _ -> FormatNone
 
+-- | Represent a TickStyle
 repTickStyle :: (Monad m) => TickStyle -> SharedRep m TickStyle
 repTickStyle cfg =
   bimap hmap mmap ts <<*>> ls <<*>> tr <<*>> te <<*>> tplaced
@@ -625,6 +635,7 @@ repTickStyle cfg =
       TickRound _ _ e -> e == TickExtend
       _ -> True
 
+-- | Represent a Tick
 repTick :: (Monad m) => Tick -> SharedRep m Tick
 repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
   where
@@ -660,6 +671,7 @@ repTick cfg = bimap hmap Tick ts <<*>> gt <<*>> tt <<*>> lt
           (repLineStyle (maybe defaultLineTick fst (cfg ^. #ltick)))
           <<*>> slider (Just "buffer") (-0.1) 0.1 0.001 (maybe 0 snd (cfg ^. #ltick))
 
+-- | Represent a Point Double
 repPoint ::
   (Monad m) =>
   Point (Range Double) ->
@@ -673,6 +685,7 @@ repPoint (Point (Range xmin xmax) (Range ymin ymax)) (Point xstep ystep) (Point 
     (slider (Just "x") xmin xmax xstep x)
     <<*>> slider (Just "y") ymin ymax ystep y
 
+-- | Represent a Point Integer
 repPointI ::
   (Monad m) =>
   Point (Range Int) ->
@@ -686,6 +699,7 @@ repPointI (Point (Range xmin xmax) (Range ymin ymax)) (Point xstep ystep) (Point
     (sliderI (Just "x") xmin xmax xstep x)
     <<*>> sliderI (Just "y") ymin ymax ystep y
 
+-- | Represent a Rect Double
 repRect :: (Monad m) => Rect (Range Double) -> Rect Double -> Rect Double -> SharedRep m (Rect Double)
 repRect (Rect (Range xmin xmax) (Range zmin zmax) (Range ymin ymax) (Range wmin wmax)) (Rect xstep zstep ystep wstep) (Rect x z y w) =
   bimap
@@ -696,9 +710,7 @@ repRect (Rect (Range xmin xmax) (Range zmin zmax) (Range ymin ymax) (Range wmin 
     <<*>> slider (Just "y") ymin ymax ystep y
     <<*>> slider (Just "w") wmin wmax wstep w
 
-repRectOne :: (Monad m) => Rect Double -> SharedRep m (Rect Double)
-repRectOne a = repRect (Rect (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 1)) (Rect 0.01 0.01 0.01 0.01) a
-
+-- | Represent a Rounded Rect
 repRounded :: (Monad m) => (Double, Double, Double) -> SharedRep m (Double, Double, Double)
 repRounded (a, b, c) =
   bimap
@@ -708,10 +720,12 @@ repRounded (a, b, c) =
     <<*>> slider Nothing 0 1 0.001 b
     <<*>> slider Nothing 0 1 0.001 c
 
+-- | Represent a Triple
 repTriple :: (Monad m) => (a, a, a) -> (a -> SharedRep m a) -> SharedRep m (a, a, a)
 repTriple (a, b, c) sr =
   bimap (\a' b' c' -> a' <> b' <> c') (,,) (sr a) <<*>> sr b <<*>> sr c
 
+-- | Represent a GlyphShape
 repGlyphShape :: (Monad m) => GlyphShape -> SharedRep m GlyphShape
 repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>> tri <<*>> p <<*>> lwidth
   where
@@ -782,6 +796,7 @@ repGlyphShape sh = bimap hmap mmap sha <<*>> ell <<*>> rsharp <<*>> rround <<*>>
       TriangleGlyph a b c -> (a, b, c)
       _ -> (Point 0.0 0.0, Point 1 1, Point 1 0)
 
+-- | Represent LegendOptions
 repLegendOptions :: (Monad m) => LegendOptions -> SharedRep m LegendOptions
 repLegendOptions initl =
   bimap
@@ -836,6 +851,7 @@ repLegendOptions initl =
           ("Max Elements", lmax'')
         ]
 
+-- | Represent a chart with a supplied 'SharedRep' for the data.
 repChartsWithSharedData ::
   (Monad m) =>
   SvgOptions ->
@@ -880,7 +896,7 @@ repChartsWithSharedData css' hc' maxcs' cs' sxys =
         anns'
     mmap css'' ann' d' h' debug' =
       let ch = zipWith Chart ann' d'
-       in ( renderHudOptionsChart css'' h' [] ch,
+       in ( chartSvg (mempty & #svgOptions .~ css'' & #hudOptions .~ h' & #chartList .~ ch),
             debugHtml debug' css'' h' ch
           )
     hmap css'' ann' _ h' debug' =
@@ -893,6 +909,7 @@ repChartsWithSharedData css' hc' maxcs' cs' sxys =
           ("Debug", debug')
         ]
 
+-- | Represent a Chart with no representation of the underlying data.
 repChartsWithStaticData ::
   (Monad m) =>
   SvgOptions ->
@@ -902,6 +919,11 @@ repChartsWithStaticData ::
   SharedRep m (Text, Text)
 repChartsWithStaticData css' hc' maxcs' cs' =
   repChartsWithSharedData css' hc' maxcs' cs' (bipure mempty)
+
+-- | Representation of a ChartSvg.  The hud list cannot be represented and is ignored. Text output if Html representation and debug info.
+repChartSvg :: (Monad m) => Int -> ChartSvg -> SharedRep m (Text, Text)
+repChartSvg maxn cs =
+  repChartsWithStaticData (cs ^. #svgOptions) (cs ^. #hudOptions) maxn (cs ^. #chartList)
 
 debugHtml :: (Bool, Bool, Bool) -> SvgOptions -> HudOptions -> [Chart Double] -> Text
 debugHtml debug css hc cs =
@@ -920,7 +942,12 @@ debugHtml debug css hc cs =
       ( mconcat
           [ "<h2>chart svg</h2>",
             "<xmp>",
-            renderHudOptionsChart css hc [] cs,
+            chartSvg
+              ( mempty
+                  & #svgOptions .~ css
+                  & #hudOptions .~ hc
+                  & #chartList .~ cs
+              ),
             "</xmp>"
           ]
       )
@@ -944,6 +971,7 @@ debugFlags =
     <<*>> checkbox (Just "show chart svg") False
     <<*>> checkbox (Just "show Chart values") False
 
+-- | Represent HudOptions with some sane default values.
 repHudOptionsDefault :: Monad m => HudOptions -> SharedRep m HudOptions
 repHudOptionsDefault hc =
   repHudOptions
@@ -958,6 +986,7 @@ repHudOptionsDefault hc =
     ""
     hc
 
+-- | Represent BarOptions
 repBarOptions ::
   (Monad m) =>
   Int ->
@@ -1027,6 +1056,7 @@ repBarOptions nrows defrs defts cfg =
           ("Hud", ho')
         ]
 
+-- | Represent BarData
 repBarData ::
   (Monad m) =>
   BarData ->
@@ -1055,39 +1085,41 @@ repBarData initbd =
         <$> readTextbox (Just "bar data") (initbd ^. #barData)
     hmap rl' cl' bd' = rl' <> cl' <> bd'
 
-repPixelOptions ::
+-- | Represent SurfaceOptions
+repSurfaceOptions ::
   (Monad m) =>
-  PixelOptions ->
-  SharedRep m PixelOptions
-repPixelOptions cfg =
-  bimap hmap PixelOptions ps
+  SurfaceOptions ->
+  SharedRep m SurfaceOptions
+repSurfaceOptions cfg =
+  bimap hmap SurfaceOptions ps
     <<*>> pg
     <<*>> pr
   where
-    ps = repPixelStyle (cfg ^. #poStyle)
+    ps = repSurfaceStyle (cfg ^. #poStyle)
     pg = repPointI (Point (Range 1 100) (Range 1 100)) (Point 1 1) (cfg ^. #poGrain)
     pr = repRect (Rect (Range 0 5) (Range 0 5) (Range 0 5) (Range 0 5)) (Rect 0.01 0.01 0.01 0.01) (cfg ^. #poRange)
     hmap ps' pg' pr' =
       accordion_
-        "accpixel"
+        "accsurface"
         Nothing
         [ ("Grain", pg'),
           ("Range", pr'),
           ("Style", ps')
         ]
 
-repPixelLegendOptions ::
+-- | Represent SurfaceLegendOptions
+repSurfaceLegendOptions ::
   (Monad m) =>
-  PixelLegendOptions ->
-  SharedRep m PixelLegendOptions
-repPixelLegendOptions cfg =
-  bimap hmap PixelLegendOptions ps
+  SurfaceLegendOptions ->
+  SharedRep m SurfaceLegendOptions
+repSurfaceLegendOptions cfg =
+  bimap hmap SurfaceLegendOptions ps
     <<*>> pt
     <<*>> pw
     <<*>> pa
     <<*>> pl
   where
-    ps = repPixelStyle (cfg ^. #ploStyle)
+    ps = repSurfaceStyle (cfg ^. #ploStyle)
     pt = textbox (Just "title") (cfg ^. #ploTitle)
     pw = slider (Just "width") 0.0 0.3 0.001 (cfg ^. #ploWidth)
     pa = repAxisOptions (cfg ^. #ploAxisOptions)
@@ -1103,6 +1135,7 @@ repPixelLegendOptions cfg =
           ("Legend", pl')
         ]
 
+-- | Represent a BarChart
 repBarChart :: (Monad m) => SvgOptions -> BarData -> BarOptions -> SharedRep m (Text, Text)
 repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlags
   where
@@ -1111,7 +1144,7 @@ repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlag
     rbd = repBarData bd
     barchartsvg css' bd' bo' =
       let (hc', cs') = barChart bo' bd'
-       in renderHudOptionsChart css' hc' [] cs'
+       in chartSvg (mempty & #svgOptions .~ css' & #hudOptions .~ hc' & #chartList .~ cs')
     mmap css' bd' bo' debug =
       ( barchartsvg css' bd' bo',
         debugHtml debug css' (bo' ^. #barHudOptions) (bars bo' bd')
@@ -1126,19 +1159,20 @@ repBarChart css bd bo = bimap hmap mmap rcss <<*>> rbd <<*>> rbo <<*>> debugFlag
           ("Debug", debug)
         ]
 
-repPixelChart ::
+-- | Represent a SurfaceChart
+repSurfaceChart ::
   (Monad m) =>
-  (SvgOptions, PixelOptions, HudOptions, PixelLegendOptions, Point Double -> Double) ->
+  (SvgOptions, SurfaceOptions, HudOptions, SurfaceLegendOptions, Point Double -> Double) ->
   SharedRep m (Text, Text)
-repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rplo <<*>> debugFlags
+repSurfaceChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rplo <<*>> debugFlags
   where
     rcss = repSvgOptions css
-    rpo = repPixelOptions po
+    rpo = repSurfaceOptions po
     rhc = repHudOptionsDefault hc
-    rplo = repPixelLegendOptions plo
+    rplo = repSurfaceLegendOptions plo
     mmap rcss' rpo' rhc' rplo' debug =
-      let (cs, hs) = pixelfl f rpo' rplo'
-       in ( renderHudOptionsChart rcss' rhc' hs cs,
+      let (cs, hs) = surfacefl f rpo' rplo'
+       in ( chartSvg (ChartSvg rcss' rhc' hs cs),
             debugHtml debug rcss' rhc' []
           )
     hmap rcss' rpo' rhc' rplo' debug =
@@ -1147,11 +1181,12 @@ repPixelChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <
         Nothing
         [ ("Svg", rcss'),
           ("Hud", rhc'),
-          ("Pixel Options", rpo'),
-          ("Pixel Legend Options", rplo'),
+          ("Surface Options", rpo'),
+          ("Surface Legend Options", rplo'),
           ("Debug", debug)
         ]
 
+-- | Represent a chart with no data.
 repNoData :: (Monad m) => SvgOptions -> Annotation -> HudOptions -> SharedRep m (Text, Text)
 repNoData css ann hc =
   repChartsWithStaticData css hc 10 [Chart ann [one]]
