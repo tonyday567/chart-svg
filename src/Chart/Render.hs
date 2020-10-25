@@ -18,6 +18,7 @@ module Chart.Render
     writeChartSvgHud,
     svg2Tag,
     cssCrisp,
+    geometricPrecision,
     svg,
     svgt,
     getSize,
@@ -98,7 +99,7 @@ renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Ht
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
   with
     ( svg2Tag
-        ( bool id (cssCrisp <>) (csso == UseCssCrisp) $
+        ( cssText csso <>
             mconcat (svg <$> cs)
         )
     )
@@ -107,9 +108,18 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
       makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
 
+cssText :: CssOptions -> Html ()
+cssText UseCssCrisp = cssCrisp
+cssText UseGeometricPrecision = geometricPrecision
+cssText NoCssOptions = mempty
+
 -- | crisp edges css
 cssCrisp :: Html ()
-cssCrisp = style_ [type_ "text/css"] ("{ shape-rendering: 'crispEdges'; }" :: Text)
+cssCrisp = style_ [type_ "text/css"] ("* { shape-rendering: crispEdges; }" :: Text)
+
+-- | crisp edges css
+geometricPrecision :: Html ()
+geometricPrecision = style_ [type_ "text/css"] ("* { shape-rendering: geometricPrecision; }" :: Text)
 
 -- | render Charts with the supplied options.
 renderChartsWith :: SvgOptions -> [Chart Double] -> Text

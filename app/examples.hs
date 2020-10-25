@@ -59,8 +59,8 @@ main =
             repSurfaceChart
               ( defaultSvgOptions,
                 defaultSurfaceOptions
-                  & #poGrain .~ Point 20 20
-                  & #poRange .~ Rect 1 2 1 2,
+                  & #soGrain .~ Point 20 20
+                  & #soRange .~ Rect 1 2 1 2,
                 defaultHudOptions,
                 defaultSurfaceLegendOptions "surface test",
                 sinCosTan

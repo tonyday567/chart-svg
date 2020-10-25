@@ -205,9 +205,19 @@ barExample = mempty & #hudOptions .~ hc & #chartList .~ cs
 --
 -- ![surface example](other/surface.svg)
 surfaceExample :: ChartSvg
-surfaceExample = mempty & #hudList .~ hs & #chartList .~ cs
+surfaceExample =
+  mempty &
+  #hudList .~ hs &
+  #chartList .~ cs &
+  #svgOptions .~ (defaultSvgOptions & #useCssCrisp .~ UseCssCrisp)
   where
-    (cs, hs) = surfacefl sinCosTan (defaultSurfaceOptions & #poGrain .~ Point 100 100 & #poRange .~ Rect 1 2 1 2) (defaultSurfaceLegendOptions "surface test")
+    (cs, hs) =
+      surfacefl sinCosTan
+      (defaultSurfaceOptions &
+       #soGrain .~ Point 100 100 &
+       #soRange .~ Rect 1 2 1 2 &
+       #soStyle . #surfaceColors .~ (take 6 palette1))
+      (defaultSurfaceLegendOptions "surface test")
 
 -- | Function for surface example.
 sinCosTan :: (TrigField a) => Point a -> a

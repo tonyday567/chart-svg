@@ -1089,9 +1089,9 @@ repSurfaceOptions cfg =
     <<*>> pg
     <<*>> pr
   where
-    ps = repSurfaceStyle (cfg ^. #poStyle)
-    pg = repPointI (Point (Range 1 100) (Range 1 100)) (Point 1 1) (cfg ^. #poGrain)
-    pr = repRect (Rect (Range 0 5) (Range 0 5) (Range 0 5) (Range 0 5)) (Rect 0.01 0.01 0.01 0.01) (cfg ^. #poRange)
+    ps = repSurfaceStyle (cfg ^. #soStyle)
+    pg = repPointI (Point (Range 1 100) (Range 1 100)) (Point 1 1) (cfg ^. #soGrain)
+    pr = repRect (Rect (Range 0 5) (Range 0 5) (Range 0 5) (Range 0 5)) (Rect 0.01 0.01 0.01 0.01) (cfg ^. #soRange)
     hmap ps' pg' pr' =
       accordion_
         "accsurface"
@@ -1113,14 +1113,14 @@ repSurfaceLegendOptions cfg =
     <<*>> pa
     <<*>> pl
   where
-    ps = repSurfaceStyle (cfg ^. #ploStyle)
-    pt = textbox (Just "title") (cfg ^. #ploTitle)
-    pw = slider (Just "width") 0.0 0.3 0.001 (cfg ^. #ploWidth)
-    pa = repAxisOptions (cfg ^. #ploAxisOptions)
-    pl = repLegendOptions (cfg ^. #ploLegendOptions)
+    ps = repSurfaceStyle (cfg ^. #sloStyle)
+    pt = textbox (Just "title") (cfg ^. #sloTitle)
+    pw = slider (Just "width") 0.0 0.3 0.001 (cfg ^. #sloWidth)
+    pa = repAxisOptions (cfg ^. #sloAxisOptions)
+    pl = repLegendOptions (cfg ^. #sloLegendOptions)
     hmap ps' pt' pw' pa' pl' =
       accordion_
-        "accplo"
+        "accslo"
         Nothing
         [ ("Style", ps'),
           ("Title", pt'),
@@ -1158,25 +1158,25 @@ repSurfaceChart ::
   (Monad m) =>
   (SvgOptions, SurfaceOptions, HudOptions, SurfaceLegendOptions, Point Double -> Double) ->
   SharedRep m (Text, Text)
-repSurfaceChart (css, po, hc, plo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rplo <<*>> debugFlags
+repSurfaceChart (css, po, hc, slo, f) = bimap hmap mmap rcss <<*>> rpo <<*>> rhc <<*>> rslo <<*>> debugFlags
   where
     rcss = repSvgOptions css
     rpo = repSurfaceOptions po
     rhc = repHudOptionsDefault hc
-    rplo = repSurfaceLegendOptions plo
-    mmap rcss' rpo' rhc' rplo' debug =
-      let (cs, hs) = surfacefl f rpo' rplo'
+    rslo = repSurfaceLegendOptions slo
+    mmap rcss' rpo' rhc' rslo' debug =
+      let (cs, hs) = surfacefl f rpo' rslo'
        in ( chartSvg (ChartSvg rcss' rhc' hs cs),
             debugHtml debug rcss' rhc' []
           )
-    hmap rcss' rpo' rhc' rplo' debug =
+    hmap rcss' rpo' rhc' rslo' debug =
       accordion_
         "accpc"
         Nothing
         [ ("Svg", rcss'),
           ("Hud", rhc'),
           ("Surface Options", rpo'),
-          ("Surface Legend Options", rplo'),
+          ("Surface Legend Options", rslo'),
           ("Debug", debug)
         ]
 

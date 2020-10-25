@@ -363,7 +363,7 @@ padRect p (Rect x z y w) = Rect (x P.- p) (z P.+ p) (y P.- p) (w P.+ p)
 data EscapeText = EscapeText | NoEscapeText deriving (Show, Eq, Generic)
 
 -- | surface chart helper
-data CssOptions = UseCssCrisp | NoCssOptions deriving (Show, Eq, Generic)
+data CssOptions = UseGeometricPrecision | UseCssCrisp | NoCssOptions deriving (Show, Eq, Generic)
 
 -- | turns off scaling.  Usually not what you want.
 data ScaleCharts = ScaleCharts | NoScaleCharts deriving (Show, Eq, Generic)
