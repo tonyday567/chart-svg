@@ -1110,21 +1110,24 @@ repSurfaceLegendOptions cfg =
   bimap hmap SurfaceLegendOptions ps
     <<*>> pt
     <<*>> pw
+    <<*>> pr
     <<*>> pa
     <<*>> pl
   where
     ps = repSurfaceStyle (cfg ^. #sloStyle)
     pt = textbox (Just "title") (cfg ^. #sloTitle)
     pw = slider (Just "width") 0.0 0.3 0.001 (cfg ^. #sloWidth)
+    pr = sliderI (Just "resolution") 2 100 1 (cfg ^. #sloResolution)
     pa = repAxisOptions (cfg ^. #sloAxisOptions)
     pl = repLegendOptions (cfg ^. #sloLegendOptions)
-    hmap ps' pt' pw' pa' pl' =
+    hmap ps' pt' pw' pr' pa' pl' =
       accordion_
         "accslo"
         Nothing
         [ ("Style", ps'),
           ("Title", pt'),
           ("Width", pw'),
+          ("Resolution", pr'),
           ("Axis", pa'),
           ("Legend", pl')
         ]
