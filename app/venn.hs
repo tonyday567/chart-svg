@@ -188,8 +188,7 @@ renderToSvgt csso (Point w' h') (Rect x z y w) cs tts =
   with
     ( svg2Tag
         ( bool id (cssCrisp <>) (csso == UseCssCrisp) $
-            chartDefs cs
-              <> mconcat (zipWith svgt cs tts)
+              mconcat (zipWith svgt cs tts)
         )
     )
     [ width_ (show w'),

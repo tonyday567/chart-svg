@@ -44,8 +44,6 @@ module Chart.Types
     glyphText,
     LineStyle (..),
     defaultLineStyle,
-    SurfaceStyle (..),
-    defaultSurfaceStyle,
     Anchor (..),
     fromAnchor,
     toAnchor,
@@ -167,7 +165,6 @@ data Annotation
   | TextA TextStyle [Text]
   | GlyphA GlyphStyle
   | LineA LineStyle
-  | SurfaceA SurfaceStyle
   | BlankA
   deriving (Eq, Show, Generic)
 
@@ -177,7 +174,6 @@ annotationText (RectA _) = "RectA"
 annotationText TextA {} = "TextA"
 annotationText (GlyphA _) = "GlyphA"
 annotationText (LineA _) = "LineA"
-annotationText (SurfaceA _) = "SurfaceA"
 annotationText BlankA = "BlankA"
 
 -- | Rectangle styling
@@ -344,30 +340,6 @@ data LineStyle
 -- | the official default line style
 defaultLineStyle :: LineStyle
 defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3)
-
--- | A surface chart is a specialization of a 'RectA' chart
---
--- >>> defaultSurfaceStyle
--- SurfaceStyle {surfaceColorMin = RGBA 0.65 0.81 0.89 1.00, surfaceColorMax = RGBA 0.12 0.47 0.71 1.00, surfaceGradient = 1.5707963267948966, surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}, surfaceTextureId = "surface"}
---
--- ![surface example](other/surface.svg)
-data SurfaceStyle
-  = SurfaceStyle
-      { surfaceColorMin :: Colour,
-        surfaceColorMax :: Colour,
-        -- | expressed in directional terms
-        -- 0 for horizontal
-        -- pi/2 for vertical
-        surfaceGradient :: Double,
-        surfaceRectStyle :: RectStyle,
-        surfaceTextureId :: Text
-      }
-  deriving (Show, Eq, Generic)
-
--- | The official surface style.
-defaultSurfaceStyle :: SurfaceStyle
-defaultSurfaceStyle =
-  SurfaceStyle (fromRGB (palette !! 0) 1) (fromRGB (palette !! 1) 1) (pi / 2) (blob black) "surface"
 
 -- | Verticle or Horizontal
 data Direction = Vert | Hori deriving (Eq, Show, Generic)
@@ -741,7 +713,6 @@ scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
 scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (* x)
 scaleAnn x (TextA a txs) = TextA (a & #size %~ (* x)) txs
 scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
-scaleAnn x (SurfaceA a) = SurfaceA $ a & #surfaceRectStyle . #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
 -- | Translate the data in a chart.
@@ -1316,10 +1287,6 @@ legendEntry l a t =
         ( RectA rs,
           [R 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
-      SurfaceA ps ->
-        ( SurfaceA ps,
-          [R 0 (l ^. #lsize) 0 (l ^. #lsize)]
-        )
       TextA ts txts ->
         ( TextA (ts & #size .~ realToFrac (l ^. #lsize)) (take 1 txts),
           [zero]
@@ -1394,7 +1361,6 @@ styleBox (Chart (GlyphA s) xs) = foldRect $ (\x -> move (toPoint x) (styleBoxGly
 styleBox (Chart (RectA s) xs) = foldRect (padRect (0.5 * s ^. #borderSize) . toRect <$> xs)
 styleBox (Chart (LineA s) xs) = foldRect (padRect (0.5 * s ^. #width) . toRect <$> xs)
 styleBox (Chart BlankA xs) = foldRect (toRect <$> xs)
-styleBox (Chart (SurfaceA s) xs) = foldRect (padRect (0.5 * s ^. #surfaceRectStyle . #borderSize) . toRect <$> xs)
 
 -- | the extra geometric dimensions of a [Chart]
 styleBoxes :: [Chart Double] -> Maybe (Rect Double)

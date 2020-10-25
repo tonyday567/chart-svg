@@ -20,7 +20,6 @@ module Chart.Render
     cssCrisp,
     svg,
     svgt,
-    chartDefs,
     getSize,
     getViewbox,
     scaleCharts,
@@ -100,7 +99,7 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
   with
     ( svg2Tag
         ( bool id (cssCrisp <>) (csso == UseCssCrisp) $
-            chartDefs cs <> mconcat (svg <$> cs)
+            mconcat (svg <$> cs)
         )
     )
     [ width_ (show w'),
@@ -269,8 +268,6 @@ svg (Chart (LineA s) xs) =
   term "g" (attsLine s) (svgLine $ toPoint <$> xs)
 svg (Chart (RectA s) xs) =
   term "g" (attsRect s) (mconcat $ svgRect . toRect <$> xs)
-svg (Chart (SurfaceA s) xs) =
-  term "g" (attsSurface s) (mconcat $ svgRect . toRect <$> xs)
 svg (Chart BlankA _) = mempty
 
 -- | Add a tooltip as part of a chart to svg conversion.
@@ -283,8 +280,6 @@ svgt (Chart (LineA s) xs) (s', ts') =
   term "g" (attsLine s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> svgLine (toPoint <$> xs))
 svgt (Chart (RectA s) xs) (s', ts') =
   term "g" (attsRect s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
-svgt (Chart (SurfaceA s) xs) (s', ts') =
-  term "g" (attsSurface s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
 svgt (Chart BlankA _) _ = mempty
 
 terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
@@ -298,14 +293,6 @@ attsRect o =
     term "stroke-opacity" (show $ opac $ o ^. #borderColor),
     term "fill" (hex $ o ^. #color),
     term "fill-opacity" (show $ opac $ o ^. #color)
-  ]
-
-attsSurface :: SurfaceStyle -> [Lucid.Attribute]
-attsSurface o =
-  [ term "stroke-width" (show $ o ^. #surfaceRectStyle . #borderSize),
-    term "stroke" (toHex $ o ^. #surfaceRectStyle . #borderColor),
-    term "stroke-opacity" (show $ opac $ o ^. #surfaceRectStyle . #borderColor),
-    term "fill" ("url(#" <> (o ^. #surfaceTextureId) <> ")")
   ]
 
 attsText :: TextStyle -> [Lucid.Attribute]
@@ -349,47 +336,3 @@ toTranslateText (Point x y) =
 toRotateText :: Double -> Point Double -> Text
 toRotateText r (Point x y) =
   "rotate(" <> show r <> ", " <> show x <> ", " <> show (- y) <> ")"
-
--- | calculate the linear gradient to shove in defs
--- FIXME: Only works for #surfaceGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
-lgSurface :: SurfaceStyle -> Lucid.Html ()
-lgSurface o =
-  term
-    "linearGradient"
-    [ Lucid.id_ (o ^. #surfaceTextureId),
-      Lucid.makeAttribute "x1" (show x0),
-      Lucid.makeAttribute "y1" (show y0),
-      Lucid.makeAttribute "x2" (show x1),
-      Lucid.makeAttribute "y2" (show y1)
-    ]
-    ( mconcat
-        [ terms
-            "stop"
-            [ Lucid.makeAttribute "stop-opacity" (show $ opac $ o ^. #surfaceColorMin),
-              Lucid.makeAttribute "stop-color" (toHex (o ^. #surfaceColorMin)),
-              Lucid.makeAttribute "offset" "0"
-            ],
-          terms
-            "stop"
-            [ Lucid.makeAttribute "stop-opacity" (show $ opac $ o ^. #surfaceColorMax),
-              Lucid.makeAttribute "stop-color" (toHex (o ^. #surfaceColorMax)),
-              Lucid.makeAttribute "offset" "1"
-            ]
-        ]
-    )
-  where
-    x0 = min 0 (cos (o ^. #surfaceGradient))
-    x1 = max 0 (cos (o ^. #surfaceGradient))
-    y0 = max 0 (sin (o ^. #surfaceGradient))
-    y1 = min 0 (sin (o ^. #surfaceGradient))
-
--- | get chart definitions
-chartDefs :: [Chart a] -> Lucid.Html ()
-chartDefs cs = bool (term "defs" (mconcat ds)) mempty (null ds)
-  where
-    ds = mconcat $ chartDef <$> cs
-
-chartDef :: Chart a -> [Lucid.Html ()]
-chartDef c = case c of
-  (Chart (SurfaceA s) _) -> [lgSurface s]
-  _ -> []

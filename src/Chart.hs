@@ -37,8 +37,6 @@ module Chart
     glyphText,
     LineStyle (..),
     defaultLineStyle,
-    SurfaceStyle (..),
-    defaultSurfaceStyle,
     Anchor (..),
     fromAnchor,
     toAnchor,

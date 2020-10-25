@@ -12,5 +12,6 @@ main = doctest
     "src/Data/FormatN.hs",
     "src/Chart/Types.hs",
     "src/Chart/Bar.hs",
-    "src/Chart/Render.hs"
+    "src/Chart/Render.hs",
+    "src/Chart/Surface.hs"
   ]

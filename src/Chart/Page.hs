@@ -64,42 +64,36 @@ pShow' = toStrict . pShowNoColor
 
 -- | Represent an Annotation.
 repAnnotation :: (Monad m) => Annotation -> SharedRep m Annotation
-repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls <<*>> ps
+repAnnotation initann = bimap hmap mmap rann <<*>> rs <<*>> ts <<*>> gs <<*>> ls
   where
     rann =
       dropdownSum
         takeText
         id
         (Just "Chart Annotation")
-        ["RectA", "TextA", "GlyphA", "LineA", "BlankA", "SurfaceA"]
+        ["RectA", "TextA", "GlyphA", "LineA", "BlankA"]
         (annotationText initann)
     rs = repRectStyle defRectStyle
     ts = repTextStyle defText
     gs = repGlyphStyle defGlyph
     ls = repLineStyle defLine
-    ps = repSurfaceStyle defSurface
-    hmap ann rs ts gs ls ps =
+    hmap ann rs ts gs ls =
       ann
         <> subtype rs (annotationText initann) "RectA"
         <> subtype ts (annotationText initann) "TextA"
         <> subtype gs (annotationText initann) "GlyphA"
         <> subtype ls (annotationText initann) "LineA"
-        <> subtype ps (annotationText initann) "SurfaceA"
-    mmap ann rs ts gs ls ps =
+    mmap ann rs ts gs ls =
       case ann of
         "RectA" -> RectA rs
         "TextA" -> TextA ts texts
         "GlyphA" -> GlyphA gs
         "LineA" -> LineA ls
         "BlankA" -> BlankA
-        "SurfaceA" -> SurfaceA ps
         _ -> BlankA
     defRectStyle = case initann of
       RectA s -> s
       _ -> defaultRectStyle
-    defSurface = case initann of
-      SurfaceA s -> s
-      _ -> defaultSurfaceStyle
     (defText, texts) = case initann of
       TextA s xs -> (s, xs)
       _ -> (defaultTextStyle, Text.singleton <$> ['a' .. 'z'])
@@ -119,32 +113,6 @@ repRectStyle s = do
   c <- colorPicker (Just "color") (hex $ s ^. #color)
   o <- slider (Just "opacity") 0 1 0.1 (opac $ s ^. #color)
   pure $ RectStyle bs (fromRGB (unsafeFromHex bc) bo) (fromRGB (unsafeFromHex c) o)
-
--- | Represent a SurfaceStyle
-repSurfaceStyle ::
-  (Monad m) =>
-  SurfaceStyle ->
-  SharedRep m SurfaceStyle
-repSurfaceStyle cfg =
-  bimap hmap mmap (unsafeFromHex <$> pcmin)
-    <<*>> pomin
-    <<*>> (unsafeFromHex <$> pcmax)
-    <<*>> pomax
-    <<*>> pd
-    <<*>> prs
-    <<*>> pt
-  where
-    pcmax = colorPicker (Just "high color") (toHex $ cfg ^. #surfaceColorMax)
-    pcmin = colorPicker (Just "low color") (toHex $ cfg ^. #surfaceColorMin)
-    pomax = slider (Just "high opacity") 0.0 1.0 0.001 (opac $ cfg ^. #surfaceColorMax)
-    pomin = slider (Just "low opacity") 0.0 1.0 0.001 (opac $ cfg ^. #surfaceColorMin)
-    pd = slider (Just "gradient direction") 0.0 (2 * pi) 0.001 (cfg ^. #surfaceGradient)
-    prs = repRectStyle (cfg ^. #surfaceRectStyle)
-    pt = textbox (Just "texture id") (cfg ^. #surfaceTextureId)
-    hmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
-      pcmin' <> pomin' <> pcmax' <> pomax' <> pd' <> prs' <> pt'
-    mmap pcmin' pomin' pcmax' pomax' pd' prs' pt' =
-      SurfaceStyle (fromRGB pcmin' pomin') (fromRGB pcmax' pomax') pd' prs' pt'
 
 -- | Represent a GlyphStyle
 repGlyphStyle :: (Monad m) => GlyphStyle -> SharedRep m GlyphStyle
@@ -1084,6 +1052,32 @@ repBarData initbd =
       either (const (pure [])) id
         <$> readTextbox (Just "bar data") (initbd ^. #barData)
     hmap rl' cl' bd' = rl' <> cl' <> bd'
+
+-- | Represent a SurfaceStyle
+repSurfaceStyle ::
+  (Monad m) =>
+  SurfaceStyle ->
+  SharedRep m SurfaceStyle
+repSurfaceStyle cfg =
+  bimap hmap mmap pcs
+    <<*>> pos
+    <<*>> prs
+  where
+    pcs =
+      listRep
+      (Just "RGB colors")
+      "pcs"
+      (checkbox Nothing)
+      (colorPicker Nothing)
+      4
+      (toHex black)
+      (toHex <$> cfg ^. #surfaceColors)
+    pos = listRep (Just "opacities") "pos" (checkbox Nothing) (slider Nothing 0.0 1.0 0.001) 4 0 (opac <$> cfg ^. #surfaceColors)
+    prs = repRectStyle (cfg ^. #surfaceRectStyle)
+    hmap pcs' pos' prs' =
+      pcs' <> pos' <> prs'
+    mmap pcs' pos' prs' =
+      SurfaceStyle (zipWith fromRGB (unsafeFromHex <$> pcs') pos') prs'
 
 -- | Represent SurfaceOptions
 repSurfaceOptions ::
