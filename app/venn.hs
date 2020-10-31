@@ -25,11 +25,11 @@ xs =
   Map.fromList
     [ ("origin", Point 0 0), -- origin
       ("circle1", Point 0.5 (-0.5 + cos (pi / 6))), -- center of circle 1
-      ("circle2", Point 0 (-0.5)), -- center of circle 2
-      ("circle3", Point (-0.5) ((-0.5) + cos (pi / 6))), -- center of circle 3
-      ("corner1", Point 0 ((-0.5) + 2 * cos (pi / 6))), -- corner 1
-      ("corner2", Point 1 (-0.5)), -- corner 2
-      ("corner3", Point (-1) (-0.5)) -- corner 3
+      ("circle2", Point 0 -0.5), -- center of circle 2
+      ("circle3", Point -0.5 (-0.5 + cos (pi / 6))), -- center of circle 3
+      ("corner1", Point 0 (-0.5 + 2 * cos (pi / 6))), -- corner 1
+      ("corner2", Point 1 -0.5), -- corner 2
+      ("corner3", Point -1 -0.5) -- corner 3
     ]
 
 vennps :: Text -> (Double, Double)
@@ -141,7 +141,7 @@ vennGlyphs :: [Text]
 vennGlyphs = [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3, innerseg]
 
 seg :: Text -> Colour -> GlyphStyle
-seg p c = defaultGlyphStyle & set #shape (PathGlyph p) & set #color c & set #borderColor white & set #borderSize 0.06
+seg p c = defaultGlyphStyle & set #shape (PathGlyph p zero) & set #color c & set #borderColor white & set #borderSize 0.06
 
 venns :: [Chart Double]
 venns = zipWith (\p c -> Chart (GlyphA $ seg p c) [zero]) vennGlyphs palette1
@@ -173,10 +173,10 @@ phraseChart p = Chart (TextA a [view #phraseText p]) [PointXY (view #phrasePosit
 mainPhrases :: [Phrase]
 mainPhrases =
   [ Phrase "Composable" (Point 0.9 0.7) 0.16 60 c "composable" 1,
-    Phrase "Functional" (Point 0 (-1)) 0.16 0 c "functional" 1,
-    Phrase "Open" (Point (-1) 0.55) 0.16 (-60) c "open" 1,
-    Phrase "Accurate" (Point 0.6 (-0.4)) 0.16 0 c "accurate" 1,
-    Phrase "Dynamic" (Point (-0.6) (-0.4)) 0.16 0 c "dynamic" 1,
+    Phrase "Functional" (Point 0 -1) 0.16 0 c "functional" 1,
+    Phrase "Open" (Point -1 0.55) 0.16 -60 c "open" 1,
+    Phrase "Accurate" (Point 0.6 -0.4) 0.16 0 c "accurate" 1,
+    Phrase "Dynamic" (Point -0.6 -0.4) 0.16 0 c "dynamic" 1,
     Phrase "Modern" (Point 0 0.7) 0.16 0 c "modern" 1,
     Phrase "chart-svg" (Point 0 0) 0.2 0 c "chart-svg" 1
   ]
@@ -193,7 +193,7 @@ renderToSvgt csso (Point w' h') (Rect x z y w) cs tts =
     )
     [ width_ (show w'),
       height_ (show h'),
-      makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
+      makeAttribute "viewBox" (show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
 
 writeVennWords :: IO ()
@@ -202,8 +202,8 @@ writeVennWords =
     $ renderToSvgt
       NoCssOptions
       (Point 300 300)
-      (Rect (-2) 2 (-2) 2)
-      (phrases <> venns <> [Chart BlankA [R (-2.0) 2.0 (-2.0) 2.0]])
+      (Rect -2 2 -2 2)
+      (phrases <> venns <> [Chart BlankA [R -2.0 2.0 -2.0 2.0]])
     $ (defaultTextStyle & set #color colorText,)
       <$> (replicate 7 "" <> (phraseText <$> mainPhrases) <> [""])
 
@@ -213,7 +213,7 @@ writeVenn cs =
     "other/venn.svg"
     ( mempty
         & #svgOptions .~ (defaultSvgOptions & set #scaleCharts' NoScaleCharts & set #svgAspect ChartAspect & set #svgHeight 100)
-        & #chartList .~ ([phraseChart (Phrase "λ" (Point 0 (-0.2)) 0.8 0 (Colour 0.1 0 0.2 1) "chart-svg" 1)] <> zipWith (\p c -> Chart (GlyphA $ seg p c) [PointXY (Point 0.0 0.0)]) [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3] cs <> [Chart BlankA [R (-1.5) 1.5 (-1.5) 1.5]])
+        & #chartList .~ ([phraseChart (Phrase "λ" (Point 0 -0.2) 0.8 0 (Colour 0.1 0 0.2 1) "chart-svg" 1)] <> zipWith (\p c -> Chart (GlyphA $ seg p c) [PointXY (Point 0.0 0.0)]) [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3] cs <> [Chart BlankA [R -1.5 1.5 -1.5 1.5]])
     )
 
 main :: IO ()

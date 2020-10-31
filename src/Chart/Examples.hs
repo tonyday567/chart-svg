@@ -70,8 +70,8 @@ rectExample =
 
 rss :: [[Rect Double]]
 rss =
-  [ gridR (\x -> exp (- (x ** 2) / 2)) (Range (-5) 5) 50,
-    gridR (\x -> 0.5 * exp (- (x ** 2) / 8)) (Range (-5) 5) 50
+  [ gridR (\x -> exp (- (x ** 2) / 2)) (Range -5 5) 50,
+    gridR (\x -> 0.5 * exp (- (x ** 2) / 8)) (Range -5 5) 50
   ]
 
 ropts :: [RectStyle]
@@ -116,7 +116,7 @@ legopts =
     & #ltext . #size .~ 0.25
     & #innerPad .~ 0.05
     & #lscale .~ 0.25
-    & #lplace .~ PlaceAbsolute (Point 0.5 (-0.3))
+    & #lplace .~ PlaceAbsolute (Point 0.5 -0.3)
 
 exampleLineHudOptions :: Text -> Maybe Text -> Maybe (LegendOptions, [(Annotation, Text)]) -> HudOptions
 exampleLineHudOptions t1 t2 legends' =
@@ -181,7 +181,7 @@ glyphsExample =
         (VLineGlyph 0.005, 0.01),
         (HLineGlyph 0.005, 0.01),
         (TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0), 0.01),
-        (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z", 0.01)
+        (PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z" ((0.01*) <$> one), 0.01)
       ]
       [P x 0 | x <- [0 .. (8 :: Double)]]
 
@@ -232,7 +232,7 @@ boundTextBugExample =
   mempty & #chartList
     .~ [ t1,
          t2,
-         Chart BlankA [R 0 0.1 (-0.5) 0.5],
+         Chart BlankA [R 0 0.1 -0.5 0.5],
          Chart (RectA defaultRectStyle) [RectXY (fixRect $ styleBox t1)],
          Chart (RectA defaultRectStyle) [RectXY (fixRect $ styleBox t2)]
        ]
@@ -326,7 +326,7 @@ compoundExample = lglyphExample <> glinesExample
 labelExample :: ChartSvg
 labelExample =
   mempty & #chartList
-    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ realToFrac (45.0 :: Double)) ["text at (1,1) rotated by 45 degrees"]) [PointXY (Point (1.0 :: Double) 1.0)]]
+    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ 45.0) ["text at (1,1) rotated by 45 degrees"]) [PointXY (Point 1.0 1.0)]]
 
 -- | legend test
 --

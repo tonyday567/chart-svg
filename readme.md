@@ -29,13 +29,7 @@ Examples
 
 See the code in Chart.Examples for practical usage.
 
-The package includes a local chart server in app/example.hs which is a useful way to explore the api.
-
-```
-stack exec examples --file-watch
-```
-
-Also included is construction of this logo:
+Also included is construction of this logo in "app/venn.hs":
 
 ![](other/venn.svg)
 

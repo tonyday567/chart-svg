@@ -115,7 +115,6 @@ module Chart
     styleBoxGlyph,
 
     -- * Re-exports
-    module Chart.Page,
     module Chart.Render,
     module Chart.Bar,
     module Chart.Surface,
@@ -126,7 +125,6 @@ module Chart
 where
 
 import Chart.Bar
-import Chart.Page
 import Chart.Render
 import Chart.Surface
 import Chart.Types

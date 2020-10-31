@@ -9,7 +9,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -259,7 +258,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 colorText AnchorMiddle 0.5 1.45 (-0.2) Nothing Nothing
+  TextStyle 0.08 colorText AnchorMiddle 0.5 1.45 -0.2 Nothing Nothing
 
 -- | Glyph styling
 --
@@ -307,7 +306,7 @@ data GlyphShape
   | TriangleGlyph (Point Double) (Point Double) (Point Double)
   | VLineGlyph Double
   | HLineGlyph Double
-  | PathGlyph Text
+  | PathGlyph Text (Rect Double)
   deriving (Show, Eq, Generic)
 
 -- | textifier
@@ -322,7 +321,7 @@ glyphText sh =
     RectRoundedGlyph {} -> "RectRounded"
     VLineGlyph _ -> "VLine"
     HLineGlyph _ -> "HLine"
-    PathGlyph _ -> "Path"
+    PathGlyph _ _ -> "Path"
 
 -- | line style
 --
@@ -863,7 +862,7 @@ title_ t a =
   Chart
     ( TextA
         ( style'
-            & #translate ?~ (realToFrac <$> (placePos' a + alignPos a))
+            & #translate ?~ (placePos' a + alignPos a)
             & #rotation ?~ rot
         )
         [t ^. #text]
@@ -887,8 +886,8 @@ title_ t a =
           ((x + z) / 2.0)
           ( y - (t ^. #buff)
               - 0.5
-              * realToFrac (t ^. #style . #vsize)
-              * realToFrac (t ^. #style . #size)
+              * (t ^. #style . #vsize)
+              * (t ^. #style . #size)
           )
       PlaceLeft -> Point (x - (t ^. #buff)) ((y + w) / 2.0)
       PlaceRight -> Point (z + (t ^. #buff)) ((y + w) / 2.0)
@@ -939,15 +938,15 @@ placeRot pl = case pl of
 textPos :: Place -> TextStyle -> Double -> Point Double
 textPos pl tt b = case pl of
   PlaceTop -> Point 0 b
-  PlaceBottom -> Point 0 (- b - 0.5 * realToFrac (tt ^. #vsize) * realToFrac (tt ^. #size))
+  PlaceBottom -> Point 0 (- b - 0.5 * (tt ^. #vsize) * (tt ^. #size))
   PlaceLeft ->
     Point
       (- b)
-      (realToFrac (tt ^. #nudge1) * realToFrac (tt ^. #vsize) * realToFrac (tt ^. #size))
+      ((tt ^. #nudge1) * (tt ^. #vsize) * (tt ^. #size))
   PlaceRight ->
     Point
       b
-      (realToFrac (tt ^. #nudge1) * realToFrac (tt ^. #vsize) * realToFrac (tt ^. #size))
+      ((tt ^. #nudge1) * (tt ^. #vsize) * (tt ^. #size))
   PlaceAbsolute p -> p
 
 placeRange :: Place -> Rect Double -> Range Double
@@ -1032,7 +1031,7 @@ ticksPlaced ts pl d xs = TickComponents (project (placeRange pl xs) (placeRange 
 tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> Rect Double -> Rect Double -> Rect Double -> Chart Double
 tickGlyph_ pl (g, b) ts ca da xs =
   Chart
-    (GlyphA (g & #rotation .~ (realToFrac <$> placeRot pl)))
+    (GlyphA (g & #rotation .~ (placeRot pl)))
     ( PointXY . (placePos pl b ca +) . placeOrigin pl
         <$> positions
           (ticksPlaced ts pl da xs)
@@ -1183,7 +1182,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
               _ -> #ttick . _Just . _1 . #anchor .~ AnchorEnd
           )
             . (#ttick . _Just . _1 . #size %~ (/ adjustSizeA))
-            $ (#ttick . _Just . _1 . #rotation ?~ (-45)) t
+            $ (#ttick . _Just . _1 . #rotation ?~ -45) t
         False -> (#ttick . _Just . _1 . #size %~ (/ adjustSizeA)) t
   | otherwise = -- pl `elem` [PlaceLeft, PlaceRight]
     (#ttick . _Just . _1 . #size %~ (/ adjustSizeY)) t
@@ -1216,9 +1215,9 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
         )
         (t ^. #ttick)
     adjustSizeX :: Double
-    adjustSizeX = max' [(maxWidth / realToFrac (upper asp - lower asp)) / mrx, 1]
-    adjustSizeY = max' [(maxHeight / realToFrac (upper asp - lower asp)) / mry, 1]
-    adjustSizeA = max' [(maxHeight / realToFrac (upper asp - lower asp)) / ma, 1]
+    adjustSizeX = max' [(maxWidth / (upper asp - lower asp)) / mrx, 1]
+    adjustSizeY = max' [(maxHeight / (upper asp - lower asp)) / mry, 1]
+    adjustSizeA = max' [(maxHeight / (upper asp - lower asp)) / ma, 1]
 
 adjustedTickHud :: (Monad m) => AxisOptions -> HudT m Double
 adjustedTickHud c = Hud $ \cs -> do
@@ -1259,7 +1258,7 @@ legendHud l lcs = Hud $ \cs -> do
   pure cs'
   where
     scaledleg =
-      (#annotation %~ scaleAnn (realToFrac $ l ^. #lscale))
+      (#annotation %~ scaleAnn (l ^. #lscale))
         . (#xys %~ fmap (fmap (* l ^. #lscale)))
         <$> lcs
     movedleg ca' leg =
@@ -1288,15 +1287,15 @@ legendEntry l a t =
           [R 0 (l ^. #lsize) 0 (l ^. #lsize)]
         )
       TextA ts txts ->
-        ( TextA (ts & #size .~ realToFrac (l ^. #lsize)) (take 1 txts),
+        ( TextA (ts & #size .~ (l ^. #lsize)) (take 1 txts),
           [zero]
         )
       GlyphA gs ->
-        ( GlyphA (gs & #size .~ realToFrac (l ^. #lsize)),
+        ( GlyphA (gs & #size .~ (l ^. #lsize)),
           [P (0.5 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
       LineA ls ->
-        ( LineA (ls & #width %~ (/ (realToFrac $ l ^. #lscale))),
+        ( LineA (ls & #width %~ (/ (l ^. #lscale))),
           [P 0 (0.33 * l ^. #lsize), P (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
       BlankA ->
@@ -1341,13 +1340,15 @@ styleBoxText o t p = move (p + p') $ maybe flat (`rotateRect` flat) (o ^. #rotat
 -- | the extra area from glyph styling
 styleBoxGlyph :: GlyphStyle -> Rect Double
 styleBoxGlyph s = move p' $ sw $ case sh of
+  CircleGlyph -> (sz *) <$> one
+  SquareGlyph -> (sz *) <$> one
   EllipseGlyph a -> NH.scale (Point sz (a * sz)) one
   RectSharpGlyph a -> NH.scale (Point sz (a * sz)) one
   RectRoundedGlyph a _ _ -> NH.scale (Point sz (a * sz)) one
   VLineGlyph _ -> NH.scale (Point ((s ^. #borderSize) * sz) sz) one
   HLineGlyph _ -> NH.scale (Point sz ((s ^. #borderSize) * sz)) one
   TriangleGlyph a b c -> (sz *) <$> sconcat (toRect . PointXY <$> (a :| [b, c]) :: NonEmpty (Rect Double))
-  _ -> (sz *) <$> one
+  PathGlyph _ sb -> (sz *) <$> sb
   where
     sh = s ^. #shape
     sz = s ^. #size

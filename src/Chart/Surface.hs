@@ -101,7 +101,7 @@ mkSurfaceData ::
 mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (blends y cs)) <$> ps', space1 rs)
   where
     ps = gridF f r g
-    rs = realToFrac . snd <$> ps
+    rs = snd <$> ps
     rs' = project (space1 rs :: Range Double) (Range 0 1) <$> rs
     ps' = zip (fst <$> ps) rs'
 

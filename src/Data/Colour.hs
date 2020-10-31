@@ -9,7 +9,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -48,7 +47,10 @@ import NumHask.Prelude as NHP
 import qualified Prelude as P
 
 -- | Wrapper for 'Color'.
-newtype Colour = Colour' {color' :: Color (Alpha RGB) Double} deriving (Eq, Generic)
+newtype Colour =
+  Colour'
+  { color' :: Color (Alpha RGB) Double
+  } deriving (Eq, Generic)
 
 -- | Constructor pattern.
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
@@ -140,10 +142,10 @@ toHex c =
     <> Text.justifyRight 2 '0' (hex' g)
     <> Text.justifyRight 2 '0' (hex' b)
   where
-    (ColorRGBA r g b _) = toWord8 <$> color' c
+    (ColorRGBA r g b _) = toIntegral . toWord8 <$> color' c
 
 -- |
-hex' :: (FromInteger a, ToIntegral a Integer, Integral a, Ord a, Subtractive a) => a -> Text
+hex' :: Int -> Text
 hex' i
   | i < 0 = "-" <> go (- i)
   | otherwise = go i
@@ -153,10 +155,10 @@ hex' i
       | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
 
 -- |
-hexDigit :: (Ord a, FromInteger a, ToIntegral a Integer) => a -> Text
+hexDigit :: Int -> Text
 hexDigit n
-  | n <= 9 = Text.singleton P.$! i2d (fromIntegral n)
-  | otherwise = Text.singleton P.$! toEnum (fromIntegral n + 87)
+  | n <= 9 = Text.singleton P.$! i2d n
+  | otherwise = Text.singleton P.$! toEnum (n + 87)
 
 -- |
 i2d :: Int -> Char

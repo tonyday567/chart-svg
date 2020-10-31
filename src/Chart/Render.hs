@@ -81,7 +81,7 @@ getViewbox o cs =
   where
     asp =
       case view #svgAspect o of
-        ManualAspect a -> Rect (a * (-0.5)) (a * 0.5) (-0.5) 0.5
+        ManualAspect a -> Rect (a * -0.5) (a * 0.5) -0.5 0.5
         ChartAspect -> fromMaybe one $ styleBoxes cs
 
 -- * rendering
@@ -259,13 +259,13 @@ svgShape (VLineGlyph _) s (Point x y) =
   terms "polyline" [term "points" (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
 svgShape (HLineGlyph _) s (Point x y) =
   terms "polyline" [term "points" (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
-svgShape (PathGlyph path) s p =
+svgShape (PathGlyph path _) s p =
   terms "path" [term "d" path, term "transform" (toTranslateText p <> " " <> toScaleText s)]
 
 -- | GlyphStyle to svg Tree
 svgGlyph :: GlyphStyle -> Point Double -> Lucid.Html ()
 svgGlyph s p =
-  svgShape (s ^. #shape) (s ^. #size) (realToFrac <$> p)
+  svgShape (s ^. #shape) (s ^. #size) p
     & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
 
 -- | Low-level conversion of a Chart to svg
