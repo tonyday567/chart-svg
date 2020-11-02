@@ -46,6 +46,13 @@ module Chart.Types
     Anchor (..),
     fromAnchor,
     toAnchor,
+    PathType (..),
+    ArcDetails (..),
+    Marker (..),
+    MarkerPos (..),
+    PathStyle (..),
+    PathClosure (..),
+    defaultPathStyle,
 
     -- * Hud types
     ChartDims (..),
@@ -88,9 +95,9 @@ module Chart.Types
     LegendOptions (..),
     defaultLegendOptions,
     legendHud,
-    Direction (..),
-    fromDirection,
-    toDirection,
+    Orientation (..),
+    fromOrientation,
+    toOrientation,
 
     -- * SVG primitives
     SvgAspect (..),
@@ -123,6 +130,7 @@ where
 import Control.Lens
 import Data.Colour
 import Data.FormatN
+import Data.Path
 import Data.Generics.Labels ()
 import Data.List ((!!))
 import qualified Data.Text as Text
@@ -164,6 +172,7 @@ data Annotation
   | TextA TextStyle [Text]
   | GlyphA GlyphStyle
   | LineA LineStyle
+  | PathA PathStyle
   | BlankA
   deriving (Eq, Show, Generic)
 
@@ -173,6 +182,7 @@ annotationText (RectA _) = "RectA"
 annotationText TextA {} = "TextA"
 annotationText (GlyphA _) = "GlyphA"
 annotationText (LineA _) = "LineA"
+annotationText (PathA _) = "PathA"
 annotationText BlankA = "BlankA"
 
 -- | Rectangle styling
@@ -340,19 +350,69 @@ data LineStyle
 defaultLineStyle :: LineStyle
 defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3)
 
+-- | simplified svg-style path
+data PathType =
+  LinePath |
+  CubicPath |
+  QuadPath |
+  ArcPath ArcDetails
+  deriving (Eq, Show, Generic)
+
+data PathClosure =
+  PathClosed |
+  PathOpen
+  deriving (Eq, Show, Generic)
+
+data ArcDetails =
+  ArcDetails
+  { arcRotation :: Double,
+    arcLargeArcFlag :: Bool,
+    arcSweepFlag :: Bool
+  } deriving (Eq, Show, Generic)
+
+-- | Marker to use for arrow-like decoration.
+--
+-- https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker
+data Marker = Marker { markerId :: Text, markerGlyph :: GlyphStyle } deriving (Eq, Show, Generic)
+
+-- | Market position.
+data MarkerPos = MarkerStart | MarkerEnd | MarkerMid deriving (Eq, Show, Generic)
+
+-- | Path styling
+--
+-- >>> defaultPathStyle
+--
+-- > writeChartSvgDefault "other/patha.svg" [Chart (PathA defaultPathStyle) [zero, one]]
+--
+-- ![patha example](other/patha.svg)
+data PathStyle
+  = PathStyle
+      { borderSize :: Double,
+        borderColor :: Colour,
+        color :: Colour,
+        pathInfo :: [PathInstruction Double],
+        pathMarkers :: [(MarkerPos, Text)]
+      }
+  deriving (Show, Eq, Generic)
+
+-- | the style
+defaultPathStyle :: PathStyle
+defaultPathStyle =
+  PathStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette !! 1) 0.3) [] []
+
 -- | Verticle or Horizontal
-data Direction = Vert | Hori deriving (Eq, Show, Generic)
+data Orientation = Vert | Hori deriving (Eq, Show, Generic)
 
 -- | textifier
-fromDirection :: (IsString s) => Direction -> s
-fromDirection Hori = "Hori"
-fromDirection Vert = "Vert"
+fromOrientation :: (IsString s) => Orientation -> s
+fromOrientation Hori = "Hori"
+fromOrientation Vert = "Vert"
 
 -- | readifier
-toDirection :: (Eq s, IsString s) => s -> Direction
-toDirection "Hori" = Hori
-toDirection "Vert" = Vert
-toDirection _ = Hori
+toOrientation :: (Eq s, IsString s) => s -> Orientation
+toOrientation "Hori" = Hori
+toOrientation "Vert" = Vert
+toOrientation _ = Hori
 
 -- | additive padding
 padRect :: (Num a) => a -> Rect a -> Rect a
@@ -712,6 +772,7 @@ scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
 scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (* x)
 scaleAnn x (TextA a txs) = TextA (a & #size %~ (* x)) txs
 scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
+scaleAnn x (PathA a) = PathA $ a & #borderSize %~ (* x)
 scaleAnn _ BlankA = BlankA
 
 -- | Translate the data in a chart.
@@ -1298,6 +1359,10 @@ legendEntry l a t =
         ( LineA (ls & #width %~ (/ (l ^. #lscale))),
           [P 0 (0.33 * l ^. #lsize), P (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
         )
+      PathA ps ->
+        ( PathA (ps & #borderSize .~ (l ^. #lsize)),
+          [P 0 (0.33 * l ^. #lsize), P (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
+        )
       BlankA ->
         ( BlankA,
           [zero]
@@ -1361,6 +1426,8 @@ styleBox (Chart (TextA s ts) xs) = foldRect $ zipWith (\t x -> styleBoxText s t 
 styleBox (Chart (GlyphA s) xs) = foldRect $ (\x -> move (toPoint x) (styleBoxGlyph s)) <$> xs
 styleBox (Chart (RectA s) xs) = foldRect (padRect (0.5 * s ^. #borderSize) . toRect <$> xs)
 styleBox (Chart (LineA s) xs) = foldRect (padRect (0.5 * s ^. #width) . toRect <$> xs)
+-- FIXME: Including the control points is problematic. Bounding box of a bezier & arc?
+styleBox (Chart (PathA s) xs) = foldRect (padRect (0.5 * s ^. #borderSize) . toRect <$> xs)
 styleBox (Chart BlankA xs) = foldRect (toRect <$> xs)
 
 -- | the extra geometric dimensions of a [Chart]

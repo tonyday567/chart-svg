@@ -41,6 +41,15 @@ module Chart
     fromAnchor,
     toAnchor,
 
+    -- | Path combinators
+    PathType (..),
+    ArcDetails (..),
+    Marker (..),
+    MarkerPos (..),
+    PathStyle (..),
+    PathClosure (..),
+    defaultPathStyle,
+
     -- * Hud types
     --
     -- $hud
@@ -84,9 +93,9 @@ module Chart
     LegendOptions (..),
     defaultLegendOptions,
     legendHud,
-    Direction (..),
-    fromDirection,
-    toDirection,
+    Orientation (..),
+    fromOrientation,
+    toOrientation,
 
     -- * SVG primitives
     SvgAspect (..),

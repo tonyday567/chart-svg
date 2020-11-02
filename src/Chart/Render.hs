@@ -24,11 +24,15 @@ module Chart.Render
     getSize,
     getViewbox,
     scaleCharts,
+    attsRect,
+    terms,
+    makeAttribute,
   )
 where
 
 import Chart.Types
 import Data.Colour
+import Data.Path
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()
 import qualified Data.Text.Lazy as Lazy
@@ -268,7 +272,15 @@ svgGlyph s p =
   svgShape (s ^. #shape) (s ^. #size) p
     & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
 
+-- | Path svg
+svgPath :: PathStyle -> [Point Double] -> Lucid.Html ()
+svgPath _ [] = mempty
+svgPath _ [_] = mempty
+svgPath pstyle ps =
+  terms "path" [term "d" (toPathAbsolutes (zip (pstyle ^. #pathInfo) ps))]
+
 -- | Low-level conversion of a Chart to svg
+-- FIXME: abstract extra html content into here...
 svg :: Chart Double -> Lucid.Html ()
 svg (Chart (TextA s ts) xs) =
   term "g" (attsText s) (mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs)
@@ -278,18 +290,32 @@ svg (Chart (LineA s) xs) =
   term "g" (attsLine s) (svgLine $ toPoint <$> xs)
 svg (Chart (RectA s) xs) =
   term "g" (attsRect s) (mconcat $ svgRect . toRect <$> xs)
+svg (Chart (PathA s) xs) =
+  term "g" (attsPath s) (svgPath s $ toPoint <$> xs)
 svg (Chart BlankA _) = mempty
 
 -- | Add a tooltip as part of a chart to svg conversion.
+--
+-- FIXME: remove redundancy.
 svgt :: Chart Double -> (TextStyle, Text) -> Lucid.Html ()
 svgt (Chart (TextA s ts) xs) (s', ts') =
   term "g" (attsText s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (zipWith (\t p -> svgText s t (toPoint p)) ts xs))
 svgt (Chart (GlyphA s) xs) (s', ts') =
-  term "g" (attsGlyph s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgGlyph s . toPoint <$> xs))
+  term "g" (attsGlyph s)
+  (Lucid.title_ (attsText s') (Lucid.toHtml ts') <>
+   mconcat (svgGlyph s . toPoint <$> xs))
 svgt (Chart (LineA s) xs) (s', ts') =
-  term "g" (attsLine s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> svgLine (toPoint <$> xs))
+  term "g" (attsLine s)
+  (Lucid.title_ (attsText s') (Lucid.toHtml ts') <>
+   svgLine (toPoint <$> xs))
 svgt (Chart (RectA s) xs) (s', ts') =
-  term "g" (attsRect s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
+  term "g" (attsRect s)
+  (Lucid.title_ (attsText s') (Lucid.toHtml ts') <>
+   mconcat (svgRect . toRect <$> xs))
+svgt (Chart (PathA s) xs) (s', ts') =
+  term "g" (attsPath s)
+  (Lucid.title_ (attsText s') (Lucid.toHtml ts') <>
+   (svgPath s $ toPoint <$> xs))
 svgt (Chart BlankA _) _ = mempty
 
 terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
@@ -338,6 +364,20 @@ attsLine o =
     term "stroke-opacity" (show $ opac $ o ^. #color),
     term "fill" "none"
   ]
+
+attsPath :: PathStyle -> [Lucid.Attribute]
+attsPath o =
+  [ term "stroke-width" (show $ o ^. #borderSize),
+    term "stroke" (hex $ o ^. #borderColor),
+    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
+    term "fill" (hex $ o ^. #color),
+    term "fill-opacity" (show $ opac $ o ^. #color)
+  ] <>
+  fmap (\(p,t) -> case p of
+           MarkerStart -> term "marker-start" ("url(#" <> t <> ")")
+           MarkerMid -> term "marker-mid" ("url(#" <> t <> ")")
+           MarkerEnd -> term "marker-end" ("url(#" <> t <> ")")
+       ) (o ^. #pathMarkers)
 
 toTranslateText :: Point Double -> Text
 toTranslateText (Point x y) =

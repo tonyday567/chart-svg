@@ -45,6 +45,7 @@ library
     Chart.Types
     Data.Colour
     Data.FormatN
+    Data.Path
   hs-source-dirs:
     src
   build-depends:
@@ -52,10 +53,12 @@ library
     attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
     generic-lens >= 1.2 && < 3.0,
-    lucid >= 2.9 && < 2.10,
     lens >= 4.0 && < 5,
+    linear,
+    lucid >= 2.9 && < 2.10,
     numhask >= 0.7 && < 0.8,
     numhask-space >= 0.6 && < 0.7,
+    reanimate-svg >= 0.13 && < 0.14,
     scientific >= 0.3 && < 0.4,
     tagsoup >= 0.14 && < 0.15,
     text >= 1.2 && < 1.3,

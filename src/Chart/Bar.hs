@@ -55,7 +55,7 @@ data BarOptions
         displayValues :: Bool,
         valueFormatN :: FormatN,
         accumulateValues :: Bool,
-        barOrientation :: Direction,
+        barOrientation :: Orientation,
         barHudOptions :: HudOptions
       }
   deriving (Show, Eq, Generic)
@@ -214,7 +214,7 @@ barChart bo bd =
     bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
   )
 
-flipAllAxes :: Direction -> [AxisOptions] -> [AxisOptions]
+flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
 flipAllAxes o = fmap (bool id flipAxis (o == Vert))
 
 barDataTP :: Bool -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]

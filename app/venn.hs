@@ -59,6 +59,12 @@ outerseg1 =
       "Z"
     ]
 
+{-
+outerseg1' :: (PathStyle, [Point Double])
+outerseg1' = (defaultPathStyle & #pathType .~ (ArcPath (ArcDetails 0 True True)) & #pathClosure .~ PathClosed, [Point 0 (-0.5 + 2 * cos (pi / 6)), Point 0.5 0.5, Point 1 -0.5])
+
+-}
+
 outerseg2 :: Text
 outerseg2 =
   Text.intercalate
@@ -140,11 +146,11 @@ midseg3 =
 vennGlyphs :: [Text]
 vennGlyphs = [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3, innerseg]
 
-seg :: Text -> Colour -> GlyphStyle
-seg p c = defaultGlyphStyle & set #shape (PathGlyph p zero) & set #color c & set #borderColor white & set #borderSize 0.06
+seg :: Text -> Colour -> Double -> GlyphStyle
+seg p c s = defaultGlyphStyle & set #shape (PathGlyph p zero) & set #color c & set #borderColor white & set #borderSize 0.06 & set #size s
 
 venns :: [Chart Double]
-venns = zipWith (\p c -> Chart (GlyphA $ seg p c) [zero]) vennGlyphs palette1
+venns = zipWith (\p c -> Chart (GlyphA $ seg p c 0.25) [zero]) vennGlyphs palette1
 
 phrases :: [Chart Double]
 phrases = phraseChart <$> mainPhrases
@@ -213,8 +219,37 @@ writeVenn cs =
     "other/venn.svg"
     ( mempty
         & #svgOptions .~ (defaultSvgOptions & set #scaleCharts' NoScaleCharts & set #svgAspect ChartAspect & set #svgHeight 100)
-        & #chartList .~ ([phraseChart (Phrase "λ" (Point 0 -0.2) 0.8 0 (Colour 0.1 0 0.2 1) "chart-svg" 1)] <> zipWith (\p c -> Chart (GlyphA $ seg p c) [PointXY (Point 0.0 0.0)]) [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3] cs <> [Chart BlankA [R -1.5 1.5 -1.5 1.5]])
+        & #chartList .~ ([phraseChart (Phrase "λ" (Point 0 -0.2) 0.8 0 (Colour 0.1 0 0.2 1) "chart-svg" 1)] <> zipWith (\p c -> Chart (GlyphA $ seg p c 0.25) [PointXY (Point 0.0 0.0)]) [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3] cs <> [Chart BlankA [R -1.5 1.5 -1.5 1.5]])
     )
+
+writeVenn1 :: IO ()
+writeVenn1 =
+  writeChartSvg
+    "other/venn1.svg"
+    ( mempty
+        & #svgOptions .~ (defaultSvgOptions)
+        & #hudOptions .~ defaultHudOptions
+        & #chartList .~
+        (zipWith (\p c -> Chart (GlyphA $ seg p c 0.25) [PointXY (Point 0.0 0.0)])
+         [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3, innerseg] palette1)
+    )
+
+{-
+writet1 :: IO ()
+writet1 =
+  writeChartSvg
+    "other/t1.svg"
+    ( mempty
+        & #svgOptions .~ (defaultSvgOptions)
+        & #hudOptions .~ mempty -- defaultHudOptions
+        & #chartList .~
+        (zipWith (\(p, pts) c -> Chart (PathA $ p & #color .~ c) (PointXY <$> pts)) [outerseg1'] palette1)
+    )
+
+
+-}
+
+
 
 main :: IO ()
 main = do

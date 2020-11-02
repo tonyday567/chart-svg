@@ -5,6 +5,7 @@ packages:
   - ../numhask
   - ../numhask-space
 
-extra-deps: []
+extra-deps:
+  - reanimate-svg-0.13.0.0
   #- numhask-0.6.0.2
   #- numhask-space-0.6.0
