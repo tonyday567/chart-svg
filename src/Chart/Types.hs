@@ -119,9 +119,9 @@ module Chart.Types
 
     -- * Bounding box calculation
     dataBox,
+    dataBoxes,
     styleBox,
     styleBoxes,
-    noStyleBoxes,
     styleBoxText,
     styleBoxGlyph,
   )
@@ -734,38 +734,6 @@ defaultLegendOptions =
     PlaceBottom
     0.2
 
--- | Project the xys of a chart to a new XY Space.
---
--- > projectXYs (dataBox cs) cs == cs if cs is non-empty
-projectXYs :: Rect Double -> [Chart Double] -> [Chart Double]
-projectXYs a cs = cs'
-  where
-    xss = projectTo2 a (xys <$> cs)
-    ss = annotation <$> cs
-    cs' = zipWith Chart ss xss
-    projectTo2 vb xss =
-      fmap
-        ( maybe
-            id
-            (projectOn vb)
-            (fold $ foldRect . fmap toRect <$> xss)
-        )
-        <$> xss
-
--- | Project chart xys to a new XY Space from an old XY Space
---
--- > projectXYsWith x x == id
-projectXYsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
-projectXYsWith new old cs = cs'
-  where
-    xss = fmap (projectOn new old) . xys <$> cs
-    ss = annotation <$> cs
-    cs' = zipWith Chart ss xss
-
--- | Compute the 'Rect' of a chart.
-dataBox :: (Ord a) => [Chart a] -> Maybe (Rect a)
-dataBox cs = foldRect . mconcat $ fmap toRect <$> (xys <$> cs)
-
 -- | Generically scale an Annotation.
 scaleAnn :: Double -> Annotation -> Annotation
 scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
@@ -795,7 +763,7 @@ runHudWith ca xs hs cs =
   flip evalState (ChartDims ca' da' xs) $
     (unhud $ mconcat hs) cs'
   where
-    da' = fromMaybe one $ dataBox cs'
+    da' = fromMaybe one $ dataBoxes cs'
     ca' = fromMaybe one $ styleBoxes cs'
     cs' = projectXYsWith ca xs cs
 
@@ -811,7 +779,7 @@ runHud ::
   [Chart Double] ->
   -- | integrated chart list
   [Chart Double]
-runHud ca hs cs = runHudWith ca (fixRect $ dataBox cs) hs cs
+runHud ca hs cs = runHudWith ca (fixRect $ dataBoxes cs) hs cs
 
 -- | Make huds from a HudOptions.
 --
@@ -1380,6 +1348,45 @@ legendChart lrs l =
     twidth = maybe 0 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (styleBox t)
 
+-- | Project the xys of a chart to a new XY Space.
+--
+-- > projectXYs (dataBox cs) cs == cs if cs is non-empty
+projectXYs :: Rect Double -> [Chart Double] -> [Chart Double]
+projectXYs a cs = cs'
+  where
+    xss = projectTo2 a (xys <$> cs)
+    ss = annotation <$> cs
+    cs' = zipWith Chart ss xss
+    projectTo2 vb xss =
+      fmap
+        ( maybe
+            id
+            (projectOn vb)
+            (fold $ foldRect . fmap toRect <$> xss)
+        )
+        <$> xss
+
+-- | Project chart xys to a new XY Space from an old XY Space
+--
+-- > projectXYsWith x x == id
+projectXYsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
+projectXYsWith new old cs = cs'
+  where
+    xss = fmap (projectOn new old) . xys <$> cs
+    ss = annotation <$> cs
+    cs' = zipWith Chart ss xss
+
+-- | 'Rect' of a 'Chart', not including style
+dataBox :: Chart Double -> Maybe (Rect Double)
+dataBox c =
+  case c ^. #annotation of
+    PathA path' -> arcBoxes $ zip (path' ^. #pathInfo) (toPoint <$> c ^. #xys)
+    _ -> foldRect $ fmap toRect $ (c ^. #xys)
+
+-- | 'Rect' of charts, not including style
+dataBoxes :: [Chart Double] -> Maybe (Rect Double)
+dataBoxes cs = foldRect $ catMaybes $ dataBox <$> cs
+
 -- | the extra area from text styling
 styleBoxText ::
   TextStyle ->
@@ -1426,17 +1433,12 @@ styleBox (Chart (TextA s ts) xs) = foldRect $ zipWith (\t x -> styleBoxText s t 
 styleBox (Chart (GlyphA s) xs) = foldRect $ (\x -> move (toPoint x) (styleBoxGlyph s)) <$> xs
 styleBox (Chart (RectA s) xs) = foldRect (padRect (0.5 * s ^. #borderSize) . toRect <$> xs)
 styleBox (Chart (LineA s) xs) = foldRect (padRect (0.5 * s ^. #width) . toRect <$> xs)
--- FIXME: Including the control points is problematic. Bounding box of a bezier & arc?
-styleBox (Chart (PathA s) xs) = foldRect (padRect (0.5 * s ^. #borderSize) . toRect <$> xs)
+styleBox c@(Chart (PathA s) _) = padRect (0.5 * s ^. #borderSize) <$> dataBox c
 styleBox (Chart BlankA xs) = foldRect (toRect <$> xs)
 
 -- | the extra geometric dimensions of a [Chart]
 styleBoxes :: [Chart Double] -> Maybe (Rect Double)
 styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
-
--- | geometric dimensions of a [Chart] not including style
-noStyleBoxes :: [Chart Double] -> Maybe (Rect Double)
-noStyleBoxes cs = foldRect $ toRect <$> mconcat (view #xys <$> cs)
 
 -- | additively pad a [Chart]
 --

@@ -151,7 +151,7 @@ renderHudChart so hs cs = renderChartsWith so (runHud (getViewbox so cs) hs cs)
 chartSvg :: ChartSvg -> Text
 chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> hs') (cs <> cs')
   where
-    (hs', cs') = makeHud (fixRect $ dataBox cs) ho
+    (hs', cs') = makeHud (fixRect $ dataBoxes cs) ho
 
 -- | Render a chart using the default svg options and no hud.
 --

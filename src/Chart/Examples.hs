@@ -360,6 +360,51 @@ legendExample =
 waveExample :: ChartSvg
 waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (PointXY <$> gridP sin (Range 0 (2 * pi)) 30)]
 
+pathExample :: ChartSvg
+pathExample =
+  mempty &
+  #chartList .~ zipWith (\c x -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> x)) (PointXY . snd <$> x)) palette1 (toInstructions . parsePath <$> vennSegs) &
+  #svgOptions .~ (defaultSvgOptions & #svgAspect .~ ChartAspect) &
+  #hudOptions .~ defaultHudOptions
+
+vennSegs :: [Text]
+vennSegs =
+      [ "M0.0,-1.2320508075688774 A0.5 0.5 0.0 1 1 1.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,-1.2320508075688774 Z",
+        "M-1.0,0.5 A0.5 0.5 0.0 1 0 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -1.0,0.5 Z",
+        "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z",
+        "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 Z",
+        "M0.0,0.5 A1.0 1.0 0.0 0 1 -1.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,0.5 Z",
+        "M0.0,-1.2320508075688774 A1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.0,-1.2320508075688774 Z",
+        "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 Z"
+      ]
+
+testArcBox :: [Text] -> IO ()
+testArcBox paths = writeChartSvg "other/testarcbox.svg"
+  (mempty &
+   #chartList .~ arcs <> rects &
+   #hudOptions .~ defaultHudOptions &
+   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ ManualAspect 1))
+  )
+  where
+    ps = toInstructions . parsePath <$> paths
+    arcs = zipWith (\c xs -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> xs)) (PointXY <$> snd <$> xs)) palette1 ps
+    rects = zipWith (\c r -> Chart (RectA $ defaultRectStyle & #borderColor .~ setOpac 0.1 c & #color .~ transparent) (maybe [] (\r' -> [RectXY r']) r)) palette1 (arcBoxes <$> ps)
+
+testArc :: Point Double -> Point Double -> ArcStuff Double -> IO ()
+testArc  x1 x2 stuff = writeChartSvg "other/testarc.svg"
+  (mempty &
+   #chartList .~ [arc, ell] &
+   #hudOptions .~ defaultHudOptions &
+   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ ManualAspect 1))
+  )
+  where
+    ps = [(StartI, x1), (ArcI stuff, x2)]
+    arc = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
+    ell = (Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY <$> ellipse arcc (toAbsRadius x1 x2 (stuff ^. #radiusRatio)) (stuff ^. #phi) . (\x -> x * 2 * pi / 100.0) <$> [0..100]))
+    (arcc, _, _, _) = arcC' x1 x2 stuff
+
+
+
 -- | Run this to refresh haddock example SVGs.
 writeAllExamples :: IO ()
 writeAllExamples = do
@@ -390,4 +435,5 @@ writeAllExamples = do
   writeChartSvg "other/compound.svg" compoundExample
   writeChartSvg "other/boundTextBug.svg" boundTextBugExample
   writeChartSvg "other/label.svg" labelExample
+  writeChartSvg "other/path.svg" pathExample
   putStrLn ("ok" :: Text)

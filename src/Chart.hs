@@ -117,9 +117,9 @@ module Chart
 
     -- * Bounding box calculation
     dataBox,
+    dataBoxes,
     styleBox,
     styleBoxes,
-    noStyleBoxes,
     styleBoxText,
     styleBoxGlyph,
 
@@ -129,6 +129,7 @@ module Chart
     module Chart.Surface,
     module Data.Colour,
     module Data.FormatN,
+    module Data.Path,
     module NumHask.Space,
   )
 where
@@ -139,6 +140,7 @@ import Chart.Surface
 import Chart.Types
 import Data.Colour
 import Data.FormatN
+import Data.Path
 import NumHask.Space
 
 -- $setup
