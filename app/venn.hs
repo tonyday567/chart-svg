@@ -17,7 +17,6 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Lazy
 import Lucid
-import Lucid.Base
 import NumHask.Prelude
 
 xs :: Map.Map Text (Point Double)
@@ -234,24 +233,8 @@ writeVenn1 =
          [outerseg1, outerseg2, outerseg3, midseg1, midseg2, midseg3, innerseg] palette1)
     )
 
-{-
-writet1 :: IO ()
-writet1 =
-  writeChartSvg
-    "other/t1.svg"
-    ( mempty
-        & #svgOptions .~ (defaultSvgOptions)
-        & #hudOptions .~ mempty -- defaultHudOptions
-        & #chartList .~
-        (zipWith (\(p, pts) c -> Chart (PathA $ p & #color .~ c) (PointXY <$> pts)) [outerseg1'] palette1)
-    )
-
-
--}
-
-
-
 main :: IO ()
 main = do
+  writeVenn1
   writeVennWords
   writeVenn palette1

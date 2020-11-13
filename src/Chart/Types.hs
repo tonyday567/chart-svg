@@ -390,7 +390,7 @@ data PathStyle
       { borderSize :: Double,
         borderColor :: Colour,
         color :: Colour,
-        pathInfo :: [PathInstruction Double],
+        pathInfo :: [PathInfo Double],
         pathMarkers :: [(MarkerPos, Text)]
       }
   deriving (Show, Eq, Generic)
@@ -428,17 +428,19 @@ data CssOptions = UseGeometricPrecision | UseCssCrisp | NoCssOptions deriving (S
 data ScaleCharts = ScaleCharts | NoScaleCharts deriving (Show, Eq, Generic)
 
 -- | The x-y ratio of the viewing box
-data SvgAspect = ManualAspect Double | ChartAspect deriving (Show, Eq, Generic)
+data SvgAspect = ManualAspect Double | ChartAspect | DataAspect deriving (Show, Eq, Generic)
 
 -- | textifier
 fromSvgAspect :: (IsString s) => SvgAspect -> s
 fromSvgAspect (ManualAspect _) = "ManualAspect"
 fromSvgAspect ChartAspect = "ChartAspect"
+fromSvgAspect DataAspect = "DataAspect"
 
 -- | readifier
 toSvgAspect :: (Eq s, IsString s) => s -> Double -> SvgAspect
 toSvgAspect "ManualAspect" a = ManualAspect a
 toSvgAspect "ChartAspect" _ = ChartAspect
+toSvgAspect "DataAspect" _ = DataAspect
 toSvgAspect _ _ = ChartAspect
 
 -- | SVG tag options.
@@ -1352,19 +1354,10 @@ legendChart lrs l =
 --
 -- > projectXYs (dataBox cs) cs == cs if cs is non-empty
 projectXYs :: Rect Double -> [Chart Double] -> [Chart Double]
-projectXYs a cs = cs'
+projectXYs _ [] = []
+projectXYs new cs = projectXYsWith new old cs
   where
-    xss = projectTo2 a (xys <$> cs)
-    ss = annotation <$> cs
-    cs' = zipWith Chart ss xss
-    projectTo2 vb xss =
-      fmap
-        ( maybe
-            id
-            (projectOn vb)
-            (fold $ foldRect . fmap toRect <$> xss)
-        )
-        <$> xss
+    old = fromMaybe one (dataBoxes cs)
 
 -- | Project chart xys to a new XY Space from an old XY Space
 --
@@ -1374,7 +1367,11 @@ projectXYsWith new old cs = cs'
   where
     xss = fmap (projectOn new old) . xys <$> cs
     ss = annotation <$> cs
+    projectPaths (PathA s) = PathA $ s & #pathInfo %~ fmap (projectArc new old)
+    projectPaths a = a
     cs' = zipWith Chart ss xss
+    projectArc new old (ArcI ai) = ArcI $ ai & #radii %~ project old new
+    projectArc _ _ x = x
 
 -- | 'Rect' of a 'Chart', not including style
 dataBox :: Chart Double -> Maybe (Rect Double)

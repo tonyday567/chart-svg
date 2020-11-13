@@ -77,6 +77,7 @@ getSize :: SvgOptions -> [Chart Double] -> Point Double
 getSize o cs = case view #svgAspect o of
   ManualAspect a -> (view #svgHeight o *) <$> Point a 1
   ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . fromMaybe one $ styleBoxes cs
+  DataAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . fromMaybe one $ dataBoxes cs
 
 -- | Get SVG viewbox as a Rect from options and chart details.
 getViewbox :: SvgOptions -> [Chart Double] -> Rect Double
@@ -87,6 +88,7 @@ getViewbox o cs =
       case view #svgAspect o of
         ManualAspect a -> Rect (a * -0.5) (a * 0.5) -0.5 0.5
         ChartAspect -> fromMaybe one $ styleBoxes cs
+        DataAspect -> fromMaybe one $ dataBoxes cs
 
 -- * rendering
 

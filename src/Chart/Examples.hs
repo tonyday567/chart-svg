@@ -26,6 +26,8 @@ module Chart.Examples
     legendExample,
     sinCosTan,
     writeAllExamples,
+    testArcBox,
+    testArc,
   )
 where
 
@@ -363,7 +365,7 @@ waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (PointXY 
 pathExample :: ChartSvg
 pathExample =
   mempty &
-  #chartList .~ zipWith (\c x -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> x)) (PointXY . snd <$> x)) palette1 (toInstructions . parsePath <$> vennSegs) &
+  #chartList .~ zipWith (\c x -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> x)) (PointXY . snd <$> x)) palette1 (toInfos . parsePath <$> vennSegs) &
   #svgOptions .~ (defaultSvgOptions & #svgAspect .~ ChartAspect) &
   #hudOptions .~ defaultHudOptions
 
@@ -386,24 +388,72 @@ testArcBox paths = writeChartSvg "other/testarcbox.svg"
    #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ ManualAspect 1))
   )
   where
-    ps = toInstructions . parsePath <$> paths
+    ps = toInfos . parsePath <$> paths
     arcs = zipWith (\c xs -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> xs)) (PointXY <$> snd <$> xs)) palette1 ps
     rects = zipWith (\c r -> Chart (RectA $ defaultRectStyle & #borderColor .~ setOpac 0.1 c & #color .~ transparent) (maybe [] (\r' -> [RectXY r']) r)) palette1 (arcBoxes <$> ps)
 
-testArc :: Point Double -> Point Double -> ArcStuff Double -> IO ()
-testArc  x1 x2 stuff = writeChartSvg "other/testarc.svg"
+-- |
+--
+-- >>> testArc "other/testarc.svg" (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
+--
+-- [Arc Test]("other/testarc.svg")
+--
+testArc :: FilePath -> ArcPosition Double -> IO ()
+testArc fp p1 = writeChartSvg fp
   (mempty &
-   #chartList .~ [arc, ell] &
+   #chartList .~ [arc, ell, c0, as, bbox, dots, dotlabels] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ ManualAspect 1))
+   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ DataAspect) . (#scaleCharts' .~ ScaleCharts))
   )
   where
-    ps = [(StartI, x1), (ArcI stuff, x2)]
-    arc = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
-    ell = (Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY <$> ellipse arcc (toAbsRadius x1 x2 (stuff ^. #radiusRatio)) (stuff ^. #phi) . (\x -> x * 2 * pi / 100.0) <$> [0..100]))
-    (arcc, _, _, _) = arcC' x1 x2 stuff
-
-
+    ps = [(StartI, (p1 ^. #posStart)), (ArcI (p1 ^. #posInfo), (p1 ^. #posEnd))]
+    arc = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
+    (ArcCentroid c r phi' ang0 angd) = arcCentroid p1
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY <$> ellipse c r (phi') . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
+    c0 = Chart (GlyphA defaultGlyphStyle) [PointXY c]
+    as = Chart (TextA (defaultTextStyle & #anchor .~ AnchorStart & #size .~ 0.04) stats)
+      (PointXY . Point 0 . (*0.1) <$>
+       take (length stats) [0..])
+    stats =
+      [ (let (Point cx cy) = c in "c: (" <> fixed (Just 3) cx <> "," <> fixed (Just 3) cy <> ")"),
+        (let (Point rx ry) = r in "r: (" <> fixed (Just 3) rx <> "," <> fixed (Just 3) ry <> ")"),
+        "phi: " <> fixed (Just 3) phi',
+        "ang0: " <> fixed (Just 3) ang0,
+        "angd: " <> fixed (Just 3) angd
+      ]
+    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p1)]
+    (x',y') = arcDerivs r phi'
+    dots = Chart (GlyphA defaultGlyphStyle)
+      (PointXY . ellipse c r phi' <$>
+        [ x',
+          x'+pi,
+          x'-pi,
+          y',
+          y'+pi,
+          y'-pi,
+          ang0,
+          ang0+angd
+        ])
+    dotlabels = (\ts xs -> Chart (TextA defaultTextStyle ts)
+      (PointXY . ellipse c r phi' <$> xs))
+        [ "x'",
+          "x'+pi",
+          "x'-pi",
+          "y'",
+          "y'+pi",
+          "y'-pi",
+          "ang0",
+          "ang0+angd"
+        ]
+        [ x',
+          x'+pi,
+          x'-pi,
+          y',
+          y'+pi,
+          y'-pi,
+          ang0,
+          ang0+angd
+        ]
 
 -- | Run this to refresh haddock example SVGs.
 writeAllExamples :: IO ()
