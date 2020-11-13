@@ -52,6 +52,7 @@ library
     Color >= 0.1.4 && < 0.1.5,
     attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
+    foldl,
     generic-lens >= 1.2 && < 3.0,
     lens >= 4.0 && < 5,
     linear,

@@ -23,15 +23,24 @@ module Data.Path
     arcDerivs,
     ellipse,
     toRadii,
+    quadBezier,
+    fromPathQuad,
+    QuadPosition (..),
+    QuadPolar (..),
+    quadPosition,
+    quadPolar,
+    quadBox,
   ) where
 
 import qualified Graphics.SvgTree as SvgTree
 import Graphics.SvgTree (PathCommand (..), Origin(..))
 import Graphics.SvgTree.PathParser
 import qualified Data.Attoparsec.Text as A
+import qualified Data.Text as Text
 import NumHask.Space
 import NumHask.Prelude hiding (rotate)
 import qualified Linear
+import qualified Control.Foldl as L
 
 -- | Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  A path chart is thus very similar to a line chart, with a lot more information about style.
 --
@@ -53,7 +62,6 @@ import qualified Linear
 --
 parsePath :: Text -> [PathCommand]
 parsePath t = either (const []) id $ A.parseOnly pathParser t
-
 
 -- | Path instructions can be split into the points between lines and the instructions for creating each line.
 --
@@ -86,7 +94,11 @@ data PathInfo a =
 --
 -- - implicit L in multiple M instructions is separated.
 --
-toPathAbsolute :: (PathInfo Double, Point Double, Point Double) -> Text
+toPathAbsolute ::
+  -- | (info, start, end)
+  (PathInfo Double, Point Double, Point Double) ->
+  -- | path text
+  Text
 toPathAbsolute (StartI,p,_) = "M " <> pp p
 toPathAbsolute (LineI,p,_) = "L " <> pp p
 toPathAbsolute ((CubicI c1 c2), x2, x1) =
@@ -94,10 +106,12 @@ toPathAbsolute ((CubicI c1 c2), x2, x1) =
   pp ((norm (x2 - x1) :: Double) .* coord c1) <> " " <>
   pp ((norm (x2 - x1) :: Double) .* coord c2) <> " " <>
   pp x2
-toPathAbsolute ((QuadI c1), x2, x1) =
+toPathAbsolute ((QuadI control), next, prev) =
   "Q " <>
-  pp ((norm (x2 - x1) :: Double) .* coord c1) <> " " <>
-  pp x2
+  pp control' <> " " <>
+  pp next
+  where
+    (QuadPosition _ _ control') = quadPosition (QuadPolar prev next control)
 toPathAbsolute (ArcI (ArcInfo (Point x y) phi' sw l), x2, x1) =
   "A " <>
   show (x * norm (x2 - x1)) <> " " <>
@@ -108,13 +122,19 @@ toPathAbsolute (ArcI (ArcInfo (Point x y) phi' sw l), x2, x1) =
   bool "0" "1" l <> " " <>
   pp x2
 
+-- | render a point, including polarity reversal
 pp :: Point Double -> Text
-pp (Point x y) = show x <> "," <> show y
+pp (Point x y) = show x <> "," <> show (bool (-y) y (y==zero))
 
--- | convert a path info, point list to an svg d path text.
+-- | convert a (info, point) list to an svg d path text.
 toPathAbsolutes :: [(PathInfo Double, Point Double)] -> Text
-toPathAbsolutes xs =
-  snd $ foldl' (\(prev,t) (i, p) -> (p,t<>" "<>toPathAbsolute (i,p,prev))) (zero,mempty) (second (\(Point x y) -> Point x (-y)) <$> xs)
+toPathAbsolutes xs = L.fold (L.Fold step begin done) xs
+  where
+    -- reversing y polarity
+    done = Text.intercalate " " . reverse . snd
+    -- (previous point, accumulated text)
+    begin = (zero, [])
+    step (prev, ts) (info, next) = (next , toPathAbsolute (info, next, prev):ts)
 
 -- | Convert a path command fragment to an instruction + point.
 --
@@ -142,9 +162,10 @@ toInfo (current,start) (CurveTo OriginAbsolute xs) =
 toInfo (current,start) (CurveTo OriginRelative xs) =
   second reverse $ foldl' (\((c,s),st) (c1,c2,x2) -> ((x2+c,s), ((fromPathCurve c (c1+c, c2+c, x2+c), x2+c):st))) ((current,start), []) ((\(c1,c2,x2) -> (fromV2 c1, fromV2 c2, fromV2 x2)) <$> xs)
 toInfo (current,start) (QuadraticBezier OriginAbsolute xs) =
-  second reverse $ foldl' (\((c,s),st) a@(_,x2) -> ((x2,s), (fromPathQuad c a, x2):st)) ((current,start), []) ((\(c1,x2) -> (fromV2 c1, fromV2 x2)) <$> xs)
+  second reverse $
+  foldl' (\((c,s),st) (q1,x2) -> ((x2,s), (fromPathQuad (QuadPosition c q1 x2), x2):st)) ((current,start), []) ((\(c1,x2) -> (fromV2 c1, fromV2 x2)) <$> xs)
 toInfo (current,start) (QuadraticBezier OriginRelative xs) =
-  second reverse $ foldl' (\((c,s),st) (c1,x2) -> ((x2+c,s), ((fromPathQuad c (c1+c, x2+c), x2+c):st))) ((current,start), []) ((\(c1,x2) -> (fromV2 c1, fromV2 x2)) <$> xs)
+  second reverse $ foldl' (\((c,s),st) (c1,x2) -> ((x2+c,s), ((fromPathQuad (QuadPosition c (c1+c) (x2+c)), x2+c):st))) ((current,start), []) ((\(c1,x2) -> (fromV2 c1, fromV2 x2)) <$> xs)
 toInfo (current,start) EndPath =
   ((current,start), [(LineI, start)])
 toInfo (current,start) (EllipticalArc OriginAbsolute xs) =
@@ -170,11 +191,10 @@ fromPathEllipticalArc x1 (x, y, r, l, s, x2) = ArcI (ArcInfo (Point x' y') (-r) 
     x' = x / norm (x2 - x1)
     y' = y / norm (x2 - x1)
 
-fromPathQuad :: (ExpField a, TrigField a) => Point a -> (Point a, Point a) -> PathInfo a
-fromPathQuad x1 (c1, x2) = QuadI (Polar mag1 angle1)
+fromPathQuad :: (ExpField a, TrigField a) => QuadPosition a -> PathInfo a
+fromPathQuad q = QuadI p
   where
-    mag1 = norm (c1 - x1) / norm (x2 - x1)
-    angle1 = angle (c1 - x2)
+    (QuadPolar _ _ p) = quadPolar q
 
 fromV2 :: Linear.V2 a -> Point a
 fromV2 (Linear.V2 x y) = Point x y
@@ -364,3 +384,74 @@ arcDerivs (Point rx ry) phi = (thetax1, thetay1)
   where
     thetax1 = atan2 (-sin phi * ry) (cos phi * rx)
     thetay1 = atan2 (cos phi * ry) (sin phi * rx)
+
+-- * bezier
+-- | quadratic bezier curve
+--
+data QuadPosition a =
+  QuadPosition
+  { -- | starting point
+    qposStart :: Point a,
+    -- | ending point
+    qposEnd :: Point a,
+    -- | control point
+    qposControl :: Point a
+  } deriving (Eq, Show, Generic)
+
+-- | Control point expressed relative to end points
+data QuadPolar a =
+  QuadPolar
+  { -- | starting point
+    qpolStart :: Point a,
+    -- | ending point
+    qpolEnd :: Point a,
+    -- | control point in terms of distance from and angle to the qp0 - qp2 line
+    qpolControl :: Polar a a
+  } deriving (Eq, Show, Generic)
+
+-- |
+--
+-- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))
+-- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {magnitude = 0.7071067811865476, direction = -0.7853981633974483}}
+--
+-- "M 0.0,-0.0 Q 1.0,0.0 1.0,-1.0 L 0.0,-0.0"
+quadPolar :: (ExpField a, TrigField a) => QuadPosition a -> QuadPolar a
+quadPolar (QuadPosition start end control) = QuadPolar start end control'
+  where
+    mp = (start + end) /. two
+    control' = polar (control - mp)
+
+-- |
+--
+-- > quadPosition . quadPolar == id
+-- > quadPolar . quadPosition == id
+--
+-- >>> quadPosition $ quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))
+-- QuadPosition {qposStart = Point 0.0 0.0, qposEnd = Point 1.0 1.0, qposControl = Point 1.0 0.0}
+quadPosition :: (ExpField a, TrigField a) => QuadPolar a -> QuadPosition a
+quadPosition (QuadPolar start end control) = QuadPosition start end control'
+  where
+    control' = coord control + (start + end) /. two
+
+-- |
+--
+quadBezier :: (ExpField a, FromInteger a) => QuadPosition a -> a -> Point a
+quadBezier (QuadPosition start end control) theta =
+  (1 - theta) ^ (2 :: Int) .* start +
+  2 * (1-theta) * theta .* control +
+  theta ^ (2 :: Int) .* end
+
+-- |
+--
+-- <https://www.iquilezles.org/www/articles/bezierbbox/bezierbbox.htm>
+--
+quadDerivs :: QuadPosition Double -> Point Double
+quadDerivs (QuadPosition start end control) = (start - control) / (start - 2 .* control + end)
+
+-- |
+--
+quadBox :: QuadPosition Double -> Rect Double
+quadBox p = space1 pts
+  where
+    (Point tx ty) = quadDerivs p
+    pts = quadBezier p <$> [0,1,tx,ty]

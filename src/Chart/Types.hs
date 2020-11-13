@@ -1367,11 +1367,14 @@ projectXYsWith new old cs = cs'
   where
     xss = fmap (projectOn new old) . xys <$> cs
     ss = annotation <$> cs
+    cs' = zipWith Chart ss xss
+{-
+FIXME: Is this still needed somehow?
     projectPaths (PathA s) = PathA $ s & #pathInfo %~ fmap (projectArc new old)
     projectPaths a = a
-    cs' = zipWith Chart ss xss
     projectArc new old (ArcI ai) = ArcI $ ai & #radii %~ project old new
     projectArc _ _ x = x
+-}
 
 -- | 'Rect' of a 'Chart', not including style
 dataBox :: Chart Double -> Maybe (Rect Double)

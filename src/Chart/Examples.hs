@@ -28,6 +28,7 @@ module Chart.Examples
     writeAllExamples,
     testArcBox,
     testArc,
+    testQuad,
   )
 where
 
@@ -454,6 +455,25 @@ testArc fp p1 = writeChartSvg fp
           ang0,
           ang0+angd
         ]
+
+-- |
+--
+-- >>> testQuad "other/quad.svg" (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))
+--
+testQuad :: FilePath -> QuadPosition Double -> IO ()
+testQuad fp p@(QuadPosition start end control) = writeChartSvg fp
+  (mempty &
+   #chartList .~ [path', curve, c0, bbox] &
+   #hudOptions .~ defaultHudOptions &
+   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ DataAspect) . (#scaleCharts' .~ ScaleCharts))
+  )
+  where
+    (QuadPolar _ _ control') = quadPolar p
+    ps = [(StartI, start), (QuadI control', end), (LineI, start)]
+    path' = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY <$> quadBezier p . (/100.0) <$> [0..100])
+    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control])
+    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (quadBox p)]
 
 -- | Run this to refresh haddock example SVGs.
 writeAllExamples :: IO ()
