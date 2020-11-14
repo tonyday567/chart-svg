@@ -14,7 +14,6 @@ module Chart.Examples
     textExample,
     glyphsExample,
     lineExample,
-    surfaceExample,
     barDataExample,
     barExample,
     waveExample,
@@ -26,11 +25,14 @@ module Chart.Examples
     legendExample,
     pathExample,
     vennExample,
-    sinCosTan,
-    writeAllExamples,
+    surfaceExample,
+    arrowgExample,
+    surfacegExample,
+    rosenbrock,
     testArc,
     testQuad,
     testCubic,
+    writeAllExamples,
   )
 where
 
@@ -205,29 +207,6 @@ barExample :: ChartSvg
 barExample = mempty & #hudOptions .~ hc & #chartList .~ cs
   where
     (hc, cs) = barChart defaultBarOptions barDataExample
-
--- | surface example
---
--- ![surface example](other/surface.svg)
-surfaceExample :: ChartSvg
-surfaceExample =
-  mempty &
-  #hudList .~ hs &
-  #chartList .~ cs &
-  #svgOptions .~ (defaultSvgOptions & #useCssCrisp .~ UseCssCrisp)
-  where
-    (cs, hs) =
-      surfacefl sinCosTan
-      (defaultSurfaceOptions &
-       #soGrain .~ Point 100 100 &
-       #soRange .~ Rect 1 2 1 2 &
-       #soStyle . #surfaceColors .~ (take 6 palette1))
-      (defaultSurfaceLegendOptions "surface" &
-       #sloStyle . #surfaceColors .~ (take 6 palette1))
-
--- | Function for surface example.
-sinCosTan :: (TrigField a) => Point a -> a
-sinCosTan (Point x y) = sin (cos (tan x)) * sin (cos (tan y))
 
 -- | An example of how bounding box calculations for text is broken.
 --
@@ -427,12 +406,12 @@ pathExample =
 --
 -- > testArc (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
 --
--- [arc Test]("other/arc.svg")
+-- ![arc Test](other/arc.svg)
 --
 testArc :: ArcPosition Double -> ChartSvg
 testArc p1 =
   (mempty &
-   #chartList .~ [arc, ell, c0, as, bbox, dots, dotlabels] &
+   #chartList .~ [arc, ell, c0, as, bbox] &
    #hudOptions .~ defaultHudOptions &
    #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ DataAspect) . (#scaleCharts' .~ ScaleCharts))
   )
@@ -453,45 +432,13 @@ testArc p1 =
         "angd: " <> fixed (Just 3) angd
       ]
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p1)]
-    (x',y') = arcDerivs r phi'
-    dots = Chart (GlyphA defaultGlyphStyle)
-      (PointXY . ellipse c r phi' <$>
-        [ x',
-          x'+pi,
-          x'-pi,
-          y',
-          y'+pi,
-          y'-pi,
-          ang0,
-          ang0+angd
-        ])
-    dotlabels = (\ts xs -> Chart (TextA defaultTextStyle ts)
-      (PointXY . ellipse c r phi' <$> xs))
-        [ "x'",
-          "x'+pi",
-          "x'-pi",
-          "y'",
-          "y'+pi",
-          "y'-pi",
-          "ang0",
-          "ang0+angd"
-        ]
-        [ x',
-          x'+pi,
-          x'-pi,
-          y',
-          y'+pi,
-          y'-pi,
-          ang0,
-          ang0+angd
-        ]
 
 -- |
 --
 -- >>> testQuad (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))
 --
--- [quad test]("other/quad.svg")
---
+-- ![quad test](other/quad.svg)
+-- 
 testQuad :: QuadPosition Double -> ChartSvg
 testQuad p@(QuadPosition start end control) =
   (mempty &
@@ -511,7 +458,7 @@ testQuad p@(QuadPosition start end control) =
 --
 -- >>> testCubic (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
 --
--- [cubic test]("other/cubic.svg")
+-- ![cubic test](other/cubic.svg)
 --
 testCubic :: CubicPosition Double -> ChartSvg
 testCubic p@(CubicPosition start end control1 control2) =
@@ -532,6 +479,116 @@ testCubic p@(CubicPosition start end control1 control2) =
     pathText = toPathAbsolutes ps
     bl = Chart BlankA [RectXY (Rect 0 2 0 1.5)]
 
+-- | Create a chart across a surface using a function.
+--
+-- Typically used to represent a gradient.
+--
+-- >>> writeChartSvg "other/surface.svg" $ surfaceExample "rosenbrock" (Point 100 100) one (fst . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+--
+-- ![surface example](other/surface.svg)
+--
+surfaceExample ::
+  -- | Legend title
+  Text ->
+  -- | Surface grid
+  Point Int ->
+  -- | Surface range
+  Rect Double ->
+  -- | Surface function
+  (Point Double -> Double) ->
+  ChartSvg
+surfaceExample t grain r f =
+    mempty &
+  #hudList .~ hs &
+  #chartList .~ cs &
+  #svgOptions .~ (defaultSvgOptions & #useCssCrisp .~ UseCssCrisp)
+  where
+    (cs, hs) =
+      surfacefl f
+      (defaultSurfaceOptions &
+       #soGrain .~ grain &
+       #soRange .~ r &
+       #soStyle . #surfaceColors .~ (take 6 palette1))
+      (defaultSurfaceLegendOptions t &
+       #sloStyle . #surfaceColors .~ (take 6 palette1))
+
+-- | Create an arrow chart across a surface using a function.
+--
+-- Typically used to represent a gradient.
+--
+-- >>> writeChartSvg "other/arrowg.svg" $ arrowgExample (Point 20 20) one (fst . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+--
+-- ![arrowg example](other/arrowg.svg)
+--
+--
+arrowgExample ::
+  -- | Surface grid
+  Point Int ->
+  -- | Surface range
+  Rect Double ->
+  -- | Surface gradient function
+  (Point Double -> Point Double) ->
+  ChartSvg
+arrowgExample grain r f =
+  mempty &
+  #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#atick . #ltick .~ Nothing)) &
+  #chartList .~ ((\p -> chart (tmag . f $ p) (dir . f $ p) p) <$> ps) &
+  #svgOptions .~ (defaultSvgOptions & #useCssCrisp .~ UseCssCrisp)
+  where
+    ps = grid MidPos r grain
+    arrow = PathGlyph "M -1 0 L 1 0 M 1 0 L 0.4 0.3 M 1 0 L 0.4 -0.3"
+    gs s r' =
+      defaultGlyphStyle &
+      #borderSize .~ 0.05 &
+      #size .~ s &
+      #borderColor .~ black &
+      #rotation .~ Just r' &
+      #shape .~ arrow
+    chart s r' p = Chart (GlyphA (gs s r')) [PointXY p]
+
+    dir :: Point Double -> Double
+    dir (Point x y) = -1 * atan2 y x * (180/pi)
+
+    mag :: Point Double -> Double
+    mag (Point x y) = sqrt (x*x + y*y)
+
+    tmag :: Point Double -> Double
+    tmag = max 0.005 . min 0.02 . (*0.01) . (/avmag) . mag
+
+    avmag = (sum $ mag . f <$> ps) / (fromIntegral $ length ps)
+
+-- | A surface chart with gradient arrows.
+--
+-- >>> writeChartSvg "other/surfaceg.svg" $ surfacegExample "rosenbrock" (Point 100 100) (Point 20 20) one (first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+--
+-- ![surfaceg example](other/surfaceg.svg)
+--
+surfacegExample ::
+  -- | Title
+  Text ->
+  -- | Surface grid
+  Point Int ->
+  -- | Gradient grid
+  Point Int ->
+  -- | Surface range
+  Rect Double ->
+  -- | Surface + gradient function
+  (Point Double -> (Double, Point Double)) ->
+  ChartSvg
+surfacegExample t grainS grainG r f  =
+  surfaceExample t grainS r (fst . f) <>
+  arrowgExample grainG r (snd . f)
+
+-- | function for testing
+--
+-- > f(x,y) = (a-x)^2 + b * (y - x^2)^2
+-- >        = a^2 - 2ax + x^2 + b * y^2 - b * 2 * y * x^2 + b * x ^ 4
+-- > f'x = -2a + 2 * x - b * 4 * y * x + 4 * b * x ^ 3
+-- > f'y = 2 * b * y - 2 * b * x^2
+-- > f a b (Point x y) = (a^2 - 2ax + x^2 + b * y^2 - b * 2 * y * x^2 + b * x^4, Point (-2a + 2 * x - b * 4 * y * x + 4 * b * x ^ 3), 2 * b * y - 2 * b * x^2)
+rosenbrock :: Double -> Double -> Point Double -> (Double, Point Double)
+rosenbrock a b (Point x y) = (a^(2::Int) - 2*a*x + x^(2::Int) + b * y^(2::Int) - b * 2 * y * x^(2::Int) + b * x^(4::Int), Point (-2*a + 2 * x - b * 4 * y * x + 4 * b * x ^ (3::Int)) (2 * b * y - 2 * b * x^(2::Int)))
+
 -- | Run this to refresh haddock example SVGs.
 writeAllExamples :: IO ()
 writeAllExamples = do
@@ -549,7 +606,6 @@ writeAllExamples = do
   writeChartSvg "other/text.svg" textExample
   writeChartSvg "other/glyphs.svg" glyphsExample
   writeChartSvg "other/line.svg" lineExample
-  writeChartSvg "other/surface.svg" surfaceExample
   writeChartSvg "other/svgoptions.svg" svgOptionsExample
   writeChartSvg "other/hudoptions.svg" hudOptionsExample
   writeChartSvg "other/legend.svg" legendExample
@@ -571,4 +627,13 @@ writeAllExamples = do
     testQuad (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))    
   writeChartSvg "other/cubic.svg" $
     testCubic (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
+  writeChartSvg "other/surface.svg" $
+    surfaceExample "rosenbrock" (Point 100 100) one
+    (fst . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+  writeChartSvg "other/arrowg.svg" $
+    arrowgExample (Point 20 20) one
+    (snd . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+  writeChartSvg "other/surfaceg.svg" $
+    surfacegExample "rosenbrock" (Point 100 100) (Point 20 20) one
+    (first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
   putStrLn ("ok" :: Text)
