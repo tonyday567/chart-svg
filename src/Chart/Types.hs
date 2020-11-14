@@ -1369,7 +1369,7 @@ projectXYsWith new old cs = cs'
     ss = annotation <$> cs
     cs' = zipWith Chart ss xss
 {-
-FIXME: Is this still needed somehow?
+FIXME: do this!
     projectPaths (PathA s) = PathA $ s & #pathInfo %~ fmap (projectArc new old)
     projectPaths a = a
     projectArc new old (ArcI ai) = ArcI $ ai & #radii %~ project old new
@@ -1380,7 +1380,7 @@ FIXME: Is this still needed somehow?
 dataBox :: Chart Double -> Maybe (Rect Double)
 dataBox c =
   case c ^. #annotation of
-    PathA path' -> arcBoxes $ zip (path' ^. #pathInfo) (toPoint <$> c ^. #xys)
+    PathA path' -> pathBoxes $ zip (path' ^. #pathInfo) (toPoint <$> c ^. #xys)
     _ -> foldRect $ fmap toRect $ (c ^. #xys)
 
 -- | 'Rect' of charts, not including style

@@ -20,7 +20,6 @@ module Data.Path
     arcCentroid,
     arcPosition,
     arcBox,
-    arcBoxes,
     arcDerivs,
     ellipse,
     toRadii,
@@ -38,6 +37,8 @@ module Data.Path
     cubicBox,
     cubicBezier,
     cubicDerivs,
+    pathBoxes,
+    pathBox,
   ) where
 
 import qualified Graphics.SvgTree as SvgTree
@@ -51,6 +52,7 @@ import qualified Linear
 import qualified Control.Foldl as L
 import Control.Lens hiding ((...))
 import Data.Generics.Labels ()
+import qualified Geom2D.CubicBezier as B
 
 -- | Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  A path chart is thus very similar to a line chart, with a lot more information about style.
 --
@@ -407,16 +409,6 @@ arcPosition (ArcCentroid (Point cx cy) r@(Point rx ry) phi ang1 angd) = ArcPosit
     large = (abs angd) >= pi
     sweep = angd < zero
 
-arcBoxes :: [(PathInfo Double, Point Double)] -> Maybe (Rect Double)
-arcBoxes [] = Nothing
-arcBoxes (x:xs) = Just $ snd $ foldl' (\(prev,r) (i, p) ->
-                                  (p, r & case i of
-                                      (ArcI a) -> (<>) (arcBox (ArcPosition prev p a))
-                                      _ -> id)
-                               )
-              (snd x, let (Point x' y') = snd x in Rect x' x' y' y')
-              xs
-
 -- | Convert from ratio radii to absolute radii
 toRadii :: (ExpField a) => Point a -> Point a -> Point a -> Point a
 toRadii p1 p2 (Point ratiox ratioy) =
@@ -548,7 +540,8 @@ quadBezier (QuadPosition start end control) theta =
 -- <https://www.iquilezles.org/www/articles/bezierbbox/bezierbbox.htm>
 --
 quadDerivs :: QuadPosition Double -> Point Double
-quadDerivs (QuadPosition start end control) = (start - control) / (start - 2 .* control + end)
+quadDerivs (QuadPosition start end control) =
+  (start - control) / (start - 2 .* control + end)
 
 -- |
 --
@@ -626,15 +619,32 @@ cubicBezier (CubicPosition start end control1 control2) theta =
 --
 -- <https://www.iquilezles.org/www/articles/bezierbbox/bezierbbox.htm>
 --
-cubicDerivs :: CubicPosition Double -> (Point Double, Point Double)
-cubicDerivs (CubicPosition start end control1 control2) = (t0,t1)
+cubicDerivs :: CubicPosition Double -> [Double]
+cubicDerivs (CubicPosition (Point c0x c0y) (Point c3x c3y)
+             (Point c1x c1y) (Point c2x c2y)) =
+  B.bezierHoriz b <> B.bezierVert b
   where
-    a = -start + 3 .* control1 - 3 .* control2 + end
-    b = start - 2 .* control1 + control2
-    c = -start + end
-    n = fmap (sqrt) (b ^ (2::Int) - a * c)
-    t0 = (-b + n) / a
-    t1 = (-b - n) / a
+    b =
+      B.CubicBezier
+      (B.Point c0x c0y)
+      (B.Point c1x c1y)
+      (B.Point c2x c2y)
+      (B.Point c3x c3y)
+
+{-
+cubicDerivs (CubicPosition start end control1 control2) = tx <> tx0 <> ty <> ty0
+  where
+    (Point ax ay) = -3 .* start + 9  .* control1 - 9  .* control2 + 3 .* end
+    (Point bx by) =  6 .* start - 12 .* control1 + 12 .* control2
+    (Point cx cy) = -3 .* start + 3 .* end
+    nx = sqrt (bx ^ (2::Int) - ax * cx)
+    ny = sqrt (by ^ (2::Int) - ay * cy)
+    tx = bool [(-bx + nx) / (2 * ax), (-bx - nx) / (2 * ax)] [] (isNaN nx || ax==0)
+    tx0 = bool [] [-cx/bx] (ax==0 && (not (isNaN nx)))
+    ty = bool [(-by + ny) / (2 * ay), (-by - ny) / (2 * ay)] [] (isNaN ny || ay==0)
+    ty0 = bool [] [-cy/by] (ay==0)
+
+-}
 
 -- |
 -- FIXME: slightly out???
@@ -644,8 +654,33 @@ cubicDerivs (CubicPosition start end control1 control2) = (t0,t1)
 cubicBox :: CubicPosition Double -> Rect Double
 cubicBox p = space1 pts
   where
-    (Point tx0 ty0, Point tx1 ty1) = cubicDerivs p
+    ts = cubicDerivs p
     pts = cubicBezier p <$>
           filter
           (|.| (Range 0 1))
-          [0,1,tx0,ty0,tx1,ty1]
+          ([0,1] <> ts)
+
+-- |
+--
+pathBoxes :: [(PathInfo Double, Point Double)] -> Maybe (Rect Double)
+pathBoxes [] = Nothing
+pathBoxes (x:xs) =
+  L.fold (L.Fold step begin (Just . snd)) xs
+  where
+    begin :: (Point Double, Rect Double)
+    begin = (snd x, singleton (snd x))
+    step ::
+      (Point Double, Rect Double) ->
+      (PathInfo Double, Point Double) ->
+      (Point Double, Rect Double)
+    step (start, r) a = (snd a, pathBox start a <> r)
+
+pathBox :: Point Double -> (PathInfo Double, Point Double) -> Rect Double
+pathBox start (info, end) =
+  case info of
+    StartI -> singleton end
+    LineI -> space1 [start, end]
+    CubicI c1 c2 -> cubicBox (cubicPosition (CubicPolar start end c1 c2))
+    QuadI c -> quadBox (quadPosition (QuadPolar start end c))
+    ArcI i -> arcBox (ArcPosition start end i)
+

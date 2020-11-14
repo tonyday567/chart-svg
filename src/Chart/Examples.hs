@@ -24,9 +24,10 @@ module Chart.Examples
     boundTextBugExample,
     labelExample,
     legendExample,
+    pathExample,
+    vennExample,
     sinCosTan,
     writeAllExamples,
-    testArcBox,
     testArc,
     testQuad,
     testCubic,
@@ -364,11 +365,11 @@ legendExample =
 waveExample :: ChartSvg
 waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (PointXY <$> gridP sin (Range 0 (2 * pi)) 30)]
 
-pathExample :: ChartSvg
-pathExample =
+vennExample :: ChartSvg
+vennExample =
   mempty &
   #chartList .~ zipWith (\c x -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> x)) (PointXY . snd <$> x)) palette1 (toInfos . parsePath <$> vennSegs) &
-  #svgOptions .~ (defaultSvgOptions & #svgAspect .~ ChartAspect) &
+  #svgOptions .~ (defaultSvgOptions & #svgAspect .~ ManualAspect 1) &
   #hudOptions .~ defaultHudOptions
 
 vennSegs :: [Text]
@@ -382,17 +383,27 @@ vennSegs =
         "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 Z"
       ]
 
-testArcBox :: [Text] -> IO ()
-testArcBox paths = writeChartSvg "other/testarcbox.svg"
+pathExample :: ChartSvg
+pathExample =
   (mempty &
-   #chartList .~ arcs <> rects &
+   #chartList .~ [path', c0] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ ManualAspect 1))
+   #svgOptions %~
+   ((#outerPad .~ Just 0.4) .
+    (#svgAspect .~ DataAspect) .
+    (#scaleCharts' .~ ScaleCharts))
   )
   where
-    ps = toInfos . parsePath <$> paths
-    arcs = zipWith (\c xs -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> xs)) (PointXY <$> snd <$> xs)) palette1 ps
-    rects = zipWith (\c r -> Chart (RectA $ defaultRectStyle & #borderColor .~ setOpac 0.1 c & #color .~ transparent) (maybe [] (\r' -> [RectXY r']) r)) palette1 (arcBoxes <$> ps)
+    ps =
+      [ 
+        (StartI, Point 0 0),
+        (LineI, Point 1 0),
+        (CubicI (polar (Point 0.2 0)) (polar (Point 0.25 1)), Point 1 1),
+        (QuadI (polar (Point -1 2)), Point 0 1),
+        (ArcI (ArcInfo (Point 1 1) (-pi/6) False False), Point 0 0)
+      ]
+    path' = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3 & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
+    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY . snd <$> ps)
 
 -- |
 --
@@ -478,12 +489,14 @@ testQuad fp p@(QuadPosition start end control) = writeChartSvg fp
 
 -- |
 --
--- >>> testCubic "other/quad.svg" (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
+-- >>> testCubic "other/cubic.svg" (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
 --
+-- M 0.4,-0.3 C 0.8999999999999999,-1.3 0.9500000000000002,-1.7000000000000002 1.0,-1.0 L 0.4,-0.3
+-- >>> let cp1 = cubicPosition (CubicPolar (Point 0.4 0.3) (Point 1 1) (polar (Point 0.2 0.65)) (polar (Point 0.25 1.05)))
 testCubic :: FilePath -> CubicPosition Double -> IO ()
 testCubic fp p@(CubicPosition start end control1 control2) = writeChartSvg fp
   (mempty &
-   #chartList .~ [path', curve, c0, bbox] &
+   #chartList .~ [path', curve, c0, bbox, pt, bl] &
    #hudOptions .~ defaultHudOptions &
    #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ DataAspect) . (#scaleCharts' .~ ScaleCharts))
   )
@@ -492,8 +505,12 @@ testCubic fp p@(CubicPosition start end control1 control2) = writeChartSvg fp
     ps = [(StartI, start), (CubicI control1' control2', end), (LineI, start)]
     path' = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
     curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY <$> cubicBezier p . (/100.0) <$> [0..100])
-    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control1, control2])
+    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control1, control2, cubicBezier p 0.655])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (cubicBox p)]
+    pt = Chart (TextA (defaultTextStyle & #size .~ 0.05) [pathText])
+      [PointXY (Point 1 1.6)]
+    pathText = toPathAbsolutes ps
+    bl = Chart BlankA [RectXY (Rect 0 2 0 1.5)]
 
 -- | Run this to refresh haddock example SVGs.
 writeAllExamples :: IO ()
@@ -525,5 +542,6 @@ writeAllExamples = do
   writeChartSvg "other/compound.svg" compoundExample
   writeChartSvg "other/boundTextBug.svg" boundTextBugExample
   writeChartSvg "other/label.svg" labelExample
+  writeChartSvg "other/venn.svg" vennExample
   writeChartSvg "other/path.svg" pathExample
   putStrLn ("ok" :: Text)
