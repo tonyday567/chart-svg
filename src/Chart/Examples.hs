@@ -365,6 +365,9 @@ legendExample =
 waveExample :: ChartSvg
 waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (PointXY <$> gridP sin (Range 0 (2 * pi)) 30)]
 
+-- | venn diagram
+--
+-- ![venn diagram](other/venn.svg)
 vennExample :: ChartSvg
 vennExample =
   mempty &
@@ -372,6 +375,18 @@ vennExample =
   #svgOptions .~ (defaultSvgOptions & #svgAspect .~ ManualAspect 1) &
   #hudOptions .~ defaultHudOptions
 
+{-
+These were originally based on:
+
+    [ ("origin", Point 0 0), -- origin
+      ("circle1", Point 0.5 (-0.5 + cos (pi / 6))), -- center of circle 1
+      ("circle2", Point 0 -0.5), -- center of circle 2
+      ("circle3", Point -0.5 (-0.5 + cos (pi / 6))), -- center of circle 3
+      ("corner1", Point 0 (-0.5 + 2 * cos (pi / 6))), -- corner 1
+      ("corner2", Point 1 -0.5), -- corner 2
+      ("corner3", Point -1 -0.5) -- corner 3
+    ]
+-}
 vennSegs :: [Text]
 vennSegs =
       [ "M0.0,-1.2320508075688774 A0.5 0.5 0.0 1 1 1.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,-1.2320508075688774 Z",
@@ -383,6 +398,9 @@ vennSegs =
         "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 Z"
       ]
 
+-- | PathA test
+--
+-- ![path test](other/path.svg)
 pathExample :: ChartSvg
 pathExample =
   (mempty &
@@ -405,14 +423,14 @@ pathExample =
     path' = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3 & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY . snd <$> ps)
 
--- |
+-- | arc test
 --
--- >>> testArc "other/testarc.svg" (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
+-- > testArc (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
 --
--- [Arc Test]("other/testarc.svg")
+-- [arc Test]("other/arc.svg")
 --
-testArc :: FilePath -> ArcPosition Double -> IO ()
-testArc fp p1 = writeChartSvg fp
+testArc :: ArcPosition Double -> ChartSvg
+testArc p1 =
   (mempty &
    #chartList .~ [arc, ell, c0, as, bbox, dots, dotlabels] &
    #hudOptions .~ defaultHudOptions &
@@ -470,10 +488,12 @@ testArc fp p1 = writeChartSvg fp
 
 -- |
 --
--- >>> testQuad "other/quad.svg" (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))
+-- >>> testQuad (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))
 --
-testQuad :: FilePath -> QuadPosition Double -> IO ()
-testQuad fp p@(QuadPosition start end control) = writeChartSvg fp
+-- [quad test]("other/quad.svg")
+--
+testQuad :: QuadPosition Double -> ChartSvg
+testQuad p@(QuadPosition start end control) =
   (mempty &
    #chartList .~ [path', curve, c0, bbox] &
    #hudOptions .~ defaultHudOptions &
@@ -487,14 +507,14 @@ testQuad fp p@(QuadPosition start end control) = writeChartSvg fp
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (quadBox p)]
 
--- |
+-- | cubic test
 --
--- >>> testCubic "other/cubic.svg" (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
+-- >>> testCubic (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
 --
--- M 0.4,-0.3 C 0.8999999999999999,-1.3 0.9500000000000002,-1.7000000000000002 1.0,-1.0 L 0.4,-0.3
--- >>> let cp1 = cubicPosition (CubicPolar (Point 0.4 0.3) (Point 1 1) (polar (Point 0.2 0.65)) (polar (Point 0.25 1.05)))
-testCubic :: FilePath -> CubicPosition Double -> IO ()
-testCubic fp p@(CubicPosition start end control1 control2) = writeChartSvg fp
+-- [cubic test]("other/cubic.svg")
+--
+testCubic :: CubicPosition Double -> ChartSvg
+testCubic p@(CubicPosition start end control1 control2) =
   (mempty &
    #chartList .~ [path', curve, c0, bbox, pt, bl] &
    #hudOptions .~ defaultHudOptions &
@@ -544,4 +564,11 @@ writeAllExamples = do
   writeChartSvg "other/label.svg" labelExample
   writeChartSvg "other/venn.svg" vennExample
   writeChartSvg "other/path.svg" pathExample
+  writeChartSvg "other/arc.svg" $
+    testArc (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0)
+             (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
+  writeChartSvg "other/quad.svg" $
+    testQuad (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))    
+  writeChartSvg "other/cubic.svg" $
+    testCubic (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
   putStrLn ("ok" :: Text)
