@@ -40,6 +40,7 @@ library
     Chart
     Chart.Bar
     Chart.Examples
+    Chart.Reanimate
     Chart.Surface
     Chart.Render
     Chart.Types
@@ -50,6 +51,7 @@ library
     src
   build-depends:
     Color >= 0.1.4 && < 0.1.5,
+    JuicyPixels >= 3.3 && < 3.4,
     attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
     cubicbezier,
@@ -78,3 +80,41 @@ library
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
+
+executable reanimate-example
+  main-is: reanimate-example.hs
+  hs-source-dirs:
+    app
+  build-depends:
+    attoparsec,
+    JuicyPixels >= 3.3.5 && < 3.4,
+    base >=4.7 && <5,
+    bytestring >= 0.10 && < 0.11,
+    chart-svg,
+    concurrency >= 1.11,
+    foldl >= 1.4,
+    lucid,
+    lens,
+    linear,
+    numhask >= 0.6 && < 0.7,
+    numhask-space >= 0.6 && < 0.7,
+    reanimate,
+    reanimate-svg,
+    text >= 1.2 && < 1.3,
+    time >= 1.9 && < 1.10,
+    transformers >= 0.5,
+    unordered-containers,
+    vector >= 0.12 && < 0.13,
+  default-language: Haskell2010
+  default-extensions:
+    NegativeLiterals
+    NoImplicitPrelude
+    OverloadedStrings
+    UnicodeSyntax
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -funbox-strict-fields

@@ -265,7 +265,7 @@ svgShape (VLineGlyph _) s (Point x y) =
   terms "polyline" [term "points" (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
 svgShape (HLineGlyph _) s (Point x y) =
   terms "polyline" [term "points" (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
-svgShape (PathGlyph path _) s p =
+svgShape (PathGlyph path) s p =
   terms "path" [term "d" path, term "transform" (toTranslateText p <> " " <> toScaleText s)]
 
 -- | GlyphStyle to svg Tree

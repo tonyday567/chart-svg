@@ -316,7 +316,7 @@ data GlyphShape
   | TriangleGlyph (Point Double) (Point Double) (Point Double)
   | VLineGlyph Double
   | HLineGlyph Double
-  | PathGlyph Text (Rect Double)
+  | PathGlyph Text
   deriving (Show, Eq, Generic)
 
 -- | textifier
@@ -331,7 +331,7 @@ glyphText sh =
     RectRoundedGlyph {} -> "RectRounded"
     VLineGlyph _ -> "VLine"
     HLineGlyph _ -> "HLine"
-    PathGlyph _ _ -> "Path"
+    PathGlyph _ -> "Path"
 
 -- | line style
 --
@@ -1420,7 +1420,7 @@ styleBoxGlyph s = move p' $ sw $ case sh of
   VLineGlyph _ -> NH.scale (Point ((s ^. #borderSize) * sz) sz) one
   HLineGlyph _ -> NH.scale (Point sz ((s ^. #borderSize) * sz)) one
   TriangleGlyph a b c -> (sz *) <$> sconcat (toRect . PointXY <$> (a :| [b, c]) :: NonEmpty (Rect Double))
-  PathGlyph _ sb -> (sz *) <$> sb
+  PathGlyph path' -> (sz *) <$> (fromMaybe one $ pathBoxes . toInfos . parsePath $ path')
   where
     sh = s ^. #shape
     sz = s ^. #size

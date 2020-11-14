@@ -6,6 +6,10 @@ packages:
   - ../numhask-space
 
 extra-deps:
-  - reanimate-svg-0.13.0.0
   #- numhask-0.6.0.2
   #- numhask-space-0.6.0
+  - reanimate-1.1.1.0
+  - reanimate-svg-0.13.0.0
+  - hgeometry-0.11.0.0
+  - hgeometry-combinatorial-0.11.0.0
+  - vinyl-0.13.0
