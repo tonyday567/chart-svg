@@ -24,6 +24,7 @@ import Graphics.SvgTree.PathParser
 import Graphics.SvgTree.Types hiding (Point, Text)
 import Linear.V2
 import NumHask.Prelude hiding (fold)
+import qualified NumHask.Space as NH
 
 -- | Convert to reanimate color primitive.
 toPixelRGBA8 :: Colour -> PixelRGBA8
@@ -38,26 +39,25 @@ toPixelRGBA8 (Colour r g b o) =
 fromHudOptionsChart :: SvgOptions -> HudOptions -> [Hud Double] -> [Chart Double] -> Document
 fromHudOptionsChart so hc hs cs = fromHudChart so (hs <> hs') (cs <> cs')
   where
-    (hs', cs') = makeHud (fixRect $ dataBoxes cs) hc
+    (hs', cs') = makeHud (padBox $ dataBoxes cs) hc
 
 -- | Render some huds and charts to a 'Document'.
 fromHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Document
-fromHudChart so hs cs = fromChartsWith so (runHud (getViewbox so cs) hs cs)
+fromHudChart so hs cs = fromChartsWith so (runHud (initialCanvas (so ^. #chartAspect) cs) hs cs)
 
 -- | render Charts with the supplied svg options.
 fromChartsWith :: SvgOptions -> [Chart Double] -> Document
 fromChartsWith so cs =
-  (renderToDocument (getSize so cs'') r' cs'')
+  (renderToDocument size' rect' cs')
   where
-    r' = r & maybe id padRect (so ^. #outerPad)
-    cs'' =
-      cs'
-        & maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad))) (so ^. #chartFrame)
-    (r, cs') =
-      bool
-        (getViewbox so cs, cs)
-        (scaleCharts (getViewbox so cs) cs)
-        (ScaleCharts == so ^. #scaleCharts')
+    rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
+    cs' =
+      cs &
+      runHud (styleBoxesS cs) [chartAspectHud (so ^. #chartAspect)] &
+      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+        (so ^. #chartFrame)
+    Point w h = NH.width rect'
+    size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
 
 -- | render Charts to a Document using the supplied size and viewbox.
 renderToDocument :: Point Double -> Rect Double -> [Chart Double] -> Document
@@ -168,6 +168,8 @@ treeLine xs =
     $ defaultSvg
 
 -- | convert a Chart to svg
+--
+-- FIXME: add PathA
 tree :: Chart Double -> Tree
 tree (Chart (TextA s ts) xs) =
   groupTrees (daText s) (zipWith (treeText s) ts (toPoint <$> xs))

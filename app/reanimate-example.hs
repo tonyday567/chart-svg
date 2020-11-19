@@ -45,7 +45,7 @@ tree' cs =
     $ simplify
     $ unbox
     $ fromHudOptionsChart
-      (defaultSvgOptions & #svgHeight .~ 100 & #scaleCharts' .~ ScaleCharts)
+      (defaultSvgOptions & #svgHeight .~ 100)
       ( defaultHudOptions & #hudAxes
           %~ fmap
             ( #atick . #tstyle

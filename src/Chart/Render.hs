@@ -13,6 +13,8 @@ module Chart.Render
     chartSvg,
     chartSvgDefault,
     chartSvgHud,
+    renderChartsWith,
+    renderHudChart,
     writeChartSvg,
     writeChartSvgDefault,
     writeChartSvgHud,
@@ -20,13 +22,16 @@ module Chart.Render
     cssCrisp,
     geometricPrecision,
     svg,
-    svgt,
-    getSize,
-    getViewbox,
-    scaleCharts,
     attsRect,
     terms,
     makeAttribute,
+
+    -- * Augmentation
+    ChartExtra (..),
+    toChartExtra,
+    renderChartExtrasWith,
+
+    attsText,
   )
 where
 
@@ -60,35 +65,22 @@ instance Semigroup ChartSvg where
 instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty [] []
 
--- | scale chart data, projecting to the supplied Rect, and expanding the resultant Rect for chart style if necessary.
---
--- Note that this modifies the underlying chart data.
--- FIXME: do a divide to make an exact fit
-scaleCharts ::
-  Rect Double ->
-  [Chart Double] ->
-  (Rect Double, [Chart Double])
-scaleCharts cs r = (fromMaybe one $ styleBoxes cs', cs')
-  where
-    cs' = projectXYs cs r
+-- | Specification of a chart for rendering to SVG
+data ChartSvgExtra
+  = ChartSvgExtra
+      { svgOptionsExtra :: SvgOptions,
+        hudOptionsExtra :: HudOptions,
+        hudListExtra :: [Hud Double],
+        chartExtraList :: [ChartExtra Double]
+      }
+  deriving (Generic)
 
--- | get SVG size from options and chart details.
-getSize :: SvgOptions -> [Chart Double] -> Point Double
-getSize o cs = case view #svgAspect o of
-  ManualAspect a -> (view #svgHeight o *) <$> Point a 1
-  ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . fromMaybe one $ styleBoxes cs
-  DataAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . fromMaybe one $ dataBoxes cs
+instance Semigroup ChartSvgExtra where
+  (<>) (ChartSvgExtra _ o h c) (ChartSvgExtra s' o' h' c') =
+    ChartSvgExtra s' (o <> o') (h <> h') (c <> c')
 
--- | Get SVG viewbox as a Rect from options and chart details.
-getViewbox :: SvgOptions -> [Chart Double] -> Rect Double
-getViewbox o cs =
-  bool asp (fromMaybe one $ styleBoxes cs) (NoScaleCharts == view #scaleCharts' o)
-  where
-    asp =
-      case view #svgAspect o of
-        ManualAspect a -> Rect (a * -0.5) (a * 0.5) -0.5 0.5
-        ChartAspect -> fromMaybe one $ styleBoxes cs
-        DataAspect -> fromMaybe one $ dataBoxes cs
+instance Monoid ChartSvgExtra where
+  mempty = ChartSvgExtra defaultSvgOptions mempty [] []
 
 -- * rendering
 
@@ -114,6 +106,19 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
       makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
 
+renderToSvgExtra :: CssOptions -> Point Double -> Rect Double -> [ChartExtra Double] -> Html ()
+renderToSvgExtra csso (Point w' h') (Rect x z y w) cs =
+  with
+    ( svg2Tag
+        ( cssText csso <>
+            mconcat (svgExtra <$> cs)
+        )
+    )
+    [ width_ (show w'),
+      height_ (show h'),
+      makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
+    ]
+
 cssText :: CssOptions -> Html ()
 cssText UseCssCrisp = cssCrisp
 cssText UseGeometricPrecision = geometricPrecision
@@ -130,30 +135,54 @@ geometricPrecision = style_ [type_ "text/css"] ("* { shape-rendering: geometricP
 -- | render Charts with the supplied options.
 renderChartsWith :: SvgOptions -> [Chart Double] -> Text
 renderChartsWith so cs =
-  Lazy.toStrict $ renderText (renderToSvg (so ^. #useCssCrisp) (getSize so cs'') r' cs'')
+  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs')
   where
-    r' = r & maybe id padRect (so ^. #outerPad)
-    cs'' =
-      cs'
-        & maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad))) (so ^. #chartFrame)
-    (r, cs') =
-      bool
-        (getViewbox so cs, cs)
-        (scaleCharts (getViewbox so cs) cs)
-        (ScaleCharts == so ^. #scaleCharts')
+    rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
+    cs' =
+      cs &
+      runHud penult [chartAspectHud (so ^. #chartAspect)] &
+      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+        (so ^. #chartFrame)
+    Point w h = NH.width rect'
+    size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
+    penult = case so ^. #chartAspect of
+      FixedAspect _ -> styleBoxesS cs
+      CanvasAspect _ -> dataBoxesS cs
+      ChartAspect -> styleBoxesS cs
+      UnadjustedAspect -> dataBoxesS cs
 
+-- | render ChartExtras with the supplied options.
+renderChartExtrasWith :: SvgOptions -> [ChartExtra Double] -> Text
+renderChartExtrasWith so cs =
+  Lazy.toStrict $ renderText (renderToSvgExtra (so ^. #cssOptions) size' rect' cs')
+  where
+    cs' = zipWith (\(ChartExtra _ l a h') c' -> ChartExtra c' l a h') cs (csFinalize csa)
+    rect' = styleBoxesS (csFinalize csa) & maybe id padRect (so ^. #outerPad)
+    csFinalize =
+      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+        (so ^. #chartFrame) .
+      runHud penult [chartAspectHud (so ^. #chartAspect)]
+    Point w h = NH.width rect'
+    size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
+    csa = fmap (view #chartActual) cs
+    penult = case so ^. #chartAspect of
+      FixedAspect _ -> styleBoxesS csa
+      CanvasAspect _ -> dataBoxesS csa
+      ChartAspect -> styleBoxesS csa
+      UnadjustedAspect -> dataBoxesS csa
+
+-- | render charts with the supplied svg options and huds
 renderHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Text
-renderHudChart so hs cs = renderChartsWith so (runHud (getViewbox so cs) hs cs)
+renderHudChart so hs cs = renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect) cs) hs cs)
 
 -- | Render a chart using the supplied svg and hud config.
--- FIXME: fixRect usage
 --
 -- >>> chartSvg mempty
 -- "<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"300.0\" viewBox=\"-0.52 -0.52 1.04 1.04\" width=\"450.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"></svg>"
 chartSvg :: ChartSvg -> Text
 chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> hs') (cs <> cs')
   where
-    (hs', cs') = makeHud (fixRect $ dataBoxes cs) ho
+    (hs', cs') = makeHud (padBox $ dataBoxes cs) ho
 
 -- | Render a chart using the default svg options and no hud.
 --
@@ -281,44 +310,40 @@ svgPath _ [_] = mempty
 svgPath pstyle ps =
   terms "path" [term "d" (toPathAbsolutes (zip (pstyle ^. #pathInfo) ps))]
 
--- | Low-level conversion of a Chart to svg
--- FIXME: abstract extra html content into here...
-svg :: Chart Double -> Lucid.Html ()
-svg (Chart (TextA s ts) xs) =
-  term "g" (attsText s) (mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs)
-svg (Chart (GlyphA s) xs) =
-  term "g" (attsGlyph s) (mconcat $ svgGlyph s . toPoint <$> xs)
-svg (Chart (LineA s) xs) =
-  term "g" (attsLine s) (svgLine $ toPoint <$> xs)
-svg (Chart (RectA s) xs) =
-  term "g" (attsRect s) (mconcat $ svgRect . toRect <$> xs)
-svg (Chart (PathA s) xs) =
-  term "g" (attsPath s) (svgPath s $ toPoint <$> xs)
-svg (Chart BlankA _) = mempty
+svgAtts :: Annotation -> [Attribute]
+svgAtts (TextA s _) = attsText s
+svgAtts (GlyphA s) = attsGlyph s
+svgAtts (LineA s) = attsLine s
+svgAtts (RectA s) = attsRect s
+svgAtts (PathA s) = attsPath s
+svgAtts BlankA = mempty
 
--- | Add a tooltip as part of a chart to svg conversion.
---
--- FIXME: remove redundancy.
-svgt :: Chart Double -> (TextStyle, Text) -> Lucid.Html ()
-svgt (Chart (TextA s ts) xs) (s', ts') =
-  term "g" (attsText s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (zipWith (\t p -> svgText s t (toPoint p)) ts xs))
-svgt (Chart (GlyphA s) xs) (s', ts') =
-  term "g" (attsGlyph s)
-  (Lucid.title_ (attsText s') (Lucid.toHtml ts') <>
-   mconcat (svgGlyph s . toPoint <$> xs))
-svgt (Chart (LineA s) xs) (s', ts') =
-  term "g" (attsLine s)
-  (Lucid.title_ (attsText s') (Lucid.toHtml ts') <>
-   svgLine (toPoint <$> xs))
-svgt (Chart (RectA s) xs) (s', ts') =
-  term "g" (attsRect s)
-  (Lucid.title_ (attsText s') (Lucid.toHtml ts') <>
-   mconcat (svgRect . toRect <$> xs))
-svgt (Chart (PathA s) xs) (s', ts') =
-  term "g" (attsPath s)
-  (Lucid.title_ (attsText s') (Lucid.toHtml ts') <>
-   (svgPath s $ toPoint <$> xs))
-svgt (Chart BlankA _) _ = mempty
+svgHtml :: Chart Double -> Lucid.Html ()
+svgHtml (Chart (TextA s ts) xs) =
+  mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs
+svgHtml (Chart (GlyphA s) xs) =
+  mconcat $ svgGlyph s . toPoint <$> xs
+svgHtml (Chart (LineA _) xs) =
+  svgLine $ toPoint <$> xs
+svgHtml (Chart (RectA _) xs) =
+  mconcat $ svgRect . toRect <$> xs
+svgHtml (Chart (PathA s) xs) =
+  svgPath s $ toPoint <$> xs
+svgHtml (Chart BlankA _) = mempty
+
+-- | Low-level conversion of a Chart to svg
+svg :: Chart Double -> Lucid.Html ()
+svg c = term "g" (svgAtts $ c ^. #annotation) (svgHtml c)
+
+-- | render extra attributes and html
+svgExtra :: ChartExtra Double -> Lucid.Html ()
+svgExtra (ChartExtra c l' as h) =
+  case l' of
+    Nothing -> x
+    Just l ->
+       term "a" [term "xlink:href" l :: Lucid.Attribute] x
+  where
+    x = term "g" ((svgAtts $ c ^. #annotation) <> as) (svgHtml c <> h)
 
 terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
 terms t = with $ makeXmlElementNoEnd t
@@ -365,7 +390,9 @@ attsLine o =
     term "stroke" (toHex $ o ^. #color),
     term "stroke-opacity" (show $ opac $ o ^. #color),
     term "fill" "none"
-  ]
+  ] <>
+  (maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap)) <>
+  (maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray))
 
 attsPath :: PathStyle -> [Lucid.Attribute]
 attsPath o =
@@ -392,3 +419,17 @@ toRotateText r (Point x y) =
 toScaleText :: Double -> Text
 toScaleText x =
   "scale(" <> show x <> ")"
+
+
+-- * augmentation
+
+data ChartExtra a =
+  ChartExtra
+  { chartActual :: Chart a,
+    chartLink :: Maybe Text,
+    chartAttributes :: [Attribute],
+    chartContent :: Html ()
+  } deriving (Show, Generic)
+
+toChartExtra :: Chart a -> ChartExtra a
+toChartExtra c = ChartExtra c Nothing mempty mempty

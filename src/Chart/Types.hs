@@ -43,6 +43,10 @@ module Chart.Types
     glyphText,
     LineStyle (..),
     defaultLineStyle,
+    LineCap (..),
+    fromLineCap,
+    toLineCap,
+    fromDashArray,
     Anchor (..),
     fromAnchor,
     toAnchor,
@@ -64,6 +68,11 @@ module Chart.Types
     runHudWith,
     runHud,
     makeHud,
+    ChartAspect (..),
+    toChartAspect,
+    fromChartAspect,
+    initialCanvas,
+    chartAspectHud,
     canvas,
     title,
     tick,
@@ -100,12 +109,7 @@ module Chart.Types
     toOrientation,
 
     -- * SVG primitives
-    SvgAspect (..),
-    toSvgAspect,
-    fromSvgAspect,
-    EscapeText (..),
     CssOptions (..),
-    ScaleCharts (..),
     SvgOptions (..),
     defaultSvgOptions,
     defaultSvgFrame,
@@ -118,10 +122,13 @@ module Chart.Types
     stack,
 
     -- * Bounding box calculation
+    padBox,
     dataBox,
     dataBoxes,
+    dataBoxesS,
     styleBox,
     styleBoxes,
+    styleBoxesS,
     styleBoxText,
     styleBoxGlyph,
   )
@@ -333,6 +340,25 @@ glyphText sh =
     HLineGlyph _ -> "HLine"
     PathGlyph _ -> "Path"
 
+-- | line cap style
+data LineCap = LineCapButt | LineCapRound | LineCapSquare deriving (Eq, Show, Generic)
+
+-- | textifier
+fromLineCap :: (IsString s) => LineCap -> s
+fromLineCap LineCapButt = "butt"
+fromLineCap LineCapRound = "round"
+fromLineCap LineCapSquare = "square"
+
+-- | readifier
+toLineCap :: (Eq s, IsString s) => s -> LineCap
+toLineCap "butt" = LineCapButt
+toLineCap "round" = LineCapRound
+toLineCap "square" = LineCapSquare
+toLineCap _ = LineCapButt
+
+fromDashArray :: [Double] -> Text
+fromDashArray xs = Text.intercalate " " $ show <$> xs
+
 -- | line style
 --
 -- >>> defaultLineStyle
@@ -342,13 +368,15 @@ glyphText sh =
 data LineStyle
   = LineStyle
       { width :: Double,
-        color :: Colour
+        color :: Colour,
+        linecap :: Maybe LineCap,
+        dasharray :: Maybe [Double]
       }
   deriving (Show, Eq, Generic)
 
 -- | the official default line style
 defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3)
+defaultLineStyle = LineStyle 0.012 (fromRGB (palette !! 0) 0.3) Nothing Nothing
 
 -- | simplified svg-style path
 data PathType =
@@ -418,37 +446,50 @@ toOrientation _ = Hori
 padRect :: (Num a) => a -> Rect a -> Rect a
 padRect p (Rect x z y w) = Rect (x P.- p) (z P.+ p) (y P.- p) (w P.+ p)
 
--- | or html
-data EscapeText = EscapeText | NoEscapeText deriving (Show, Eq, Generic)
-
--- | surface chart helper
+-- | 
 data CssOptions = UseGeometricPrecision | UseCssCrisp | NoCssOptions deriving (Show, Eq, Generic)
 
--- | turns off scaling.  Usually not what you want.
-data ScaleCharts = ScaleCharts | NoScaleCharts deriving (Show, Eq, Generic)
-
--- | The x-y ratio of the viewing box
-data SvgAspect = ManualAspect Double | ChartAspect | DataAspect deriving (Show, Eq, Generic)
+-- | The basis for the x-y ratio of the final chart
+--
+-- Default style features tend towards assuming that the usual height of the overall svg image is around 1, and ChartAspect is based on this assumption, so that a ChartAspect of "FixedAspect 1.5", say, means a height of 1 and a width of 1.5.
+data ChartAspect =
+  -- | Rescale charts to a fixed x-y ratio, inclusive of hud and style features
+  FixedAspect Double |
+  -- | Rescale charts to an overall height of 1, preserving the x-y ratio of the data canvas.
+  CanvasAspect Double |
+  -- | Rescale charts to a height of 1, preserving the existing x-y ratio of the underlying charts, inclusive of hud and style.
+  ChartAspect |
+  -- | Do not rescale.
+  UnadjustedAspect
+  deriving (Show, Eq, Generic)
 
 -- | textifier
-fromSvgAspect :: (IsString s) => SvgAspect -> s
-fromSvgAspect (ManualAspect _) = "ManualAspect"
-fromSvgAspect ChartAspect = "ChartAspect"
-fromSvgAspect DataAspect = "DataAspect"
+fromChartAspect :: (IsString s) => ChartAspect -> s
+fromChartAspect (FixedAspect _) = "FixedAspect"
+fromChartAspect (CanvasAspect _) = "CanvasAspect"
+fromChartAspect ChartAspect = "ChartAspect"
+fromChartAspect UnadjustedAspect = "UnadjustedAspect"
 
 -- | readifier
-toSvgAspect :: (Eq s, IsString s) => s -> Double -> SvgAspect
-toSvgAspect "ManualAspect" a = ManualAspect a
-toSvgAspect "ChartAspect" _ = ChartAspect
-toSvgAspect "DataAspect" _ = DataAspect
-toSvgAspect _ _ = ChartAspect
+toChartAspect :: (Eq s, IsString s) => s -> Double -> ChartAspect
+toChartAspect "FixedAspect" a = FixedAspect a
+toChartAspect "CanvasAspect" a = CanvasAspect a
+toChartAspect "ChartAspect" _ = ChartAspect
+toChartAspect "UnadjustedAspect" _ = UnadjustedAspect
+toChartAspect _ _ = ChartAspect
+
+initialCanvas :: ChartAspect -> [Chart Double] -> Rect Double
+initialCanvas (FixedAspect a) _ = aspect a
+initialCanvas (CanvasAspect a) _ = aspect a
+initialCanvas ChartAspect cs = styleBoxesS cs
+initialCanvas UnadjustedAspect cs = dataBoxesS cs
 
 -- | SVG tag options.
 --
 -- >>> defaultSvgOptions
--- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, escapeText = NoEscapeText, useCssCrisp = NoCssOptions, scaleCharts' = ScaleCharts, svgAspect = ManualAspect 1.5}
 --
--- > writeChartSvg "other/svgoptions.svg" (SvgChart (defaultSvgOptions & #svgAspect .~ ManualAspect 0.7) mempty [] lines)
+--
+-- > writeChartSvg "other/svgoptions.svg" (SvgChart (defaultSvgOptions & #chartAspect .~ FixedAspect 0.7) mempty [] lines)
 --
 -- ![svgoptions example](other/svgoptions.svg)
 data SvgOptions
@@ -457,16 +498,14 @@ data SvgOptions
         outerPad :: Maybe Double,
         innerPad :: Maybe Double,
         chartFrame :: Maybe RectStyle,
-        escapeText :: EscapeText,
-        useCssCrisp :: CssOptions,
-        scaleCharts' :: ScaleCharts,
-        svgAspect :: SvgAspect
+        cssOptions :: CssOptions,
+        chartAspect :: ChartAspect
       }
   deriving (Eq, Show, Generic)
 
 -- | The official svg options
 defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoEscapeText NoCssOptions ScaleCharts (ManualAspect 1.5)
+defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoCssOptions (FixedAspect 1.5)
 
 -- | frame style
 defaultSvgFrame :: RectStyle
@@ -498,6 +537,51 @@ instance (Monad m) => Semigroup (HudT m a) where
 
 instance (Monad m) => Monoid (HudT m a) where
   mempty = Hud pure
+
+chartAspectHud :: (Monad m) => ChartAspect -> HudT m Double
+chartAspectHud fa = Hud $ \cs -> do
+  canvasd <- use #canvasDim
+  chartd <- use #chartDim
+  case fa of
+    FixedAspect a -> pure $ projectXYs (aspect a) cs
+    CanvasAspect a -> pure $
+      projectXYs (aspect $ (a * ratio canvasd / ratio chartd)) cs
+    ChartAspect -> pure $ projectXYs (aspect $ ratio chartd) cs
+    UnadjustedAspect -> pure cs
+
+-- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (and the use of a linear type is an open question).
+runHudWith ::
+  -- | initial canvas dimension
+  Rect Double ->
+  -- | initial data dimension
+  Rect Double ->
+  -- | huds to add
+  [Hud Double] ->
+  -- | underlying chart
+  [Chart Double] ->
+  -- | integrated chart list
+  [Chart Double]
+runHudWith ca xs hs cs =
+  flip evalState (ChartDims ca' da' xs) $
+    (unhud $ mconcat hs) cs'
+  where
+    da' = fromMaybe one $ dataBoxes cs'
+    ca' = fromMaybe one $ styleBoxes cs'
+    cs' = projectXYsWith ca xs cs
+
+-- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
+--
+-- Note that the original chart data are transformed and irrevocably lost by this computation.
+runHud ::
+  -- | initial canvas dimension
+  Rect Double ->
+  -- | huds
+  [Hud Double] ->
+  -- | underlying charts
+  [Chart Double] ->
+  -- | integrated chart list
+  [Chart Double]
+runHud ca hs cs = runHudWith ca (padBox $ dataBoxes cs) hs cs
 
 -- | Typical configurable hud elements. Anything else can be hand-coded as a 'HudT'.
 --
@@ -749,55 +833,23 @@ scaleAnn _ BlankA = BlankA
 moveChart :: (Additive a) => XY a -> [Chart a] -> [Chart a]
 moveChart sp cs = fmap (#xys %~ fmap (sp +)) cs
 
--- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (and the use of a linear type is an open question).
-runHudWith ::
-  -- | initial canvas dimension
-  Rect Double ->
-  -- | initial data dimension
-  Rect Double ->
-  -- | huds to add
-  [Hud Double] ->
-  -- | underlying chart
-  [Chart Double] ->
-  -- | integrated chart list
-  [Chart Double]
-runHudWith ca xs hs cs =
-  flip evalState (ChartDims ca' da' xs) $
-    (unhud $ mconcat hs) cs'
-  where
-    da' = fromMaybe one $ dataBoxes cs'
-    ca' = fromMaybe one $ styleBoxes cs'
-    cs' = projectXYsWith ca xs cs
-
--- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
---
--- Note that the original chart data are transformed and irrevocably lost by this computation.
-runHud ::
-  -- | initial canvas dimension
-  Rect Double ->
-  -- | huds
-  [Hud Double] ->
-  -- | underlying charts
-  [Chart Double] ->
-  -- | integrated chart list
-  [Chart Double]
-runHud ca hs cs = runHudWith ca (fixRect $ dataBoxes cs) hs cs
-
 -- | Make huds from a HudOptions.
 --
 -- Some huds, such as the creation of tick values, can extend the data dimension of a chart, so we return a blank chart with the new data dimension.
 -- The complexity internally to this function is due to the creation of ticks and, specifically, 'gridSensible', which is not idempotent. As a result, a tick calculation that does extends the data area, can then lead to new tick values when applying TickRound etc.
 makeHud :: Rect Double -> HudOptions -> ([Hud Double], [Chart Double])
 makeHud xs cfg =
-  (haxes <> [can] <> titles <> [l], [xsext])
+  (haxes <> can <> titles <> l, xsext)
   where
-    can = maybe mempty (\x -> canvas x) (cfg ^. #hudCanvas)
+    xs' = padBox (Just xs)
+    can = maybe [] (\x -> [canvas x]) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
-    newticks = (\a -> freezeTicks (a ^. #place) xs (a ^. #atick . #tstyle)) <$> (cfg ^. #hudAxes)
+    newticks = (\a -> freezeTicks (a ^. #place) xs' (a ^. #atick . #tstyle)) <$> (cfg ^. #hudAxes)
     axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
-    xsext = Chart BlankA (RectXY <$> catMaybes (snd <$> newticks))
+    newtickRects = catMaybes (snd <$> newticks)
+    xsext = bool [Chart BlankA (RectXY <$> newtickRects)] [] (newtickRects == [])
     haxes = (\x -> maybe mempty (\a -> bar (x ^. #place) a) (x ^. #abar) <> adjustedTickHud x) <$> axes'
-    l = maybe mempty (\(lo, ats) -> legendHud lo (legendChart ats lo)) (cfg ^. #hudLegend)
+    l = maybe [] (\(lo, ats) -> [legendHud lo (legendChart ats lo)]) (cfg ^. #hudLegend)
 
 -- convert TickRound to TickPlaced
 freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
@@ -1376,6 +1428,16 @@ FIXME: do this!
     projectArc _ _ x = x
 -}
 
+-- | pad a Rect to remove singleton dimensions
+padBox :: Maybe (Rect Double) -> Rect Double
+padBox r = maybe one singletonUnit r
+  where
+    singletonUnit (Rect x z y w)
+      | x == z && y == w = Rect (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
+      | x == z = Rect (x - 0.5) (x + 0.5) y w
+      | y == w = Rect x z (y - 0.5) (y + 0.5)
+      | otherwise = Rect x z y w
+
 -- | 'Rect' of a 'Chart', not including style
 dataBox :: Chart Double -> Maybe (Rect Double)
 dataBox c =
@@ -1386,6 +1448,10 @@ dataBox c =
 -- | 'Rect' of charts, not including style
 dataBoxes :: [Chart Double] -> Maybe (Rect Double)
 dataBoxes cs = foldRect $ catMaybes $ dataBox <$> cs
+
+-- | 'Rect' of charts, not including style, with defaults for Nothing and singleton dimensions if any.
+dataBoxesS :: [Chart Double] -> Rect Double
+dataBoxesS cs = padBox $ foldRect $ catMaybes $ dataBox <$> cs
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -1440,6 +1506,10 @@ styleBox (Chart BlankA xs) = foldRect (toRect <$> xs)
 styleBoxes :: [Chart Double] -> Maybe (Rect Double)
 styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
 
+-- | the extra geometric dimensions of a [Chart], adjusted for Nothing or singleton dimensions.
+styleBoxesS :: [Chart Double] -> Rect Double
+styleBoxesS xss = padBox $ foldRect $ catMaybes (styleBox <$> xss)
+
 -- | additively pad a [Chart]
 --
 -- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [RectXY one]]
@@ -1485,3 +1555,5 @@ addChartBox c r = sconcat (r :| maybeToList (styleBox c))
 
 addChartBoxes :: [Chart Double] -> Rect Double -> Rect Double
 addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
+
+

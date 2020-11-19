@@ -531,9 +531,9 @@ quadPosition (QuadPolar start end control) = QuadPosition start end control'
 --
 quadBezier :: (ExpField a, FromInteger a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start end control) theta =
-  (1 - theta) ^ (2 :: Int) .* start +
+  (1 - theta)^2 .* start +
   2 * (1-theta) * theta .* control +
-  theta ^ (2 :: Int) .* end
+  theta^2 .* end
 
 -- |
 --
@@ -590,8 +590,8 @@ cubicPolar :: (ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
 cubicPolar (CubicPosition start end control1 control2) = CubicPolar start end control1' control2'
   where
     mp = (start + end) /. two
-    control1' = polar (control1 - mp)
-    control2' = polar (control2 - mp)
+    control1' = polar $ (control1 - mp) /. (norm (end - start))
+    control2' = polar $ (control2 - mp) /. (norm (end - start))
 
 -- |
 --
@@ -603,17 +603,17 @@ cubicPolar (CubicPosition start end control1 control2) = CubicPolar start end co
 cubicPosition :: (ExpField a, TrigField a) => CubicPolar a -> CubicPosition a
 cubicPosition (CubicPolar start end control1 control2) = CubicPosition start end control1' control2'
   where
-    control1' = coord control1 + (start + end) /. two
-    control2' = coord control2 + (start + end) /. two
+    control1' = norm (end - start) .* coord control1 + (start + end) /. two
+    control2' = norm (end - start) .* coord control2 + (start + end) /. two
 
 -- |
 --
 cubicBezier :: (ExpField a, FromInteger a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start end control1 control2) theta =
-  (1 - theta) ^ (3::Int) .* start +
-  3 * (1-theta) ^ (2::Int) * theta .* control1 +
-  3 * (1-theta) * theta ^ (2::Int) .* control2 +
-  theta ^ (3 :: Int) .* end
+  (1 - theta)^3 .* start +
+  3 * (1-theta)^2 * theta .* control1 +
+  3 * (1-theta) * theta^2 .* control2 +
+  theta^3 .* end
 
 -- |
 --
@@ -630,21 +630,6 @@ cubicDerivs (CubicPosition (Point c0x c0y) (Point c3x c3y)
       (B.Point c1x c1y)
       (B.Point c2x c2y)
       (B.Point c3x c3y)
-
-{-
-cubicDerivs (CubicPosition start end control1 control2) = tx <> tx0 <> ty <> ty0
-  where
-    (Point ax ay) = -3 .* start + 9  .* control1 - 9  .* control2 + 3 .* end
-    (Point bx by) =  6 .* start - 12 .* control1 + 12 .* control2
-    (Point cx cy) = -3 .* start + 3 .* end
-    nx = sqrt (bx ^ (2::Int) - ax * cx)
-    ny = sqrt (by ^ (2::Int) - ay * cy)
-    tx = bool [(-bx + nx) / (2 * ax), (-bx - nx) / (2 * ax)] [] (isNaN nx || ax==0)
-    tx0 = bool [] [-cx/bx] (ax==0 && (not (isNaN nx)))
-    ty = bool [(-by + ny) / (2 * ay), (-by - ny) / (2 * ay)] [] (isNaN ny || ay==0)
-    ty0 = bool [] [-cy/by] (ay==0)
-
--}
 
 -- |
 -- FIXME: slightly out???

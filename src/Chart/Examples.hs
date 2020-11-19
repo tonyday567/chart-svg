@@ -63,7 +63,7 @@ hudOptionsExample =
 svgOptionsExample :: ChartSvg
 svgOptionsExample =
   mempty
-    & #svgOptions %~ #svgAspect .~ ManualAspect 0.7
+    & #svgOptions %~ #chartAspect .~ FixedAspect 0.7
     & #chartList .~ zipWith (\s d -> Chart (LineA s) (fmap PointXY d)) lopts ls
 
 -- | rect example
@@ -217,8 +217,8 @@ boundTextBugExample =
     .~ [ t1,
          t2,
          Chart BlankA [R 0 0.1 -0.5 0.5],
-         Chart (RectA defaultRectStyle) [RectXY (fixRect $ styleBox t1)],
-         Chart (RectA defaultRectStyle) [RectXY (fixRect $ styleBox t2)]
+         Chart (RectA defaultRectStyle) [RectXY (padBox $ styleBox t1)],
+         Chart (RectA defaultRectStyle) [RectXY (padBox $ styleBox t2)]
        ]
   where
     t1 =
@@ -351,7 +351,7 @@ vennExample :: ChartSvg
 vennExample =
   mempty &
   #chartList .~ zipWith (\c x -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> x)) (PointXY . snd <$> x)) palette1 (toInfos . parsePath <$> vennSegs) &
-  #svgOptions .~ (defaultSvgOptions & #svgAspect .~ ManualAspect 1) &
+  #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1) &
   #hudOptions .~ defaultHudOptions
 
 {-
@@ -386,9 +386,8 @@ pathExample =
    #chartList .~ [path', c0] &
    #hudOptions .~ defaultHudOptions &
    #svgOptions %~
-   ((#outerPad .~ Just 0.4) .
-    (#svgAspect .~ DataAspect) .
-    (#scaleCharts' .~ ScaleCharts))
+   ((#outerPad .~ Just 0.1) .
+    (#chartAspect .~ ChartAspect))
   )
   where
     ps =
@@ -413,7 +412,7 @@ testArc p1 =
   (mempty &
    #chartList .~ [arc, ell, c0, as, bbox] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ DataAspect) . (#scaleCharts' .~ ScaleCharts))
+   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#chartAspect .~ ChartAspect))
   )
   where
     ps = [(StartI, (p1 ^. #posStart)), (ArcI (p1 ^. #posInfo), (p1 ^. #posEnd))]
@@ -444,7 +443,7 @@ testQuad p@(QuadPosition start end control) =
   (mempty &
    #chartList .~ [path', curve, c0, bbox] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ DataAspect) . (#scaleCharts' .~ ScaleCharts))
+   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#chartAspect .~ ChartAspect))
   )
   where
     (QuadPolar _ _ control') = quadPolar p
@@ -465,7 +464,7 @@ testCubic p@(CubicPosition start end control1 control2) =
   (mempty &
    #chartList .~ [path', curve, c0, bbox, pt, bl] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#svgAspect .~ DataAspect) . (#scaleCharts' .~ ScaleCharts))
+   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#chartAspect .~ ChartAspect))
   )
   where
     (CubicPolar _ _ control1' control2') = cubicPolar p
@@ -501,7 +500,7 @@ surfaceExample t grain r f =
     mempty &
   #hudList .~ hs &
   #chartList .~ cs &
-  #svgOptions .~ (defaultSvgOptions & #useCssCrisp .~ UseCssCrisp)
+  #svgOptions .~ (defaultSvgOptions & #cssOptions .~ UseCssCrisp)
   where
     (cs, hs) =
       surfacefl f
@@ -533,7 +532,7 @@ arrowgExample grain r f =
   mempty &
   #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#atick . #ltick .~ Nothing)) &
   #chartList .~ ((\p -> chart (tmag . f $ p) (dir . f $ p) p) <$> ps) &
-  #svgOptions .~ (defaultSvgOptions & #useCssCrisp .~ UseCssCrisp)
+  #svgOptions .~ (defaultSvgOptions & #cssOptions .~ UseCssCrisp)
   where
     ps = grid MidPos r grain
     arrow = PathGlyph "M -1 0 L 1 0 M 1 0 L 0.4 0.3 M 1 0 L 0.4 -0.3"
@@ -587,7 +586,7 @@ surfacegExample t grainS grainG r f  =
 -- > f'y = 2 * b * y - 2 * b * x^2
 -- > f a b (Point x y) = (a^2 - 2ax + x^2 + b * y^2 - b * 2 * y * x^2 + b * x^4, Point (-2a + 2 * x - b * 4 * y * x + 4 * b * x ^ 3), 2 * b * y - 2 * b * x^2)
 rosenbrock :: Double -> Double -> Point Double -> (Double, Point Double)
-rosenbrock a b (Point x y) = (a^(2::Int) - 2*a*x + x^(2::Int) + b * y^(2::Int) - b * 2 * y * x^(2::Int) + b * x^(4::Int), Point (-2*a + 2 * x - b * 4 * y * x + 4 * b * x ^ (3::Int)) (2 * b * y - 2 * b * x^(2::Int)))
+rosenbrock a b (Point x y) = (a^2 - 2*a*x + x^2 + b * y^2 - b * 2 * y * x^2 + b * x^4, Point (-2*a + 2 * x - b * 4 * y * x + 4 * b * x^3) (2 * b * y - 2 * b * x^2))
 
 -- | Run this to refresh haddock example SVGs.
 writeAllExamples :: IO ()
@@ -595,7 +594,7 @@ writeAllExamples = do
   -- Example in cabal file
   let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
   let ls = fmap (PointXY . uncurry Point) <$> xs
-  let anns = zipWith (\w c -> LineA (LineStyle w c)) [0.015, 0.03, 0.01] palette1
+  let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing)) [0.015, 0.03, 0.01] palette1
   let lineChart = zipWith Chart anns ls
   writeChartSvgDefault "other/lines.svg" lineChart
   writeChartSvgHud "other/lineshud.svg" lineChart

@@ -116,7 +116,7 @@ roundSig n x = scientific r' (e - length ds0)
     (ds0, ds1) = splitAt (n + 1) ds
     r =
       (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds0 :: Double)
-        + fromIntegral (foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0 ^ (length ds1 :: Int))
+        + fromIntegral (foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0^(length ds1))
     r' = round r :: Integer
 
 -- | format numbers between 0.001 and 1,000,000 using digit and comma notation and exponential outside this range, with x significant figures.

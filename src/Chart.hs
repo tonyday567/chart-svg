@@ -37,6 +37,10 @@ module Chart
     glyphText,
     LineStyle (..),
     defaultLineStyle,
+    LineCap (..),
+    fromLineCap,
+    toLineCap,
+    fromDashArray,
     Anchor (..),
     fromAnchor,
     toAnchor,
@@ -62,6 +66,11 @@ module Chart
     runHudWith,
     runHud,
     makeHud,
+    ChartAspect (..),
+    toChartAspect,
+    fromChartAspect,
+    initialCanvas,
+    chartAspectHud,
     canvas,
     title,
     tick,
@@ -98,12 +107,7 @@ module Chart
     toOrientation,
 
     -- * SVG primitives
-    SvgAspect (..),
-    toSvgAspect,
-    fromSvgAspect,
-    EscapeText (..),
     CssOptions (..),
-    ScaleCharts (..),
     SvgOptions (..),
     defaultSvgOptions,
     defaultSvgFrame,
@@ -116,10 +120,13 @@ module Chart
     stack,
 
     -- * Bounding box calculation
+    padBox,
     dataBox,
     dataBoxes,
+    dataBoxesS,
     styleBox,
     styleBoxes,
+    styleBoxesS,
     styleBoxText,
     styleBoxGlyph,
 
@@ -186,7 +193,7 @@ import NumHask.Space
 --
 -- and an Annotation to describe representation of this data; three line styles with different colors and widths:
 --
--- >>> let anns = zipWith (\w c -> LineA (LineStyle w c)) [0.015, 0.03, 0.01] palette1
+-- >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing)) [0.015, 0.03, 0.01] palette1
 --
 -- and this is enough to create a Chart.
 --
