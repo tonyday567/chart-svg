@@ -8,6 +8,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -29,6 +30,7 @@ module Data.FormatN
     formatN,
     precision,
     formatNs,
+    showOr,
   )
 where
 
@@ -116,7 +118,7 @@ roundSig n x = scientific r' (e - length ds0)
     (ds0, ds1) = splitAt (n + 1) ds
     r =
       (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds0 :: Double)
-        + fromIntegral (foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0^(length ds1))
+        + fromIntegral (foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0^length ds1)
     r' = round r :: Integer
 
 -- | format numbers between 0.001 and 1,000,000 using digit and comma notation and exponential outside this range, with x significant figures.
@@ -226,3 +228,11 @@ formatNs (FormatExpt n) xs = precision expt n xs
 formatNs (FormatDollar n) xs = precision dollar n xs
 formatNs (FormatPercent n) xs = precision percent n xs
 formatNs FormatNone xs = pack . show <$> xs
+
+-- | Format with the shorter of show and formatN.
+showOr :: FormatN -> Double -> Text
+showOr f x = bool (bool f' s' (Text.length s' < Text.length f')) "0" (x < 1e-6 && x > -1e-6)
+  where
+    f' = formatN f x
+    s' = show x
+    

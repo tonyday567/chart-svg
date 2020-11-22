@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE NegativeLiterals #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -23,15 +24,15 @@ module Chart.Examples
     boundTextBugExample,
     labelExample,
     legendExample,
-    pathExample,
-    vennExample,
     surfaceExample,
     arrowgExample,
     surfacegExample,
     rosenbrock,
-    testArc,
-    testQuad,
-    testCubic,
+    arcExample,
+    quadExample,
+    cubicExample,
+    pathExample,
+    vennExample,
     writeAllExamples,
   )
 where
@@ -167,7 +168,9 @@ textExample =
 -- ![glyphs example](other/glyphs.svg)
 glyphsExample :: ChartSvg
 glyphsExample =
-  mempty & #chartList
+  mempty &
+  #svgOptions . #svgHeight .~ 50 &
+  #chartList
     .~ zipWith
       ( \(sh, bs) p ->
           Chart
@@ -197,8 +200,8 @@ barDataExample :: BarData
 barDataExample =
   BarData
     [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]]
-    (Just (("row " <>) . pack . show <$> [1 .. 11]))
-    (Just (("column " <>) . pack . show <$> [1 .. 2]))
+    (Just (("row " <>) . pack . show <$> ([1 .. 11]::[Int])))
+    (Just (("column " <>) . pack . show <$> ([1 .. 2]::[Int])))
 
 -- | Bar chart example.
 --
@@ -350,7 +353,7 @@ waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (PointXY 
 vennExample :: ChartSvg
 vennExample =
   mempty &
-  #chartList .~ zipWith (\c x -> Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.2 c & #pathInfo .~ (fst <$> x)) (PointXY . snd <$> x)) palette1 (toInfos . parsePath <$> vennSegs) &
+  #chartList .~ zipWith (\c x -> Chart (PathA (defaultPathStyle & #color .~ setOpac 0.2 c) (fst <$> x)) (PointXY . snd <$> x)) palette1 (toPathXYs . parsePath <$> vennSegs) &
   #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1) &
   #hudOptions .~ defaultHudOptions
 
@@ -377,106 +380,105 @@ vennSegs =
         "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 Z"
       ]
 
--- | PathA test
+-- | Compound path example.
 --
 -- ![path test](other/path.svg)
 pathExample :: ChartSvg
 pathExample =
-  (mempty &
+  mempty &
    #chartList .~ [path', c0] &
    #hudOptions .~ defaultHudOptions &
    #svgOptions %~
-   ((#outerPad .~ Just 0.1) .
+   ((#outerPad ?~ 0.1) .
     (#chartAspect .~ ChartAspect))
-  )
   where
     ps =
-      [ 
+      [
         (StartI, Point 0 0),
         (LineI, Point 1 0),
-        (CubicI (polar (Point 0.2 0)) (polar (Point 0.25 1)), Point 1 1),
-        (QuadI (polar (Point -1 2)), Point 0 1),
+        (CubicI (Point 0.2 0) (Point 0.25 1), Point 1 1),
+        (QuadI (Point -1 2), Point 0 1),
         (ArcI (ArcInfo (Point 1 1) (-pi/6) False False), Point 0 0)
       ]
-    path' = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3 & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (PointXY . snd <$> ps)
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY . snd <$> ps)
 
--- | arc test
+-- | arc example
 --
+-- > let p1 = ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True)
 -- > testArc (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
 --
--- ![arc Test](other/arc.svg)
+-- ![arc example](other/arc.svg)
 --
-testArc :: ArcPosition Double -> ChartSvg
-testArc p1 =
-  (mempty &
-   #chartList .~ [arc, ell, c0, as, bbox] &
+arcExample :: ArcPosition Double -> ChartSvg
+arcExample p1 =
+  mempty &
+   #chartList .~ vert 0.1 [[arc, ell, c0, bbox], [as]] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#chartAspect .~ ChartAspect))
-  )
+   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
   where
-    ps = [(StartI, (p1 ^. #posStart)), (ArcI (p1 ^. #posInfo), (p1 ^. #posEnd))]
-    arc = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
+    ps = singletonArc p1
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p1
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY <$> ellipse c r (phi') . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
+    arc = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) [PointXY c]
     as = Chart (TextA (defaultTextStyle & #anchor .~ AnchorStart & #size .~ 0.04) stats)
       (PointXY . Point 0 . (*0.1) <$>
        take (length stats) [0..])
     stats =
-      [ (let (Point cx cy) = c in "c: (" <> fixed (Just 3) cx <> "," <> fixed (Just 3) cy <> ")"),
-        (let (Point rx ry) = r in "r: (" <> fixed (Just 3) rx <> "," <> fixed (Just 3) ry <> ")"),
+      [ let (Point cx cy) = c in "c: (" <> fixed (Just 3) cx <> "," <> fixed (Just 3) cy <> ")",
+        let (Point rx ry) = r in "r: (" <> fixed (Just 3) rx <> "," <> fixed (Just 3) ry <> ")",
         "phi: " <> fixed (Just 3) phi',
         "ang0: " <> fixed (Just 3) ang0,
         "angd: " <> fixed (Just 3) angd
       ]
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p1)]
 
--- |
+-- | quad example
 --
--- >>> testQuad (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))
+-- >>> testQuad (CubicPosition (Point 0 0) (Point 1 1) (Point 2 -1))
 --
--- ![quad test](other/quad.svg)
--- 
-testQuad :: QuadPosition Double -> ChartSvg
-testQuad p@(QuadPosition start end control) =
-  (mempty &
+-- ![quad example](other/quad.svg)
+quadExample :: QuadPosition Double -> ChartSvg
+quadExample p@(QuadPosition start end control) =
+  mempty &
    #chartList .~ [path', curve, c0, bbox] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#chartAspect .~ ChartAspect))
-  )
+   #svgOptions %~ ((#outerPad ?~ 0.4) . (#chartAspect .~ ChartAspect))
   where
-    (QuadPolar _ _ control') = quadPolar p
-    ps = [(StartI, start), (QuadI control', end), (LineI, start)]
-    path' = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
-    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY <$> quadBezier p . (/100.0) <$> [0..100])
+    ps = singletonQuad p
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . quadBezier p . (/100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (quadBox p)]
 
--- | cubic test
+-- | cubic example
 --
--- >>> testCubic (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
+-- >>> (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2)
 --
--- ![cubic test](other/cubic.svg)
---
-testCubic :: CubicPosition Double -> ChartSvg
-testCubic p@(CubicPosition start end control1 control2) =
-  (mempty &
-   #chartList .~ [path', curve, c0, bbox, pt, bl] &
-   #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Just 0.4) . (#chartAspect .~ ChartAspect))
-  )
+-- ![cubic example](other/cubic.svg)
+cubicExample :: CubicPosition Double -> ChartSvg
+cubicExample p@(CubicPosition start end control1 control2) =
+  mempty &
+   #chartList .~ [path', curve, c0, bbox] &
+   #hudOptions .~
+   ( defaultHudOptions &
+     #hudTitles .~
+     [ defaultTitle pathText &
+       #place .~ PlaceBottom &
+       #style . #size .~ 0.06
+     ] &
+     #hudAxes %~ fmap (#atick . #tstyle .~
+                       TickRound (FormatComma (Just 2)) 8 NoTickExtend)
+   ) &
+   #svgOptions %~ ((#outerPad ?~ 0.02) . (#chartAspect .~ ChartAspect))
   where
-    (CubicPolar _ _ control1' control2') = cubicPolar p
-    ps = [(StartI, start), (CubicI control1' control2', end), (LineI, start)]
-    path' = Chart (PathA $ defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent & #pathInfo .~ (fst <$> ps)) (PointXY . snd <$> ps)
-    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY <$> cubicBezier p . (/100.0) <$> [0..100])
-    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control1, control2, cubicBezier p 0.655])
+    ps = singletonCubic p
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . cubicBezier p . (/100.0) <$> [0..100])
+    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control1, control2, cubicBezier p 0.8])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (cubicBox p)]
-    pt = Chart (TextA (defaultTextStyle & #size .~ 0.05) [pathText])
-      [PointXY (Point 1 1.6)]
     pathText = toPathAbsolutes ps
-    bl = Chart BlankA [RectXY (Rect 0 2 0 1.5)]
 
 -- | Create a chart across a surface using a function.
 --
@@ -507,9 +509,9 @@ surfaceExample t grain r f =
       (defaultSurfaceOptions &
        #soGrain .~ grain &
        #soRange .~ r &
-       #soStyle . #surfaceColors .~ (take 6 palette1))
+       #soStyle . #surfaceColors .~ take 6 palette1)
       (defaultSurfaceLegendOptions t &
-       #sloStyle . #surfaceColors .~ (take 6 palette1))
+       #sloStyle . #surfaceColors .~ take 6 palette1)
 
 -- | Create an arrow chart across a surface using a function.
 --
@@ -554,7 +556,7 @@ arrowgExample grain r f =
     tmag :: Point Double -> Double
     tmag = max 0.005 . min 0.02 . (*0.01) . (/avmag) . mag
 
-    avmag = (sum $ mag . f <$> ps) / (fromIntegral $ length ps)
+    avmag = sum (mag . f <$> ps) / fromIntegral (length ps)
 
 -- | A surface chart with gradient arrows.
 --
@@ -620,19 +622,19 @@ writeAllExamples = do
   writeChartSvg "other/venn.svg" vennExample
   writeChartSvg "other/path.svg" pathExample
   writeChartSvg "other/arc.svg" $
-    testArc (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0)
+    arcExample (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0)
              (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
   writeChartSvg "other/quad.svg" $
-    testQuad (QuadPosition (Point 0 0) (Point 1 1) (Point 1 0))    
+    quadExample (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
   writeChartSvg "other/cubic.svg" $
-    testCubic (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
+    cubicExample (CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1))
   writeChartSvg "other/surface.svg" $
     surfaceExample "rosenbrock" (Point 100 100) one
-    (fst . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+    (fst . bimap (-1.0 *) (-1.0 .*) . rosenbrock 1 10)
   writeChartSvg "other/arrowg.svg" $
     arrowgExample (Point 20 20) one
-    (snd . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+    (snd . bimap (-1.0 *) (-1.0 .*) . rosenbrock 1 10)
   writeChartSvg "other/surfaceg.svg" $
     surfacegExample "rosenbrock" (Point 100 100) (Point 20 20) one
-    (first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+    (bimap (-1.0 *) (-1.0 .*) . rosenbrock 1 10)
   putStrLn ("ok" :: Text)

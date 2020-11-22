@@ -304,18 +304,18 @@ svgGlyph s p =
     & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
 
 -- | Path svg
-svgPath :: PathStyle -> [Point Double] -> Lucid.Html ()
+svgPath :: [PathInfo Double]-> [Point Double] -> Lucid.Html ()
 svgPath _ [] = mempty
 svgPath _ [_] = mempty
-svgPath pstyle ps =
-  terms "path" [term "d" (toPathAbsolutes (zip (pstyle ^. #pathInfo) ps))]
+svgPath infos ps =
+  terms "path" [term "d" (toPathAbsolutes (zip infos ps))]
 
 svgAtts :: Annotation -> [Attribute]
 svgAtts (TextA s _) = attsText s
 svgAtts (GlyphA s) = attsGlyph s
 svgAtts (LineA s) = attsLine s
 svgAtts (RectA s) = attsRect s
-svgAtts (PathA s) = attsPath s
+svgAtts (PathA s _) = attsPath s
 svgAtts BlankA = mempty
 
 svgHtml :: Chart Double -> Lucid.Html ()
@@ -327,8 +327,8 @@ svgHtml (Chart (LineA _) xs) =
   svgLine $ toPoint <$> xs
 svgHtml (Chart (RectA _) xs) =
   mconcat $ svgRect . toRect <$> xs
-svgHtml (Chart (PathA s) xs) =
-  svgPath s $ toPoint <$> xs
+svgHtml (Chart (PathA _ infos) xs) =
+  svgPath infos $ toPoint <$> xs
 svgHtml (Chart BlankA _) = mempty
 
 -- | Low-level conversion of a Chart to svg

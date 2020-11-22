@@ -19,7 +19,7 @@ description:
     .
     See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
 
-category:       project
+category:       charts
 homepage:       https://github.com/tonyday567/chart-svg#readme
 bug-reports:    https://github.com/tonyday567/chart-svg/issues
 author:         Tony Day
@@ -51,18 +51,19 @@ library
   hs-source-dirs:
     src
   build-depends:
-    Color >= 0.1.4 && < 0.1.5,
+    Color >= 0.3 && < 0.4,
     JuicyPixels >= 3.3 && < 3.4,
     attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
-    cubicbezier,
-    foldl,
+    cubicbezier >= 0.6 && < 0.7,
+    foldl >= 1.4 && < 1.5,
     generic-lens >= 1.2 && < 3.0,
     lens >= 4.0 && < 5,
-    linear,
+    linear >= 1.21 && < 1.22,
     lucid >= 2.9 && < 2.10,
     numhask >= 0.7 && < 0.8,
-    numhask-space >= 0.6 && < 0.7,
+    numhask-space >= 0.7 && < 0.8,
+    reanimate >= 1.1.1.0 && < 1.2,
     reanimate-svg >= 0.13 && < 0.14,
     scientific >= 0.3 && < 0.4,
     tagsoup >= 0.14 && < 0.15,
@@ -72,10 +73,6 @@ library
     unordered-containers >= 0.2 && < 0.3,
   default-language: Haskell2010
   default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
   ghc-options:
     -Wall
     -Wcompat
@@ -88,31 +85,27 @@ executable reanimate-example
   hs-source-dirs:
     app
   build-depends:
-    attoparsec,
+    attoparsec >= 0.13 && < 0.14,
     JuicyPixels >= 3.3.5 && < 3.4,
     base >=4.7 && <5,
     bytestring >= 0.10 && < 0.11,
     chart-svg,
-    concurrency >= 1.11,
-    foldl >= 1.4,
-    lucid,
-    lens,
-    linear,
+    concurrency >= 1.11 && < 1.12,
+    foldl >= 1.4 && < 1.5,
+    lucid >= 2.9 && < 2.10,
+    lens >= 4.19 && < 4.20,
+    linear >= 1.21 && < 1.22,
     numhask >= 0.7 && < 0.8,
-    numhask-space >= 0.6 && < 0.7,
-    reanimate,
-    reanimate-svg,
+    numhask-space >= 0.7 && < 0.8,
+    reanimate >= 1.1.1.0 && < 1.2,
+    reanimate-svg >= 0.13 && < 0.14,
     text >= 1.2 && < 1.3,
     time >= 1.9 && < 1.10,
-    transformers >= 0.5,
-    unordered-containers,
+    transformers >= 0.5 && < 0.6,
+    unordered-containers >= 0.2 && < 0.3,
     vector >= 0.12 && < 0.13,
   default-language: Haskell2010
   default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
   ghc-options:
     -Wall
     -Wcompat

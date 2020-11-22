@@ -186,7 +186,7 @@ import NumHask.Space
 -- Here's some data; three lists of points that will form a line:
 --
 -- >>> let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
--- >>> let ls = fmap (PointXY . uncurry Point) <$> xs
+-- >>> let ls = fmap (uncurry P) <$> xs
 --
 -- >>> :t ls
 -- ls :: [[XY Double]]

@@ -16,7 +16,7 @@ module Chart.Reanimate
   )
 where
 
-import Chart
+import Chart hiding (transform, Line)
 import Codec.Picture.Types
 import Control.Lens hiding (transform)
 import qualified Data.Attoparsec.Text as A
