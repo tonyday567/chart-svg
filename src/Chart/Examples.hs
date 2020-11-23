@@ -34,6 +34,7 @@ module Chart.Examples
     pathExample,
     vennExample,
     writeAllExamples,
+    problematic1,
   )
 where
 
@@ -403,7 +404,43 @@ pathExample =
     path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (PointXY . snd <$> ps)
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY . snd <$> ps)
 
+-- | This was a problem chart that helped me get the aspect scaling of curves right.
+--
+-- The answer was that radii of an Arc needs to be scaled by aspect changes but not translation (radii are relative to existing points which are already being translated).
+--
+-- The problem can be isolated to RunHud ...
+--
+-- >>> let cs = [toPathChart defaultPathStyle $ singletonArc $ ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) 0 False False)]
+-- >>> runHud (aspect 3) [canvas $ blob (Colour 0.2 0.1 0.7 0.1)] cs
+-- [Chart {annotation = RectA (RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.20 0.10 0.70 0.10}), xys = [R -1.5 1.5000000000000002 -0.5 0.5]},Chart {annotation = PathA (PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30, pathMarkers = []}) [StartI,ArcI (ArcInfo {radii = Point 3.0 1.0, phi = 0.0, large = False, clockwise = False})], xys = [P -1.5 0.5,P 1.5 -0.5]}]
+--
+-- ![problematic1](other/problematic1.svg)
+problematic1 :: ChartSvg
+problematic1 =
+  mempty &
+  #chartList .~ [arc, ell, pts, bbox] &
+  #hudOptions .~ (mempty & #hudCanvas ?~ blob (Colour 0.2 0.1 0.7 0.1)) &
+  #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 3)
+  where
+    p = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) 0 False False)
+    (ArcCentroid c r phi' ang0 angd) = arcCentroid p
+    ps = singletonArc p
+    arc = toPathChart defaultPathStyle ps
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 10.0) <$> [0..10])
+    pts = Chart (GlyphA defaultGlyphStyle) (fmap PointXY [c, p ^. #posStart, p ^. #posEnd])
+    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
+
 -- | arc example
+--
+-- FIXME:
+--
+-- - check all combinations of large and clockwise
+--
+-- - check phi works
+--
+-- - check all the ChartAspect options (delete CanvasAspect???)
+--
+-- > writeChartSvg "other/arc.svg" $ (arcExample $ ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) (0) False False)) & (#svgOptions . #chartAspect .~ FixedAspect 1)
 --
 -- > let p1 = ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True)
 -- > testArc (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
@@ -413,30 +450,20 @@ pathExample =
 arcExample :: ArcPosition Double -> ChartSvg
 arcExample p1 =
   mempty &
-   #chartList .~ vert 0.1 [[arc, ell, c0, bbox], [as]] &
+   #chartList .~ [arc, ell, c0, bbox] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
+   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ FixedAspect 1))
   where
     ps = singletonArc p1
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p1
     arc = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
     ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) [PointXY c]
-    as = Chart (TextA (defaultTextStyle & #anchor .~ AnchorStart & #size .~ 0.04) stats)
-      (PointXY . Point 0 . (*0.1) <$>
-       take (length stats) [0..])
-    stats =
-      [ let (Point cx cy) = c in "c: (" <> fixed (Just 3) cx <> "," <> fixed (Just 3) cy <> ")",
-        let (Point rx ry) = r in "r: (" <> fixed (Just 3) rx <> "," <> fixed (Just 3) ry <> ")",
-        "phi: " <> fixed (Just 3) phi',
-        "ang0: " <> fixed (Just 3) ang0,
-        "angd: " <> fixed (Just 3) angd
-      ]
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p1)]
 
 -- | quad example
 --
--- >>> testQuad (CubicPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- > quadExample (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
 --
 -- ![quad example](other/quad.svg)
 quadExample :: QuadPosition Double -> ChartSvg
@@ -444,7 +471,7 @@ quadExample p@(QuadPosition start end control) =
   mempty &
    #chartList .~ [path', curve, c0, bbox] &
    #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad ?~ 0.4) . (#chartAspect .~ ChartAspect))
+   #svgOptions %~ ((#outerPad ?~ 0.05) . (#chartAspect .~ ChartAspect))
   where
     ps = singletonQuad p
     path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
@@ -454,7 +481,7 @@ quadExample p@(QuadPosition start end control) =
 
 -- | cubic example
 --
--- >>> (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2)
+-- > cubicExample (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 --
 -- ![cubic example](other/cubic.svg)
 cubicExample :: CubicPosition Double -> ChartSvg
@@ -482,9 +509,7 @@ cubicExample p@(CubicPosition start end control1 control2) =
 
 -- | Create a chart across a surface using a function.
 --
--- Typically used to represent a gradient.
---
--- >>> writeChartSvg "other/surface.svg" $ surfaceExample "rosenbrock" (Point 100 100) one (fst . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+-- > writeChartSvg "other/surface.svg" $ surfaceExample "rosenbrock" (Point 100 100) one (fst . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
 --
 -- ![surface example](other/surface.svg)
 --
@@ -517,7 +542,7 @@ surfaceExample t grain r f =
 --
 -- Typically used to represent a gradient.
 --
--- >>> writeChartSvg "other/arrowg.svg" $ arrowgExample (Point 20 20) one (fst . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+-- > writeChartSvg "other/arrowg.svg" $ arrowgExample (Point 20 20) one (fst . first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
 --
 -- ![arrowg example](other/arrowg.svg)
 --
@@ -560,7 +585,7 @@ arrowgExample grain r f =
 
 -- | A surface chart with gradient arrows.
 --
--- >>> writeChartSvg "other/surfaceg.svg" $ surfacegExample "rosenbrock" (Point 100 100) (Point 20 20) one (first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
+-- > writeChartSvg "other/surfaceg.svg" $ surfacegExample "rosenbrock" (Point 100 100) (Point 20 20) one (first (-1.0 *) . second (-1.0 .*) . rosenbrock 1 10)
 --
 -- ![surfaceg example](other/surfaceg.svg)
 --
@@ -637,4 +662,5 @@ writeAllExamples = do
   writeChartSvg "other/surfaceg.svg" $
     surfacegExample "rosenbrock" (Point 100 100) (Point 20 20) one
     (bimap (-1.0 *) (-1.0 .*) . rosenbrock 1 10)
+  writeChartSvg "other/problematic1.svg" problematic1
   putStrLn ("ok" :: Text)

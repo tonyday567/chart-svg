@@ -24,7 +24,6 @@ module Data.Path
     arcBox,
     arcDerivs,
     ellipse,
-    toRadii,
     QuadPosition (..),
     QuadPolar (..),
     quadPosition,
@@ -42,6 +41,7 @@ module Data.Path
     singletonCubic,
     singletonQuad,
     singletonArc,
+    toSingletonArc,
     pathBoxes,
     pathBox,
   ) where
@@ -60,8 +60,21 @@ import Data.Generics.Labels ()
 import qualified Geom2D.CubicBezier as B
 import Data.FormatN
 
+-- $setup
+-- >>> :set -XRebindableSyntax
+-- >>> :set -XNegativeLiterals
+-- >>> import NumHask.Prelude
+-- >>> import Chart
+
 -- $path
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
+--
+-- References:
+--
+-- [SVG d](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d)
+--
+-- [SVG path](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
+--
 
 -- | parse a raw path string
 --
@@ -107,6 +120,7 @@ data PathInfo a =
 --
 -- - implicit L's in multiple M instructions are separated.
 --
+-- FIXME: prev can be factored out
 toPathAbsolute ::
   -- | (info, start, end)
   (PathInfo Double, Point Double, Point Double) ->
@@ -123,11 +137,12 @@ toPathAbsolute (QuadI control, next, _) =
   "Q " <>
   pp control <> " " <>
   pp next
-toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2, x1) =
+toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2, _) =
   "A " <>
-  show (x * norm (x2 - x1)) <> " " <>
-  show (y * norm (x2 - x1)) <> " " <>
+  show x <> " " <>
+  show y <> " " <>
   -- in degrees and clockwise is positive
+  -- FIXME: is this correct?
   show (-phi' * 180 / pi) <> " " <>
   bool "0" "1" l <> " " <>
   bool "0" "1" sw <> " " <>
@@ -282,16 +297,19 @@ singletonCubic (CubicPosition s e c1 c2) = [(StartI, s), (CubicI c1 c2, e)]
 singletonQuad :: QuadPosition Double -> [(PathInfo Double, Point Double)]
 singletonQuad (QuadPosition s e c) = [(StartI, s), (QuadI c, e)]
 
--- | convert quad position to path info.
+-- | convert arc position to path info.
 singletonArc :: ArcPosition Double -> [(PathInfo Double, Point Double)]
 singletonArc (ArcPosition s e i) = [(StartI, s), (ArcI i, e)]
 
--- FIXME: rotation sign is reversed???
-fromPathEllipticalArc :: (ExpField a) => Point a -> (a, a, a, Bool, Bool, Point a) -> PathInfo a
-fromPathEllipticalArc x1 (x, y, r, l, s, x2) = ArcI (ArcInfo (Point x' y') r l s)
-  where
-    x' = x / norm (x2 - x1)
-    y' = y / norm (x2 - x1)
+-- | convert path info to an ArcPosition.
+toSingletonArc :: [(PathInfo Double, Point Double)] -> Maybe (ArcPosition Double)
+toSingletonArc ((StartI, s):(ArcI i, e):_) = Just $ ArcPosition s e i
+toSingletonArc _ = Nothing
+
+
+-- FIXME: factor out
+fromPathEllipticalArc :: Point a -> (a, a, a, Bool, Bool, Point a) -> PathInfo a
+fromPathEllipticalArc _ (x, y, r, l, s, _) = ArcI (ArcInfo (Point x y) r l s)
 
 fromV2 :: Linear.V2 a -> Point a
 fromV2 (Linear.V2 x y) = Point x y
@@ -307,32 +325,21 @@ toPathXYs xs =
 -- * Arc types
 
 -- | Information specific to an arc path.
+-- FIXME:
+-- aspect issues:
+-- let p00 = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point (sqrt 0.5) (sqrt 0.5)) 0 False False)
+-- writeChartSvg "other/arc2.svg" $ (arcExample p00) & #svgOptions . #chartAspect .~ FixedAspect 2 & #chartList %~ take 2
 --
--- FIXME: Sort out the difference between the SVG coordinate system and the chart-svg one.
 -- "Everything" is flipped along the x-axis when converting to and from svg.
--- This also "flips" the sign of angles, and swaps the directionality of the sweep parameter to clockwise.
--- Starting with the example in <https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths>
+-- This also "flips" the sign of angles.
+-- See the example in <https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths>
 --
--- green
---
--- >>> let p00 = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point (sqrt 0.5) (sqrt 0.5)) 0 False False)
+-- >>> let p00 = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) 0 False False)
 -- >>> arcCentroid p00
--- ArcCentroid {centroid = Point 1.0000000000000002 1.0000000000000002, radius = Point 1.0000000000000002 1.0000000000000002, cphi = 0.0, ang0 = -1.5707963267948968, angdiff = -1.5707963267948963}
---
--- >>> let p01 = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point (sqrt 0.5) (sqrt 0.5)) 0 True False)
--- >>> arcCentroid p01
--- ArcCentroid {centroid = Point 1.0000000000000002 1.0000000000000002, radius = Point 1.0000000000000002 1.0000000000000002, cphi = 0.0, ang0 = -3.141592653589793, angdiff = -4.71238898038469}
---
--- >>> let p10 = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point (sqrt 0.5) (sqrt 0.5)) 0 False True)
--- >>> arcCentroid p10
--- ArcCentroid {centroid = Point 1.0000000000000002 1.0000000000000002, radius = Point 1.0000000000000002 1.0000000000000002, cphi = 0.0, ang0 = -3.141592653589793, angdiff = 1.5707963267948963}
---
--- >>> let p11 = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point (sqrt 0.5) (sqrt 0.5)) 0 True True)
--- >>> arcCentroid p11
--- ArcCentroid {centroid = Point -2.220446049250313e-16 -2.220446049250313e-16, radius = Point 1.0000000000000002 1.0000000000000002, cphi = 0.0, ang0 = 1.5707963267948963, angdiff = 4.71238898038469}
+-- ArcCentroid {centroid = Point 1.0 1.0, radius = Point 1.0 1.0, cphi = 0.0, ang0 = -3.141592653589793, angdiff = 1.5707963267948966}
 data ArcInfo a =
   ArcInfo
-  { -- | ellipse radii expressed as a ratio to the difference between the start and end point. This should be preserved in the usual chart projections of XY data.
+  { -- | ellipse radii expressed as position length. This needs to be scaled according to changes in aspect given the usual chart projections of XY data. (See 'projectXYsWith')
     radii :: Point a,
     -- | rotation of the ellipse
     phi :: a,
@@ -372,12 +379,11 @@ data ArcCentroid a =
 arcCentroid :: (FromInteger a, Ord a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi large clockwise)) = ArcCentroid c (Point rx ry) phi ang1 angd
   where
-    (Point x1' y1') = rotateP phi ((p1 - p2) /. two)
-    (Point rx' ry') = toRadii p1 p2 rad
+    (Point x1' y1') = rotateP (-phi) ((p1 - p2) /. two)
+    (Point rx' ry') = rad
     l = x1'**2/rx'**2 + y1'**2/ry'**2
     (rx,ry) = bool (rx',ry') (rx'*sqrt l, ry'*sqrt l) (l > 1)
     snumer = max 0 $ (rx*rx*ry*ry) - (rx*rx*y1'*y1') - (ry*ry*x1'*x1')
-    -- opposite to svg note due to flipY
     s = bool -1 1 (large == clockwise) * sqrt
       (snumer / (rx*rx*y1'*y1' + ry*ry*x1'*x1'))
     cx' = s *  rx * y1' / ry
@@ -412,16 +418,9 @@ arcPosition (ArcCentroid (Point cx cy) r@(Point rx ry) phi ang1 angd) = ArcPosit
     large = abs angd > pi
     clockwise = angd < zero
 
--- | Convert from ratio radii to absolute radii
-toRadii :: (ExpField a) => Point a -> Point a -> Point a -> Point a
-toRadii p1 p2 (Point ratiox ratioy) =
-  Point
-  (ratiox * norm (p1 - p2))
-  (ratioy * norm (p1 - p2))
-
 -- | ellipse formulae
 --
--- x-axis rotation is counter-clockwise.
+-- positive x-axis rotation is counter-clockwise.
 ellipse :: Point Double -> Point Double -> Double -> Double -> Point Double
 ellipse (Point cx cy) (Point rx ry) phi theta =
   Point
@@ -429,31 +428,6 @@ ellipse (Point cx cy) (Point rx ry) phi theta =
   (cy + rx * cos theta * sin phi + ry * sin theta * cos phi)
 
 -- | compute the bounding box for an arcBox
---
--- >>> arcBox (Point 0.0 1.2320508075688774) (Point 1.0 -0.5) (ArcInfo (Point 0.5 0.5) 0.0 True True)
--- Rect -1.1102230246251565e-16 1.5 -0.4999999999999998 1.3660254037844388
---
--- Refs:
---
--- https://github.polettix.it/ETOOBUSY/2020/07/21/ellipses-in-svg-center/
---
--- https://github.polettix.it/ETOOBUSY/2020/07/23/ellipses-in-svg-transformation/
---
--- http://fridrich.blogspot.com/2011/06/bounding-box-of-svg-elliptical-arc.html
---
--- sweep and large explanations:
---
--- https://stackoverflow.com/questions/47684885/arc-svg-parameters
---
--- svg d doc
---
--- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
---
--- path docs
---
--- https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
---
--- file:///Users/tonyday/haskell/chart-svg/other/path.svg
 --
 arcBox :: ArcPosition Double -> Rect Double
 arcBox p = space1 pts
@@ -646,7 +620,7 @@ cubicDerivs (CubicPosition (Point c0x c0y) (Point c3x c3y)
 
 -- | Bounding box for a CubicPosition
 --
--- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2)
+-- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 -- Rect 0.0 1.0 -0.20710678118654752 1.2071067811865475
 --
 -- ![Cubic]("other/cubic.svg")

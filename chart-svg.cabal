@@ -113,3 +113,21 @@ executable reanimate-example
     -Wincomplete-uni-patterns
     -Wredundant-constraints
     -funbox-strict-fields
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: test.hs
+  hs-source-dirs:
+    test
+  build-depends:
+    base >=4.7 && <5,
+    chart-svg,
+    doctest >= 0.16 && < 0.18,
+    numhask >= 0.7 && < 0.8,
+  default-language: Haskell2010
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints

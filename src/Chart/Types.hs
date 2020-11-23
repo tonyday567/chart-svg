@@ -365,7 +365,7 @@ fromDashArray xs = Text.intercalate " " $ show <$> xs
 -- | line style
 --
 -- >>> defaultLineStyle
--- LineStyle {width = 1.2e-2, color = RGBA 0.65 0.81 0.89 0.30}
+-- LineStyle {width = 1.2e-2, color = RGBA 0.65 0.81 0.89 0.30, linecap = Nothing, dasharray = Nothing}
 --
 -- ![line example](other/line.svg)
 data LineStyle
@@ -491,7 +491,7 @@ initialCanvas UnadjustedAspect cs = dataBoxesS cs
 -- | SVG tag options.
 --
 -- >>> defaultSvgOptions
---
+-- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, cssOptions = NoCssOptions, chartAspect = FixedAspect 1.5}
 --
 -- > writeChartSvg "other/svgoptions.svg" (SvgChart (defaultSvgOptions & #chartAspect .~ FixedAspect 0.7) mempty [] lines)
 --
@@ -701,7 +701,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTick
--- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05},0.0)}
+-- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05, linecap = Nothing, dasharray = Nothing},0.0)}
 data Tick
   = Tick
       { tstyle :: TickStyle,
@@ -1423,6 +1423,14 @@ projectXYs new cs = projectXYsWith new old cs
 
 -- | Project chart xys to a new XY Space from an old XY Space
 --
+-- The projections needed are:
+--
+-- - project the 'xys'
+--
+-- - project the control points of bezier curves
+--
+-- - project aspect changes only to radii of ellipticals.
+--
 -- > projectXYsWith x x == id
 projectXYsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
 projectXYsWith new old cs = cs'
@@ -1435,13 +1443,8 @@ projectXYsWith new old cs = cs'
 
     projectControls (CubicI c1 c2) = CubicI (projectOnP new old c1) (projectOnP new old c2)
     projectControls (QuadI c) = QuadI (projectOnP new old c)
+    projectControls (ArcI (ArcInfo r p l c)) = ArcI (ArcInfo (projectOnP (aspect $ ratio new) (aspect $ ratio old) r) p l c)
     projectControls x = x
-
-{-
-FIXME:
-    projectArc new old (ArcI ai) = ArcI $ ai & #radii %~ project old new
-    projectArc _ _ x = x
--}
 
 -- | pad a Rect to remove singleton dimensions
 padBox :: Maybe (Rect Double) -> Rect Double
@@ -1528,7 +1531,7 @@ styleBoxesS xss = padBox $ foldRect $ catMaybes (styleBox <$> xss)
 -- | additively pad a [Chart]
 --
 -- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [RectXY one]]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), xys = [RectXY Rect -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, xys = [RectXY Rect -0.605 0.605 -0.605 0.605]}]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), xys = [R -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, xys = [R -0.605 0.605 -0.605 0.605]}]
 padChart :: Double -> [Chart Double] -> [Chart Double]
 padChart p cs = cs <> [Chart BlankA (maybeToList (RectXY . padRect p <$> styleBoxes cs))]
 

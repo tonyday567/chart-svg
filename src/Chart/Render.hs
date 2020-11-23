@@ -178,7 +178,7 @@ renderHudChart so hs cs = renderChartsWith so (runHud (initialCanvas (so ^. #cha
 -- | Render a chart using the supplied svg and hud config.
 --
 -- >>> chartSvg mempty
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"300.0\" viewBox=\"-0.52 -0.52 1.04 1.04\" width=\"450.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"300.0\" viewBox=\"-0.52 -0.52 1.04 1.04\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"></svg>"
 chartSvg :: ChartSvg -> Text
 chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> hs') (cs <> cs')
   where

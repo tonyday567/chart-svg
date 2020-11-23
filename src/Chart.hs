@@ -51,6 +51,7 @@ module Chart
     Marker (..),
     MarkerPos (..),
     PathStyle (..),
+    toPathChart,
     PathClosure (..),
     defaultPathStyle,
 
