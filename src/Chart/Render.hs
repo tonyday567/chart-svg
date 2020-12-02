@@ -343,7 +343,7 @@ svgExtra (ChartExtra c l' as h) =
     Just l ->
        term "a" [term "xlink:href" l :: Lucid.Attribute] x
   where
-    x = term "g" ((svgAtts $ c ^. #annotation) <> as) (svgHtml c <> h)
+    x = term "g" (svgAtts (c ^. #annotation) <> as) (svgHtml c <> h)
 
 terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
 terms t = with $ makeXmlElementNoEnd t
@@ -391,8 +391,8 @@ attsLine o =
     term "stroke-opacity" (show $ opac $ o ^. #color),
     term "fill" "none"
   ] <>
-  (maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap)) <>
-  (maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray))
+  maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap) <>
+  maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray)
 
 attsPath :: PathStyle -> [Lucid.Attribute]
 attsPath o =
@@ -408,21 +408,28 @@ attsPath o =
            MarkerEnd -> term "marker-end" ("url(#" <> t <> ")")
        ) (o ^. #pathMarkers)
 
+-- | includes a flip of the y dimension.
 toTranslateText :: Point Double -> Text
 toTranslateText (Point x y) =
   "translate(" <> show x <> ", " <> show (- y) <> ")"
 
+-- | includes reference changes:
+--
+-- - from radians to degrees
+--
+-- - from counter-clockwise is a positive rotation to clockwise is positive
+--
+-- - flip y dimension
+--
 toRotateText :: Double -> Point Double -> Text
 toRotateText r (Point x y) =
-  "rotate(" <> show r <> ", " <> show x <> ", " <> show (- y) <> ")"
+  "rotate(" <> show (-r*180/pi) <> ", " <> show x <> ", " <> show (- y) <> ")"
 
 toScaleText :: Double -> Text
 toScaleText x =
   "scale(" <> show x <> ")"
 
-
 -- * augmentation
-
 data ChartExtra a =
   ChartExtra
   { chartActual :: Chart a,

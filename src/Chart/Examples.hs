@@ -29,12 +29,14 @@ module Chart.Examples
     surfacegExample,
     rosenbrock,
     arcExample,
+    arcFlagsExample,
     quadExample,
     cubicExample,
     pathExample,
     vennExample,
     writeAllExamples,
     problematic1,
+    checkFlags
   )
 where
 
@@ -314,7 +316,7 @@ compoundExample = lglyphExample <> glinesExample
 labelExample :: ChartSvg
 labelExample =
   mempty & #chartList
-    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ 45.0) ["text at (1,1) rotated by 45 degrees"]) [PointXY (Point 1.0 1.0)]]
+    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ -pi/4) ["text at (1,1) rotated by -(pi/4) radians"]) [PointXY (Point 1.0 1.0)]]
 
 -- | legend test
 --
@@ -406,7 +408,7 @@ pathExample =
 
 -- | This was a problem chart that helped me get the aspect scaling of curves right.
 --
--- The answer was that radii of an Arc needs to be scaled by aspect changes but not translation (radii are relative to existing points which are already being translated).
+-- The answer was that radii of an Arc needs to be transformed by scaling changes but not translation ones (radii are relative to existing points which are already being translated).
 --
 -- The problem can be isolated to RunHud ...
 --
@@ -415,14 +417,38 @@ pathExample =
 -- [Chart {annotation = RectA (RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.20 0.10 0.70 0.10}), xys = [R -1.5 1.5000000000000002 -0.5 0.5]},Chart {annotation = PathA (PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30, pathMarkers = []}) [StartI,ArcI (ArcInfo {radii = Point 3.0 1.0, phi = 0.0, large = False, clockwise = False})], xys = [P -1.5 0.5,P 1.5 -0.5]}]
 --
 -- ![problematic1](other/problematic1.svg)
-problematic1 :: ChartSvg
-problematic1 =
+--
+-- Incorrect scaling of an Arc was occuring on x-axis gaps, but not with gapless x-axis elements, titles or any y axis variations.
+-- problematic1 (FixedAspect 1) (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.0 0.5) (0) False True)) & #hudOptions .~ (mempty & #hudAxes .~ [defaultAxisOptions & #place .~ PlaceTop & #adjust .~ Nothing & #abar .~ Nothing & #atick . #ltick .~ Nothing & #atick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #atick . #ttick .~ Nothing & #atick . #gtick .~ Just (defaultGlyphTick, 0.2), defaultAxisOptions & #place .~ PlaceRight & #adjust .~ Nothing & #abar .~ Nothing & #atick . #ltick .~ Nothing & #atick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #atick . #ttick .~ Nothing & #atick . #gtick .~ Just (defaultGlyphTick, 0.2)])
+--
+-- Again isolating to runHud ...
+-- >>> let cs = [toPathChart defaultPathStyle $ singletonArc $ (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.0 0.5) (0) False True))]
+-- >>> let dbox = padBox $ dataBoxes cs
+-- >>> dbox
+-- Rect -0.6180339784260676 1.0 -5.901699179399067e-2 1.0
+-- >>> let ho = (mempty & #hudAxes .~ [defaultAxisOptions & #place .~ PlaceBottom & #adjust .~ Nothing & #abar .~ Nothing & #atick . #ltick .~ Nothing & #atick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #atick . #ttick .~ Nothing & #atick . #gtick .~ Just (defaultGlyphTick, 0.2), defaultAxisOptions & #place .~ PlaceRight & #adjust .~ Nothing & #abar .~ Nothing & #atick . #ltick .~ Nothing & #atick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #atick . #ttick .~ Nothing & #atick . #gtick .~ Just (defaultGlyphTick, 0.2)])
+-- >>> let (hs',cs') = makeHud dbox ho
+-- >>> let cs1 = runHud dbox hs' cs
+-- >>> cs1
+-- [Chart {annotation = GlyphA (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Just 1.5707963267948966, translate = Nothing}), xys = [P 1.2049999999999998 0.0,P 1.2049999999999998 0.5,P 1.2049999999999998 1.0]},Chart {annotation = GlyphA (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing}), xys = [P 0.0 -0.2640169917939907,P 1.0 -0.2640169917939907]},Chart {annotation = PathA (PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30, pathMarkers = []}) [StartI,ArcI (ArcInfo {radii = Point 1.0 0.5, phi = 0.0, large = False, clockwise = True})], xys = [P 1.0 0.0,P 0.0 1.0]}]
+--
+--
+-- The output from runHud looks ok, so the problem was isolated to projectXYsWith ...
+--
+-- part c)
+-- phi was then causing aspect scaling problems. Unadjusted was good:
+--
+-- writeChartSvg "other/t1.svg" $ problematic1 (UnadjustedAspect) (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.0 0.5) (-pi/4) False True)) & #hudOptions .~ defaultHudOptions
+--
+-- And then I realised that the x and y radii of the ellipse was __firstly__ rotated in the XY-space and only then should be subject to scaling...
+problematic1 :: ChartAspect -> ArcPosition Double -> ChartSvg
+problematic1 ca p =
   mempty &
   #chartList .~ [arc, ell, pts, bbox] &
-  #hudOptions .~ (mempty & #hudCanvas ?~ blob (Colour 0.2 0.1 0.7 0.1)) &
-  #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 3)
+  #hudOptions .~ defaultHudOptions &
+  #svgOptions .~ (defaultSvgOptions & #chartAspect .~ ca)
   where
-    p = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) 0 False False)
+    -- p = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) 0 False False)
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p
     ps = singletonArc p
     arc = toPathChart defaultPathStyle ps
@@ -430,20 +456,12 @@ problematic1 =
     pts = Chart (GlyphA defaultGlyphStyle) (fmap PointXY [c, p ^. #posStart, p ^. #posEnd])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
 
+
 -- | arc example
 --
--- FIXME:
+-- UnadjustedAspect seems ok for phi, large, sweep combinations.
+-- writeChartSvg "other/arc.svg" $ (arcExample (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/6) False True))) & #svgOptions . #chartAspect .~ UnadjustedAspect
 --
--- - check all combinations of large and clockwise
---
--- - check phi works
---
--- - check all the ChartAspect options (delete CanvasAspect???)
---
--- > writeChartSvg "other/arc.svg" $ (arcExample $ ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) (0) False False)) & (#svgOptions . #chartAspect .~ FixedAspect 1)
---
--- > let p1 = ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True)
--- > testArc (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
 --
 -- ![arc example](other/arc.svg)
 --
@@ -460,6 +478,58 @@ arcExample p1 =
     ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) [PointXY c]
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p1)]
+
+-- | Reproduction of the flag explanation chart in <https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths>
+--
+-- ![arc flags example](other/arcflags.svg)
+arcFlagsExample :: ChartSvg
+arcFlagsExample =
+  mempty &
+   #chartList .~
+     vert 0.02
+     [hori 0.02
+       [ [Chart (RectA defaultRectStyle) [R -0.4 0.4 -1 5],
+          Chart (TextA (defaultTextStyle & #size .~ 0.6 & #rotation .~ Just (pi/2)) ["Sweep"]) [P 0.1 2]],
+         vert 0.02
+         [[Chart (RectA defaultRectStyle) [R -0.25 0.25 -1 2],
+           Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi/2)) ["True"]) [P 0.1 0.5]],
+          [Chart (RectA defaultRectStyle) [R -0.25 0.25 -1 2],
+           Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi/2)) ["False"]) [P 0.1 0.5]]
+       ],
+         vert 0.02
+         [checkFlags False True (Colour 1 0 1 0.3) & view #chartList,
+          checkFlags False False (Colour 0 1 0 0.3) & view #chartList,
+          [Chart (RectA defaultRectStyle) [R -1 2 -0.25 0.25],
+           Chart (TextA (defaultTextStyle & #size .~ 0.4) ["False"]) [P 0.5 -0.1]]
+         ],
+         vert 0.02
+         [checkFlags True True (Colour 0 0 1 0.3) & view #chartList,
+          checkFlags True False (Colour 1 0 0 0.3) & view #chartList,
+           [Chart (RectA defaultRectStyle) [R -1 2 -0.25 0.25],
+            Chart (TextA (defaultTextStyle & #size .~ 0.4) ["True"]) [P 0.5 -0.1]]
+         ]
+       ],
+      [Chart (RectA defaultRectStyle) [R 0 9 0 0.75],
+       Chart (TextA (defaultTextStyle & #size .~ 0.6) ["Large"]) [P 5.5 0.2]]
+     ] &
+   #hudOptions .~ defaultHudOptions &
+   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
+
+checkFlags :: Bool -> Bool -> Colour -> ChartSvg
+checkFlags large sweep co =
+  mempty &
+  #hudOptions .~ defaultHudOptions &
+  #svgOptions . #chartAspect .~ UnadjustedAspect &
+  #chartList .~ [c1, c2, ell, arc1]
+  where
+    c = Point 1.0 1.0
+    p1 = ArcPosition (Point 0.0 1.0) (Point 1.0 0.0) (ArcInfo (Point 1.0 1.0) 0 large sweep)
+    ps1 = singletonPie' c p1
+    (ArcCentroid c' r phi' ang0 angd) = arcCentroid p1
+    arc1 = Chart (PathA (defaultPathStyle & #color .~ co & #borderColor .~ Colour 0 0 0 0.5) (fst <$> ps1)) (PointXY . snd <$> ps1)
+    c1 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ Colour 0 0 0 0.2) (PointXY . ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0..100])
+    c2 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ Colour 0 0 0 0.2) (PointXY . ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0..100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.05 & #color .~ setOpac 0.5 co) (PointXY . ellipse c' r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
 
 -- | quad example
 --
@@ -524,7 +594,7 @@ surfaceExample ::
   (Point Double -> Double) ->
   ChartSvg
 surfaceExample t grain r f =
-    mempty &
+  mempty &
   #hudList .~ hs &
   #chartList .~ cs &
   #svgOptions .~ (defaultSvgOptions & #cssOptions .~ UseCssCrisp)
@@ -558,7 +628,7 @@ arrowgExample ::
 arrowgExample grain r f =
   mempty &
   #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#atick . #ltick .~ Nothing)) &
-  #chartList .~ ((\p -> chart (tmag . f $ p) (dir . f $ p) p) <$> ps) &
+  #chartList .~ ((\p -> chart (tail . f $ p) (angle . f $ p) p) <$> ps) &
   #svgOptions .~ (defaultSvgOptions & #cssOptions .~ UseCssCrisp)
   where
     ps = grid MidPos r grain
@@ -572,16 +642,10 @@ arrowgExample grain r f =
       #shape .~ arrow
     chart s r' p = Chart (GlyphA (gs s r')) [PointXY p]
 
-    dir :: Point Double -> Double
-    dir (Point x y) = -1 * atan2 y x * (180/pi)
+    tail :: Point Double -> Double
+    tail = max 0.005 . min 0.02 . (*0.01) . (/avmag) . norm
 
-    mag :: Point Double -> Double
-    mag (Point x y) = sqrt (x*x + y*y)
-
-    tmag :: Point Double -> Double
-    tmag = max 0.005 . min 0.02 . (*0.01) . (/avmag) . mag
-
-    avmag = sum (mag . f <$> ps) / fromIntegral (length ps)
+    avmag = sum (norm . f <$> ps) / fromIntegral (length ps)
 
 -- | A surface chart with gradient arrows.
 --
@@ -649,6 +713,7 @@ writeAllExamples = do
   writeChartSvg "other/arc.svg" $
     arcExample (ArcPosition (Point 1.0 0.0) (Point 0.0 1.0)
              (ArcInfo (Point 1.0 0.5) (-pi/3) False True))
+  writeChartSvg "other/arcflags.svg" arcFlagsExample
   writeChartSvg "other/quad.svg" $
     quadExample (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
   writeChartSvg "other/cubic.svg" $
@@ -662,5 +727,6 @@ writeAllExamples = do
   writeChartSvg "other/surfaceg.svg" $
     surfacegExample "rosenbrock" (Point 100 100) (Point 20 20) one
     (bimap (-1.0 *) (-1.0 .*) . rosenbrock 1 10)
-  writeChartSvg "other/problematic1.svg" problematic1
+  writeChartSvg "other/problematic1.svg" $
+    problematic1 (FixedAspect 2) (ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) 0 False False))
   putStrLn ("ok" :: Text)

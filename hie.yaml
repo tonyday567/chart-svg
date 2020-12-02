@@ -1,6 +1,6 @@
 cradle:
   stack:
-    - path: "./src"
+    - path: "src"
       component: "chart-svg:lib"
-    - path: "./app/reanimate-example.hs"
+    - path: "app/reanimate-example.hs"
       component: "chart-svg:exe:reanimate-example"

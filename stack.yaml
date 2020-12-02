@@ -4,15 +4,13 @@ packages:
   - .
 
 extra-deps:
-  # - numhask-0.7.0.0
-  - git: https://github.com/tonyday567/numhask.git
-    commit: e5b304fa4a6658e4bab01ce83e7065fe90e7033e
+  - numhask-0.7.0.0
+  - numhask-space-0.7.0.0
   - protolude-0.3.0
   - random-1.2.0
   - splitmix-0.1.0.3
-  # - numhask-space-0.7.0.0
-  - git: https://github.com/tonyday567/numhask-space.git
-    commit: 9ae216d88f8254e72a652967507000b85036d179
+
+  - formatn-0.0.1
 
   # reanimate deps
   - reanimate-1.1.1.0
@@ -20,3 +18,5 @@ extra-deps:
   - hgeometry-0.11.0.0
   - hgeometry-combinatorial-0.11.0.0
   - vinyl-0.13.0
+
+allow-newer: true

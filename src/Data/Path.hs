@@ -41,6 +41,8 @@ module Data.Path
     singletonCubic,
     singletonQuad,
     singletonArc,
+    singletonPie,
+    singletonPie',
     toSingletonArc,
     pathBoxes,
     pathBox,
@@ -120,49 +122,50 @@ data PathInfo a =
 --
 -- - implicit L's in multiple M instructions are separated.
 --
--- FIXME: prev can be factored out
+-- In converting between chart-svg and SVG there are two changes in reference:
+--
+-- - arc rotation is expressed as positive degrees for a clockwise rotation in SVG, and counter-clockwise in radians for chart-svg
+--
+-- - A positive y-direction is down for SVG and up for chart-svg
+--
 toPathAbsolute ::
   -- | (info, start, end)
-  (PathInfo Double, Point Double, Point Double) ->
+  (PathInfo Double, Point Double) ->
   -- | path text
   Text
-toPathAbsolute (StartI,p,_) = "M " <> pp p
-toPathAbsolute (LineI,p,_) = "L " <> pp p
-toPathAbsolute (CubicI c1 c2, next, _) =
+toPathAbsolute (StartI,p) = "M " <> pp p
+toPathAbsolute (LineI,p) = "L " <> pp p
+toPathAbsolute (CubicI c1 c2, next) =
   "C " <>
   pp c1 <> " " <>
   pp c2 <> " " <>
   pp next
-toPathAbsolute (QuadI control, next, _) =
+toPathAbsolute (QuadI control, next) =
   "Q " <>
   pp control <> " " <>
   pp next
-toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2, _) =
+toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2) =
   "A " <>
   show x <> " " <>
   show y <> " " <>
-  -- in degrees and clockwise is positive
-  -- FIXME: is this correct?
   show (-phi' * 180 / pi) <> " " <>
   bool "0" "1" l <> " " <>
   bool "0" "1" sw <> " " <>
   pp x2
 
--- | render a point, including polarity reversal
+-- | render a point (including a flip of the y dimension).
 pp :: Point Double -> Text
 pp (Point x y) =
   showOr (FormatFixed (Just 4)) x <> "," <>
-  showOr (FormatFixed (Just 3)) (bool (-y) y (y==zero))
+  showOr (FormatFixed (Just 4)) (bool (-y) y (y==zero))
 
 -- | convert an (info, point) list to an svg d path text.
 toPathAbsolutes :: [(PathInfo Double, Point Double)] -> Text
 toPathAbsolutes = L.fold (L.Fold step begin done)
   where
-    done = Text.intercalate " " . reverse . snd
-    -- (previous point, accumulated text)
-    begin = (zero, [])
-    step (prev, ts) (info, next) = (next , toPathAbsolute (info, next, prev):ts)
-
+    done = Text.intercalate " " . reverse
+    begin = []
+    step ts (info, next) = toPathAbsolute (info, next):ts
 
 data StateInfo =
   StateInfo
@@ -180,6 +183,7 @@ stateInfo0 = StateInfo zero zero zero
 
 -- | Convert a path command fragment to an instruction + point.
 --
+-- flips the y-dimension of points.
 toInfo :: StateInfo -> SvgTree.PathCommand -> (StateInfo, [(PathInfo Double, Point Double)])
 toInfo s (MoveTo _ []) = (s, [])
 toInfo _ (MoveTo OriginAbsolute (x:xs)) = L.fold (L.Fold step begin (second reverse)) (fromV2 <$> xs)
@@ -289,6 +293,19 @@ toInfo s (EllipticalArc OriginRelative xs) =
       let x2' = x2 + s ^. #cur in
           (s & #cur .~ x2', (fromPathEllipticalArc (s ^. #cur) a, x2'):p)
 
+fromPathEllipticalArc :: Point a -> (a, a, a, Bool, Bool, Point a) -> PathInfo a
+fromPathEllipticalArc _ (x, y, r, l, s, _) = ArcI (ArcInfo (Point x y) r l s)
+
+fromV2 :: (Subtractive a) => Linear.V2 a -> Point a
+fromV2 (Linear.V2 x y) = Point x (-y)
+
+-- | Convert from a path command list to a PathA specification
+--
+toPathXYs :: [SvgTree.PathCommand] -> [(PathInfo Double, Point Double)]
+toPathXYs [] = []
+toPathXYs xs =
+  snd (foldl' (\(x,l) a -> second (l<>) $ toInfo x a) (stateInfo0,[]) xs)
+
 -- | convert cubic position to path info.
 singletonCubic :: CubicPosition Double -> [(PathInfo Double, Point Double)]
 singletonCubic (CubicPosition s e c1 c2) = [(StartI, s), (CubicI c1 c2, e)]
@@ -301,47 +318,32 @@ singletonQuad (QuadPosition s e c) = [(StartI, s), (QuadI c, e)]
 singletonArc :: ArcPosition Double -> [(PathInfo Double, Point Double)]
 singletonArc (ArcPosition s e i) = [(StartI, s), (ArcI i, e)]
 
+-- | convert arc position to a pie slice.
+singletonPie :: ArcPosition Double -> [(PathInfo Double, Point Double)]
+singletonPie p@(ArcPosition s e i) = [(StartI, c), (LineI, s), (ArcI i, e), (LineI, c)]
+  where
+    ac = arcCentroid p
+    c = ac ^. #centroid
+
+-- | convert arc position to a pie slice, with a specific center.
+singletonPie' :: Point Double -> ArcPosition Double -> [(PathInfo Double, Point Double)]
+singletonPie' c (ArcPosition s e i) = [(StartI, c), (LineI, s), (ArcI i, e), (LineI, c)]
+
 -- | convert path info to an ArcPosition.
 toSingletonArc :: [(PathInfo Double, Point Double)] -> Maybe (ArcPosition Double)
 toSingletonArc ((StartI, s):(ArcI i, e):_) = Just $ ArcPosition s e i
 toSingletonArc _ = Nothing
 
 
--- FIXME: factor out
-fromPathEllipticalArc :: Point a -> (a, a, a, Bool, Bool, Point a) -> PathInfo a
-fromPathEllipticalArc _ (x, y, r, l, s, _) = ArcI (ArcInfo (Point x y) r l s)
-
-fromV2 :: Linear.V2 a -> Point a
-fromV2 (Linear.V2 x y) = Point x y
-
--- | Convert from a path command list to a PathA specification
---
-toPathXYs :: [SvgTree.PathCommand] -> [(PathInfo Double, Point Double)]
-toPathXYs [] = []
-toPathXYs xs =
-  second flipY <$>
-  snd (foldl' (\(x,l) a -> second (l<>) $ toInfo x a) (stateInfo0,[]) xs)
-
 -- * Arc types
 
--- | Information specific to an arc path.
--- FIXME:
--- aspect issues:
--- let p00 = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point (sqrt 0.5) (sqrt 0.5)) 0 False False)
--- writeChartSvg "other/arc2.svg" $ (arcExample p00) & #svgOptions . #chartAspect .~ FixedAspect 2 & #chartList %~ take 2
+-- | Information about an individual arc path.
 --
--- "Everything" is flipped along the x-axis when converting to and from svg.
--- This also "flips" the sign of angles.
--- See the example in <https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths>
---
--- >>> let p00 = ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) 0 False False)
--- >>> arcCentroid p00
--- ArcCentroid {centroid = Point 1.0 1.0, radius = Point 1.0 1.0, cphi = 0.0, ang0 = -3.141592653589793, angdiff = 1.5707963267948966}
 data ArcInfo a =
   ArcInfo
   { -- | ellipse radii expressed as position length. This needs to be scaled according to changes in aspect given the usual chart projections of XY data. (See 'projectXYsWith')
     radii :: Point a,
-    -- | rotation of the ellipse
+    -- | rotation of the ellipse. positive means counter-clockwise (which is different to SVG).
     phi :: a,
     large :: Bool,
     -- | sweep means clockwise
@@ -374,8 +376,11 @@ data ArcCentroid a =
     angdiff :: a
   } deriving (Eq, Show, Generic)
 
--- | convert from ArcInfo spec to ArcCentroid spec.
+-- | convert from an ArcPosition spec to ArcCentroid spec.
 --
+-- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
+-- >>> arcCentroid p
+-- ArcCentroid {centroid = Point 0.20952624903444356 -0.48412291827592724, radius = Point 1.0 0.5, cphi = 0.7853981633974483, ang0 = 1.3753858999692936, angdiff = -1.823476581936975}
 arcCentroid :: (FromInteger a, Ord a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi large clockwise)) = ArcCentroid c (Point rx ry) phi ang1 angd
   where
@@ -409,19 +414,18 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi larg
 -- - radii are less than they should be and thus get scaled up.
 --
 arcPosition :: (Ord a, Signed a, TrigField a) => ArcCentroid a -> ArcPosition a
-arcPosition (ArcCentroid (Point cx cy) r@(Point rx ry) phi ang1 angd) = ArcPosition (Point x1 y1) (Point x2 y2) (ArcInfo r phi large clockwise)
+arcPosition (ArcCentroid c r phi ang1 angd) =
+  ArcPosition p1 p2 (ArcInfo r phi large clockwise)
   where
-    x1 = cos phi * rx * cos ang1 - sin phi * ry * sin ang1 + cx
-    y1 = sin phi * rx * cos ang1 + cos phi * ry * sin ang1 + cy
-    x2 = cos phi * rx * cos (ang1+angd) - sin phi * ry * sin (ang1+angd) + cx
-    y2 = sin phi * rx * cos (ang1+angd) + cos phi * ry * sin (ang1+angd) + cy
+    p1 = ellipse c r phi ang1
+    p2 = ellipse c r phi (ang1+angd)
     large = abs angd > pi
     clockwise = angd < zero
 
 -- | ellipse formulae
 --
 -- positive x-axis rotation is counter-clockwise.
-ellipse :: Point Double -> Point Double -> Double -> Double -> Point Double
+ellipse :: (TrigField a) => Point a -> Point a -> a -> a -> Point a
 ellipse (Point cx cy) (Point rx ry) phi theta =
   Point
   (cx + rx * cos theta * cos phi - ry * sin theta * sin phi)

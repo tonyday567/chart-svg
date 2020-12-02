@@ -24,6 +24,7 @@ module Chart.Types
     moveChart,
     projectXYs,
     projectXYsWith,
+    projectArcInfo,
 
     -- * Annotation
     Annotation (..),
@@ -964,8 +965,8 @@ title_ t a =
         #anchor .~ AnchorEnd $ t ^. #style
       | otherwise = t ^. #style
     rot
-      | t ^. #place == PlaceRight = 90.0
-      | t ^. #place == PlaceLeft = -90.0
+      | t ^. #place == PlaceRight = pi/2
+      | t ^. #place == PlaceLeft = -pi/2
       | otherwise = 0
     placePos' (Rect x z y w) = case t ^. #place of
       PlaceTop -> Point ((x + z) / 2.0) (w + (t ^. #buff))
@@ -1019,8 +1020,8 @@ placePos pl b (Rect x z y w) = case pl of
 
 placeRot :: Place -> Maybe Double
 placeRot pl = case pl of
-  PlaceRight -> Just (-90.0)
-  PlaceLeft -> Just (-90.0)
+  PlaceRight -> Just (pi/2)
+  PlaceLeft -> Just (pi/2)
   _ -> Nothing
 
 textPos :: Place -> TextStyle -> Double -> Point Double
@@ -1268,7 +1269,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
                                                   _ -> #ttick . _Just . _1 . #anchor .~ AnchorEnd
                                               )
                                                 . (#ttick . _Just . _1 . #size %~ (/ adjustSizeA))
-                                                $ (#ttick . _Just . _1 . #rotation ?~ -45) t
+                                                $ (#ttick . _Just . _1 . #rotation ?~ pi/4) t
                                             False -> (#ttick . _Just . _1 . #size %~ (/ adjustSizeA)) t) else t & #ttick . _Just . _1 . #size %~ (/ adjustSizeX)
   | otherwise = -- pl `elem` [PlaceLeft, PlaceRight]
     (#ttick . _Just . _1 . #size %~ (/ adjustSizeY)) t
@@ -1443,8 +1444,29 @@ projectXYsWith new old cs = cs'
 
     projectControls (CubicI c1 c2) = CubicI (projectOnP new old c1) (projectOnP new old c2)
     projectControls (QuadI c) = QuadI (projectOnP new old c)
-    projectControls (ArcI (ArcInfo r p l c)) = ArcI (ArcInfo (projectOnP (aspect $ ratio new) (aspect $ ratio old) r) p l c)
+    -- FIXME:
+    -- projectControls (ArcI (ArcInfo r p l c)) = ArcI (ArcInfo (projectRatio r) (angle $ projectRatio $ rotateP p (Point 1 0)) l c)
+    -- projectControls (ArcI (ArcInfo r p l c)) = ArcI (ArcInfo (projectRatio r) p l c)
+    projectControls (ArcI ai) = ArcI $ projectArcInfo new old ai
     projectControls x = x
+    
+
+-- | project an Arc given new and old Rects
+--
+-- The radii of the ellipse can be represented as:
+--
+-- Point rx 0 & Point 0 ry
+--
+-- These two points are firstly rotated by p and then undergo scaling...
+--
+projectArcInfo :: (Ord a, TrigField a, ExpField a) => Rect a -> Rect a -> ArcInfo a -> ArcInfo a
+projectArcInfo new old (ArcInfo (Point rx ry) p l c) = ArcInfo (Point rx'' ry'') p' l c
+  where
+    rx' = rotateP p (Point rx zero)
+    rx'' = norm $ rx' * NH.width new / NH.width old
+    ry' = rotateP p (Point zero ry)
+    ry'' = norm $ ry' * NH.width new / NH.width old
+    p' = angle $ rotateP p (Point one zero) * NH.width new / NH.width old
 
 -- | pad a Rect to remove singleton dimensions
 padBox :: Maybe (Rect Double) -> Rect Double
@@ -1547,18 +1569,18 @@ hori :: Double -> [[Chart Double]] -> [Chart Double]
 hori _ [] = []
 hori gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (z x) 0 - P (origx x) 0 + s)))
-    z xs = maybe 0 (\(Rect _ z' _ _) -> z' + gap) (styleBoxes xs)
-    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+    step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (widthx x) (aligny x - aligny a) + s)))
+    widthx xs = maybe 0 (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
+    aligny xs = maybe 0 (\(Rect _ _ y' _) -> y') (styleBoxes xs)
 
 -- | vertically stack a list of charts (proceeding upwards), aligning them to the left
 vert :: Double -> [[Chart Double]] -> [Chart Double]
 vert _ [] = []
 vert gap cs = foldl step [] cs
   where
-    step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (origx x - origx a) (w x) + s)))
-    w xs = maybe 0 (\(Rect _ _ _ w') -> w' + gap) (styleBoxes xs)
-    origx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+    step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (alignx x - alignx a) (widthy x) + s)))
+    widthy xs = maybe 0 (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
+    alignx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- | stack a list of charts horizontally, then vertically
 stack :: Int -> Double -> [[Chart Double]] -> [Chart Double]
