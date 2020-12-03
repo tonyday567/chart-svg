@@ -36,7 +36,8 @@ module Chart.Examples
     vennExample,
     writeAllExamples,
     problematic1,
-    checkFlags
+    checkFlags,
+    ellipseExample,
   )
 where
 
@@ -456,6 +457,27 @@ problematic1 ca p =
     pts = Chart (GlyphA defaultGlyphStyle) (fmap PointXY [c, p ^. #posStart, p ^. #posEnd])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
 
+-- | ellipse example
+--
+-- (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi/3) True True))
+--
+--
+-- ![arc example](other/ellipse.svg)
+--
+ellipseExample :: ArcPosition Double -> ChartSvg
+ellipseExample p@(ArcPosition p1 p2 _) =
+  mempty &
+   #chartList .~ [ell, ellFull, c0, bbox, xradii, yradii] &
+   #hudOptions .~ defaultHudOptions &
+   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
+  where
+    (ArcCentroid c r phi' ang0 angd) = arcCentroid p
+    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0..100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
+    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [c,p1,p2])
+    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
+    xradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [ellipse c r phi' 0, ellipse c r phi' pi])
+    yradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [ellipse c r phi' (pi/2), ellipse c r phi' (3/2*pi)])
 
 -- | arc example
 --

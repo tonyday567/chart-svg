@@ -24,7 +24,7 @@ module Chart.Types
     moveChart,
     projectXYs,
     projectXYsWith,
-    projectArcInfo,
+    projectArcPosition,
 
     -- * Annotation
     Annotation (..),
@@ -1437,21 +1437,23 @@ projectXYsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
 projectXYsWith new old cs = cs'
   where
     xss = fmap (projectOn new old) . xys <$> cs
-    ss = projectAnn . annotation <$> cs
+    ss = projectAnn <$> cs
     cs' = zipWith Chart ss xss
-    projectAnn (PathA ps ips) = PathA ps (projectControls <$> ips)
-    projectAnn x = x
+    projectAnn (Chart (PathA ps ips) xys) =
+      PathA ps (projectControls ips xys)
+    projectAnn x = annotation x
 
-    projectControls (CubicI c1 c2) = CubicI (projectOnP new old c1) (projectOnP new old c2)
-    projectControls (QuadI c) = QuadI (projectOnP new old c)
-    -- FIXME:
-    -- projectControls (ArcI (ArcInfo r p l c)) = ArcI (ArcInfo (projectRatio r) (angle $ projectRatio $ rotateP p (Point 1 0)) l c)
-    -- projectControls (ArcI (ArcInfo r p l c)) = ArcI (ArcInfo (projectRatio r) p l c)
-    projectControls (ArcI ai) = ArcI $ projectArcInfo new old ai
-    projectControls x = x
-    
+    projectControls pis xys =
+      (reverse . snd) (foldl' (\(prevp,l) (i,xy) -> (xy, projectControl prevp xy i:l)) (zero,[]) (zip pis xys))
 
--- | project an Arc given new and old Rects
+    projectControl _ _ (CubicI c1 c2) =
+      CubicI (projectOnP new old c1) (projectOnP new old c2)
+    projectControl _ _ (QuadI c) =
+      QuadI (projectOnP new old c)
+    projectControl p1 p2 (ArcI ai) = ArcI $ projectArcPosition new old (ArcPosition (toPoint p1) (toPoint p2) ai)
+    projectControl _ _ x = x
+
+-- | project an ArcPosition given new and old Rects
 --
 -- The radii of the ellipse can be represented as:
 --
@@ -1459,14 +1461,21 @@ projectXYsWith new old cs = cs'
 --
 -- These two points are firstly rotated by p and then undergo scaling...
 --
-projectArcInfo :: (Ord a, TrigField a, ExpField a) => Rect a -> Rect a -> ArcInfo a -> ArcInfo a
-projectArcInfo new old (ArcInfo (Point rx ry) p l c) = ArcInfo (Point rx'' ry'') p' l c
+projectArcPosition :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInfo Double
+projectArcPosition new old ap@(ArcPosition p1 _ (ArcInfo _ phi l cl)) = ArcInfo r' phi l cl
   where
+    (ArcCentroid c _ p ang0 _) = arcCentroid ap
+    c' = projectOnP new old c
+    p1' = projectOnP new old p1
+    r' = ellRadii p1' c' p ang0
+{-
     rx' = rotateP p (Point rx zero)
     rx'' = norm $ rx' * NH.width new / NH.width old
     ry' = rotateP p (Point zero ry)
     ry'' = norm $ ry' * NH.width new / NH.width old
     p' = angle $ rotateP p (Point one zero) * NH.width new / NH.width old
+
+-}
 
 -- | pad a Rect to remove singleton dimensions
 padBox :: Maybe (Rect Double) -> Rect Double

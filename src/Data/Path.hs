@@ -46,6 +46,8 @@ module Data.Path
     toSingletonArc,
     pathBoxes,
     pathBox,
+    cen,
+    ellRadii,
   ) where
 
 import qualified Graphics.SvgTree as SvgTree
@@ -341,7 +343,7 @@ toSingletonArc _ = Nothing
 --
 data ArcInfo a =
   ArcInfo
-  { -- | ellipse radii expressed as position length. This needs to be scaled according to changes in aspect given the usual chart projections of XY data. (See 'projectXYsWith')
+  { -- | ellipse radii
     radii :: Point a,
     -- | rotation of the ellipse. positive means counter-clockwise (which is different to SVG).
     phi :: a,
@@ -401,6 +403,21 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi larg
     angd' = ang2 - ang1
     angd = bool 0 (2*pi) (not clockwise && angd'<0) + bool 0 (-2*pi) (clockwise && angd'>0) + angd'
 
+cen :: (FromInteger a, Ord a, TrigField a, ExpField a) => Point a -> Point a -> Point a -> a -> Bool -> Bool -> Point a
+cen p1@(Point x1 y1) p2@(Point x2 y2) rad phi large clockwise = c
+  where
+    (Point x1' y1') = rotateP (-phi) ((p1 - p2) /. two)
+    (Point rx' ry') = rad
+    l = x1'**2/rx'**2 + y1'**2/ry'**2
+    (rx,ry) = bool (rx',ry') (rx'*sqrt l, ry'*sqrt l) (l > 1)
+    snumer = max 0 $ (rx*rx*ry*ry) - (rx*rx*y1'*y1') - (ry*ry*x1'*x1')
+    s = bool -1 1 (large == clockwise) * sqrt
+      (snumer / (rx*rx*y1'*y1' + ry*ry*x1'*x1'))
+    cx' = s *  rx * y1' / ry
+    cy' = s * (-ry) * x1' / rx
+    cx = (x1 + x2) / 2 + cos phi * cx' - sin phi * cy'
+    cy = (y1 + y2) / 2 + sin phi * cx' + cos phi * cy'
+    c = Point cx cy
 
 -- | convert from an ArcCentroid to an ArcPosition specification.
 --
@@ -430,6 +447,33 @@ ellipse (Point cx cy) (Point rx ry) phi theta =
   Point
   (cx + rx * cos theta * cos phi - ry * sin theta * sin phi)
   (cy + rx * cos theta * sin phi + ry * sin theta * cos phi)
+
+-- | find radii of an ellipse given a point and an angle to the point
+--
+-- px = cx + rx * cos theta * cos phi - ry * sin theta * sin phi
+--
+-- py = cy + rx * cos theta * sin phi + ry * sin theta * cos phi
+--
+-- rx = ((px - cx) + ry * (sin theta * sin phi)) / (cos theta * cos phi)
+--
+-- rx = ((px - cx) / (cos theta * cos phi)) + ry * (sin theta * sin phi / (cos theta * cos phi))
+--
+-- py - cy = ((px - cx) / (cos theta * cos phi) * cos theta * sin phi) + ry * (sin theta * sin phi / (cos theta * cos phi)) * cos theta * sin phi + ry * sin theta * cos phi
+--
+-- py - cy - ((px - cx) / (cos phi) * sin phi) = ry * (sin theta * sin phi / (cos phi) * sin phi + sin theta * cos phi)
+--
+-- ry = (py - cy - ((px - cx) / (cos phi) * sin phi)) / (sin theta * sin phi / (cos phi) * sin phi + sin theta * cos phi)
+--
+-- >>> let (ArcCentroid c r phi ang0 angd) = arcCentroid (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi/6) True True))
+-- >>> ellRadii (Point 1 0) c phi ang0
+-- Point 1.5 1.0000000000000002
+-- >>> ellRadii (Point 0 1) c phi (ang0+angd)
+-- Point 1.5000000000000002 0.9999999999999998
+ellRadii :: (TrigField a) => Point a -> Point a -> a -> a -> Point a
+ellRadii (Point px py) (Point cx cy) phi theta = Point rx ry
+  where
+    ry = (py - cy - ((px - cx) / cos phi * sin phi)) / (sin theta * sin phi / cos phi * sin phi + sin theta * cos phi)
+    rx = ((px - cx) / (cos theta * cos phi)) + ry * (sin theta * sin phi / (cos theta * cos phi))
 
 -- | compute the bounding box for an arcBox
 --

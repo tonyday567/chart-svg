@@ -16,8 +16,8 @@ module Chart
     moveChart,
     projectXYs,
     projectXYsWith,
-    projectArcInfo,
-    
+    projectArcPosition,
+
     -- * Annotation
     Annotation (..),
     annotationText,
