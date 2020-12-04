@@ -48,6 +48,8 @@ module Data.Path
     pathBox,
     cen,
     ellRadii,
+    ellipse',
+    ellipseR',
   ) where
 
 import qualified Graphics.SvgTree as SvgTree
@@ -441,6 +443,8 @@ arcPosition (ArcCentroid c r phi ang1 angd) =
 
 -- | ellipse formulae
 --
+-- https://math.stackexchange.com/questions/426150/what-is-the-general-equation-of-the-ellipse-that-is-not-in-the-origin-and-rotate
+--
 -- positive x-axis rotation is counter-clockwise.
 ellipse :: (TrigField a) => Point a -> Point a -> a -> a -> Point a
 ellipse (Point cx cy) (Point rx ry) phi theta =
@@ -448,12 +452,43 @@ ellipse (Point cx cy) (Point rx ry) phi theta =
   (cx + rx * cos theta * cos phi - ry * sin theta * sin phi)
   (cy + rx * cos theta * sin phi + ry * sin theta * cos phi)
 
+-- | ellipse formulae
+--
+-- positive x-axis rotation is counter-clockwise.
+ellipse' :: (Direction b a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
+ellipse' c r phi theta = c + (rotate phi |. (r * ray theta))
+
+-- | ellipse radii formulae
+--
+-- p = c + rotate phi (r * ray theta)
+-- rotate (-phi) (p - c) / ray theta = r
+ellipseR' :: (Direction b a, Affinity b a, Field b, TrigField a) => b -> b -> a -> a -> b
+ellipseR' p c phi theta = (rotate (-phi) |. (p - c)) / ray theta
+
 -- | find radii of an ellipse given a point and an angle to the point
 --
 -- px = cx + rx * cos theta * cos phi - ry * sin theta * sin phi
+-- 0 = 1.5809475019311128 + rx * -0.986172323281827 * 0.8944271909999159 - ry * 0.16572310880780497 * 0.447213595499958
 --
 -- py = cy + rx * cos theta * sin phi + ry * sin theta * cos phi
+-- 0 = 0.48412291827592724 + rx * -0.986172323281827 * 0.447213595499958 + ry * 0.16572310880780497 * 0.8944271909999159
 --
+-- rx = (-1.5809475019311128 + ry * 7.411362734736922e-2) / -0.8820593409548254
+-- rx = 1.7923368967667686 + ry * -8.402340285534705e-2
+--
+-- subbing
+--
+-- -0.48412291827592724 = rx * -0.44102967047741276 + ry * 0.1482272546947384
+--
+-- -0.48412291827592724 = (1.7923368967667686 + ry * -8.402340285534705e-2) * -0.44102967047741276 + ry * 0.1482272546947384
+--
+-- -0.48412291827592724 = (1.7923368967667686 + ry * -8.402340285534705e-2) * -0.44102967047741276 + ry * 0.1482272546947384
+--
+-- 0.30635083268962926 = ry * 0.18528406836842304
+--
+-- ry = 1.653411625658361
+--
+-- rx = 
 -- rx = ((px - cx) + ry * (sin theta * sin phi)) / (cos theta * cos phi)
 --
 -- rx = ((px - cx) / (cos theta * cos phi)) + ry * (sin theta * sin phi / (cos theta * cos phi))
@@ -469,11 +504,27 @@ ellipse (Point cx cy) (Point rx ry) phi theta =
 -- Point 1.5 1.0000000000000002
 -- >>> ellRadii (Point 0 1) c phi (ang0+angd)
 -- Point 1.5000000000000002 0.9999999999999998
+--
 ellRadii :: (TrigField a) => Point a -> Point a -> a -> a -> Point a
 ellRadii (Point px py) (Point cx cy) phi theta = Point rx ry
   where
     ry = (py - cy - ((px - cx) / cos phi * sin phi)) / (sin theta * sin phi / cos phi * sin phi + sin theta * cos phi)
     rx = ((px - cx) / (cos theta * cos phi)) + ry * (sin theta * sin phi / (cos theta * cos phi))
+
+-- | Find an ellipse from 2 points and the center
+--
+-- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) True True)
+--
+-- 
+--
+ell2pc :: (TrigField a) => Point a -> Point a -> Point a -> ArcCentroid a
+ell2pc p1 p2 c = ArcCentroid c r phi ang0 angdiff
+  where
+    r = Point zero zero
+    phi = zero
+    ang0 = angle $ p2 - c
+    ang1 = angle $ p1 - c
+    angdiff = ang1 - ang0
 
 -- | compute the bounding box for an arcBox
 --

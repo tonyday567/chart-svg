@@ -38,6 +38,7 @@ module Chart.Examples
     problematic1,
     checkFlags,
     ellipseExample,
+    ellipseProjectionExample,
   )
 where
 
@@ -456,6 +457,48 @@ problematic1 ca p =
     ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 10.0) <$> [0..10])
     pts = Chart (GlyphA defaultGlyphStyle) (fmap PointXY [c, p ^. #posStart, p ^. #posEnd])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
+
+-- | ellipse projection example
+--
+-- let p1 = Point 0 0
+-- let p2 = Point 1 0
+-- let p = ArcPosition p1 p2 (ArcInfo (Point 1 0.5) (pi/4) True True)
+-- let (ArcCentroid c r phi' l cl) = arcCentroid p
+-- let p1' = projectOnP (aspect 2) (aspect 1) p1
+-- let p2' = projectOnP (aspect 2) (aspect 1) p2
+-- let c' = projectOnP (aspect 2) (aspect 1) c
+-- let phi'' = angle $ projectOnP (aspect 2) (aspect 1) (ray (pi/4))
+-- let ang0' = angle $ projectOnP (aspect 2) (aspect 1) (ray ang0)
+-- (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi/3) True True))
+--
+--
+-- ![arc example](other/ellipseProjection.svg)
+--
+ellipseProjectionExample :: Rect Double -> ArcPosition Double -> ChartSvg
+ellipseProjectionExample asp p@(ArcPosition p1 p2 _) =
+  mempty &
+   #chartList .~ [c0, xradii, yradii, dir0, dir1, ell, ellFull, ellFull2] &
+   #hudOptions .~ defaultHudOptions &
+   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
+  where
+    (ArcCentroid c _ phi' ang0 angd) = arcCentroid p
+    ang1 = ang0+angd
+    p1' = projectOnP asp (aspect 1) p1
+    p2' = projectOnP asp (aspect 1) p2
+    c' = projectOnP asp (aspect 1) c
+    phi'' = angle $ projectOnP asp (aspect 1) (ray phi')
+    ang0' = angle (p1' - c') - phi''
+    ang1' = angle (p2' - c') - phi''
+    r1' = ellipseR' p1' c' phi'' ang0'
+    r2' = ellipseR' p2' c' phi'' ang1'
+    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c' r1' phi'' . (\x -> 2 * pi * x / 100.0) <$> [0..100])
+    ellFull2 = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c' r2' phi'' . (\x -> 2 * pi * x / 100.0) <$> [0..100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.04 & #color .~ (palette1!!2)) (PointXY . ellipse c' r1' phi'' . (\x -> ang0' + (ang1' - ang0') * x / 100.0) <$> [0..100])
+    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [c',p1',p2'])
+    xradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [c', c' + _x r1' .* ray phi''])
+    yradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.8 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [c', c' + _y r1' .* ray (phi'' + pi/2)])
+    dir0 = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.2 0.9 0.8 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [c', p1'])
+    dir1 = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.2 0.2 0.9 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [c', p2'])
 
 -- | ellipse example
 --
