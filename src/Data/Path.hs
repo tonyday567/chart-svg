@@ -454,7 +454,6 @@ ellipse (Point cx cy) (Point rx ry) phi theta =
 
 -- | ellipse formulae
 --
--- positive x-axis rotation is counter-clockwise.
 ellipse' :: (Direction b a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
 ellipse' c r phi theta = c + (rotate phi |. (r * ray theta))
 
@@ -464,6 +463,49 @@ ellipse' c r phi theta = c + (rotate phi |. (r * ray theta))
 -- rotate (-phi) (p - c) / ray theta = r
 ellipseR' :: (Direction b a, Affinity b a, Field b, TrigField a) => b -> b -> a -> a -> b
 ellipseR' p c phi theta = (rotate (-phi) |. (p - c)) / ray theta
+
+-- | In a chart-svg projection (See 'projectOnP' say), points on the ellipse and the centroid are affine, but radii and angles are not.
+--
+-- let p1 = Point 0 0
+-- let p2 = Point 1 0
+-- let r = Point 1 2
+-- let a = pi/6
+-- let p = ArcPosition p1 p2 (ArcInfo r a True True)
+-- let (ArcCentroid c _ _ a0 ad) = arcCentroid p
+-- After projection, we have three known points, eg
+--
+-- >>> p1' = projectOnP (aspect 2) one p1
+-- >>> p2' = projectOnP (aspect 2) one p2
+-- >>> c' = projectOnP (aspect 2) one c
+--
+--
+-- and 2 unknowns:
+-- new phi (p')
+-- new radii (r')
+--
+-- -- We can deduce from these some new thetas for the start end:
+--
+-- >>> a1 = angle (p1 - c) - p'
+-- >>> a2 = angle (p2 - c) - p'
+--
+-- Giving us two simultaneous equations:
+--
+-- ellipse' c' r' p' (angle (p1' - c) - p') = p1'
+-- ellipse' c' r' p' (angle (p2' - c) - p') = p2'
+--
+-- c' = Point -0.2864867185179476 1.6092991486979669
+-- p1' = Point 0 0
+-- p2' = Point 2 0
+--
+-- From guesswork, these are estimates:
+--
+-- r' = Point 1.3266801807145205 3.0142082605509395
+-- p' = 1.0962340928888052
+--
+-- 
+-- https://mathworld.wolfram.com/Ellipse.html
+--
+
 
 -- | find radii of an ellipse given a point and an angle to the point
 --
@@ -510,21 +552,6 @@ ellRadii (Point px py) (Point cx cy) phi theta = Point rx ry
   where
     ry = (py - cy - ((px - cx) / cos phi * sin phi)) / (sin theta * sin phi / cos phi * sin phi + sin theta * cos phi)
     rx = ((px - cx) / (cos theta * cos phi)) + ry * (sin theta * sin phi / (cos theta * cos phi))
-
--- | Find an ellipse from 2 points and the center
---
--- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) True True)
---
--- 
---
-ell2pc :: (TrigField a) => Point a -> Point a -> Point a -> ArcCentroid a
-ell2pc p1 p2 c = ArcCentroid c r phi ang0 angdiff
-  where
-    r = Point zero zero
-    phi = zero
-    ang0 = angle $ p2 - c
-    ang1 = angle $ p1 - c
-    angdiff = ang1 - ang0
 
 -- | compute the bounding box for an arcBox
 --
