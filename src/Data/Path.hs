@@ -8,6 +8,7 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
+-- | SVG path manipulation
 module Data.Path
   ( -- * Path fundamental
     -- $path
@@ -93,9 +94,9 @@ parsePath t = either (const []) id $ A.parseOnly pathParser t
 --
 -- - define a single chart element as a line.
 --
--- - split a single path element into the start and end points of the line, which become the 'xys' of a 'Chart', and the rest of the information, which is called 'PathInfo' and incorporated into the 'Chart' 'annotation'.
+-- - split a single path element into the start and end points of the line, which become the 'Chart.Types.xys' of a 'Chart.Types.Chart', and the rest of the information, which is called 'PathInfo' and incorporated into the 'Chart.Types.Chart' 'Chart.Types.annotation'.
 --
--- A lot of detail rides on whether the PathInfo is invariant to affine transformations of the 'xys' points. cubic and quadratic bezier paths need to be re-projected whenever 'xys' are re-projected. Arcs are ???.
+-- A lot of detail rides on whether the PathInfo is invariant to affine transformations of the 'Chart.Types.xys' points. Cubic and quadratic bezier paths need to be re-projected whenever 'Chart.Types.xys' are re-projected. Arcs are problematic (See 'Chart.Examples.problematic2' & 'Chart.Examples.problematic2').
 data PathInfo a =
   StartI |
   LineI |

@@ -53,13 +53,10 @@ module Chart.Types
     Anchor (..),
     fromAnchor,
     toAnchor,
-    PathType (..),
-    ArcDetails (..),
     Marker (..),
     MarkerPos (..),
     PathStyle (..),
     toPathChart,
-    PathClosure (..),
     defaultPathStyle,
 
     -- * Hud types
@@ -360,6 +357,7 @@ toLineCap "round" = LineCapRound
 toLineCap "square" = LineCapSquare
 toLineCap _ = LineCapButt
 
+-- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> Text
 fromDashArray xs = Text.intercalate " " $ show <$> xs
 
@@ -381,26 +379,6 @@ data LineStyle
 -- | the official default line style
 defaultLineStyle :: LineStyle
 defaultLineStyle = LineStyle 0.012 (fromRGB (P.head palette) 0.3) Nothing Nothing
-
--- | simplified svg-style path
-data PathType =
-  LinePath |
-  CubicPath |
-  QuadPath |
-  ArcPath ArcDetails
-  deriving (Eq, Show, Generic)
-
-data PathClosure =
-  PathClosed |
-  PathOpen
-  deriving (Eq, Show, Generic)
-
-data ArcDetails =
-  ArcDetails
-  { arcRotation :: Double,
-    arcLargeArcFlag :: Bool,
-    arcSweepFlag :: Bool
-  } deriving (Eq, Show, Generic)
 
 -- | Marker to use for arrow-like decoration.
 --
@@ -483,6 +461,7 @@ toChartAspect "ChartAspect" _ = ChartAspect
 toChartAspect "UnadjustedAspect" _ = UnadjustedAspect
 toChartAspect _ _ = ChartAspect
 
+-- | calculation of the canvas given the 'ChartAspect'
 initialCanvas :: ChartAspect -> [Chart Double] -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
@@ -543,6 +522,7 @@ instance (Monad m) => Semigroup (HudT m a) where
 instance (Monad m) => Monoid (HudT m a) where
   mempty = Hud pure
 
+-- | Project the chart data given the ChartAspect
 chartAspectHud :: (Monad m) => ChartAspect -> HudT m Double
 chartAspectHud fa = Hud $ \cs -> do
   canvasd <- use #canvasDim

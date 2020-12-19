@@ -45,20 +45,13 @@ module Chart
     Anchor (..),
     fromAnchor,
     toAnchor,
-
-    -- | Path combinators
-    PathType (..),
-    ArcDetails (..),
     Marker (..),
     MarkerPos (..),
     PathStyle (..),
     toPathChart,
-    PathClosure (..),
     defaultPathStyle,
 
     -- * Hud types
-    --
-    -- $hud
     ChartDims (..),
     HudT (..),
     Hud,

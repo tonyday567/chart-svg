@@ -22,7 +22,6 @@ module Chart.Render
     cssCrisp,
     geometricPrecision,
     svg,
-    attsRect,
     terms,
     makeAttribute,
 
@@ -31,7 +30,12 @@ module Chart.Render
     toChartExtra,
     renderChartExtrasWith,
 
+    -- * low-level conversions
+    attsRect,
     attsText,
+    attsGlyph,
+    attsLine,
+    attsPath,
   )
 where
 
@@ -345,10 +349,11 @@ svgExtra (ChartExtra c l' as h) =
   where
     x = term "g" (svgAtts (c ^. #annotation) <> as) (svgHtml c <> h)
 
+-- | Make Lucid Html given term and attributes
 terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
 terms t = with $ makeXmlElementNoEnd t
 
--- * Style to Attributes
+-- | RectStyle to Attributes
 attsRect :: RectStyle -> [Lucid.Attribute]
 attsRect o =
   [ term "stroke-width" (show $ o ^. #borderSize),
@@ -358,6 +363,7 @@ attsRect o =
     term "fill-opacity" (show $ opac $ o ^. #color)
   ]
 
+-- | TextStyle to Attributes
 attsText :: TextStyle -> [Lucid.Attribute]
 attsText o =
   [ term "stroke-width" "0.0",
@@ -374,6 +380,7 @@ attsText o =
     toTextAnchor AnchorStart = "start"
     toTextAnchor AnchorEnd = "end"
 
+-- | GlyphStyle to Attributes
 attsGlyph :: GlyphStyle -> [Lucid.Attribute]
 attsGlyph o =
   [ term "stroke-width" (show $ o ^. #borderSize),
@@ -384,6 +391,7 @@ attsGlyph o =
   ]
     <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
 
+-- | LineStyle to Attributes
 attsLine :: LineStyle -> [Lucid.Attribute]
 attsLine o =
   [ term "stroke-width" (show $ o ^. #width),
@@ -394,6 +402,7 @@ attsLine o =
   maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap) <>
   maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray)
 
+-- | PathStyle to Attributes
 attsPath :: PathStyle -> [Lucid.Attribute]
 attsPath o =
   [ term "stroke-width" (show $ o ^. #borderSize),
@@ -429,7 +438,7 @@ toScaleText :: Double -> Text
 toScaleText x =
   "scale(" <> show x <> ")"
 
--- * augmentation
+-- | Augmentation of a chart to include Html content.
 data ChartExtra a =
   ChartExtra
   { chartActual :: Chart a,
@@ -438,5 +447,6 @@ data ChartExtra a =
     chartContent :: Html ()
   } deriving (Show, Generic)
 
+-- | Convert a plain chart top a 'ChartExtra'.
 toChartExtra :: Chart a -> ChartExtra a
 toChartExtra c = ChartExtra c Nothing mempty mempty
