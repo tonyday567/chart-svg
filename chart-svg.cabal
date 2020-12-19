@@ -79,6 +79,8 @@ library
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
+    -fwrite-ide-info
+    -hiedir=.hie
 
 executable reanimate-example
   main-is: reanimate-example.hs
@@ -113,6 +115,8 @@ executable reanimate-example
     -Wincomplete-uni-patterns
     -Wredundant-constraints
     -funbox-strict-fields
+    -fwrite-ide-info
+    -hiedir=.hie
 
 test-suite test
   type: exitcode-stdio-1.0
@@ -131,3 +135,5 @@ test-suite test
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
+    -fwrite-ide-info
+    -hiedir=.hie

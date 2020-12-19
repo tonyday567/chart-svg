@@ -6,3 +6,4 @@ TAGS
 /other/mempty.md
 dist-newstyle
 /stack.yaml.lock
+/.hie/
