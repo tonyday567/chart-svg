@@ -1462,20 +1462,12 @@ projectXYsWith new old cs = cs'
 -- These two points are firstly rotated by p and then undergo scaling...
 --
 projectArcPosition :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInfo Double
-projectArcPosition new old ap@(ArcPosition p1 _ (ArcInfo _ phi l cl)) = ArcInfo r' phi l cl
+projectArcPosition new old (ArcPosition _ _ (ArcInfo (Point rx ry) phi l cl)) = ArcInfo (Point rx'' ry'') phi l cl
   where
-    (ArcCentroid c _ p ang0 _) = arcCentroid ap
-    c' = projectOnP new old c
-    p1' = projectOnP new old p1
-    r' = ellRadii p1' c' p ang0
-{-
-    rx' = rotateP p (Point rx zero)
+    rx' = rotateP phi (Point rx zero)
     rx'' = norm $ rx' * NH.width new / NH.width old
-    ry' = rotateP p (Point zero ry)
+    ry' = rotateP phi (Point zero ry)
     ry'' = norm $ ry' * NH.width new / NH.width old
-    p' = angle $ rotateP p (Point one zero) * NH.width new / NH.width old
-
--}
 
 -- | pad a Rect to remove singleton dimensions
 padBox :: Maybe (Rect Double) -> Rect Double

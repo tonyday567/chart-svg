@@ -46,10 +46,6 @@ module Data.Path
     toSingletonArc,
     pathBoxes,
     pathBox,
-    cen,
-    ellRadii,
-    ellipse',
-    ellipseR',
   ) where
 
 import qualified Graphics.SvgTree as SvgTree
@@ -84,8 +80,8 @@ import Data.FormatN
 
 -- | parse a raw path string
 --
--- > let outerseg1 = "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"
--- > parsePath outerseg1
+-- >>> let outerseg1 = "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"
+-- >>> parsePath outerseg1
 -- [MoveTo OriginAbsolute [V2 (-1.0) 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,V2 0.0 (-1.2320508075688774)),(1.0,1.0,0.0,False,False,V2 (-0.5) (-0.3660254037844387)),(1.0,1.0,0.0,False,False,V2 (-1.0) 0.5)],EndPath]
 --
 -- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
@@ -338,9 +334,7 @@ toSingletonArc :: [(PathInfo Double, Point Double)] -> Maybe (ArcPosition Double
 toSingletonArc ((StartI, s):(ArcI i, e):_) = Just $ ArcPosition s e i
 toSingletonArc _ = Nothing
 
-
 -- * Arc types
-
 -- | Information about an individual arc path.
 --
 data ArcInfo a =
@@ -403,23 +397,10 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi larg
     ang1 = angle (Point (-(cx'-x1')/rx) (-(cy'-y1')/ry))
     ang2 = angle (Point (-(cx'+x1')/rx) (-(cy'+y1')/ry))
     angd' = ang2 - ang1
-    angd = bool 0 (2*pi) (not clockwise && angd'<0) + bool 0 (-2*pi) (clockwise && angd'>0) + angd'
-
-cen :: (FromInteger a, Ord a, TrigField a, ExpField a) => Point a -> Point a -> Point a -> a -> Bool -> Bool -> Point a
-cen p1@(Point x1 y1) p2@(Point x2 y2) rad phi large clockwise = c
-  where
-    (Point x1' y1') = rotateP (-phi) ((p1 - p2) /. two)
-    (Point rx' ry') = rad
-    l = x1'**2/rx'**2 + y1'**2/ry'**2
-    (rx,ry) = bool (rx',ry') (rx'*sqrt l, ry'*sqrt l) (l > 1)
-    snumer = max 0 $ (rx*rx*ry*ry) - (rx*rx*y1'*y1') - (ry*ry*x1'*x1')
-    s = bool -1 1 (large == clockwise) * sqrt
-      (snumer / (rx*rx*y1'*y1' + ry*ry*x1'*x1'))
-    cx' = s *  rx * y1' / ry
-    cy' = s * (-ry) * x1' / rx
-    cx = (x1 + x2) / 2 + cos phi * cx' - sin phi * cy'
-    cy = (y1 + y2) / 2 + sin phi * cx' + cos phi * cy'
-    c = Point cx cy
+    angd =
+      bool 0 (2*pi) (not clockwise && angd'<0) +
+      bool 0 (-2*pi) (clockwise && angd'>0) +
+      angd'
 
 -- | convert from an ArcCentroid to an ArcPosition specification.
 --
@@ -443,118 +424,27 @@ arcPosition (ArcCentroid c r phi ang1 angd) =
 
 -- | ellipse formulae
 --
--- https://math.stackexchange.com/questions/426150/what-is-the-general-equation-of-the-ellipse-that-is-not-in-the-origin-and-rotate
+-- >>> ellipse zero (Point 1 2) (pi/6) pi
+-- Point -0.8660254037844388 -0.4999999999999997
 --
--- positive x-axis rotation is counter-clockwise.
-ellipse :: (TrigField a) => Point a -> Point a -> a -> a -> Point a
-ellipse (Point cx cy) (Point rx ry) phi theta =
-  Point
-  (cx + rx * cos theta * cos phi - ry * sin theta * sin phi)
-  (cy + rx * cos theta * sin phi + ry * sin theta * cos phi)
-
--- | ellipse formulae
+-- Compare this "elegent" definition from [stackexchange](https://math.stackexchange.com/questions/426150/what-is-the-general-equation-of-the-ellipse-that-is-not-in-the-origin-and-rotate)
 --
-ellipse' :: (Direction b a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
-ellipse' c r phi theta = c + (rotate phi |. (r * ray theta))
-
--- | ellipse radii formulae
+-- \[dfrac {((x-h)\cos(A)+(y-k)\sin(A))^2}{a^2}+\dfrac{((x-h) \sin(A)-(y-k) \cos(A))^2}{b^2}=1\]
 --
--- p = c + rotate phi (r * ray theta)
--- rotate (-phi) (p - c) / ray theta = r
-ellipseR' :: (Direction b a, Affinity b a, Field b, TrigField a) => b -> b -> a -> a -> b
-ellipseR' p c phi theta = (rotate (-phi) |. (p - c)) / ray theta
-
--- | In a chart-svg projection (See 'projectOnP' say), points on the ellipse and the centroid are affine, but radii and angles are not.
+-- with the haskell code:
 --
--- let p1 = Point 0 0
--- let p2 = Point 1 0
--- let r = Point 1 2
--- let a = pi/6
--- let p = ArcPosition p1 p2 (ArcInfo r a True True)
--- let (ArcCentroid c _ _ a0 ad) = arcCentroid p
--- After projection, we have three known points, eg
+-- > c + (rotate phi |. (r * ray theta))
 --
--- >>> p1' = projectOnP (aspect 2) one p1
--- >>> p2' = projectOnP (aspect 2) one p2
--- >>> c' = projectOnP (aspect 2) one c
+-- See also: [wolfram](https://mathworld.wolfram.com/Ellipse.html)
 --
---
--- and 2 unknowns:
--- new phi (p')
--- new radii (r')
---
--- -- We can deduce from these some new thetas for the start end:
---
--- >>> a1 = angle (p1 - c) - p'
--- >>> a2 = angle (p2 - c) - p'
---
--- Giving us two simultaneous equations:
---
--- ellipse' c' r' p' (angle (p1' - c) - p') = p1'
--- ellipse' c' r' p' (angle (p2' - c) - p') = p2'
---
--- c' = Point -0.2864867185179476 1.6092991486979669
--- p1' = Point 0 0
--- p2' = Point 2 0
---
--- From guesswork, these are estimates:
---
--- r' = Point 1.3266801807145205 3.0142082605509395
--- p' = 1.0962340928888052
---
--- 
--- https://mathworld.wolfram.com/Ellipse.html
---
-
-
--- | find radii of an ellipse given a point and an angle to the point
---
--- px = cx + rx * cos theta * cos phi - ry * sin theta * sin phi
--- 0 = 1.5809475019311128 + rx * -0.986172323281827 * 0.8944271909999159 - ry * 0.16572310880780497 * 0.447213595499958
---
--- py = cy + rx * cos theta * sin phi + ry * sin theta * cos phi
--- 0 = 0.48412291827592724 + rx * -0.986172323281827 * 0.447213595499958 + ry * 0.16572310880780497 * 0.8944271909999159
---
--- rx = (-1.5809475019311128 + ry * 7.411362734736922e-2) / -0.8820593409548254
--- rx = 1.7923368967667686 + ry * -8.402340285534705e-2
---
--- subbing
---
--- -0.48412291827592724 = rx * -0.44102967047741276 + ry * 0.1482272546947384
---
--- -0.48412291827592724 = (1.7923368967667686 + ry * -8.402340285534705e-2) * -0.44102967047741276 + ry * 0.1482272546947384
---
--- -0.48412291827592724 = (1.7923368967667686 + ry * -8.402340285534705e-2) * -0.44102967047741276 + ry * 0.1482272546947384
---
--- 0.30635083268962926 = ry * 0.18528406836842304
---
--- ry = 1.653411625658361
---
--- rx = 
--- rx = ((px - cx) + ry * (sin theta * sin phi)) / (cos theta * cos phi)
---
--- rx = ((px - cx) / (cos theta * cos phi)) + ry * (sin theta * sin phi / (cos theta * cos phi))
---
--- py - cy = ((px - cx) / (cos theta * cos phi) * cos theta * sin phi) + ry * (sin theta * sin phi / (cos theta * cos phi)) * cos theta * sin phi + ry * sin theta * cos phi
---
--- py - cy - ((px - cx) / (cos phi) * sin phi) = ry * (sin theta * sin phi / (cos phi) * sin phi + sin theta * cos phi)
---
--- ry = (py - cy - ((px - cx) / (cos phi) * sin phi)) / (sin theta * sin phi / (cos phi) * sin phi + sin theta * cos phi)
---
--- >>> let (ArcCentroid c r phi ang0 angd) = arcCentroid (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi/6) True True))
--- >>> ellRadii (Point 1 0) c phi ang0
--- Point 1.5 1.0000000000000002
--- >>> ellRadii (Point 0 1) c phi (ang0+angd)
--- Point 1.5000000000000002 0.9999999999999998
---
-ellRadii :: (TrigField a) => Point a -> Point a -> a -> a -> Point a
-ellRadii (Point px py) (Point cx cy) phi theta = Point rx ry
-  where
-    ry = (py - cy - ((px - cx) / cos phi * sin phi)) / (sin theta * sin phi / cos phi * sin phi + sin theta * cos phi)
-    rx = ((px - cx) / (cos theta * cos phi)) + ry * (sin theta * sin phi / (cos theta * cos phi))
+ellipse :: (Direction b a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
+ellipse c r phi theta = c + (rotate phi |. (r * ray theta))
 
 -- | compute the bounding box for an arcBox
 --
+-- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
+-- >>> arcBox p
+-- Rect -8.326672684688674e-17 0.9999999999999998 -5.551115123125783e-17 0.30644649676616753
 arcBox :: ArcPosition Double -> Rect Double
 arcBox p = space1 pts
   where
@@ -576,6 +466,10 @@ arcBox p = space1 pts
       ]
     pts = ellipse c r phi <$> angs
 
+-- | potential arc turning points.
+--
+-- >>> arcDerivs (Point 1 0.5) (pi/4)
+-- (-0.4636476090008061,0.4636476090008062)
 arcDerivs :: Point Double -> Double -> (Double, Double)
 arcDerivs (Point rx ry) phi = (thetax1, thetay1)
   where
@@ -583,7 +477,6 @@ arcDerivs (Point rx ry) phi = (thetax1, thetay1)
     thetay1 = atan2 (cos phi * ry) (sin phi * rx)
 
 -- * bezier
-
 -- | Quadratic bezier curve expressed in positional terms.
 --
 data QuadPosition a =
@@ -654,8 +547,6 @@ quadDerivs (QuadPosition start end control) = [x',y']
 --
 -- >>> quadBox (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
 -- Rect 0.0 1.3333333333333335 -0.33333333333333337 1.0
---
--- ![Cubic]("other/cubic.svg")
 quadBox :: QuadPosition Double -> Rect Double
 quadBox p = space1 pts
   where
@@ -774,6 +665,8 @@ pathBoxes (x:xs) =
       (Point Double, Rect Double)
     step (start, r) a = (snd a, pathBox start a <> r)
 
+-- | Bounding box for a path info, start and end Points.
+--
 pathBox :: Point Double -> (PathInfo Double, Point Double) -> Rect Double
 pathBox start (info, end) =
   case info of
@@ -782,4 +675,3 @@ pathBox start (info, end) =
     CubicI c1 c2 -> cubicBox (CubicPosition start end c1 c2)
     QuadI c -> quadBox (QuadPosition start end c)
     ArcI i -> arcBox (ArcPosition start end i)
-
