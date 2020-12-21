@@ -41,12 +41,13 @@ module Chart
     LineCap (..),
     fromLineCap,
     toLineCap,
+    LineJoin (..),
+    fromLineJoin,
+    toLineJoin,
     fromDashArray,
     Anchor (..),
     fromAnchor,
     toAnchor,
-    Marker (..),
-    MarkerPos (..),
     PathStyle (..),
     toPathChart,
     defaultPathStyle,
@@ -55,6 +56,7 @@ module Chart
     ChartDims (..),
     HudT (..),
     Hud,
+    simulHud,
     HudOptions (..),
     defaultHudOptions,
     defaultCanvas,
@@ -188,7 +190,7 @@ import NumHask.Space
 --
 -- and an Annotation to describe representation of this data; three line styles with different colors and widths:
 --
--- >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing)) [0.015, 0.03, 0.01] palette1
+-- >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1
 --
 -- and this is enough to create a Chart.
 --

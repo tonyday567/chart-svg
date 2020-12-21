@@ -77,7 +77,7 @@ defaultBarOptions =
     ( defaultHudOptions
         & #hudAxes
           .~ [ defaultAxisOptions
-                 & #atick . #ltick .~ Nothing,
+                 & #axisTick . #ltick .~ Nothing,
                defaultAxisOptions & #place .~ PlaceLeft
              ]
         & #hudTitles .~ []
@@ -196,7 +196,7 @@ barTicks bd
 
 tickFirstAxis :: BarData -> [AxisOptions] -> [AxisOptions]
 tickFirstAxis _ [] = []
-tickFirstAxis bd (x : xs) = (x & #atick . #tstyle .~ barTicks bd) : xs
+tickFirstAxis bd (x : xs) = (x & #axisTick . #tstyle .~ barTicks bd) : xs
 
 -- | bar legend
 barLegend :: BarData -> BarOptions -> [(Annotation, Text)]

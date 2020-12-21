@@ -537,7 +537,7 @@ cubicExample p@(CubicPosition start end control1 control2) =
        #place .~ PlaceBottom &
        #style . #size .~ 0.06
      ] &
-     #hudAxes %~ fmap (#atick . #tstyle .~
+     #hudAxes %~ fmap (#axisTick . #tstyle .~
                        TickRound (FormatComma (Just 2)) 8 NoTickExtend)
    ) &
    #svgOptions %~ ((#outerPad ?~ 0.02) . (#chartAspect .~ ChartAspect))
@@ -599,7 +599,7 @@ arrowgExample ::
   ChartSvg
 arrowgExample grain r f =
   mempty &
-  #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#atick . #ltick .~ Nothing)) &
+  #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#axisTick . #ltick .~ Nothing)) &
   #chartList .~ ((\p -> chart (tail . f $ p) (angle . f $ p) p) <$> ps) &
   #svgOptions .~ (defaultSvgOptions & #cssOptions .~ UseCssCrisp)
   where
@@ -659,13 +659,13 @@ rosenbrock a b (Point x y) = (a^2 - 2*a*x + x^2 + b * y^2 - b * 2 * y * x^2 + b 
 --
 -- >>> let cs = [toPathChart defaultPathStyle $ singletonArc $ ArcPosition (Point 0 1) (Point 1 0) (ArcInfo (Point 1 1) 0 False False)]
 -- >>> runHud (aspect 3) [canvas $ blob (Colour 0.2 0.1 0.7 0.1)] cs
--- [Chart {annotation = RectA (RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.20 0.10 0.70 0.10}), xys = [R -1.5 1.5000000000000002 -0.5 0.5]},Chart {annotation = PathA (PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30, pathMarkers = []}) [StartI,ArcI (ArcInfo {radii = Point 3.0 1.0, phi = 0.0, large = False, clockwise = False})], xys = [P -1.5 0.5,P 1.5 -0.5]}]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.20 0.10 0.70 0.10}), xys = [R -1.5 1.5000000000000002 -0.5 0.5]},Chart {annotation = PathA (PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}) [StartI,ArcI (ArcInfo {radii = Point 3.0 1.0, phi = 0.0, large = False, clockwise = False})], xys = [P -1.5 0.5,P 1.5 -0.5]}]
 --
 -- ![problematic1](other/problematic1.svg)
 --
 -- Incorrect scaling of an Arc was occuring on x-axis gaps, but not with gapless x-axis elements, titles or any y axis variations.
 --
--- > problematic1 (FixedAspect 1) (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.0 0.5) (0) False True)) & #hudOptions .~ (mempty & #hudAxes .~ [defaultAxisOptions & #place .~ PlaceTop & #adjust .~ Nothing & #abar .~ Nothing & #atick . #ltick .~ Nothing & #atick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #atick . #ttick .~ Nothing & #atick . #gtick .~ Just (defaultGlyphTick, 0.2), defaultAxisOptions & #place .~ PlaceRight & #adjust .~ Nothing & #abar .~ Nothing & #atick . #ltick .~ Nothing & #atick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #atick . #ttick .~ Nothing & #atick . #gtick .~ Just (defaultGlyphTick, 0.2)])
+-- > problematic1 (FixedAspect 1) (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.0 0.5) (0) False True)) & #hudOptions .~ (mempty & #hudAxes .~ [defaultAxisOptions & #place .~ PlaceTop & #adjust .~ Nothing & #axisBar .~ Nothing & #axisTick . #ltick .~ Nothing & #axisTick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #axisTick . #ttick .~ Nothing & #axisTick . #gtick .~ Just (defaultGlyphTick, 0.2), defaultAxisOptions & #place .~ PlaceRight & #adjust .~ Nothing & #axisBar .~ Nothing & #axisTick . #ltick .~ Nothing & #axisTick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #axisTick . #ttick .~ Nothing & #axisTick . #gtick .~ Just (defaultGlyphTick, 0.2)])
 --
 -- Again isolating to runHud ...
 --
@@ -674,12 +674,12 @@ rosenbrock a b (Point x y) = (a^2 - 2*a*x + x^2 + b * y^2 - b * 2 * y * x^2 + b 
 -- > dbox
 -- Rect -0.6180339784260676 1.0 -5.901699179399067e-2 1.0
 --
--- > let ho = (mempty & #hudAxes .~ [defaultAxisOptions & #place .~ PlaceBottom & #adjust .~ Nothing & #abar .~ Nothing & #atick . #ltick .~ Nothing & #atick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #atick . #ttick .~ Nothing & #atick . #gtick .~ Just (defaultGlyphTick, 0.2), defaultAxisOptions & #place .~ PlaceRight & #adjust .~ Nothing & #abar .~ Nothing & #atick . #ltick .~ Nothing & #atick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #atick . #ttick .~ Nothing & #atick . #gtick .~ Just (defaultGlyphTick, 0.2)])
+-- > let ho = (mempty & #hudAxes .~ [defaultAxisOptions & #place .~ PlaceBottom & #adjust .~ Nothing & #axisBar .~ Nothing & #axisTick . #ltick .~ Nothing & #axisTick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #axisTick . #ttick .~ Nothing & #axisTick . #gtick .~ Just (defaultGlyphTick, 0.2), defaultAxisOptions & #place .~ PlaceRight & #adjust .~ Nothing & #axisBar .~ Nothing & #axisTick . #ltick .~ Nothing & #axisTick . #tstyle .~ TickRound (FormatComma (Just 2)) 2 NoTickExtend & #axisTick . #ttick .~ Nothing & #axisTick . #gtick .~ Just (defaultGlyphTick, 0.2)])
 -- > let (hs',cs') = makeHud dbox ho
 -- > let cs1 = runHud dbox hs' cs
 -- > cs1
 --
--- > [Chart {annotation = GlyphA (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Just 1.5707963267948966, translate = Nothing}), xys = [P 1.2049999999999998 0.0,P 1.2049999999999998 0.5,P 1.2049999999999998 1.0]},Chart {annotation = GlyphA (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing}), xys = [P 0.0 -0.2640169917939907,P 1.0 -0.2640169917939907]},Chart {annotation = PathA (PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30, pathMarkers = []}) [StartI,ArcI (ArcInfo {radii = Point 1.0 0.5, phi = 0.0, large = False, clockwise = True})], xys = [P 1.0 0.0,P 0.0 1.0]}]
+-- > [Chart {annotation = GlyphA (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Just 1.5707963267948966, translate = Nothing}), xys = [P 1.2049999999999998 0.0,P 1.2049999999999998 0.5,P 1.2049999999999998 1.0]},Chart {annotation = GlyphA (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing}), xys = [P 0.0 -0.2640169917939907,P 1.0 -0.2640169917939907]},Chart {annotation = PathA (PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}) [StartI,ArcI (ArcInfo {radii = Point 1.0 0.5, phi = 0.0, large = False, clockwise = True})], xys = [P 1.0 0.0,P 0.0 1.0]}]
 --
 -- The output from runHud looks ok, so the problem was isolated to projectXYsWith ...
 --
@@ -744,7 +744,7 @@ writeAllExamples = do
   -- Example in cabal file
   let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
   let ls = fmap (PointXY . uncurry Point) <$> xs
-  let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing)) [0.015, 0.03, 0.01] palette1
+  let anns = zipWith (\w c -> LineA (defaultLineStyle & #width .~ w & #color .~ c)) [0.015, 0.03, 0.01] palette1
   let lineChart = zipWith Chart anns ls
   writeChartSvgDefault "other/lines.svg" lineChart
   writeChartSvgHud "other/lineshud.svg" lineChart

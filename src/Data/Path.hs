@@ -17,6 +17,7 @@ module Data.Path
     ArcPosition (..),
     parsePath,
     toPathAbsolute,
+    toPathCommand,
     toPathAbsolutes,
     toPathXYs,
     ArcCentroid (..),
@@ -167,6 +168,21 @@ toPathAbsolutes = L.fold (L.Fold step begin done)
     done = Text.intercalate " " . reverse
     begin = []
     step ts (info, next) = toPathAbsolute (info, next):ts
+
+-- | Convert from PathInfo to PathCommand
+toPathCommand ::
+  (PathInfo Double, Point Double) ->
+  -- | path text
+  PathCommand
+toPathCommand (StartI,p) = MoveTo OriginAbsolute [toV2 p]
+toPathCommand (LineI,p) = LineTo OriginAbsolute [toV2 p]
+toPathCommand (CubicI c1 c2, p) = CurveTo OriginAbsolute [(toV2 c1, toV2 c2, toV2 p)]
+toPathCommand (QuadI c, p) = QuadraticBezier OriginAbsolute [(toV2 c, toV2 p)]
+toPathCommand (ArcI (ArcInfo (Point rx ry) phi' l sw), p) =
+  EllipticalArc OriginAbsolute [(rx,ry,phi',l,sw,toV2 p)]
+
+toV2 :: Point a -> Linear.V2 a
+toV2 (Point x y) = Linear.V2 x y
 
 data StateInfo =
   StateInfo

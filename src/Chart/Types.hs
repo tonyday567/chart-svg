@@ -49,12 +49,13 @@ module Chart.Types
     LineCap (..),
     fromLineCap,
     toLineCap,
+    LineJoin (..),
+    fromLineJoin,
+    toLineJoin,
     fromDashArray,
     Anchor (..),
     fromAnchor,
     toAnchor,
-    Marker (..),
-    MarkerPos (..),
     PathStyle (..),
     toPathChart,
     defaultPathStyle,
@@ -63,6 +64,7 @@ module Chart.Types
     ChartDims (..),
     HudT (..),
     Hud,
+    simulHud,
     HudOptions (..),
     defaultHudOptions,
     defaultCanvas,
@@ -357,6 +359,22 @@ toLineCap "round" = LineCapRound
 toLineCap "square" = LineCapSquare
 toLineCap _ = LineCapButt
 
+-- | line cap style
+data LineJoin = LineJoinMiter | LineJoinBevel | LineJoinRound deriving (Eq, Show, Generic)
+
+-- | textifier
+fromLineJoin :: (IsString s) => LineJoin -> s
+fromLineJoin LineJoinMiter = "miter"
+fromLineJoin LineJoinBevel = "bevel"
+fromLineJoin LineJoinRound = "round"
+
+-- | readifier
+toLineJoin :: (Eq s, IsString s) => s -> LineJoin
+toLineJoin "miter" = LineJoinMiter
+toLineJoin "bevel" = LineJoinBevel
+toLineJoin "round" = LineJoinRound
+toLineJoin _ = LineJoinMiter
+
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> Text
 fromDashArray xs = Text.intercalate " " $ show <$> xs
@@ -364,47 +382,42 @@ fromDashArray xs = Text.intercalate " " $ show <$> xs
 -- | line style
 --
 -- >>> defaultLineStyle
--- LineStyle {width = 1.2e-2, color = RGBA 0.65 0.81 0.89 0.30, linecap = Nothing, dasharray = Nothing}
+-- LineStyle {width = 1.2e-2, color = RGBA 0.65 0.81 0.89 0.30, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}
 --
 -- ![line example](other/line.svg)
+--
+-- See also <https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute>
 data LineStyle
   = LineStyle
       { width :: Double,
         color :: Colour,
         linecap :: Maybe LineCap,
-        dasharray :: Maybe [Double]
+        linejoin :: Maybe LineJoin,
+        dasharray :: Maybe [Double],
+        dashoffset :: Maybe Double
       }
   deriving (Show, Eq, Generic)
 
 -- | the official default line style
 defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 (fromRGB (P.head palette) 0.3) Nothing Nothing
-
--- | Marker to use for arrow-like decoration.
---
--- https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker
-data Marker = Marker { markerId :: Text, markerGlyph :: GlyphStyle } deriving (Eq, Show, Generic)
-
--- | Market position.
-data MarkerPos = MarkerStart | MarkerEnd | MarkerMid deriving (Eq, Show, Generic)
+defaultLineStyle = LineStyle 0.012 (fromRGB (P.head palette) 0.3) Nothing Nothing Nothing Nothing
 
 -- | Path styling
 --
 -- >>> defaultPathStyle
--- PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30, pathMarkers = []}
+-- PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}
 data PathStyle
   = PathStyle
       { borderSize :: Double,
         borderColor :: Colour,
-        color :: Colour,
-        pathMarkers :: [(MarkerPos, Text)]
+        color :: Colour
       }
   deriving (Show, Eq, Generic)
 
 -- | the style
 defaultPathStyle :: PathStyle
 defaultPathStyle =
-  PathStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette !! 1) 0.3) []
+  PathStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette !! 1) 0.3)
 
 -- | Convert from a path command list to a PathA chart
 --
@@ -522,6 +535,15 @@ instance (Monad m) => Semigroup (HudT m a) where
 instance (Monad m) => Monoid (HudT m a) where
   mempty = Hud pure
 
+-- | run two hud's simultaneously (using the same original ChartDims state) rather than sequentially (which is the <> operation).
+simulHud :: (Ord a, Monad m) => HudT m a -> HudT m a -> HudT m a
+simulHud (Hud fa) (Hud fb) = Hud $ \cs -> do
+  s <- get
+  (cs', ChartDims ch ca d) <- lift $ runStateT (fa cs) s
+  (cs'', ChartDims ch' ca' d') <- lift $ runStateT (fb cs') s
+  put (ChartDims (ch<>ch') (ca<>ca') (d<>d'))
+  pure cs''
+
 -- | Project the chart data given the ChartAspect
 chartAspectHud :: (Monad m) => ChartAspect -> HudT m Double
 chartAspectHud fa = Hud $ \cs -> do
@@ -625,9 +647,9 @@ placeText p =
 -- | axis options
 data AxisOptions
   = AxisOptions
-      { abar :: Maybe AxisBar,
+      { axisBar :: Maybe AxisBar,
         adjust :: Maybe Adjustments,
-        atick :: Tick,
+        axisTick :: Tick,
         place :: Place
       }
   deriving (Eq, Show, Generic)
@@ -682,7 +704,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTick
--- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05, linecap = Nothing, dasharray = Nothing},0.0)}
+-- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
 data Tick
   = Tick
       { tstyle :: TickStyle,
@@ -825,19 +847,28 @@ moveChart sp = fmap (#xys %~ fmap (sp +))
 -- The complexity internally to this function is due to the creation of ticks and, specifically, 'gridSensible', which is not idempotent. As a result, a tick calculation that does extends the data area, can then lead to new tick values when applying TickRound etc.
 makeHud :: Rect Double -> HudOptions -> ([Hud Double], [Chart Double])
 makeHud xs cfg =
-  (haxes <> can <> titles <> l, xsext)
+  ([axes] <> can <> titles <> l, xsext)
   where
     xs' = padBox (Just xs)
     can = maybe [] (\x -> [canvas x]) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
-    newticks = (\a -> freezeTicks (a ^. #place) xs' (a ^. #atick . #tstyle)) <$> (cfg ^. #hudAxes)
-    axes' = zipWith (\c t -> c & #atick . #tstyle .~ fst t) (cfg ^. #hudAxes) newticks
-    newtickRects = catMaybes (snd <$> newticks)
-    xsext = bool [Chart BlankA (RectXY <$> newtickRects)] [] (newtickRects == [])
-    haxes = (\x -> maybe mempty (bar (x ^. #place)) (x ^. #abar) <> adjustedTickHud x) <$> axes'
-    l = maybe [] (\(lo, ats) -> [legendHud lo (legendChart ats lo)]) (cfg ^. #hudLegend)
+    ticks = (\a -> freezeTicks (a ^. #place) xs' (a ^. #axisTick . #tstyle)) <$>
+      (cfg ^. #hudAxes)
+    hudaxes =
+      zipWith
+      (\c t -> c & #axisTick . #tstyle .~ fst t)
+      (cfg ^. #hudAxes)
+      ticks
+    tickRects = catMaybes (snd <$> ticks)
+    xsext = bool [Chart BlankA (RectXY <$> tickRects)] [] (tickRects == [])
+    axes = foldr simulHud mempty $
+      (\x -> maybe mempty (makeAxisBar (x ^. #place)) (x ^. #axisBar) <>
+            makeTick x) <$>
+      hudaxes
+    l = maybe [] (\(lo, ats) -> [legendHud lo (legendChart ats lo)])
+      (cfg ^. #hudLegend)
 
--- convert TickRound to TickPlaced
+-- | convert TickRound to TickPlaced
 freezeTicks :: Place -> Rect Double -> TickStyle -> (TickStyle, Maybe (Rect Double))
 freezeTicks pl xs' ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x xs') <$> ext)
   where
@@ -869,8 +900,8 @@ canvas s = Hud $ \cs -> do
   #canvasDim .= addToRect a (styleBox c)
   pure $ c : cs
 
-bar_ :: Place -> AxisBar -> Rect Double -> Rect Double -> Chart Double
-bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
+axisBar_ :: Place -> AxisBar -> Rect Double -> Rect Double -> Chart Double
+axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
   case pl of
     PlaceTop ->
       Chart
@@ -918,11 +949,11 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
             w
         ]
 
-bar :: (Monad m) => Place -> AxisBar -> HudT m Double
-bar pl b = Hud $ \cs -> do
+makeAxisBar :: (Monad m) => Place -> AxisBar -> HudT m Double
+makeAxisBar pl b = Hud $ \cs -> do
   da <- use #chartDim
   ca <- use #canvasDim
-  let c = bar_ pl b ca da
+  let c = axisBar_ pl b ca da
   #chartDim .= addChartBox c da
   pure $ c : cs
 
@@ -1286,14 +1317,14 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
     adjustSizeY = max' [(maxHeight / (upper asp - lower asp)) / mry, 1]
     adjustSizeA = max' [(maxHeight / (upper asp - lower asp)) / ma, 1]
 
-adjustedTickHud :: (Monad m) => AxisOptions -> HudT m Double
-adjustedTickHud c = Hud $ \cs -> do
+makeTick :: (Monad m) => AxisOptions -> HudT m Double
+makeTick c = Hud $ \cs -> do
   vb <- use #chartDim
   xs <- use #dataDim
   let adjTick =
         maybe
-          (c ^. #atick)
-          (\x -> adjustTick x vb xs (c ^. #place) (c ^. #atick))
+          (c ^. #axisTick)
+          (\x -> adjustTick x vb xs (c ^. #place) (c ^. #axisTick))
           (c ^. #adjust)
   unhud (tick (c ^. #place) adjTick) cs
 

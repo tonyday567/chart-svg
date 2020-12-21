@@ -108,9 +108,9 @@ lineLegend w rs cs =
 tsAxes :: [UTCTime] -> [AxisOptions]
 tsAxes ds =
   [ defaultAxisOptions
-      & #atick . #tstyle .~ TickRound (FormatPrec (Just 3)) 6 TickExtend
+      & #axisTick . #tstyle .~ TickRound (FormatPrec (Just 3)) 6 TickExtend
       & #place .~ PlaceLeft,
-    defaultAxisOptions & #atick . #tstyle
+    defaultAxisOptions & #axisTick . #tstyle
       .~ TickPlaced
         ( first fromIntegral
             <$> makeTickDates PosIncludeBoundaries Nothing 8 ds
@@ -255,11 +255,11 @@ quantileHistChart title names qs vs = (hudOptions, [chart'])
         .~ [defaultTitle title]
         & #hudAxes
         .~ [ maybe
-               ( defaultAxisOptions & #atick . #tstyle
+               ( defaultAxisOptions & #axisTick . #tstyle
                    .~ TickRound (FormatPrec (Just 3)) 8 TickExtend
                )
                ( \x ->
-                   defaultAxisOptions & #atick . #tstyle
+                   defaultAxisOptions & #axisTick . #tstyle
                      .~ TickPlaced (zip vs x)
                )
                names
@@ -303,10 +303,10 @@ qvqHud ts labels =
     & #hudTitles .~ makeTitles ts
     & #hudAxes
       .~ [ defaultAxisOptions
-             & #atick . #tstyle .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
+             & #axisTick . #tstyle .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
              & #place .~ PlaceLeft,
            defaultAxisOptions
-             & #atick . #tstyle .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
+             & #axisTick . #tstyle .~ TickPlaced (zip ((0.5 +) <$> [0 ..]) labels)
              & #place .~ PlaceBottom
          ]
 

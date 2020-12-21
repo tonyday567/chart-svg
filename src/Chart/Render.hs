@@ -308,7 +308,7 @@ svgGlyph s p =
     & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
 
 -- | Path svg
-svgPath :: [PathInfo Double]-> [Point Double] -> Lucid.Html ()
+svgPath :: [PathInfo Double] -> [Point Double] -> Lucid.Html ()
 svgPath _ [] = mempty
 svgPath _ [_] = mempty
 svgPath infos ps =
@@ -400,7 +400,9 @@ attsLine o =
     term "fill" "none"
   ] <>
   maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap) <>
-  maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray)
+  maybe [] (\x -> [term "stroke-linejoin" (fromLineJoin x)]) (o ^. #linejoin) <>
+  maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray) <>
+  maybe [] (\x -> [term "stroke-dashoffset" (show x)]) (o ^. #dashoffset)
 
 -- | PathStyle to Attributes
 attsPath :: PathStyle -> [Lucid.Attribute]
@@ -410,12 +412,7 @@ attsPath o =
     term "stroke-opacity" (show $ opac $ o ^. #borderColor),
     term "fill" (hex $ o ^. #color),
     term "fill-opacity" (show $ opac $ o ^. #color)
-  ] <>
-  fmap (\(p,t) -> case p of
-           MarkerStart -> term "marker-start" ("url(#" <> t <> ")")
-           MarkerMid -> term "marker-mid" ("url(#" <> t <> ")")
-           MarkerEnd -> term "marker-end" ("url(#" <> t <> ")")
-       ) (o ^. #pathMarkers)
+  ]
 
 -- | includes a flip of the y dimension.
 toTranslateText :: Point Double -> Text
