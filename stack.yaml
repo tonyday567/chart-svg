@@ -4,16 +4,15 @@ packages:
   - .
 
 extra-deps:
-  - numhask-0.7.0.0
-  - numhask-space-0.7.0.0
+  - numhask-0.7.1.0
+  - numhask-space-0.7.1.0
   - protolude-0.3.0
   - random-1.2.0
   - splitmix-0.1.0.3
-
   - formatn-0.0.1
 
   # reanimate deps
-  - reanimate-1.1.1.0
+  - reanimate-1.1.2.1
   - reanimate-svg-0.13.0.0
   - hgeometry-0.11.0.0
   - hgeometry-combinatorial-0.11.0.0
