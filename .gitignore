@@ -7,3 +7,5 @@ TAGS
 dist-newstyle
 /stack.yaml.lock
 /.hie/
+/app/.reanimate/
+/app/reanimate-example.mp4

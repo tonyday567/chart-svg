@@ -118,45 +118,6 @@ executable reanimate-example
     -fwrite-ide-info
     -hiedir=.hie
 
-executable blender-example
-  main-is: blender-example.hs
-  hs-source-dirs:
-    app
-  build-depends:
-    attoparsec >= 0.13 && < 0.14,
-    JuicyPixels >= 3.3.5 && < 3.4,
-    base >=4.7 && <5,
-    bytestring >= 0.10 && < 0.11,
-    chart-svg,
-    concurrency >= 1.11 && < 1.12,
-    foldl >= 1.4 && < 1.5,
-    lucid >= 2.9 && < 2.10,
-    lens >= 4.19 && < 4.20,
-    linear >= 1.21 && < 1.22,
-    numhask >= 0.7 && < 0.8,
-    numhask-space >= 0.7 && < 0.8,
-    reanimate >= 1.1.1.0 && < 1.2,
-    reanimate-svg >= 0.13 && < 0.14,
-    text >= 1.2 && < 1.3,
-    time >= 1.9 && < 1.10,
-    transformers >= 0.5 && < 0.6,
-    unordered-containers >= 0.2 && < 0.3,
-    vector >= 0.12 && < 0.13,
-    neat-interpolation >= 0.5 && < 0.6,
-    random >= 1.2 && < 1.3,
-    random-shuffle >= 0.0.4 && < 0.1,
-  default-language: Haskell2010
-  default-extensions:
-  ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
-    -funbox-strict-fields
-    -fwrite-ide-info
-    -hiedir=.hie
-
 test-suite test
   type: exitcode-stdio-1.0
   main-is: test.hs
