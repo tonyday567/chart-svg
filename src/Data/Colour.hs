@@ -9,7 +9,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -27,6 +26,7 @@ module Data.Colour
     palette,
     palette1,
     blend,
+    blends,
     toHex,
     fromHex,
     unsafeFromHex,
@@ -47,7 +47,10 @@ import NumHask.Prelude as NHP
 import qualified Prelude as P
 
 -- | Wrapper for 'Color'.
-newtype Colour = Colour' {color' :: Color (Alpha RGB) Double} deriving (Eq, Generic)
+newtype Colour =
+  Colour'
+  { color' :: Color (Alpha RGB) Double
+  } deriving (Eq, Generic)
 
 -- | Constructor pattern.
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
@@ -92,6 +95,26 @@ blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
     b'' = b + c * (b' - b)
     a'' = a + c * (a' - a)
 
+-- | interpolate across a list of Colours, with input being in Range 0 1
+--
+-- >>> blends 0 [black, (Colour 0.2 0.6 0.8 0.5), white] == black
+-- True
+--
+-- >>> blends 1 [black, (Colour 0.2 0.6 0.8 0.5), white] == white
+-- True
+--
+-- >>> blends 0.6 [black, (Colour 0.2 0.6 0.8 0.5), white]
+-- RGBA 0.16 0.48 0.64 0.60
+blends :: Double -> [Colour] -> Colour
+blends _ [] = black
+blends _ [c] = c
+blends x cs = blend r (cs P.!! i) (cs P.!! (i+1))
+  where
+    l = length cs - 1
+    x' = x * fromIntegral l
+    i = max 0 (min (floor x') (l - 1))
+    r = x' - fromIntegral i
+
 -- |
 parseHex :: A.Parser (Color RGB Double)
 parseHex =
@@ -119,10 +142,10 @@ toHex c =
     <> Text.justifyRight 2 '0' (hex' g)
     <> Text.justifyRight 2 '0' (hex' b)
   where
-    (ColorRGBA r g b _) = toWord8 <$> color' c
+    (ColorRGBA r g b _) = toIntegral . toWord8 <$> color' c
 
 -- |
-hex' :: (FromInteger a, ToIntegral a Integer, Integral a, Ord a, Subtractive a) => a -> Text
+hex' :: Int -> Text
 hex' i
   | i < 0 = "-" <> go (- i)
   | otherwise = go i
@@ -132,10 +155,10 @@ hex' i
       | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
 
 -- |
-hexDigit :: (Ord a, FromInteger a, ToIntegral a Integer) => a -> Text
+hexDigit :: Int -> Text
 hexDigit n
-  | n <= 9 = Text.singleton P.$! i2d (fromIntegral n)
-  | otherwise = Text.singleton P.$! toEnum (fromIntegral n + 87)
+  | n <= 9 = Text.singleton P.$! i2d n
+  | otherwise = Text.singleton P.$! toEnum (n + 87)
 
 -- |
 i2d :: Int -> Char

@@ -55,7 +55,7 @@ data BarOptions
         displayValues :: Bool,
         valueFormatN :: FormatN,
         accumulateValues :: Bool,
-        barOrientation :: Direction,
+        barOrientation :: Orientation,
         barHudOptions :: HudOptions
       }
   deriving (Show, Eq, Generic)
@@ -77,7 +77,7 @@ defaultBarOptions =
     ( defaultHudOptions
         & #hudAxes
           .~ [ defaultAxisOptions
-                 & #atick . #ltick .~ Nothing,
+                 & #axisTick . #ltick .~ Nothing,
                defaultAxisOptions & #place .~ PlaceLeft
              ]
         & #hudTitles .~ []
@@ -167,7 +167,7 @@ barRange ys'@(y : ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0 
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] Nothing Nothing)
--- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.65 0.81 0.89 1.00, color = RGBA 0.65 0.81 0.89 1.00}), xys = [RectXY Rect 5.0e-2 0.45 0.0 1.0,RectXY Rect 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.12 0.47 0.71 1.00, color = RGBA 0.12 0.47 0.71 1.00}), xys = [RectXY Rect 0.45 0.8500000000000001 0.0 2.0,RectXY Rect 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, xys = [RectXY Rect -5.0e-2 1.9500000000000002 0.0 3.0]}]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.65 0.81 0.89 1.00, color = RGBA 0.65 0.81 0.89 1.00}), xys = [R 5.0e-2 0.45 0.0 1.0,R 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = RGBA 0.12 0.47 0.71 1.00, color = RGBA 0.12 0.47 0.71 1.00}), xys = [R 0.45 0.8500000000000001 0.0 2.0,R 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, xys = [R -5.0e-2 1.9500000000000002 0.0 3.0]}]
 bars :: BarOptions -> BarData -> [Chart Double]
 bars bo bd =
   zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (fmap RectXY <$> barRects bo (bd ^. #barData)) <> [Chart BlankA [RectXY (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)]]
@@ -196,7 +196,7 @@ barTicks bd
 
 tickFirstAxis :: BarData -> [AxisOptions] -> [AxisOptions]
 tickFirstAxis _ [] = []
-tickFirstAxis bd (x : xs) = (x & #atick . #tstyle .~ barTicks bd) : xs
+tickFirstAxis bd (x : xs) = (x & #axisTick . #tstyle .~ barTicks bd) : xs
 
 -- | bar legend
 barLegend :: BarData -> BarOptions -> [(Annotation, Text)]
@@ -214,7 +214,7 @@ barChart bo bd =
     bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
   )
 
-flipAllAxes :: Direction -> [AxisOptions] -> [AxisOptions]
+flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
 flipAllAxes o = fmap (bool id flipAxis (o == Vert))
 
 barDataTP :: Bool -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]

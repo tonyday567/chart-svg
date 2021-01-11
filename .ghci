@@ -6,3 +6,4 @@
 :set -XTypeFamilies
 :set -XOverloadedLabels
 :set prompt |
+:set -Wno-type-defaults

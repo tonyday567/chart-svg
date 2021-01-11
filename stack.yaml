@@ -1,11 +1,21 @@
-resolver: nightly-2020-06-25
+resolver: nightly-2020-11-19
 
 packages:
   - .
 
 extra-deps:
-  - box-0.6.0
-  - box-socket-0.0.2
-  - numhask-0.6.0.2
-  - numhask-space-0.6.0
-  - web-rep-0.7.0
+  - numhask-0.7.1.0
+  - numhask-space-0.7.1.0
+  - protolude-0.3.0
+  - random-1.2.0
+  - splitmix-0.1.0.3
+  - formatn-0.0.1
+
+  # reanimate deps
+  - reanimate-1.1.2.1
+  - reanimate-svg-0.13.0.0
+  - hgeometry-0.11.0.0
+  - hgeometry-combinatorial-0.11.0.0
+  - vinyl-0.13.0
+
+allow-newer: true

@@ -13,19 +13,35 @@ module Chart.Render
     chartSvg,
     chartSvgDefault,
     chartSvgHud,
+    renderChartsWith,
+    renderHudChart,
     writeChartSvg,
     writeChartSvgDefault,
     writeChartSvgHud,
     svg2Tag,
     cssCrisp,
+    geometricPrecision,
     svg,
-    svgt,
-    chartDefs,
+    terms,
+    makeAttribute,
+
+    -- * Augmentation
+    ChartExtra (..),
+    toChartExtra,
+    renderChartExtrasWith,
+
+    -- * low-level conversions
+    attsRect,
+    attsText,
+    attsGlyph,
+    attsLine,
+    attsPath,
   )
 where
 
 import Chart.Types
 import Data.Colour
+import Data.Path
 import Control.Lens hiding (transform)
 import Data.Generics.Labels ()
 import qualified Data.Text.Lazy as Lazy
@@ -53,31 +69,22 @@ instance Semigroup ChartSvg where
 instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty [] []
 
--- | scale chart data, projecting to the supplied Rect, and expanding the resultant Rect for chart style if necessary.
---
--- Note that this modifies the underlying chart data.
--- FIXME: do a divide to make an exact fit
-scaleCharts ::
-  Rect Double ->
-  [Chart Double] ->
-  (Rect Double, [Chart Double])
-scaleCharts cs r = (fromMaybe one $ styleBoxes cs', cs')
-  where
-    cs' = projectXYs cs r
+-- | Specification of a chart for rendering to SVG
+data ChartSvgExtra
+  = ChartSvgExtra
+      { svgOptionsExtra :: SvgOptions,
+        hudOptionsExtra :: HudOptions,
+        hudListExtra :: [Hud Double],
+        chartExtraList :: [ChartExtra Double]
+      }
+  deriving (Generic)
 
-getSize :: SvgOptions -> [Chart Double] -> Point Double
-getSize o cs = case view #svgAspect o of
-  ManualAspect a -> (view #svgHeight o *) <$> Point a 1
-  ChartAspect -> (\(Rect x z y w) -> Point (view #svgHeight o * (z - x)) (view #svgHeight o * (w - y))) . fromMaybe one $ styleBoxes cs
+instance Semigroup ChartSvgExtra where
+  (<>) (ChartSvgExtra _ o h c) (ChartSvgExtra s' o' h' c') =
+    ChartSvgExtra s' (o <> o') (h <> h') (c <> c')
 
-getViewbox :: SvgOptions -> [Chart Double] -> Rect Double
-getViewbox o cs =
-  bool asp (fromMaybe one $ styleBoxes cs) (NoScaleCharts == view #scaleCharts' o)
-  where
-    asp =
-      case view #svgAspect o of
-        ManualAspect a -> Rect (a * (-0.5)) (a * 0.5) (-0.5) 0.5
-        ChartAspect -> fromMaybe one $ styleBoxes cs
+instance Monoid ChartSvgExtra where
+  mempty = ChartSvgExtra defaultSvgOptions mempty [] []
 
 -- * rendering
 
@@ -94,8 +101,8 @@ renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Ht
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
   with
     ( svg2Tag
-        ( bool id (cssCrisp <>) (csso == UseCssCrisp) $
-            chartDefs cs <> mconcat (svg <$> cs)
+        ( cssText csso <>
+            mconcat (svg <$> cs)
         )
     )
     [ width_ (show w'),
@@ -103,37 +110,83 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
       makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
 
+renderToSvgExtra :: CssOptions -> Point Double -> Rect Double -> [ChartExtra Double] -> Html ()
+renderToSvgExtra csso (Point w' h') (Rect x z y w) cs =
+  with
+    ( svg2Tag
+        ( cssText csso <>
+            mconcat (svgExtra <$> cs)
+        )
+    )
+    [ width_ (show w'),
+      height_ (show h'),
+      makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
+    ]
+
+cssText :: CssOptions -> Html ()
+cssText UseCssCrisp = cssCrisp
+cssText UseGeometricPrecision = geometricPrecision
+cssText NoCssOptions = mempty
+
 -- | crisp edges css
 cssCrisp :: Html ()
-cssCrisp = style_ [type_ "text/css"] ("{ shape-rendering: 'crispEdges'; }" :: Text)
+cssCrisp = style_ [type_ "text/css"] ("* { shape-rendering: crispEdges; }" :: Text)
+
+-- | crisp edges css
+geometricPrecision :: Html ()
+geometricPrecision = style_ [type_ "text/css"] ("* { shape-rendering: geometricPrecision; }" :: Text)
 
 -- | render Charts with the supplied options.
 renderChartsWith :: SvgOptions -> [Chart Double] -> Text
 renderChartsWith so cs =
-  Lazy.toStrict $ renderText (renderToSvg (so ^. #useCssCrisp) (getSize so cs'') r' cs'')
+  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs')
   where
-    r' = r & maybe id padRect (so ^. #outerPad)
-    cs'' =
-      cs'
-        & maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad))) (so ^. #chartFrame)
-    (r, cs') =
-      bool
-        (getViewbox so cs, cs)
-        (scaleCharts (getViewbox so cs) cs)
-        (ScaleCharts == so ^. #scaleCharts')
+    rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
+    cs' =
+      cs &
+      runHud penult [chartAspectHud (so ^. #chartAspect)] &
+      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+        (so ^. #chartFrame)
+    Point w h = NH.width rect'
+    size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
+    penult = case so ^. #chartAspect of
+      FixedAspect _ -> styleBoxesS cs
+      CanvasAspect _ -> dataBoxesS cs
+      ChartAspect -> styleBoxesS cs
+      UnadjustedAspect -> dataBoxesS cs
 
+-- | render ChartExtras with the supplied options.
+renderChartExtrasWith :: SvgOptions -> [ChartExtra Double] -> Text
+renderChartExtrasWith so cs =
+  Lazy.toStrict $ renderText (renderToSvgExtra (so ^. #cssOptions) size' rect' cs')
+  where
+    cs' = zipWith (\(ChartExtra _ l a h') c' -> ChartExtra c' l a h') cs (csFinalize csa)
+    rect' = styleBoxesS (csFinalize csa) & maybe id padRect (so ^. #outerPad)
+    csFinalize =
+      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+        (so ^. #chartFrame) .
+      runHud penult [chartAspectHud (so ^. #chartAspect)]
+    Point w h = NH.width rect'
+    size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
+    csa = fmap (view #chartActual) cs
+    penult = case so ^. #chartAspect of
+      FixedAspect _ -> styleBoxesS csa
+      CanvasAspect _ -> dataBoxesS csa
+      ChartAspect -> styleBoxesS csa
+      UnadjustedAspect -> dataBoxesS csa
+
+-- | render charts with the supplied svg options and huds
 renderHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Text
-renderHudChart so hs cs = renderChartsWith so (runHud (getViewbox so cs) hs cs)
+renderHudChart so hs cs = renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect) cs) hs cs)
 
 -- | Render a chart using the supplied svg and hud config.
--- FIXME: fixRect usage
 --
 -- >>> chartSvg mempty
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"300.0\" viewBox=\"-0.52 -0.52 1.04 1.04\" width=\"450.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"300.0\" viewBox=\"-0.52 -0.52 1.04 1.04\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"></svg>"
 chartSvg :: ChartSvg -> Text
 chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> hs') (cs <> cs')
   where
-    (hs', cs') = makeHud (fixRect $ dataBox cs) ho
+    (hs', cs') = makeHud (padBox $ dataBoxes cs) ho
 
 -- | Render a chart using the default svg options and no hud.
 --
@@ -245,47 +298,62 @@ svgShape (VLineGlyph _) s (Point x y) =
   terms "polyline" [term "points" (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
 svgShape (HLineGlyph _) s (Point x y) =
   terms "polyline" [term "points" (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
-svgShape (PathGlyph path) _ p =
-  terms "path" [term "d" path, term "transform" (toTranslateText p)]
+svgShape (PathGlyph path) s p =
+  terms "path" [term "d" path, term "transform" (toTranslateText p <> " " <> toScaleText s)]
 
 -- | GlyphStyle to svg Tree
 svgGlyph :: GlyphStyle -> Point Double -> Lucid.Html ()
 svgGlyph s p =
-  svgShape (s ^. #shape) (s ^. #size) (realToFrac <$> p)
+  svgShape (s ^. #shape) (s ^. #size) p
     & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
+
+-- | Path svg
+svgPath :: [PathInfo Double] -> [Point Double] -> Lucid.Html ()
+svgPath _ [] = mempty
+svgPath _ [_] = mempty
+svgPath infos ps =
+  terms "path" [term "d" (toPathAbsolutes (zip infos ps))]
+
+svgAtts :: Annotation -> [Attribute]
+svgAtts (TextA s _) = attsText s
+svgAtts (GlyphA s) = attsGlyph s
+svgAtts (LineA s) = attsLine s
+svgAtts (RectA s) = attsRect s
+svgAtts (PathA s _) = attsPath s
+svgAtts BlankA = mempty
+
+svgHtml :: Chart Double -> Lucid.Html ()
+svgHtml (Chart (TextA s ts) xs) =
+  mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs
+svgHtml (Chart (GlyphA s) xs) =
+  mconcat $ svgGlyph s . toPoint <$> xs
+svgHtml (Chart (LineA _) xs) =
+  svgLine $ toPoint <$> xs
+svgHtml (Chart (RectA _) xs) =
+  mconcat $ svgRect . toRect <$> xs
+svgHtml (Chart (PathA _ infos) xs) =
+  svgPath infos $ toPoint <$> xs
+svgHtml (Chart BlankA _) = mempty
 
 -- | Low-level conversion of a Chart to svg
 svg :: Chart Double -> Lucid.Html ()
-svg (Chart (TextA s ts) xs) =
-  term "g" (attsText s) (mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs)
-svg (Chart (GlyphA s) xs) =
-  term "g" (attsGlyph s) (mconcat $ svgGlyph s . toPoint <$> xs)
-svg (Chart (LineA s) xs) =
-  term "g" (attsLine s) (svgLine $ toPoint <$> xs)
-svg (Chart (RectA s) xs) =
-  term "g" (attsRect s) (mconcat $ svgRect . toRect <$> xs)
-svg (Chart (SurfaceA s) xs) =
-  term "g" (attsSurface s) (mconcat $ svgRect . toRect <$> xs)
-svg (Chart BlankA _) = mempty
+svg c = term "g" (svgAtts $ c ^. #annotation) (svgHtml c)
 
--- | Add a tooltip as part of a chart to svg conversion.
-svgt :: Chart Double -> (TextStyle, Text) -> Lucid.Html ()
-svgt (Chart (TextA s ts) xs) (s', ts') =
-  term "g" (attsText s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (zipWith (\t p -> svgText s t (toPoint p)) ts xs))
-svgt (Chart (GlyphA s) xs) (s', ts') =
-  term "g" (attsGlyph s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgGlyph s . toPoint <$> xs))
-svgt (Chart (LineA s) xs) (s', ts') =
-  term "g" (attsLine s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> svgLine (toPoint <$> xs))
-svgt (Chart (RectA s) xs) (s', ts') =
-  term "g" (attsRect s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
-svgt (Chart (SurfaceA s) xs) (s', ts') =
-  term "g" (attsSurface s) (Lucid.title_ (attsText s') (Lucid.toHtml ts') <> mconcat (svgRect . toRect <$> xs))
-svgt (Chart BlankA _) _ = mempty
+-- | render extra attributes and html
+svgExtra :: ChartExtra Double -> Lucid.Html ()
+svgExtra (ChartExtra c l' as h) =
+  case l' of
+    Nothing -> x
+    Just l ->
+       term "a" [term "xlink:href" l :: Lucid.Attribute] x
+  where
+    x = term "g" (svgAtts (c ^. #annotation) <> as) (svgHtml c <> h)
 
+-- | Make Lucid Html given term and attributes
 terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
 terms t = with $ makeXmlElementNoEnd t
 
--- * Style to Attributes
+-- | RectStyle to Attributes
 attsRect :: RectStyle -> [Lucid.Attribute]
 attsRect o =
   [ term "stroke-width" (show $ o ^. #borderSize),
@@ -295,14 +363,7 @@ attsRect o =
     term "fill-opacity" (show $ opac $ o ^. #color)
   ]
 
-attsSurface :: SurfaceStyle -> [Lucid.Attribute]
-attsSurface o =
-  [ term "stroke-width" (show $ o ^. #surfaceRectStyle . #borderSize),
-    term "stroke" (toHex $ o ^. #surfaceRectStyle . #borderColor),
-    term "stroke-opacity" (show $ opac $ o ^. #surfaceRectStyle . #borderColor),
-    term "fill" ("url(#" <> (o ^. #surfaceTextureId) <> ")")
-  ]
-
+-- | TextStyle to Attributes
 attsText :: TextStyle -> [Lucid.Attribute]
 attsText o =
   [ term "stroke-width" "0.0",
@@ -319,6 +380,7 @@ attsText o =
     toTextAnchor AnchorStart = "start"
     toTextAnchor AnchorEnd = "end"
 
+-- | GlyphStyle to Attributes
 attsGlyph :: GlyphStyle -> [Lucid.Attribute]
 attsGlyph o =
   [ term "stroke-width" (show $ o ^. #borderSize),
@@ -329,62 +391,59 @@ attsGlyph o =
   ]
     <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
 
+-- | LineStyle to Attributes
 attsLine :: LineStyle -> [Lucid.Attribute]
 attsLine o =
   [ term "stroke-width" (show $ o ^. #width),
     term "stroke" (toHex $ o ^. #color),
     term "stroke-opacity" (show $ opac $ o ^. #color),
     term "fill" "none"
+  ] <>
+  maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap) <>
+  maybe [] (\x -> [term "stroke-linejoin" (fromLineJoin x)]) (o ^. #linejoin) <>
+  maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray) <>
+  maybe [] (\x -> [term "stroke-dashoffset" (show x)]) (o ^. #dashoffset)
+
+-- | PathStyle to Attributes
+attsPath :: PathStyle -> [Lucid.Attribute]
+attsPath o =
+  [ term "stroke-width" (show $ o ^. #borderSize),
+    term "stroke" (hex $ o ^. #borderColor),
+    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
+    term "fill" (hex $ o ^. #color),
+    term "fill-opacity" (show $ opac $ o ^. #color)
   ]
 
+-- | includes a flip of the y dimension.
 toTranslateText :: Point Double -> Text
 toTranslateText (Point x y) =
   "translate(" <> show x <> ", " <> show (- y) <> ")"
 
+-- | includes reference changes:
+--
+-- - from radians to degrees
+--
+-- - from counter-clockwise is a positive rotation to clockwise is positive
+--
+-- - flip y dimension
+--
 toRotateText :: Double -> Point Double -> Text
 toRotateText r (Point x y) =
-  "rotate(" <> show r <> ", " <> show x <> ", " <> show (- y) <> ")"
+  "rotate(" <> show (-r*180/pi) <> ", " <> show x <> ", " <> show (- y) <> ")"
 
--- | calculate the linear gradient to shove in defs
--- FIXME: Only works for #surfaceGradient = 0 or pi//2. Can do much better with something like https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
-lgSurface :: SurfaceStyle -> Lucid.Html ()
-lgSurface o =
-  term
-    "linearGradient"
-    [ Lucid.id_ (o ^. #surfaceTextureId),
-      Lucid.makeAttribute "x1" (show x0),
-      Lucid.makeAttribute "y1" (show y0),
-      Lucid.makeAttribute "x2" (show x1),
-      Lucid.makeAttribute "y2" (show y1)
-    ]
-    ( mconcat
-        [ terms
-            "stop"
-            [ Lucid.makeAttribute "stop-opacity" (show $ opac $ o ^. #surfaceColorMin),
-              Lucid.makeAttribute "stop-color" (toHex (o ^. #surfaceColorMin)),
-              Lucid.makeAttribute "offset" "0"
-            ],
-          terms
-            "stop"
-            [ Lucid.makeAttribute "stop-opacity" (show $ opac $ o ^. #surfaceColorMax),
-              Lucid.makeAttribute "stop-color" (toHex (o ^. #surfaceColorMax)),
-              Lucid.makeAttribute "offset" "1"
-            ]
-        ]
-    )
-  where
-    x0 = min 0 (cos (o ^. #surfaceGradient))
-    x1 = max 0 (cos (o ^. #surfaceGradient))
-    y0 = max 0 (sin (o ^. #surfaceGradient))
-    y1 = min 0 (sin (o ^. #surfaceGradient))
+toScaleText :: Double -> Text
+toScaleText x =
+  "scale(" <> show x <> ")"
 
--- | get chart definitions
-chartDefs :: [Chart a] -> Lucid.Html ()
-chartDefs cs = bool (term "defs" (mconcat ds)) mempty (null ds)
-  where
-    ds = mconcat $ chartDef <$> cs
+-- | Augmentation of a chart to include Html content.
+data ChartExtra a =
+  ChartExtra
+  { chartActual :: Chart a,
+    chartLink :: Maybe Text,
+    chartAttributes :: [Attribute],
+    chartContent :: Html ()
+  } deriving (Show, Generic)
 
-chartDef :: Chart a -> [Lucid.Html ()]
-chartDef c = case c of
-  (Chart (SurfaceA s) _) -> [lgSurface s]
-  _ -> []
+-- | Convert a plain chart top a 'ChartExtra'.
+toChartExtra :: Chart a -> ChartExtra a
+toChartExtra c = ChartExtra c Nothing mempty mempty

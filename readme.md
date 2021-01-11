@@ -16,8 +16,8 @@ import Chart
 main :: IO ()
 main = do
   let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
-  let ls = fmap (PointXY . uncurry Point) <$> xs
-  let anns = zipWith (\w c -> LineA (LineStyle w c)) [0.015, 0.03, 0.01] palette1
+  let ls = fmap (uncurry P) <$> xs
+  let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1
   let lineChart = zipWith Chart anns ls
   writeChartSvgHud "lineshud.svg" lineChart
 ```
@@ -29,15 +29,7 @@ Examples
 
 See the code in Chart.Examples for practical usage.
 
-The package includes a local chart server in app/example.hs which is a useful way to explore the api.
-
-```
-stack exec examples --file-watch
-```
-
-Also included is construction of this logo:
-
-![](other/venn.svg)
+Also included is an example which demonstrates reanimate integration.
 
 Chart Types
 ===
@@ -65,7 +57,3 @@ bar
 surface
 
 ![](other/surface.svg)
-
-recipe
-------
-

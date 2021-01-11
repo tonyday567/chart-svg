@@ -16,6 +16,7 @@ module Chart
     moveChart,
     projectXYs,
     projectXYsWith,
+    projectArcPosition,
 
     -- * Annotation
     Annotation (..),
@@ -37,24 +38,36 @@ module Chart
     glyphText,
     LineStyle (..),
     defaultLineStyle,
-    SurfaceStyle (..),
-    defaultSurfaceStyle,
+    LineCap (..),
+    fromLineCap,
+    toLineCap,
+    LineJoin (..),
+    fromLineJoin,
+    toLineJoin,
+    fromDashArray,
     Anchor (..),
     fromAnchor,
     toAnchor,
+    PathStyle (..),
+    toPathChart,
+    defaultPathStyle,
 
     -- * Hud types
-    --
-    -- $hud
     ChartDims (..),
     HudT (..),
     Hud,
+    simulHud,
     HudOptions (..),
     defaultHudOptions,
     defaultCanvas,
     runHudWith,
     runHud,
     makeHud,
+    ChartAspect (..),
+    toChartAspect,
+    fromChartAspect,
+    initialCanvas,
+    chartAspectHud,
     canvas,
     title,
     tick,
@@ -86,17 +99,12 @@ module Chart
     LegendOptions (..),
     defaultLegendOptions,
     legendHud,
-    Direction (..),
-    fromDirection,
-    toDirection,
+    Orientation (..),
+    fromOrientation,
+    toOrientation,
 
     -- * SVG primitives
-    SvgAspect (..),
-    toSvgAspect,
-    fromSvgAspect,
-    EscapeText (..),
     CssOptions (..),
-    ScaleCharts (..),
     SvgOptions (..),
     defaultSvgOptions,
     defaultSvgFrame,
@@ -109,31 +117,34 @@ module Chart
     stack,
 
     -- * Bounding box calculation
+    padBox,
     dataBox,
+    dataBoxes,
+    dataBoxesS,
     styleBox,
     styleBoxes,
-    noStyleBoxes,
+    styleBoxesS,
     styleBoxText,
     styleBoxGlyph,
 
     -- * Re-exports
-    module Chart.Page,
     module Chart.Render,
     module Chart.Bar,
     module Chart.Surface,
     module Data.Colour,
     module Data.FormatN,
+    module Data.Path,
     module NumHask.Space,
   )
 where
 
 import Chart.Bar
-import Chart.Page
 import Chart.Render
 import Chart.Surface
 import Chart.Types
 import Data.Colour
 import Data.FormatN
+import Data.Path
 import NumHask.Space
 
 -- $setup
@@ -172,14 +183,14 @@ import NumHask.Space
 -- Here's some data; three lists of points that will form a line:
 --
 -- >>> let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
--- >>> let ls = fmap (PointXY . uncurry Point) <$> xs
+-- >>> let ls = fmap (uncurry P) <$> xs
 --
 -- >>> :t ls
 -- ls :: [[XY Double]]
 --
 -- and an Annotation to describe representation of this data; three line styles with different colors and widths:
 --
--- >>> let anns = zipWith (\w c -> LineA (LineStyle w c)) [0.015, 0.03, 0.01] palette1
+-- >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1
 --
 -- and this is enough to create a Chart.
 --

@@ -11,7 +11,7 @@ description:
     >>>
     >>> let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.0, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
     >>> let ls = fmap (PointXY . uncurry Point) <$> xs
-    >>> let anns = zipWith (\w c -> LineA (LineStyle w c)) [0.015, 0.03, 0.01] palette1
+    >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1
     >>> let lineChart = zipWith Chart anns ls
     >>> writeChartSvgHud "other/lineshud.svg" lineChart
     .
@@ -19,7 +19,7 @@ description:
     .
     See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
 
-category:       project
+category:       charts
 homepage:       https://github.com/tonyday567/chart-svg#readme
 bug-reports:    https://github.com/tonyday567/chart-svg/issues
 author:         Tony Day
@@ -40,99 +40,83 @@ library
     Chart
     Chart.Bar
     Chart.Examples
+    Chart.Reanimate
     Chart.Surface
     Chart.Render
-    Chart.Page
     Chart.Types
+    Chart.Various
     Data.Colour
     Data.FormatN
+    Data.Path
   hs-source-dirs:
     src
   build-depends:
-    Color >= 0.1.4 && < 0.1.5,
+    Color >= 0.3 && < 0.4,
+    JuicyPixels >= 3.3 && < 3.4,
     attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
+    cubicbezier >= 0.6 && < 0.7,
+    foldl >= 1.4 && < 1.5,
     generic-lens >= 1.2 && < 3.0,
-    lucid >= 2.9 && < 2.10,
     lens >= 4.0 && < 5,
-    numhask >= 0.6 && < 0.7,
-    numhask-space >= 0.6 && < 0.7,
-    pretty-simple >= 3.2 && < 3.3,
+    linear >= 1.21 && < 1.22,
+    lucid >= 2.9 && < 2.10,
+    numhask >= 0.7 && < 0.8,
+    numhask-space >= 0.7 && < 0.8,
+    reanimate >= 1.1.1.0 && < 1.2,
+    reanimate-svg >= 0.13 && < 0.14,
     scientific >= 0.3 && < 0.4,
     tagsoup >= 0.14 && < 0.15,
     text >= 1.2 && < 1.3,
     time >= 1.9 && < 1.10,
     transformers >= 0.5 && < 0.6,
-    web-rep >= 0.7 && < 0.8
+    unordered-containers >= 0.2 && < 0.3,
   default-language: Haskell2010
   default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
   ghc-options:
     -Wall
     -Wcompat
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
+    -fwrite-ide-info
+    -hiedir=.hie
 
-executable examples
-  main-is: examples.hs
+executable reanimate-example
+  main-is: reanimate-example.hs
   hs-source-dirs:
     app
   build-depends:
+    attoparsec >= 0.13 && < 0.14,
+    JuicyPixels >= 3.3.5 && < 3.4,
     base >=4.7 && <5,
+    bytestring >= 0.10 && < 0.11,
     chart-svg,
-    lens >= 4.0 && < 5,
+    concurrency >= 1.11 && < 1.12,
+    foldl >= 1.4 && < 1.5,
     lucid >= 2.9 && < 2.10,
-    numhask >= 0.6 && < 0.7,
+    lens >= 4.19 && < 4.20,
+    linear >= 1.21 && < 1.22,
+    numhask >= 0.7 && < 0.8,
+    numhask-space >= 0.7 && < 0.8,
+    reanimate >= 1.1.1.0 && < 1.2,
+    reanimate-svg >= 0.13 && < 0.14,
     text >= 1.2 && < 1.3,
+    time >= 1.9 && < 1.10,
     transformers >= 0.5 && < 0.6,
-    unordered-containers >= 0.2.10 && < 0.3,
-    web-rep >= 0.7 && < 0.8
+    unordered-containers >= 0.2 && < 0.3,
+    vector >= 0.12 && < 0.13,
   default-language: Haskell2010
   default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
   ghc-options:
     -Wall
     -Wcompat
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
-
-executable venn
-  main-is: venn.hs
-  hs-source-dirs:
-    app
-  build-depends:
-    base >=4.7 && <5,
-    containers >= 0.6 && < 0.7,
-    chart-svg,
-    generic-lens >= 1.2 && < 3.0,
-    lucid >= 2.9 && < 2.10,
-    lens >= 4.0 && < 5,
-    numhask >= 0.6 && < 0.7,
-    numhask-space >= 0.6 && < 0.7,
-    text >= 1.2 && < 1.3,
-    transformers >= 0.5 && < 0.6,
-    unordered-containers >= 0.2.10 && < 0.3,
-    web-rep >= 0.7 && < 0.8
-  default-language: Haskell2010
-  default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
-  ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
+    -funbox-strict-fields
+    -fwrite-ide-info
+    -hiedir=.hie
 
 test-suite test
   type: exitcode-stdio-1.0
@@ -141,18 +125,15 @@ test-suite test
     test
   build-depends:
     base >=4.7 && <5,
-    doctest >= 0.16 && < 0.17,
-    numhask >= 0.6 && < 0.7
+    chart-svg,
+    doctest >= 0.16 && < 0.18,
+    numhask >= 0.7 && < 0.8,
   default-language: Haskell2010
-  default-extensions:
-    NegativeLiterals
-    NoImplicitPrelude
-    OverloadedStrings
-    UnicodeSyntax
   ghc-options:
     -Wall
     -Wcompat
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
-    -funbox-strict-fields
+    -fwrite-ide-info
+    -hiedir=.hie
