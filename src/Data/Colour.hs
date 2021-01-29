@@ -21,20 +21,19 @@ module Data.Colour
     pattern Colour,
     opac,
     setOpac,
-    fromRGB,
     hex,
-    palette,
-    palette1,
     blend,
     blends,
     toHex,
     fromHex,
     unsafeFromHex,
-    grayscale,
-    colorText,
+    palette1,
     transparent,
     black,
     white,
+    light,
+    dark,
+    grey,
   )
 where
 
@@ -61,7 +60,7 @@ pattern Colour r g b a = Colour' (ColorRGBA r g b a)
 instance Show Colour where
   show (Colour r g b a) =
     Text.unpack $
-      "RGBA "
+      "Colour "
         <> fixed (Just 2) r
         <> " "
         <> fixed (Just 2) g
@@ -70,17 +69,13 @@ instance Show Colour where
         <> " "
         <> fixed (Just 2) a
 
--- | get opacity
+-- | opac
 opac :: Colour -> Double
-opac c = getAlpha (color' c)
+opac (Colour _ _ _ o) = o
 
 -- | set opacity
 setOpac :: Double -> Colour -> Colour
 setOpac o (Colour r g b _) = Colour r g b o
-
--- |
-fromRGB :: Color RGB Double -> Double -> Colour
-fromRGB (ColorRGB r b g) o = Colour' $ ColorRGBA r b g o
 
 -- |
 hex :: Colour -> Text
@@ -164,30 +159,45 @@ hexDigit n
 i2d :: Int -> Char
 i2d i = chr (ord '0' + i)
 
--- | some RGB colors to work with
-palette :: [Color RGB Double]
-palette = unsafeFromHex <$> ["#a6cee3", "#1f78b4", "#e31a1c", "#b2df8a", "#33a02c", "#fb9a99", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a", "#ffff99", "#b15928"]
-
 -- | some RGBA colors
 palette1 :: [Colour]
-palette1 = (\c -> fromRGB c 1) <$> palette
-
--- | gray with 1 opacity
-grayscale :: Double -> Color RGB Double
-grayscale n = ColorRGB n n n
-
--- | standard text color
-colorText :: Colour
-colorText = fromRGB (grayscale 0.2) 1
+palette1 =
+  [ Colour 0.69 0.35 0.16 1.00,
+    Colour 0.65 0.81 0.89 1.00,
+    Colour 0.12 0.47 0.71 1.00,
+    Colour 0.89 0.10 0.11 1.00,
+    Colour 0.70 0.87 0.54 1.00,
+    Colour 0.20 0.63 0.17 1.00,
+    Colour 0.98 0.60 0.60 1.00,
+    Colour 0.99 0.75 0.44 1.00,
+    Colour 1.00 0.50 0.00 1.00,
+    Colour 0.99 0.99 0.99 1.00,
+    Colour 0.00 0.00 0.00 1.00,
+    Colour 1.00 1.00 0.60 1.00,
+    Colour 0.69 0.35 0.16 1.00
+  ]
 
 -- |
 black :: Colour
-black = fromRGB (grayscale 0) 1
+black = Colour 0 0 0 1
 
 -- |
 white :: Colour
-white = fromRGB (grayscale 1) 1
+white = Colour 0.99 0.99 0.99 1
+
+-- |
+light :: Colour
+light = Colour 0.94 0.94 0.94 1
+
+-- |
+dark :: Colour
+dark = Colour 0.05 0.05 0.05 1
+
+grey :: Colour
+grey = Colour 0.5 0.5 0.5 1
 
 -- |
 transparent :: Colour
 transparent = Colour 0 0 0 0
+
+

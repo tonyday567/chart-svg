@@ -141,7 +141,7 @@ import Control.Lens
 import Data.Colour
 import Data.FormatN
 import Data.Generics.Labels ()
-import Data.List ((!!))
+import qualified Data.List as List
 import Data.Path
 import qualified Data.Text as Text
 import Data.Time
@@ -211,7 +211,7 @@ data RectStyle = RectStyle
 
 -- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette !! 1) 0.3)
+defaultRectStyle = RectStyle 0.01 (palette1 List.!! 1) (palette1 List.!! 2)
 
 -- | solid rectangle, no border
 --
@@ -275,7 +275,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 colorText AnchorMiddle 0.5 1.45 -0.2 Nothing Nothing
+  TextStyle 0.08 light AnchorMiddle 0.5 1.45 -0.2 Nothing Nothing
 
 -- | Glyph styling
 --
@@ -305,8 +305,8 @@ defaultGlyphStyle :: GlyphStyle
 defaultGlyphStyle =
   GlyphStyle
     0.03
-    (fromRGB (P.head palette) 0.3)
-    (fromRGB (palette !! 1) 0.8)
+    (palette1 List.!! 1)
+    (palette1 List.!! 2)
     0.003
     SquareGlyph
     Nothing
@@ -395,7 +395,7 @@ data LineStyle = LineStyle
 
 -- | the official default line style
 defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 (fromRGB (P.head palette) 0.3) Nothing Nothing Nothing Nothing
+defaultLineStyle = LineStyle 0.012 light Nothing Nothing Nothing Nothing
 
 -- | Path styling
 --
@@ -411,7 +411,7 @@ data PathStyle = PathStyle
 -- | the style
 defaultPathStyle :: PathStyle
 defaultPathStyle =
-  PathStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette !! 1) 0.3)
+  PathStyle 0.01 (palette1 List.!! 1) (palette1 List.!! 2)
 
 -- | Convert from a path command list to a PathA chart
 toPathChart :: PathStyle -> [(PathInfo Double, Point Double)] -> Chart Double
@@ -498,7 +498,7 @@ defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoCssOptions (Fix
 
 -- | frame style
 defaultSvgFrame :: RectStyle
-defaultSvgFrame = border 0.01 (fromRGB (grayscale 0.7) 0.5)
+defaultSvgFrame = border 0.01 light
 
 -- | Dimensions that are tracked in the 'HudT':
 --
@@ -614,7 +614,7 @@ defaultHudOptions =
 
 -- | The official hud canvas
 defaultCanvas :: RectStyle
-defaultCanvas = blob (fromRGB (grayscale 0.5) 0.025)
+defaultCanvas = blob (setOpac 0.05 light)
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -661,7 +661,7 @@ data AxisBar = AxisBar
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (RectStyle 0 (fromRGB (grayscale 0.5) 1) (fromRGB (grayscale 0.5) 1)) 0.005 0.01
+defaultAxisBar = AxisBar (RectStyle 0 transparent (setOpac 0.4 light)) 0.004 0.01
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
@@ -681,9 +681,8 @@ defaultTitle :: Text -> Title
 defaultTitle txt =
   Title
     txt
-    ( (#size .~ 0.12)
-        . (#color .~ colorText)
-        $ defaultTextStyle
+    ( defaultTextStyle &
+      #size .~ 0.12
     )
     PlaceTop
     AnchorMiddle
@@ -705,22 +704,22 @@ data Tick = Tick
 defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
-    & #borderSize .~ 0.005
-    & #borderColor .~ fromRGB (grayscale 0.5) 1
-    & #color .~ fromRGB (grayscale 0.5) 1
+    & #borderSize .~ 0
     & #shape .~ VLineGlyph 0.005
+    & #color .~ setOpac 0.4 light
+    & #borderColor .~ setOpac 0.4 light
 
 -- | The official text tick
 defaultTextTick :: TextStyle
 defaultTextTick =
-  defaultTextStyle & #size .~ 0.05 & #color .~ fromRGB (grayscale 0.5) 1
+  defaultTextStyle & #size .~ 0.05
 
 -- | The official line tick
 defaultLineTick :: LineStyle
 defaultLineTick =
   defaultLineStyle
-    & #color .~ fromRGB (grayscale 0.5) 0.05
     & #width .~ 5.0e-3
+    & #color %~ setOpac 0.05
 
 -- | The official tick
 defaultTick :: Tick
@@ -808,8 +807,8 @@ defaultLegendOptions =
     )
     10
     0.1
-    0.1
-    (Just (RectStyle 0.02 (fromRGB (grayscale 0.5) 1) white))
+    0.02
+    (Just (RectStyle 0.02 (setOpac 0.05 light) (setOpac 0.05 light)))
     PlaceBottom
     0.2
 

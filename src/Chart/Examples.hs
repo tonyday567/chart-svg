@@ -43,7 +43,7 @@ where
 
 import Chart
 import Control.Lens
-import Data.List ((!!))
+import qualified Data.List as List
 import qualified Data.Text as Text
 import NumHask.Prelude hiding (lines)
 
@@ -88,8 +88,8 @@ rss =
 
 ropts :: [RectStyle]
 ropts =
-  [ blob (fromRGB (palette !! 0) 0.4),
-    blob (fromRGB (palette !! 5) 0.4)
+  [ blob (palette1 List.!! 1),
+    blob (palette1 List.!! 2)
   ]
 
 -- | line example
@@ -116,19 +116,20 @@ ls =
 
 lopts :: [LineStyle]
 lopts =
-  [ defaultLineStyle & #color .~ (palette1 !! 0) & #width .~ 0.015,
-    defaultLineStyle & #color .~ (palette1 !! 1) & #width .~ 0.03,
-    defaultLineStyle & #color .~ (palette1 !! 5) & #width .~ 0.01
+  [ defaultLineStyle & #color .~ (palette1 List.!! 0) & #width .~ 0.015,
+    defaultLineStyle & #color .~ (palette1 List.!! 1) & #width .~ 0.03,
+    defaultLineStyle & #color .~ (palette1 List.!! 5) & #width .~ 0.01
   ]
 
 legopts :: LegendOptions
 legopts =
   defaultLegendOptions
-    & #lsize .~ 0.2
-    & #ltext . #size .~ 0.25
+    & #lsize .~ 0.3
+    & #ltext . #size .~ 0.3
     & #innerPad .~ 0.05
     & #lscale .~ 0.25
-    & #lplace .~ PlaceAbsolute (Point 0.5 -0.3)
+    & #lplace .~ PlaceRight
+    & #legendFrame %~ fmap (#color .~ setOpac 0.2 dark)
 
 exampleLineHudOptions :: Text -> Maybe Text -> Maybe (LegendOptions, [(Annotation, Text)]) -> HudOptions
 exampleLineHudOptions t1 t2 legends' =
@@ -404,7 +405,7 @@ pathExample =
         (QuadI (Point -1 2), Point 0 1),
         (ArcI (ArcInfo (Point 1 1) (-pi/6) False False), Point 0 0)
       ]
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (PointXY . snd <$> ps)
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 List.!! 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (PointXY . snd <$> ps)
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY . snd <$> ps)
 
 -- | ellipse example
@@ -422,8 +423,8 @@ ellipseExample p@(ArcPosition p1 p2 _) =
    #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
   where
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p
-    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0..100])
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
+    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0..100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [c,p1,p2])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
     xradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [ellipse c r phi' 0, ellipse c r phi' pi])
@@ -446,8 +447,8 @@ arcExample p1 =
   where
     ps = singletonArc p1
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p1
-    arc = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
+    arc = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 List.!! 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) [PointXY c]
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p1)]
 
@@ -516,8 +517,8 @@ quadExample p@(QuadPosition start end control) =
    #svgOptions %~ ((#outerPad ?~ 0.05) . (#chartAspect .~ ChartAspect))
   where
     ps = singletonQuad p
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . quadBezier p . (/100.0) <$> [0..100])
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 List.!! 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . quadBezier p . (/100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (quadBox p)]
 
@@ -543,8 +544,8 @@ cubicExample p@(CubicPosition start end control1 control2) =
    #svgOptions %~ ((#outerPad ?~ 0.02) . (#chartAspect .~ ChartAspect))
   where
     ps = singletonCubic p
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1!!2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . cubicBezier p . (/100.0) <$> [0..100])
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 List.!! 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . cubicBezier p . (/100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control1, control2, cubicBezier p 0.8])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (cubicBox p)]
     pathText = toPathAbsolutes ps
@@ -699,7 +700,7 @@ problematic1 ca p =
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p
     ps = singletonArc p
     arc = toPathChart defaultPathStyle ps
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 10.0) <$> [0..10])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 10.0) <$> [0..10])
     pts = Chart (GlyphA defaultGlyphStyle) (fmap PointXY [c, p ^. #posStart, p ^. #posEnd])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
 
@@ -727,9 +728,9 @@ problematic2 p@(ArcPosition p1 p2 _) (ArcCentroid gc gr gphi gang0 gangd)=
     ang1 = ang0+angd
     ax = c+_x r .* ray a
     ay = c+_y r .* ray (a + pi/2)
-    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1!!1)) (PointXY . ellipse c r a . (\x -> 2 * pi * x / 100.0) <$> [0..100])
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.04 & #color .~ setOpac 0.3 (palette1!!2)) (PointXY . ellipse c r a . (\x -> ang0 + (ang1 - ang0) * x / 100.0) <$> [0..100])
-    ellGuess = Chart (LineA $ defaultLineStyle & #width .~ 0.03 & #color .~ setOpac 0.4 (palette1!!4)) (PointXY . ellipse gc gr gphi . (\x -> gang0 + gangd * x / 100.0) <$> [0..100])
+    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . ellipse c r a . (\x -> 2 * pi * x / 100.0) <$> [0..100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.04 & #color .~ setOpac 0.3 (palette1 List.!! 2)) (PointXY . ellipse c r a . (\x -> ang0 + (ang1 - ang0) * x / 100.0) <$> [0..100])
+    ellGuess = Chart (LineA $ defaultLineStyle & #width .~ 0.03 & #color .~ setOpac 0.4 (palette1 List.!! 4)) (PointXY . ellipse gc gr gphi . (\x -> gang0 + gangd * x / 100.0) <$> [0..100])
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [c,p1,p2,ax,ay])
     gs = Chart (GlyphA $ defaultGlyphStyle & #shape .~ CircleGlyph & #size .~ 0.05) (PointXY <$> [ellipse c r a 0.472, ellipse c r a (0.472 + pi/2)])
     xradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [c, ax])

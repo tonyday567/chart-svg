@@ -7,17 +7,16 @@
 
 -- | Integration of reanimate and chart-svg
 module Chart.Reanimate
-  ( chartSvgTree,
-    chartSvgTreeDef,
+  ( chartSvgTreeBroken,
+    renderChartsWith,
     chartSvgTrees,
-    chartSvgTreesDef,
-    writeChartSvgTree,
     tree,
     toPixelRGBA8,
+    daText,
   )
 where
 
-import Chart as C hiding (transform, Line)
+import Chart as C hiding (transform, Line, renderChartsWith)
 import Codec.Picture.Types
 import Control.Lens hiding (transform)
 import qualified Data.Attoparsec.Text as A
@@ -25,25 +24,48 @@ import Graphics.SvgTree.PathParser
 import Graphics.SvgTree.Types as SvgTree hiding (Point, Text)
 import Linear.V2
 import NumHask.Prelude hiding (fold)
-import qualified Graphics.SvgTree.CssTypes as Css
-import qualified Graphics.SvgTree as SvgTree
-import Reanimate
+import Reanimate as Re
 import NumHask.Space.Types (width)
-import Graphics.SvgTree.Printer (ppDocument)
 
 -- | Render a 'ChartSvg' to a 'Tree'
 --
 -- Alters the reanimate default viewbox of 16:9, and simplifies the SVG.
-chartSvgTree :: ChartSvg -> Tree
-chartSvgTree cs = simplify . withViewBox vb . mkGroup $ ts
+chartSvgTreeBroken :: ChartSvg -> Tree
+chartSvgTreeBroken cs = simplify . withViewBox vb . mkGroup $ ts
   where
     (ts, r, _) = chartSvgTrees cs
     (Rect x z y w) = r
-    vb = (x, -y, z-x, w-y)
+    vb = (x, -y, z-x, y-w)
 
--- | Render a 'ChartSvg' to a 'Tree' with the default viewbox
-chartSvgTreeDef :: ChartSvg -> Tree
-chartSvgTreeDef = simplify . mkGroup . chartSvgTreesDef
+{-
+tree' :: ChartSvg -> Tree
+tree' cs =
+  Re.scaleXY (5) (-5)
+    $ simplify
+    $ unbox
+    $ fromHudOptionsChart so ho hl
+  where
+    so = view #svgOptions cs
+    ho = view #hudOptions cs
+    hl = view #hudList cs
+    cl = view #chartList cs
+
+-}
+
+renderChartsWith :: SvgOptions -> [Chart Double] -> [Tree]
+renderChartsWith so cs =
+  tree <$> cs'
+  where
+    cs' =
+      cs &
+      runHud penult [chartAspectHud (so ^. #chartAspect)] &
+      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+        (so ^. #chartFrame)
+    penult = case so ^. #chartAspect of
+      FixedAspect _ -> styleBoxesS cs
+      CanvasAspect _ -> dataBoxesS cs
+      ChartAspect -> styleBoxesS cs
+      UnadjustedAspect -> dataBoxesS cs
 
 -- | Render a 'ChartSvg' to 'Tree's, the fitted chart viewbox, and the suggested SVG dimensions
 --
@@ -66,58 +88,10 @@ chartSvgTrees cs = (ts, rect', size')
     (hlExtra, clExtra) = makeHud (padBox $ dataBoxes clAspect) ho
     clAll = clAspect <> clExtra
     hlAll = hl <> hlExtra
-    ts = fmap (SvgTree.cssApply (cssRules (view #cssOptions so)) . tree)
-      (runHud (initialCanvas (so ^. #chartAspect) clAll) hlAll clAll)
+    ts = tree <$> runHud (initialCanvas (so ^. #chartAspect) clAll) hlAll clAll
     rect' = styleBoxesS clAll & maybe id padRect (view #outerPad so)
     Point w h = NumHask.Space.Types.width rect'
     size' = Point (view #svgHeight so/h*w) (view #svgHeight so)
-
--- | Render a 'ChartSvg' to 'Tree's at the standard reanimate viewbox
---
-chartSvgTreesDef :: ChartSvg -> [Tree]
-chartSvgTreesDef cs = ts
-  where
-    so = view #svgOptions cs
-    ho = view #hudOptions cs
-    hl = view #hudList cs
-    cl = view #chartList cs
-    clAspect = projectXYs (Rect (-8.0) 8.0 (-4.5) 4.5) cl
-    (hlExtra, clExtra) = makeHud (padBox $ dataBoxes clAspect) ho
-    clAll = clAspect <> clExtra
-    hlAll = hl <> hlExtra
-    ts = fmap (SvgTree.cssApply (cssRules (view #cssOptions so)) . tree)
-      (runHud (initialCanvas (so ^. #chartAspect) clAll) hlAll clAll)
-
--- | render Charts to a Document using the supplied size and viewbox.
-renderToDocument :: CssOptions -> Point Double -> Rect Double -> [Tree] -> Document
-renderToDocument csso (Point w' h') vb ts =
-  Document
-    ((\(Rect x z y w) -> Just (x, - w, z - x, w - y)) vb)
-    (Just (Num w'))
-    (Just (Num h'))
-    (SvgTree.cssApply (cssRules csso) <$> ts)
-    (unpack "")
-    ""
-    (PreserveAspectRatio False AlignNone Nothing)
-
--- | write a 'ChartSvg' to a file via conversion to a reanimate 'Tree' structure.
-writeChartSvgTree :: FilePath -> ChartSvg -> IO ()
-writeChartSvgTree fp cs = writeFile fp . pack . ppDocument $ doc
-  where
-    doc = renderToDocument (view (#svgOptions . #cssOptions) cs) size' rect' ts'
-    (ts', rect', size') = chartSvgTrees cs
-
-cssRules :: CssOptions -> [Css.CssRule]
-cssRules UseCssCrisp = [cssCrisp']
-cssRules UseGeometricPrecision = [cssGeometricPrecision]
-cssRules NoCssOptions = []
-
--- | crisp edges css
-cssGeometricPrecision :: Css.CssRule
-cssGeometricPrecision = Css.CssRule [] [Css.CssDeclaration "shape-rendering" [[Css.CssString "geometricPrecision"]]]
-
-cssCrisp' :: Css.CssRule
-cssCrisp' = Css.CssRule [] [Css.CssDeclaration "shape-rendering" [[Css.CssString "crispEdges"]]]
 
 -- | Rectange svg
 treeRect :: Rect Double -> Tree

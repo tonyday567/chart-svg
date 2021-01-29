@@ -97,7 +97,7 @@ lineLegend w rs cs =
   ( defaultLegendOptions
       & #ltext . #size .~ 0.3
       & #lplace .~ PlaceBottom
-      & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) white),
+      & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) (palette1 !! 4)),
     zipWith
       (\a r -> (LineA a, r))
       ((\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> cs)
