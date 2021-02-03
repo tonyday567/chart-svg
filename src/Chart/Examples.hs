@@ -98,6 +98,7 @@ ropts =
 lineExample :: ChartSvg
 lineExample =
   mempty
+    & #svgOptions . #chartAspect .~ CanvasAspect 1.5
     & #hudOptions
     .~ exampleLineHudOptions
            "Line Chart"
@@ -118,18 +119,18 @@ lopts :: [LineStyle]
 lopts =
   [ defaultLineStyle & #color .~ (palette1 List.!! 0) & #width .~ 0.015,
     defaultLineStyle & #color .~ (palette1 List.!! 1) & #width .~ 0.03,
-    defaultLineStyle & #color .~ (palette1 List.!! 5) & #width .~ 0.01
+    defaultLineStyle & #color .~ (palette1 List.!! 2) & #width .~ 0.01
   ]
 
 legopts :: LegendOptions
 legopts =
   defaultLegendOptions
     & #lsize .~ 0.3
-    & #ltext . #size .~ 0.3
-    & #innerPad .~ 0.05
+    & #ltext . #size .~ 0.2
+    & #innerPad .~ 0.1
     & #lscale .~ 0.25
     & #lplace .~ PlaceRight
-    & #legendFrame %~ fmap (#color .~ setOpac 0.2 dark)
+    & #legendFrame %~ fmap ((#color .~ setOpac 0.2 dark) . (#borderColor .~ setOpac 0.2 light))
 
 exampleLineHudOptions :: Text -> Maybe Text -> Maybe (LegendOptions, [(Annotation, Text)]) -> HudOptions
 exampleLineHudOptions t1 t2 legends' =

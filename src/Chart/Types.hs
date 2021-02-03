@@ -107,6 +107,8 @@ module Chart.Types
     LegendOptions (..),
     defaultLegendOptions,
     legendHud,
+    legendChart,
+    legendEntry,
     Orientation (..),
     fromOrientation,
     toOrientation,
@@ -488,13 +490,14 @@ data SvgOptions = SvgOptions
     innerPad :: Maybe Double,
     chartFrame :: Maybe RectStyle,
     cssOptions :: CssOptions,
-    chartAspect :: ChartAspect
+    chartAspect :: ChartAspect,
+    background :: Maybe Colour
   }
   deriving (Eq, Show, Generic)
 
 -- | The official svg options
 defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoCssOptions (FixedAspect 1.5)
+defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoCssOptions (FixedAspect 1.5) Nothing
 
 -- | frame style
 defaultSvgFrame :: RectStyle
@@ -1389,7 +1392,7 @@ legendEntry l a t =
         )
       LineA ls ->
         ( LineA (ls & #width %~ (/ (l ^. #lscale))),
-          [P 0 (0.33 * l ^. #lsize), P (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
+          [P 0 (1 * l ^. #lsize), P (2 * l ^. #lsize) (1 * l ^. #lsize)]
         )
       PathA ps _ ->
         ( let cs =
@@ -1578,7 +1581,7 @@ hori gap cs = foldl step [] cs
   where
     step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (widthx x) (aligny x - aligny a) + s)))
     widthx xs = maybe 0 (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
-    aligny xs = maybe 0 (\(Rect _ _ y' _) -> y') (styleBoxes xs)
+    aligny xs = maybe 0 (\(Rect _ _ y' w') -> (y'+w')/2) (styleBoxes xs)
 
 -- | vertically stack a list of charts (proceeding upwards), aligning them to the left
 vert :: Double -> [[Chart Double]] -> [Chart Double]

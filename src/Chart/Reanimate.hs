@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
@@ -7,12 +8,16 @@
 
 -- | Integration of reanimate and chart-svg
 module Chart.Reanimate
-  ( chartSvgTreeBroken,
-    renderChartsWith,
-    chartSvgTrees,
+  ( ReanimateConfig(..),
+    defaultReanimateConfig,
+    reanimChartSvg,
+    chartReanimate,
+    chartReanimate',
+    groupTreeA,
     tree,
     toPixelRGBA8,
     daText,
+    fromFile,
   )
 where
 
@@ -26,51 +31,79 @@ import Linear.V2
 import NumHask.Prelude hiding (fold)
 import Reanimate as Re
 import NumHask.Space.Types (width)
+import qualified Graphics.SvgTree.Types as Tree
+import qualified Graphics.SvgTree as Tree
 
--- | Render a 'ChartSvg' to a 'Tree'
---
--- Alters the reanimate default viewbox of 16:9, and simplifies the SVG.
-chartSvgTreeBroken :: ChartSvg -> Tree
-chartSvgTreeBroken cs = simplify . withViewBox vb . mkGroup $ ts
+data ReanimateConfig = ReanimateConfig
+  { duration :: Double,
+    scaleToFit :: Bool,
+    background :: Maybe Text,
+    globalFontFamily :: Maybe [Text],
+    globalFontStyle :: Maybe FontStyle,
+    globalAlignment :: Alignment
+  } deriving (Eq, Show, Generic)
+
+defaultReanimateConfig :: ReanimateConfig
+defaultReanimateConfig = ReanimateConfig 5 False (Just "black") (Just ["Arial", "Helvetica", "sans-serif"]) (Just FontStyleNormal) AlignxMinYMin
+
+reanimChartSvg :: ReanimateConfig -> (Double -> ChartSvg) -> IO ()
+reanimChartSvg cfg cs =
+  reanimate $ animChartSvg cfg cs
+
+animChartSvg :: ReanimateConfig -> (Double -> ChartSvg) -> Animation
+animChartSvg cfg cs =
+  mkAnimation (view #duration cfg) $ groupTreeA cfg cs
+
+globalAtts :: ReanimateConfig -> DrawAttributes
+globalAtts cfg =
+  mempty &
+    (maybe id (\x -> fontFamily .~ (Last $ Just (fmap unpack x)))
+     (view #globalFontFamily cfg)) .
+    (maybe id (\x -> fontStyle .~ (Last $ Just x))
+     (view #globalFontStyle cfg))
+
+data ChartReanimate = ChartReanimate { trees :: [Tree], box :: Rect Double, size :: Point Double} deriving (Eq, Show, Generic)
+
+-- | create a Tree maker from a duration, and a chartsvg maker.
+groupTreeA :: ReanimateConfig -> (Double -> ChartSvg) -> Double -> Tree.Tree
+groupTreeA cfg cs x =
+  mkGroup $ (fmap (mkBackground . unpack) $ maybeToList (view #background cfg)) <>
+  [ (\cr ->
+       let r@(Rect x z y w) =
+             view #box cr in
+         (bool id (scalePreserveAspect r)
+          (view #scaleToFit cfg)) $
+         withViewBox' (x,-w,z-x,w-y)
+         (PreserveAspectRatio False (view #globalAlignment cfg) Nothing) $
+         flipYAxis $
+         groupTrees (globalAtts cfg) $ view #trees cr) $
+    chartReanimate
+    (cs x)
+  ]
+
+withViewBox' :: (Double, Double, Double, Double) -> PreserveAspectRatio -> Tree -> Tree
+withViewBox' vbox par child = Re.translate (-screenWidth/2) (-screenHeight/2) $
+  svgTree Document
+  { _documentViewBox = Just vbox
+  , _documentWidth = Just (Num screenWidth)
+  , _documentHeight = Just (Num screenHeight)
+  , _documentElements = [child]
+  , _documentDescription = ""
+  , _documentLocation = ""
+  , _documentAspectRatio = par
+  }
+
+-- | scale to fit exactly into the reanimate Rect, preserving aspect.
+scalePreserveAspect :: Rect Double -> Tree.Tree -> Tree.Tree
+scalePreserveAspect (Rect x z y w) = Re.scale s
   where
-    (ts, r, _) = chartSvgTrees cs
-    (Rect x z y w) = r
-    vb = (x, -y, z-x, y-w)
-
-{-
-tree' :: ChartSvg -> Tree
-tree' cs =
-  Re.scaleXY (5) (-5)
-    $ simplify
-    $ unbox
-    $ fromHudOptionsChart so ho hl
-  where
-    so = view #svgOptions cs
-    ho = view #hudOptions cs
-    hl = view #hudList cs
-    cl = view #chartList cs
-
--}
-
-renderChartsWith :: SvgOptions -> [Chart Double] -> [Tree]
-renderChartsWith so cs =
-  tree <$> cs'
-  where
-    cs' =
-      cs &
-      runHud penult [chartAspectHud (so ^. #chartAspect)] &
-      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
-        (so ^. #chartFrame)
-    penult = case so ^. #chartAspect of
-      FixedAspect _ -> styleBoxesS cs
-      CanvasAspect _ -> dataBoxesS cs
-      ChartAspect -> styleBoxesS cs
-      UnadjustedAspect -> dataBoxesS cs
+    s = min (screenWidth / (z - x)) (screenHeight / (w - y))
+-- (project (Range zero one) (Range zero (view #duration cfg)) x)
 
 -- | Render a 'ChartSvg' to 'Tree's, the fitted chart viewbox, and the suggested SVG dimensions
 --
-chartSvgTrees :: ChartSvg -> ([Tree], Rect Double, Point Double)
-chartSvgTrees cs = (ts, rect', size')
+chartReanimate' :: ChartSvg -> ChartReanimate
+chartReanimate' cs = ChartReanimate ts rect' size'
   where
     so = view #svgOptions cs
     ho = view #hudOptions cs
@@ -92,6 +125,14 @@ chartSvgTrees cs = (ts, rect', size')
     rect' = styleBoxesS clAll & maybe id padRect (view #outerPad so)
     Point w h = NumHask.Space.Types.width rect'
     size' = Point (view #svgHeight so/h*w) (view #svgHeight so)
+
+chartReanimate :: ChartSvg -> ChartReanimate
+chartReanimate cs = ChartReanimate ts rect' size'
+  where
+    (cl'', rect', size') = renderToCRS so cl'
+    so = view #svgOptions cs
+    cl' = renderToCharts cs
+    ts = tree <$> cl''
 
 -- | Rectange svg
 treeRect :: Rect Double -> Tree
@@ -298,3 +339,9 @@ rectSvg (Rect x z y w) =
   (rectUpperLeftCorner .~ (Num x, Num (- w)))
     . (rectWidth .~ Just (Num (z - x)))
     . (rectHeight .~ Just (Num (w - y)))
+
+-- | import a Tree from a file
+fromFile :: FilePath -> IO Tree.Tree
+fromFile fp = do
+  t <- Tree.loadSvgFile fp
+  pure $ maybe Tree.None Re.unbox t

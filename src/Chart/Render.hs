@@ -10,9 +10,9 @@
 -- Note that type signatures are tightened to Double as sane SVG rendering suggests.
 module Chart.Render
   ( ChartSvg (..),
-    charts,
+    renderToCharts,
+    renderToCRS,
     chartSvg,
-    chartsSvg,
     chartSvgDefault,
     chartSvgHud,
     renderChartsWith,
@@ -66,15 +66,6 @@ instance Semigroup ChartSvg where
 instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty [] []
 
-charts :: ChartAspect -> HudOptions -> [Chart Double] -> [Chart Double]
-charts asp ho cs =
-  let (hs', hc') = makeHud (padBox $ dataBoxes cs) ho in
-    runHud (initialCanvas asp (cs<>hc')) hs' (cs <> hc')
-
--- | Consume the ChartSvg and produce the combined huds and charts as a chart list.
-chartsSvg :: ChartSvg -> [Chart Double]
-chartsSvg cs = charts (view (#svgOptions . #chartAspect) cs) (view #hudOptions cs) (view #chartList cs)
-
 -- * rendering
 -- | @svg@ element + svg 2 attributes
 svg2Tag :: Term [Attribute] (s -> t) => s -> t
@@ -111,10 +102,13 @@ cssCrisp = style_ [type_ "text/css"] ("* { shape-rendering: crispEdges; }" :: Te
 geometricPrecision :: Html ()
 geometricPrecision = style_ [type_ "text/css"] ("* { shape-rendering: geometricPrecision; }" :: Text)
 
--- | render Charts with the supplied options.
-renderChartsWith :: SvgOptions -> [Chart Double] -> Text
-renderChartsWith so cs =
-  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs')
+makeCharts :: ChartAspect -> HudOptions -> [Chart Double] -> [Chart Double]
+makeCharts asp ho cs =
+  let (hs', hc') = makeHud (padBox $ dataBoxes cs) ho in
+    runHud (initialCanvas asp (cs<>hc')) hs' (cs <> hc')
+
+renderToCRS :: SvgOptions -> [Chart Double] -> ([Chart Double], Rect Double, Point Double)
+renderToCRS so cs = (cs', rect', size')
   where
     rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
     cs' =
@@ -122,6 +116,31 @@ renderChartsWith so cs =
       runHud penult [chartAspectHud (so ^. #chartAspect)] &
       maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
         (so ^. #chartFrame)
+    Point w h = NH.width rect'
+    size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
+    penult = case so ^. #chartAspect of
+      FixedAspect _ -> styleBoxesS cs
+      CanvasAspect _ -> dataBoxesS cs
+      ChartAspect -> styleBoxesS cs
+      UnadjustedAspect -> dataBoxesS cs
+
+-- | Consume the ChartSvg and produce the combined huds and charts as a chart list.
+renderToCharts :: ChartSvg -> [Chart Double]
+renderToCharts cs = makeCharts (view (#svgOptions . #chartAspect) cs) (view #hudOptions cs) (view #chartList cs)
+
+-- | render Charts with the supplied options.
+renderChartsWith :: SvgOptions -> [Chart Double] -> Text
+renderChartsWith so cs =
+  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs'')
+  where
+    rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
+    cs' =
+      cs &
+      runHud penult [chartAspectHud (so ^. #chartAspect)] &
+      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+        (so ^. #chartFrame)
+    cs'' =
+      maybe [] (\c -> ([Chart (RectA (blob c)) [RectXY rect']])) (so ^. #background) <> cs'
     Point w h = NH.width rect'
     size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
     penult = case so ^. #chartAspect of
