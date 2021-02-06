@@ -30,12 +30,11 @@ main :: IO ()
 main =
   -- reanimChartSvg defaultReanimateConfig (sOpac lineExample)
   reanimate $
-  foldl' seqA (pause 0) $ animChartSvg defaultReanimateConfig . sOpac <$> examples
+  foldl' seqA (pause 0) $ (applyE (overBeginning 1 fadeInE) . applyE (overEnding 1 fadeOutE)) . mapA pathify . (\cs -> animChartSvg defaultReanimateConfig (const cs)) . (#hudOptions %~ colourHudOptions light) <$> examples
 
 examples :: [ChartSvg]
 examples =
-  [ examplePalette defaultExamplePaletteConfig,
-    unitExample,
+  [ unitExample,
     svgOptionsExample,
     hudOptionsExample,
     rectExample,
@@ -74,36 +73,4 @@ scaleOpacChartSvg r x cs =
   #chartList .~
   ((#annotation %~ scaleOpacAnn (project (Range zero one) r x)) <$>
     view #chartList cs)
-
--- palette visualisation
-data ExamplePaletteConfig = ExamplePaletteConfig
-  { epRange :: Range Double,
-    epMax :: Int,
-    epSize :: Double,
-    epText :: Text,
-    epBColor :: Colour,
-    epUnit :: Double
-  } deriving (Eq, Show, Generic)
-
-defaultExamplePaletteConfig :: ExamplePaletteConfig
-defaultExamplePaletteConfig = ExamplePaletteConfig (Range 0.5 1.0) 8 0.12 "chart-svg" transparent 1
-
-examplePalette :: ExamplePaletteConfig -> ChartSvg
-examplePalette cfg =
-  setEPBase (view #epRange cfg) (view #epMax cfg) (view #epSize cfg) (view #epText cfg) (view #epBColor cfg) (view #epUnit cfg)
-
-interpolate :: (Ring a) => Range a -> a -> a
-interpolate (Range l u) x = l + x * (u-l)
-
-setEPBase :: Range Double -> Int -> Double -> Text -> Colour -> Double -> ChartSvg
-setEPBase r n s t bk o = mempty & #chartList .~ cs <> frame
-  where
-    frame = [Chart (scaleOpacAnn (interpolate r o) (RectA (defaultRectStyle & #color .~ bk))) (RectXY <$> maybeToList (styleBoxes cs))]
-    cs =
-      zipWith (\c x' -> Chart (TextA (defaultTextStyle &
-                                    #size .~ s & #color .~ setOpac (interpolate r o) c)
-                              [t]) [P 0 x'])
-      p
-      (grid OuterPos (one :: Range Double) (fromIntegral $ length p) :: [Double])
-    p = reverse $ take n $ [grey, dark, light, black, white] <> palette1
 
