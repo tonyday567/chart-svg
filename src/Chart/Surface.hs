@@ -69,7 +69,7 @@ data SurfaceStyle
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
 defaultSurfaceStyle =
-  SurfaceStyle (take 2 palette1) (blob black)
+  SurfaceStyle (take 2 palette1) (blob dark)
 
 -- | Main surface data elements
 data SurfaceData
@@ -145,7 +145,7 @@ surfaceAxisOptions =
     Nothing
     ( Tick
         (TickRound (FormatPrec (Just 3)) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph 0.005, 0.01))
+        (Just (defaultGlyphTick & #color .~ dark & #shape .~ VLineGlyph 0.005, 0.01))
         (Just (defaultTextTick, 0.03))
         Nothing
     )

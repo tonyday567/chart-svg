@@ -101,7 +101,7 @@ blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
 -- >>> blends 0.6 [black, (Colour 0.2 0.6 0.8 0.5), white]
 -- RGBA 0.16 0.48 0.64 0.60
 blends :: Double -> [Colour] -> Colour
-blends _ [] = black
+blends _ [] = light
 blends _ [c] = c
 blends x cs = blend r (cs P.!! i) (cs P.!! (i+1))
   where

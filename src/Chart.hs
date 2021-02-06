@@ -22,6 +22,8 @@ module Chart
     Annotation (..),
     annotationText,
     scaleAnn,
+    scaleOpacAnn,
+    colourAnn,
     padRect,
 
     -- * Styles
@@ -59,6 +61,8 @@ module Chart
     simulHud,
     HudOptions (..),
     defaultHudOptions,
+    scaleOpacHudOptions,
+    colourHudOptions,
     defaultCanvas,
     runHudWith,
     runHud,

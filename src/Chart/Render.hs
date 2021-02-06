@@ -33,6 +33,7 @@ module Chart.Render
     attsGlyph,
     attsLine,
     attsPath,
+    svgShape,
   )
 where
 
@@ -140,7 +141,7 @@ renderChartsWith so cs =
       maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
         (so ^. #chartFrame)
     cs'' =
-      maybe [] (\c -> ([Chart (RectA (blob c)) [RectXY rect']])) (so ^. #background) <> cs'
+      maybe [] (\c -> [Chart (RectA (blob c)) [RectXY rect']]) (so ^. #background) <> cs'
     Point w h = NH.width rect'
     size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
     penult = case so ^. #chartAspect of
@@ -337,7 +338,6 @@ attsText o =
     term "font-size" (show $ o ^. #size),
     term "text-anchor" (toTextAnchor $ o ^. #anchor)
   ]
-    <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
   where
     toTextAnchor :: Anchor -> Text
     toTextAnchor AnchorMiddle = "middle"
@@ -398,4 +398,3 @@ toRotateText r (Point x y) =
 toScaleText :: Double -> Text
 toScaleText x =
   "scale(" <> show x <> ")"
-

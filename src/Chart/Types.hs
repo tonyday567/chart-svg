@@ -30,6 +30,8 @@ module Chart.Types
     Annotation (..),
     annotationText,
     scaleAnn,
+    scaleOpacAnn,
+    colourAnn,
     padRect,
 
     -- * Styles
@@ -67,6 +69,8 @@ module Chart.Types
     simulHud,
     HudOptions (..),
     defaultHudOptions,
+    colourHudOptions,
+    scaleOpacHudOptions,
     defaultCanvas,
     runHudWith,
     runHud,
@@ -122,6 +126,7 @@ module Chart.Types
     -- * Chart manipulation
     padChart,
     frameChart,
+    frameAllCharts,
     hori,
     vert,
     stack,
@@ -196,12 +201,51 @@ annotationText (LineA _) = "LineA"
 annotationText PathA {} = "PathA"
 annotationText BlankA = "BlankA"
 
+-- | dim (or brighten) the opacity of an Annotation by a scale
+scaleOpacAnn :: Double -> Annotation -> Annotation
+scaleOpacAnn x (RectA s) = RectA s'
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+scaleOpacAnn x (TextA s ts) = TextA s' ts
+  where
+    s' = s & #color %~ scaleOpac x
+scaleOpacAnn x (LineA s) = LineA s'
+  where
+    s' = s & #color %~ scaleOpac x
+scaleOpacAnn x (GlyphA s) = GlyphA s'
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+scaleOpacAnn x (PathA s pis) = PathA s' pis
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+scaleOpacAnn _ BlankA = BlankA
+
+scaleOpac :: Double -> Colour -> Colour
+scaleOpac x (Colour r g b o') = Colour r g b (o'*x)
+
+-- | select a main colour
+colourAnn :: Colour -> Annotation -> Annotation
+colourAnn c (RectA s) = RectA s'
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
+colourAnn c (TextA s ts) = TextA s' ts
+  where
+    s' = s & #color %~ mix c
+colourAnn c (LineA s) = LineA s'
+  where
+    s' = s & #color %~ mix c
+colourAnn c (GlyphA s) = GlyphA s'
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
+colourAnn c (PathA s pis) = PathA s' pis
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
+colourAnn _ BlankA = BlankA
+
 -- | Rectangle styling
 --
 -- >>> defaultRectStyle
 -- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}
---
--- > writeChartSvgDefault "other/unit.svg" [Chart (RectA defaultRectStyle) [one]]
 --
 -- ![unit example](other/unit.svg)
 data RectStyle = RectStyle
@@ -243,8 +287,6 @@ border s c = RectStyle s c transparent
 --
 -- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
 --
--- > writeChartSvgDefault "other/text.svg" t
---
 -- ![text example](other/text.svg)
 data TextStyle = TextStyle
   { size :: Double,
@@ -253,8 +295,7 @@ data TextStyle = TextStyle
     hsize :: Double,
     vsize :: Double,
     nudge1 :: Double,
-    rotation :: Maybe Double,
-    translate :: Maybe (Point Double)
+    rotation :: Maybe Double
   }
   deriving (Show, Eq, Generic)
 
@@ -277,7 +318,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 light AnchorMiddle 0.5 1.45 -0.2 Nothing Nothing
+  TextStyle 0.08 dark AnchorMiddle 0.5 1.45 -0.2 Nothing
 
 -- | Glyph styling
 --
@@ -397,7 +438,7 @@ data LineStyle = LineStyle
 
 -- | the official default line style
 defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 light Nothing Nothing Nothing Nothing
+defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
 
 -- | Path styling
 --
@@ -481,7 +522,6 @@ initialCanvas UnadjustedAspect cs = dataBoxesS cs
 -- >>> defaultSvgOptions
 -- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, cssOptions = NoCssOptions, chartAspect = FixedAspect 1.5}
 --
--- > writeChartSvg "other/svgoptions.svg" (SvgChart (defaultSvgOptions & #chartAspect .~ FixedAspect 0.7) mempty [] lines)
 --
 -- ![svgoptions example](other/svgoptions.svg)
 data SvgOptions = SvgOptions
@@ -501,7 +541,7 @@ defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoCssOptions (Fix
 
 -- | frame style
 defaultSvgFrame :: RectStyle
-defaultSvgFrame = border 0.01 light
+defaultSvgFrame = border 0.01 dark
 
 -- | Dimensions that are tracked in the 'HudT':
 --
@@ -615,9 +655,39 @@ defaultHudOptions =
     ]
     Nothing
 
+-- | alter the colour
+colourHudOptions :: Colour -> HudOptions -> HudOptions
+colourHudOptions c ho =
+  ho &
+  #hudCanvas %~ fmap (#color %~ mix c) &
+  #hudTitles %~ fmap (#style . #color %~ mix c) &
+  #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ mix c)) &
+  #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ mix c) . (#borderColor %~ mix c)))) &
+  #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ mix c))) &
+  #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ mix c))) &
+  #hudLegend %~ fmap (first (#ltext %~ (#color %~ mix c))) &
+  #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ mix c) . (#borderColor %~ mix c))))
+
+scaleOpacHudOptions :: HudOptions -> Double -> HudOptions
+scaleOpacHudOptions ho o =
+  ho &
+  #hudCanvas %~ fmap (#color %~ scaleOpac o) &
+  #hudTitles %~ fmap (#style . #color %~ scaleOpac o) &
+  #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ scaleOpac o)) &
+  #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o)))) &
+  #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ scaleOpac o))) &
+  #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ scaleOpac o))) &
+  #hudLegend %~ fmap (first (#ltext %~ (#color %~ scaleOpac o))) &
+  #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o)))) &
+  #hudLegend %~ fmap (second (fmap (first (scaleOpacAnn o))))
+
+-- | colour reset but scaling opacity
+mix :: Colour -> Colour -> Colour
+mix (Colour r g b o') (Colour _ _ _ o) = Colour r g b (o'*o)
+
 -- | The official hud canvas
 defaultCanvas :: RectStyle
-defaultCanvas = blob (setOpac 0.05 light)
+defaultCanvas = blob (setOpac 0.05 dark)
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -664,7 +734,7 @@ data AxisBar = AxisBar
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (RectStyle 0 transparent (setOpac 0.4 light)) 0.004 0.01
+defaultAxisBar = AxisBar (RectStyle 0 transparent (setOpac 0.4 dark)) 0.004 0.01
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
@@ -707,10 +777,10 @@ data Tick = Tick
 defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
-    & #borderSize .~ 0
+    & #borderSize .~ 0.002
     & #shape .~ VLineGlyph 0.005
-    & #color .~ setOpac 0.4 light
-    & #borderColor .~ setOpac 0.4 light
+    & #color .~ setOpac 0.4 dark
+    & #borderColor .~ setOpac 0.4 dark
 
 -- | The official text tick
 defaultTextTick :: TextStyle
@@ -798,22 +868,22 @@ data LegendOptions = LegendOptions
   }
   deriving (Show, Eq, Generic)
 
--- | The official legend options
+-- | The official legend options 
 defaultLegendOptions :: LegendOptions
 defaultLegendOptions =
   LegendOptions
-    0.1
+    0.3
     0.2
     0.1
     ( defaultTextStyle
-        & #size .~ 0.08
+        & #size .~ 0.12
     )
     10
     0.1
     0.02
-    (Just (RectStyle 0.02 (setOpac 0.05 light) (setOpac 0.05 light)))
-    PlaceBottom
-    0.2
+    (Just (RectStyle 0.01 (setOpac 1 dark) (setOpac 0 dark)))
+    PlaceRight
+    0.25
 
 -- | Generically scale an Annotation.
 scaleAnn :: Double -> Annotation -> Annotation
@@ -956,12 +1026,11 @@ title_ t a =
   Chart
     ( TextA
         ( style'
-            & #translate ?~ (placePos' a + alignPos a)
             & #rotation ?~ rot
         )
         [t ^. #text]
     )
-    [zero]
+    [PointXY (placePos' a + alignPos a)]
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -1508,7 +1577,7 @@ styleBoxText ::
   Text ->
   Point Double ->
   Rect Double
-styleBoxText o t p = move (p + p') $ maybe flat (`rotationBound` flat) (o ^. #rotation)
+styleBoxText o t p = move p $ maybe flat (`rotationBound` flat) (o ^. #rotation)
   where
     flat = Rect ((- x' / 2.0) + x' * a') (x' / 2 + x' * a') ((- y' / 2) - n1') (y' / 2 - n1')
     s = o ^. #size
@@ -1522,7 +1591,6 @@ styleBoxText o t p = move (p + p') $ maybe flat (`rotationBound` flat) (o ^. #ro
       AnchorStart -> 0.5
       AnchorEnd -> -0.5
       AnchorMiddle -> 0.0
-    p' = fromMaybe (Point 0.0 0.0) (o ^. #translate)
 
 -- | the extra area from glyph styling
 styleBoxGlyph :: GlyphStyle -> Rect Double
@@ -1573,6 +1641,10 @@ padChart p cs = cs <> [Chart BlankA (maybeToList (RectXY . padRect p <$> styleBo
 -- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), xys = []},Chart {annotation = BlankA, xys = []}]
 frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
 frameChart rs p cs = [Chart (RectA rs) (maybeToList (RectXY . padRect p <$> styleBoxes cs))] <> cs
+
+-- | useful for testing bounding boxes
+frameAllCharts :: [Chart Double] -> [Chart Double]
+frameAllCharts cs = mconcat $ frameChart (border 0.004 light) 0.004 . (:[]) <$> cs
 
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: Double -> [[Chart Double]] -> [Chart Double]
