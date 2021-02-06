@@ -15,7 +15,7 @@ description:
     >>> let lineChart = zipWith Chart anns ls
     >>> writeChartSvgHud "other/lineshud.svg" lineChart
     .
-    ![main example](other/lineshud.svg)
+    ![main example](docs/other/lineshud.svg)
     .
     See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
 

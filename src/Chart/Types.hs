@@ -30,6 +30,8 @@ module Chart.Types
     Annotation (..),
     annotationText,
     scaleAnn,
+    scaleOpacAnn,
+    colourAnn,
     padRect,
 
     -- * Styles
@@ -67,6 +69,8 @@ module Chart.Types
     simulHud,
     HudOptions (..),
     defaultHudOptions,
+    colourHudOptions,
+    scaleOpacHudOptions,
     defaultCanvas,
     runHudWith,
     runHud,
@@ -107,6 +111,8 @@ module Chart.Types
     LegendOptions (..),
     defaultLegendOptions,
     legendHud,
+    legendChart,
+    legendEntry,
     Orientation (..),
     fromOrientation,
     toOrientation,
@@ -120,6 +126,7 @@ module Chart.Types
     -- * Chart manipulation
     padChart,
     frameChart,
+    frameAllCharts,
     hori,
     vert,
     stack,
@@ -141,7 +148,7 @@ import Control.Lens
 import Data.Colour
 import Data.FormatN
 import Data.Generics.Labels ()
-import Data.List ((!!))
+import qualified Data.List as List
 import Data.Path
 import qualified Data.Text as Text
 import Data.Time
@@ -194,12 +201,51 @@ annotationText (LineA _) = "LineA"
 annotationText PathA {} = "PathA"
 annotationText BlankA = "BlankA"
 
+-- | dim (or brighten) the opacity of an Annotation by a scale
+scaleOpacAnn :: Double -> Annotation -> Annotation
+scaleOpacAnn x (RectA s) = RectA s'
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+scaleOpacAnn x (TextA s ts) = TextA s' ts
+  where
+    s' = s & #color %~ scaleOpac x
+scaleOpacAnn x (LineA s) = LineA s'
+  where
+    s' = s & #color %~ scaleOpac x
+scaleOpacAnn x (GlyphA s) = GlyphA s'
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+scaleOpacAnn x (PathA s pis) = PathA s' pis
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+scaleOpacAnn _ BlankA = BlankA
+
+scaleOpac :: Double -> Colour -> Colour
+scaleOpac x (Colour r g b o') = Colour r g b (o'*x)
+
+-- | select a main colour
+colourAnn :: Colour -> Annotation -> Annotation
+colourAnn c (RectA s) = RectA s'
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
+colourAnn c (TextA s ts) = TextA s' ts
+  where
+    s' = s & #color %~ mix c
+colourAnn c (LineA s) = LineA s'
+  where
+    s' = s & #color %~ mix c
+colourAnn c (GlyphA s) = GlyphA s'
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
+colourAnn c (PathA s pis) = PathA s' pis
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
+colourAnn _ BlankA = BlankA
+
 -- | Rectangle styling
 --
 -- >>> defaultRectStyle
--- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}
---
--- > writeChartSvgDefault "other/unit.svg" [Chart (RectA defaultRectStyle) [one]]
+-- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}
 --
 -- ![unit example](other/unit.svg)
 data RectStyle = RectStyle
@@ -211,37 +257,35 @@ data RectStyle = RectStyle
 
 -- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette !! 1) 0.3)
+defaultRectStyle = RectStyle 0.01 (palette1 List.!! 1) (palette1 List.!! 2)
 
 -- | solid rectangle, no border
 --
 -- >>> blob black
--- RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}
+-- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 1.00}
 blob :: Colour -> RectStyle
 blob = RectStyle 0 transparent
 
 -- | transparent rect
 --
 -- >>> clear
--- RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 0.00}
+-- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
 clear :: RectStyle
 clear = RectStyle 0 transparent transparent
 
 -- | transparent rectangle, with border
 --
 -- >>> border 0.01 transparent
--- RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 0.00}
+-- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
 border :: Double -> Colour -> RectStyle
 border s c = RectStyle s c transparent
 
 -- | Text styling
 --
 -- >>> defaultTextStyle
--- TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing}
+-- TextStyle {size = 8.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing}
 --
 -- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
---
--- > writeChartSvgDefault "other/text.svg" t
 --
 -- ![text example](other/text.svg)
 data TextStyle = TextStyle
@@ -251,8 +295,7 @@ data TextStyle = TextStyle
     hsize :: Double,
     vsize :: Double,
     nudge1 :: Double,
-    rotation :: Maybe Double,
-    translate :: Maybe (Point Double)
+    rotation :: Maybe Double
   }
   deriving (Show, Eq, Generic)
 
@@ -275,14 +318,12 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 colorText AnchorMiddle 0.5 1.45 -0.2 Nothing Nothing
+  TextStyle 0.08 dark AnchorMiddle 0.5 1.45 -0.2 Nothing
 
 -- | Glyph styling
 --
 -- >>> defaultGlyphStyle
--- GlyphStyle {size = 3.0e-2, color = RGBA 0.65 0.81 0.89 0.30, borderColor = RGBA 0.12 0.47 0.71 0.80, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
---
--- See 'Chart.Examples.glyphsExample'.
+-- GlyphStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, borderColor = Colour 0.12 0.47 0.71 1.00, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
 --
 -- ![glyph example](other/glyphs.svg)
 data GlyphStyle = GlyphStyle
@@ -305,8 +346,8 @@ defaultGlyphStyle :: GlyphStyle
 defaultGlyphStyle =
   GlyphStyle
     0.03
-    (fromRGB (P.head palette) 0.3)
-    (fromRGB (palette !! 1) 0.8)
+    (palette1 List.!! 1)
+    (palette1 List.!! 2)
     0.003
     SquareGlyph
     Nothing
@@ -378,7 +419,7 @@ fromDashArray xs = Text.intercalate " " $ show <$> xs
 -- | line style
 --
 -- >>> defaultLineStyle
--- LineStyle {width = 1.2e-2, color = RGBA 0.65 0.81 0.89 0.30, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}
+-- LineStyle {width = 1.2e-2, color = Colour 0.05 0.05 0.05 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}
 --
 -- ![line example](other/line.svg)
 --
@@ -395,12 +436,12 @@ data LineStyle = LineStyle
 
 -- | the official default line style
 defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 (fromRGB (P.head palette) 0.3) Nothing Nothing Nothing Nothing
+defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
 
 -- | Path styling
 --
 -- >>> defaultPathStyle
--- PathStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}
+-- PathStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}
 data PathStyle = PathStyle
   { borderSize :: Double,
     borderColor :: Colour,
@@ -411,7 +452,7 @@ data PathStyle = PathStyle
 -- | the style
 defaultPathStyle :: PathStyle
 defaultPathStyle =
-  PathStyle 0.01 (fromRGB (palette !! 1) 0.8) (fromRGB (palette !! 1) 0.3)
+  PathStyle 0.01 (palette1 List.!! 1) (palette1 List.!! 2)
 
 -- | Convert from a path command list to a PathA chart
 toPathChart :: PathStyle -> [(PathInfo Double, Point Double)] -> Chart Double
@@ -477,9 +518,8 @@ initialCanvas UnadjustedAspect cs = dataBoxesS cs
 -- | SVG tag options.
 --
 -- >>> defaultSvgOptions
--- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, cssOptions = NoCssOptions, chartAspect = FixedAspect 1.5}
+-- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, cssOptions = NoCssOptions, chartAspect = FixedAspect 1.5, background = Nothing}
 --
--- > writeChartSvg "other/svgoptions.svg" (SvgChart (defaultSvgOptions & #chartAspect .~ FixedAspect 0.7) mempty [] lines)
 --
 -- ![svgoptions example](other/svgoptions.svg)
 data SvgOptions = SvgOptions
@@ -488,17 +528,18 @@ data SvgOptions = SvgOptions
     innerPad :: Maybe Double,
     chartFrame :: Maybe RectStyle,
     cssOptions :: CssOptions,
-    chartAspect :: ChartAspect
+    chartAspect :: ChartAspect,
+    background :: Maybe Colour
   }
   deriving (Eq, Show, Generic)
 
 -- | The official svg options
 defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoCssOptions (FixedAspect 1.5)
+defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoCssOptions (FixedAspect 1.5) Nothing
 
 -- | frame style
 defaultSvgFrame :: RectStyle
-defaultSvgFrame = border 0.01 (fromRGB (grayscale 0.7) 0.5)
+defaultSvgFrame = border 0.01 dark
 
 -- | Dimensions that are tracked in the 'HudT':
 --
@@ -612,9 +653,39 @@ defaultHudOptions =
     ]
     Nothing
 
+-- | alter the colour
+colourHudOptions :: Colour -> HudOptions -> HudOptions
+colourHudOptions c ho =
+  ho &
+  #hudCanvas %~ fmap (#color %~ mix c) &
+  #hudTitles %~ fmap (#style . #color %~ mix c) &
+  #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ mix c)) &
+  #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ mix c) . (#borderColor %~ mix c)))) &
+  #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ mix c))) &
+  #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ mix c))) &
+  #hudLegend %~ fmap (first (#ltext %~ (#color %~ mix c))) &
+  #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ mix c) . (#borderColor %~ mix c))))
+
+scaleOpacHudOptions :: HudOptions -> Double -> HudOptions
+scaleOpacHudOptions ho o =
+  ho &
+  #hudCanvas %~ fmap (#color %~ scaleOpac o) &
+  #hudTitles %~ fmap (#style . #color %~ scaleOpac o) &
+  #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ scaleOpac o)) &
+  #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o)))) &
+  #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ scaleOpac o))) &
+  #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ scaleOpac o))) &
+  #hudLegend %~ fmap (first (#ltext %~ (#color %~ scaleOpac o))) &
+  #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o)))) &
+  #hudLegend %~ fmap (second (fmap (first (scaleOpacAnn o))))
+
+-- | colour reset but scaling opacity
+mix :: Colour -> Colour -> Colour
+mix (Colour r g b o') (Colour _ _ _ o) = Colour r g b (o'*o)
+
 -- | The official hud canvas
 defaultCanvas :: RectStyle
-defaultCanvas = blob (fromRGB (grayscale 0.5) 0.025)
+defaultCanvas = blob (setOpac 0.05 dark)
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -651,7 +722,7 @@ defaultAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments)
 -- | The bar on an axis representing the x or y plane.
 --
 -- >>> defaultAxisBar
--- AxisBar {rstyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 0.50 0.50 0.50 1.00}, wid = 5.0e-3, buff = 1.0e-2}
+-- AxisBar {rstyle = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 0.40}, wid = 4.0e-3, buff = 1.0e-2}
 data AxisBar = AxisBar
   { rstyle :: RectStyle,
     wid :: Double,
@@ -661,12 +732,12 @@ data AxisBar = AxisBar
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (RectStyle 0 (fromRGB (grayscale 0.5) 1) (fromRGB (grayscale 0.5) 1)) 0.005 0.01
+defaultAxisBar = AxisBar (RectStyle 0 transparent (setOpac 0.4 dark)) 0.004 0.01
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
 -- >>> defaultTitle "title"
--- Title {text = "title", style = TextStyle {size = 0.12, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing}, place = PlaceTop, anchor = AnchorMiddle, buff = 4.0e-2}
+-- Title {text = "title", style = TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing}, place = PlaceTop, anchor = AnchorMiddle, buff = 4.0e-2}
 data Title = Title
   { text :: Text,
     style :: TextStyle,
@@ -681,9 +752,8 @@ defaultTitle :: Text -> Title
 defaultTitle txt =
   Title
     txt
-    ( (#size .~ 0.12)
-        . (#color .~ colorText)
-        $ defaultTextStyle
+    ( defaultTextStyle &
+      #size .~ 0.12
     )
     PlaceTop
     AnchorMiddle
@@ -692,7 +762,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTick
--- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.50 0.50 0.50 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = RGBA 0.50 0.50 0.50 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
+-- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 2.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
 data Tick = Tick
   { tstyle :: TickStyle,
     gtick :: Maybe (GlyphStyle, Double),
@@ -705,22 +775,22 @@ data Tick = Tick
 defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
-    & #borderSize .~ 0.005
-    & #borderColor .~ fromRGB (grayscale 0.5) 1
-    & #color .~ fromRGB (grayscale 0.5) 1
+    & #borderSize .~ 0.002
     & #shape .~ VLineGlyph 0.005
+    & #color .~ setOpac 0.4 dark
+    & #borderColor .~ setOpac 0.4 dark
 
 -- | The official text tick
 defaultTextTick :: TextStyle
 defaultTextTick =
-  defaultTextStyle & #size .~ 0.05 & #color .~ fromRGB (grayscale 0.5) 1
+  defaultTextStyle & #size .~ 0.05
 
 -- | The official line tick
 defaultLineTick :: LineStyle
 defaultLineTick =
   defaultLineStyle
-    & #color .~ fromRGB (grayscale 0.5) 0.05
     & #width .~ 5.0e-3
+    & #color %~ setOpac 0.05
 
 -- | The official tick
 defaultTick :: Tick
@@ -779,7 +849,7 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- | Legend options
 --
 -- >>> defaultLegendOptions
--- LegendOptions {lsize = 0.1, vgap = 0.2, hgap = 0.1, ltext = TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing}, lmax = 10, innerPad = 0.1, outerPad = 0.1, legendFrame = Just (RectStyle {borderSize = 2.0e-2, borderColor = RGBA 0.50 0.50 0.50 1.00, color = RGBA 1.00 1.00 1.00 1.00}), lplace = PlaceBottom, lscale = 0.2}
+-- LegendOptions {lsize = 0.3, vgap = 0.2, hgap = 0.1, ltext = TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing}, lmax = 10, innerPad = 0.1, outerPad = 2.0e-2, legendFrame = Just (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.05 0.05 0.05 1.00, color = Colour 0.05 0.05 0.05 0.00}), lplace = PlaceRight, lscale = 0.25}
 --
 -- ![legend example](other/legend.svg)
 data LegendOptions = LegendOptions
@@ -796,22 +866,22 @@ data LegendOptions = LegendOptions
   }
   deriving (Show, Eq, Generic)
 
--- | The official legend options
+-- | The official legend options 
 defaultLegendOptions :: LegendOptions
 defaultLegendOptions =
   LegendOptions
-    0.1
+    0.3
     0.2
     0.1
     ( defaultTextStyle
-        & #size .~ 0.08
+        & #size .~ 0.12
     )
     10
     0.1
-    0.1
-    (Just (RectStyle 0.02 (fromRGB (grayscale 0.5) 1) white))
-    PlaceBottom
-    0.2
+    0.02
+    (Just (RectStyle 0.01 (setOpac 1 dark) (setOpac 0 dark)))
+    PlaceRight
+    0.25
 
 -- | Generically scale an Annotation.
 scaleAnn :: Double -> Annotation -> Annotation
@@ -954,12 +1024,11 @@ title_ t a =
   Chart
     ( TextA
         ( style'
-            & #translate ?~ (placePos' a + alignPos a)
             & #rotation ?~ rot
         )
         [t ^. #text]
     )
-    [zero]
+    [PointXY (placePos' a + alignPos a)]
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -1390,7 +1459,7 @@ legendEntry l a t =
         )
       LineA ls ->
         ( LineA (ls & #width %~ (/ (l ^. #lscale))),
-          [P 0 (0.33 * l ^. #lsize), P (2 * l ^. #lsize) (0.33 * l ^. #lsize)]
+          [P 0 (1 * l ^. #lsize), P (2 * l ^. #lsize) (1 * l ^. #lsize)]
         )
       PathA ps _ ->
         ( let cs =
@@ -1506,7 +1575,7 @@ styleBoxText ::
   Text ->
   Point Double ->
   Rect Double
-styleBoxText o t p = move (p + p') $ maybe flat (`rotationBound` flat) (o ^. #rotation)
+styleBoxText o t p = move p $ maybe flat (`rotationBound` flat) (o ^. #rotation)
   where
     flat = Rect ((- x' / 2.0) + x' * a') (x' / 2 + x' * a') ((- y' / 2) - n1') (y' / 2 - n1')
     s = o ^. #size
@@ -1520,7 +1589,6 @@ styleBoxText o t p = move (p + p') $ maybe flat (`rotationBound` flat) (o ^. #ro
       AnchorStart -> 0.5
       AnchorEnd -> -0.5
       AnchorMiddle -> 0.0
-    p' = fromMaybe (Point 0.0 0.0) (o ^. #translate)
 
 -- | the extra area from glyph styling
 styleBoxGlyph :: GlyphStyle -> Rect Double
@@ -1561,16 +1629,20 @@ styleBoxesS xss = padBox $ foldRect $ catMaybes (styleBox <$> xss)
 -- | additively pad a [Chart]
 --
 -- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [RectXY one]]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), xys = [R -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, xys = [R -0.605 0.605 -0.605 0.605]}]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = [R -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, xys = [R -0.605 0.605 -0.605 0.605]}]
 padChart :: Double -> [Chart Double] -> [Chart Double]
 padChart p cs = cs <> [Chart BlankA (maybeToList (RectXY . padRect p <$> styleBoxes cs))]
 
 -- | overlay a frame on some charts with some additive padding between
 --
 -- >>> frameChart defaultRectStyle 0.1 [Chart BlankA []]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = RGBA 0.12 0.47 0.71 0.80, color = RGBA 0.12 0.47 0.71 0.30}), xys = []},Chart {annotation = BlankA, xys = []}]
+-- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = []},Chart {annotation = BlankA, xys = []}]
 frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
 frameChart rs p cs = [Chart (RectA rs) (maybeToList (RectXY . padRect p <$> styleBoxes cs))] <> cs
+
+-- | useful for testing bounding boxes
+frameAllCharts :: [Chart Double] -> [Chart Double]
+frameAllCharts cs = mconcat $ frameChart (border 0.004 light) 0.004 . (:[]) <$> cs
 
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: Double -> [[Chart Double]] -> [Chart Double]
@@ -1579,7 +1651,7 @@ hori gap cs = foldl step [] cs
   where
     step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (widthx x) (aligny x - aligny a) + s)))
     widthx xs = maybe 0 (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
-    aligny xs = maybe 0 (\(Rect _ _ y' _) -> y') (styleBoxes xs)
+    aligny xs = maybe 0 (\(Rect _ _ y' w') -> (y'+w')/2) (styleBoxes xs)
 
 -- | vertically stack a list of charts (proceeding upwards), aligning them to the left
 vert :: Double -> [[Chart Double]] -> [Chart Double]

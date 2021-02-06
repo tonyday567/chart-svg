@@ -393,6 +393,8 @@ data ArcCentroid a =
 
 -- | convert from an ArcPosition spec to ArcCentroid spec.
 --
+-- See also [this](https://math.stackexchange.com/questions/55627/how-to-find-the-center-of-an-scaled-ellipse)
+--
 -- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
 -- >>> arcCentroid p
 -- ArcCentroid {centroid = Point 0.20952624903444356 -0.48412291827592724, radius = Point 1.0 0.5, cphi = 0.7853981633974483, ang0 = 1.3753858999692936, angdiff = -1.823476581936975}
@@ -446,7 +448,7 @@ arcPosition (ArcCentroid c r phi ang1 angd) =
 --
 -- Compare this "elegent" definition from [stackexchange](https://math.stackexchange.com/questions/426150/what-is-the-general-equation-of-the-ellipse-that-is-not-in-the-origin-and-rotate)
 --
--- \[dfrac {((x-h)\cos(A)+(y-k)\sin(A))^2}{a^2}+\dfrac{((x-h) \sin(A)-(y-k) \cos(A))^2}{b^2}=1\]
+-- \[\dfrac{((x-h)\cos(A)+(y-k)\sin(A))^2}{a^2}+\dfrac{((x-h) \sin(A)-(y-k) \cos(A))^2}{b^2}=1\]
 --
 -- with the haskell code:
 --
@@ -657,7 +659,6 @@ cubicDerivs (CubicPosition (Point c0x c0y) (Point c3x c3y)
 -- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 -- Rect 0.0 1.0 -0.20710678118654752 1.2071067811865475
 --
--- ![Cubic]("other/cubic.svg")
 cubicBox :: CubicPosition Double -> Rect Double
 cubicBox p = space1 pts
   where

@@ -10,6 +10,8 @@
 -- Note that type signatures are tightened to Double as sane SVG rendering suggests.
 module Chart.Render
   ( ChartSvg (..),
+    renderToCharts,
+    renderToCRS,
     chartSvg,
     chartSvgDefault,
     chartSvgHud,
@@ -25,17 +27,13 @@ module Chart.Render
     terms,
     makeAttribute,
 
-    -- * Augmentation
-    ChartExtra (..),
-    toChartExtra,
-    renderChartExtrasWith,
-
     -- * low-level conversions
     attsRect,
     attsText,
     attsGlyph,
     attsLine,
     attsPath,
+    svgShape,
   )
 where
 
@@ -69,25 +67,7 @@ instance Semigroup ChartSvg where
 instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty [] []
 
--- | Specification of a chart for rendering to SVG
-data ChartSvgExtra
-  = ChartSvgExtra
-      { svgOptionsExtra :: SvgOptions,
-        hudOptionsExtra :: HudOptions,
-        hudListExtra :: [Hud Double],
-        chartExtraList :: [ChartExtra Double]
-      }
-  deriving (Generic)
-
-instance Semigroup ChartSvgExtra where
-  (<>) (ChartSvgExtra _ o h c) (ChartSvgExtra s' o' h' c') =
-    ChartSvgExtra s' (o <> o') (h <> h') (c <> c')
-
-instance Monoid ChartSvgExtra where
-  mempty = ChartSvgExtra defaultSvgOptions mempty [] []
-
 -- * rendering
-
 -- | @svg@ element + svg 2 attributes
 svg2Tag :: Term [Attribute] (s -> t) => s -> t
 svg2Tag m =
@@ -110,19 +90,6 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
       makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
 
-renderToSvgExtra :: CssOptions -> Point Double -> Rect Double -> [ChartExtra Double] -> Html ()
-renderToSvgExtra csso (Point w' h') (Rect x z y w) cs =
-  with
-    ( svg2Tag
-        ( cssText csso <>
-            mconcat (svgExtra <$> cs)
-        )
-    )
-    [ width_ (show w'),
-      height_ (show h'),
-      makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
-    ]
-
 cssText :: CssOptions -> Html ()
 cssText UseCssCrisp = cssCrisp
 cssText UseGeometricPrecision = geometricPrecision
@@ -136,10 +103,13 @@ cssCrisp = style_ [type_ "text/css"] ("* { shape-rendering: crispEdges; }" :: Te
 geometricPrecision :: Html ()
 geometricPrecision = style_ [type_ "text/css"] ("* { shape-rendering: geometricPrecision; }" :: Text)
 
--- | render Charts with the supplied options.
-renderChartsWith :: SvgOptions -> [Chart Double] -> Text
-renderChartsWith so cs =
-  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs')
+makeCharts :: ChartAspect -> HudOptions -> [Chart Double] -> [Chart Double]
+makeCharts asp ho cs =
+  let (hs', hc') = makeHud (padBox $ dataBoxes cs) ho in
+    runHud (initialCanvas asp (cs<>hc')) hs' (cs <> hc')
+
+renderToCRS :: SvgOptions -> [Chart Double] -> ([Chart Double], Rect Double, Point Double)
+renderToCRS so cs = (cs', rect', size')
   where
     rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
     cs' =
@@ -155,25 +125,30 @@ renderChartsWith so cs =
       ChartAspect -> styleBoxesS cs
       UnadjustedAspect -> dataBoxesS cs
 
--- | render ChartExtras with the supplied options.
-renderChartExtrasWith :: SvgOptions -> [ChartExtra Double] -> Text
-renderChartExtrasWith so cs =
-  Lazy.toStrict $ renderText (renderToSvgExtra (so ^. #cssOptions) size' rect' cs')
+-- | Consume the ChartSvg and produce the combined huds and charts as a chart list.
+renderToCharts :: ChartSvg -> [Chart Double]
+renderToCharts cs = makeCharts (view (#svgOptions . #chartAspect) cs) (view #hudOptions cs) (view #chartList cs)
+
+-- | render Charts with the supplied options.
+renderChartsWith :: SvgOptions -> [Chart Double] -> Text
+renderChartsWith so cs =
+  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs'')
   where
-    cs' = zipWith (\(ChartExtra _ l a h') c' -> ChartExtra c' l a h') cs (csFinalize csa)
-    rect' = styleBoxesS (csFinalize csa) & maybe id padRect (so ^. #outerPad)
-    csFinalize =
+    rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
+    cs' =
+      cs &
+      runHud penult [chartAspectHud (so ^. #chartAspect)] &
       maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
-        (so ^. #chartFrame) .
-      runHud penult [chartAspectHud (so ^. #chartAspect)]
+        (so ^. #chartFrame)
+    cs'' =
+      maybe [] (\c -> [Chart (RectA (blob c)) [RectXY rect']]) (so ^. #background) <> cs'
     Point w h = NH.width rect'
     size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
-    csa = fmap (view #chartActual) cs
     penult = case so ^. #chartAspect of
-      FixedAspect _ -> styleBoxesS csa
-      CanvasAspect _ -> dataBoxesS csa
-      ChartAspect -> styleBoxesS csa
-      UnadjustedAspect -> dataBoxesS csa
+      FixedAspect _ -> styleBoxesS cs
+      CanvasAspect _ -> dataBoxesS cs
+      ChartAspect -> styleBoxesS cs
+      UnadjustedAspect -> dataBoxesS cs
 
 -- | render charts with the supplied svg options and huds
 renderHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Text
@@ -339,16 +314,6 @@ svgHtml (Chart BlankA _) = mempty
 svg :: Chart Double -> Lucid.Html ()
 svg c = term "g" (svgAtts $ c ^. #annotation) (svgHtml c)
 
--- | render extra attributes and html
-svgExtra :: ChartExtra Double -> Lucid.Html ()
-svgExtra (ChartExtra c l' as h) =
-  case l' of
-    Nothing -> x
-    Just l ->
-       term "a" [term "xlink:href" l :: Lucid.Attribute] x
-  where
-    x = term "g" (svgAtts (c ^. #annotation) <> as) (svgHtml c <> h)
-
 -- | Make Lucid Html given term and attributes
 terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
 terms t = with $ makeXmlElementNoEnd t
@@ -373,7 +338,6 @@ attsText o =
     term "font-size" (show $ o ^. #size),
     term "text-anchor" (toTextAnchor $ o ^. #anchor)
   ]
-    <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
   where
     toTextAnchor :: Anchor -> Text
     toTextAnchor AnchorMiddle = "middle"
@@ -434,16 +398,3 @@ toRotateText r (Point x y) =
 toScaleText :: Double -> Text
 toScaleText x =
   "scale(" <> show x <> ")"
-
--- | Augmentation of a chart to include Html content.
-data ChartExtra a =
-  ChartExtra
-  { chartActual :: Chart a,
-    chartLink :: Maybe Text,
-    chartAttributes :: [Attribute],
-    chartContent :: Html ()
-  } deriving (Show, Generic)
-
--- | Convert a plain chart top a 'ChartExtra'.
-toChartExtra :: Chart a -> ChartExtra a
-toChartExtra c = ChartExtra c Nothing mempty mempty

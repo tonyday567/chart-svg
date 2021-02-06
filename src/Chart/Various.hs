@@ -97,7 +97,7 @@ lineLegend w rs cs =
   ( defaultLegendOptions
       & #ltext . #size .~ 0.3
       & #lplace .~ PlaceBottom
-      & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) white),
+      & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) (palette1 !! 4)),
     zipWith
       (\a r -> (LineA a, r))
       ((\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> cs)
@@ -189,7 +189,7 @@ blendMidLineStyles l w (c1, c2) = lo
     bs = (\x -> blend x c1 c2) <$> cs
     lo = (\c -> defaultLineStyle & #width .~ w & #color .~ c) <$> bs
 
--- | FIXME: better name
+-- | No idea what this is really.
 digitChart ::
   Text ->
   [UTCTime] ->

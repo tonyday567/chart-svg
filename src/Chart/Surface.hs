@@ -34,8 +34,6 @@ import NumHask.Space
 
 -- | Options for a Surface chart.
 --
--- >>> defaultSurfaceOptions
--- SurfaceOptions {soStyle = SurfaceStyle {surfaceColors = [RGBA 0.65 0.81 0.89 1.00,RGBA 0.12 0.47 0.71 1.00], surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}}, soGrain = Point 10 10, soRange = Rect -0.5 0.5 -0.5 0.5}
 data SurfaceOptions
   = SurfaceOptions
       { -- | surface style
@@ -55,7 +53,7 @@ defaultSurfaceOptions =
 -- | A surface chart is a specialization of a 'RectA' chart
 --
 -- >>> defaultSurfaceStyle
--- SurfaceStyle {surfaceColors = [RGBA 0.65 0.81 0.89 1.00,RGBA 0.12 0.47 0.71 1.00], surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}}
+-- SurfaceStyle {surfaceColors = [Colour 0.69 0.35 0.16 1.00,Colour 0.65 0.81 0.89 1.00], surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 1.00}}
 --
 -- ![surface example](other/surface.svg)
 data SurfaceStyle
@@ -69,7 +67,7 @@ data SurfaceStyle
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
 defaultSurfaceStyle =
-  SurfaceStyle (take 2 palette1) (blob black)
+  SurfaceStyle (take 2 palette1) (blob dark)
 
 -- | Main surface data elements
 data SurfaceData
@@ -123,8 +121,6 @@ surfacefl f po slo = (cs, [legendHud (slo ^. #sloLegendOptions) (surfaceLegendCh
 
 -- | Legend specialization for a surface chart.
 --
--- >>> defaultSurfaceLegendOptions ""
--- SurfaceLegendOptions {sloStyle = SurfaceStyle {surfaceColors = [RGBA 0.65 0.81 0.89 1.00,RGBA 0.12 0.47 0.71 1.00], surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = RGBA 0.00 0.00 0.00 0.00, color = RGBA 0.00 0.00 0.00 1.00}}, sloTitle = "", sloWidth = 5.0e-2, sloResolution = 100, sloAxisOptions = AxisOptions {axisBar = Nothing, adjust = Nothing, axisTick = Tick {tstyle = TickRound (FormatPrec (Just 3)) 4 NoTickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = RGBA 0.00 0.00 0.00 1.00, borderColor = RGBA 0.50 0.50 0.50 1.00, borderSize = 5.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = RGBA 0.50 0.50 0.50 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing},3.0e-2), ltick = Nothing}, place = PlaceRight}, sloLegendOptions = LegendOptions {lsize = 0.5, vgap = 5.0e-2, hgap = 1.0e-2, ltext = TextStyle {size = 8.0e-2, color = RGBA 0.20 0.20 0.20 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing, translate = Nothing}, lmax = 10, innerPad = 5.0e-2, outerPad = 2.0e-2, legendFrame = Nothing, lplace = PlaceRight, lscale = 0.7}}
 data SurfaceLegendOptions
   = SurfaceLegendOptions
       { sloStyle :: SurfaceStyle,
@@ -145,7 +141,7 @@ surfaceAxisOptions =
     Nothing
     ( Tick
         (TickRound (FormatPrec (Just 3)) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #color .~ black & #shape .~ VLineGlyph 0.005, 0.01))
+        (Just (defaultGlyphTick & #color .~ dark & #shape .~ VLineGlyph 0.005, 0.01))
         (Just (defaultTextTick, 0.03))
         Nothing
     )

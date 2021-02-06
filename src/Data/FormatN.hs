@@ -139,7 +139,7 @@ roundSig n x = scientific r' (e - length ds0)
 prec :: Maybe Int -> Double -> Text
 prec n x
   | x < 0 = "-" <> prec n (- x)
-  | x == 0 = "0"
+  | x == 0 = decimal n (toRealFloat x')
   | x < 0.001 = expt n x
   | x > 1e6 = expt n x
   | otherwise = decimal n (toRealFloat x')
@@ -206,7 +206,7 @@ formatN (FormatDollar n) x = dollar n x
 formatN (FormatPercent n) x = percent n x
 formatN FormatNone x = pack (show x)
 
--- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas 2 ticks' means use as much precision as is needed for them to be distinguished, but with at least 2 significant figures.
+-- | Provide formatted text for a list of numbers so that they are just distinguished.  'precision commas (Just 2) ticks' means use as much precision as is needed for them to be distinguished, but with at least 2 significant figures.
 precision :: (Maybe Int -> Double -> Text) -> Maybe Int -> [Double] -> [Text]
 precision f Nothing xs = f Nothing <$> xs
 precision f (Just n0) xs =

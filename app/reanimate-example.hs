@@ -10,48 +10,67 @@ stack runghc --package reanimate app/reanimate-example.hs
 and wait for the browser to open ...
 
 -}
-
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NegativeLiterals #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 module Main where
 
 import Chart
 import Chart.Examples
 import Control.Lens hiding (transform)
-import Graphics.SvgTree.Types hiding (Point, Text)
 import NumHask.Prelude hiding (fold)
-import Reanimate hiding (scale)
--- import qualified Reanimate as Re
 import Chart.Reanimate
+import Reanimate as Re
 
 main :: IO ()
 main =
-  reanimate .
-  addStatic (mkBackgroundPixel (toPixelRGBA8 $ Colour 0.9 0.9 0.9 1)) .
-  mkAnimation 5 $
-  (\x ->
-     chartSvgTree
-     (expScaleChartData x hudOptionsExample))
+  -- reanimChartSvg defaultReanimateConfig (sOpac lineExample)
+  reanimate $
+  foldl' seqA (pause 0) $ (applyE (overBeginning 1 fadeInE) . applyE (overEnding 1 fadeOutE)) . mapA pathify . (\cs -> animChartSvg defaultReanimateConfig (const cs)) . (#hudOptions %~ colourHudOptions light) <$> examples
 
--- (pan surf one (Rect 0.2 0.21 0.1 0.11))
+examples :: [ChartSvg]
+examples =
+  [ unitExample,
+    svgOptionsExample,
+    hudOptionsExample,
+    rectExample,
+    textExample,
+    glyphsExample,
+    lineExample,
+    barExample,
+    waveExample,
+    lglyphExample,
+    glinesExample,
+    compoundExample,
+    textLocalExample,
+    labelExample,
+    legendExample,
+    surfaceExample,
+    arcExample,
+    arcFlagsExample,
+    ellipseExample,
+    quadExample,
+    cubicExample,
+    pathExample,
+    vennExample,
+    arrowExample
+  ]
 
-surf :: Rect Double -> ChartSvg
-surf r = surfacegExample "rosenbrock" (Point 100 100) (Point 20 20) r (bimap (-1.0 *) (-1.0 .*) . rosenbrock 1 10) & #hudOptions . #hudAxes %~ fmap (#axisTick . #tstyle .~ TickRound (FormatComma (Just 2)) 8 NoTickExtend)
+sOpac :: ChartSvg -> Double -> ChartSvg
+sOpac cs o =
+  scaleOpacChartSvg (Range 0 1) o .
+  (#hudOptions %~ colourHudOptions light) $
+  cs
 
-pan :: (Rect Double -> ChartSvg) -> Rect Double -> Rect Double -> Double -> Tree
-pan f start end x = chartSvgTree $ f (start + fmap (*x) (end - start))
-
-expScaleChartData :: Double -> ChartSvg -> ChartSvg
-expScaleChartData x cs =
-     cs &
-     #chartList %~ fmap (expScaleData (10 * (x - 0.5))) &
-     #hudOptions . #hudAxes %~
-     fmap (set (#axisTick . #tstyle)
-           (TickRound (FormatComma (Just 2)) 8 NoTickExtend))
-
-expScaleData :: Double -> Chart Double -> Chart Double
-expScaleData s c = c & #xys %~ fmap (fmap ((10.0 ** s) *))
+scaleOpacChartSvg :: Range Double -> Double -> ChartSvg -> ChartSvg
+scaleOpacChartSvg r x cs =
+  cs &
+  #hudOptions .~ scaleOpacHudOptions (cs & view #hudOptions) (project (Range zero one) r x) &
+  #chartList .~
+  ((#annotation %~ scaleOpacAnn (project (Range zero one) r x)) <$>
+    view #chartList cs)
 
