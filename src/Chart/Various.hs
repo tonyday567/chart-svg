@@ -189,7 +189,7 @@ blendMidLineStyles l w (c1, c2) = lo
     bs = (\x -> blend x c1 c2) <$> cs
     lo = (\c -> defaultLineStyle & #width .~ w & #color .~ c) <$> bs
 
--- | FIXME: better name
+-- | No idea what this is really.
 digitChart ::
   Text ->
   [UTCTime] ->

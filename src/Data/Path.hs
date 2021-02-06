@@ -393,7 +393,7 @@ data ArcCentroid a =
 
 -- | convert from an ArcPosition spec to ArcCentroid spec.
 --
--- FIXME: simplify, maybe following https://math.stackexchange.com/questions/55627/how-to-find-the-center-of-an-scaled-ellipse
+-- See also [this](https://math.stackexchange.com/questions/55627/how-to-find-the-center-of-an-scaled-ellipse)
 --
 -- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
 -- >>> arcCentroid p
