@@ -659,7 +659,6 @@ cubicDerivs (CubicPosition (Point c0x c0y) (Point c3x c3y)
 -- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 -- Rect 0.0 1.0 -0.20710678118654752 1.2071067811865475
 --
--- ![Cubic]("other/cubic.svg")
 cubicBox :: CubicPosition Double -> Rect Double
 cubicBox p = space1 pts
   where

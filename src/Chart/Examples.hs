@@ -97,12 +97,19 @@ ropts =
 --
 -- Simplified example:
 --
+-- >>> :set -XOverloadedLabels
 -- >>> import Chart
--- >>> let xs = fmap (fmap (PointXY . uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
+-- >>> let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
+-- >>> xs
+-- [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0],[Point 0.0 0.0,Point 3.2 3.0],[Point 0.5 4.0,Point 0.5 0.0]]
+--
 -- >>> let anns = zipWith (\w c -> LineA (defaultLineStyle & #width .~ w & #color .~ c)) [0.015, 0.03, 0.01] palette1
--- >>> let lineExample = mempty & #chartList .~ zipWith Chart anns ls & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions
+-- >>> anns
+-- [LineA (LineStyle {width = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {width = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {width = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing})]
+--
+-- >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
 -- >>> :t lineExample
--- ChartSvg
+-- lineExample :: ChartSvg
 --
 -- > writeChartSvg "other/line.svg" lineExample
 --
