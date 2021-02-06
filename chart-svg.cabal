@@ -8,14 +8,14 @@ description:
     == Usage
     .
     >>> import Chart
-    >>>
-    >>> let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.0, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
-    >>> let ls = fmap (PointXY . uncurry Point) <$> xs
+    >>> :set -XOverloadedLabels
+    >>>let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
     >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1
-    >>> let lineChart = zipWith Chart anns ls
-    >>> writeChartSvgHud "other/lineshud.svg" lineChart
+    >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
     .
-    ![main example](docs/other/lineshud.svg)
+    > writeChartSvg "other/line.svg" lineExample
+    .
+    ![main example](docs/other/lines.svg)
     .
     See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
 
