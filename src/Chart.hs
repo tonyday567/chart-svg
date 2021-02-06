@@ -186,11 +186,7 @@ import NumHask.Space
 --
 -- Here's some data; three lists of points that will form a line:
 --
--- >>> let xs = [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[(Double, Double)]]
--- >>> let ls = fmap (uncurry P) <$> xs
---
--- >>> :t ls
--- ls :: [[XY Double]]
+-- >>> let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
 --
 -- and an Annotation to describe representation of this data; three line styles with different colors and widths:
 --
@@ -198,13 +194,13 @@ import NumHask.Space
 --
 -- and this is enough to create a Chart.
 --
--- >>> let lineChart = zipWith Chart anns ls
--- >>> :t lineChart
--- lineChart :: [Chart Double]
+-- >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
+-- >>> :t lineExample
+-- lineExample :: ChartSvg
 --
 -- Most charts will, in reality, be a list of charts such as this, and much of the library API is designed for this.
 --
--- > writeChartSvgDefault "other/lines.svg" lineChart
+-- > writeChartSvg "other/lines.svg" lineExample
 --
 -- ![lines example](other/lines.svg)
 --
