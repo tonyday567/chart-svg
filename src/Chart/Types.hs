@@ -218,7 +218,7 @@ scaleOpacAnn x (PathA s pis) = PathA s' pis
 scaleOpacAnn _ BlankA = BlankA
 
 scaleOpac :: Double -> Colour -> Colour
-scaleOpac x (Colour r g b o') = Colour r g b (o'*x)
+scaleOpac x (Colour r g b o') = Colour r g b (o' * x)
 
 -- | select a main colour
 colourAnn :: Colour -> Annotation -> Annotation
@@ -653,33 +653,33 @@ defaultHudOptions =
 -- | alter the colour
 colourHudOptions :: Colour -> HudOptions -> HudOptions
 colourHudOptions c ho =
-  ho &
-  #hudCanvas %~ fmap (#color %~ mix c) &
-  #hudTitles %~ fmap (#style . #color %~ mix c) &
-  #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ mix c)) &
-  #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ mix c) . (#borderColor %~ mix c)))) &
-  #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ mix c))) &
-  #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ mix c))) &
-  #hudLegend %~ fmap (first (#ltext %~ (#color %~ mix c))) &
-  #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ mix c) . (#borderColor %~ mix c))))
+  ho
+    & #hudCanvas %~ fmap (#color %~ mix c)
+    & #hudTitles %~ fmap (#style . #color %~ mix c)
+    & #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ mix c))
+    & #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ mix c) . (#borderColor %~ mix c))))
+    & #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ mix c)))
+    & #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ mix c)))
+    & #hudLegend %~ fmap (first (#ltext %~ (#color %~ mix c)))
+    & #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ mix c) . (#borderColor %~ mix c))))
 
 -- | adjust the opacity of HudOptions up or down geometrically (scaling by (*o))
 scaleOpacHudOptions :: HudOptions -> Double -> HudOptions
 scaleOpacHudOptions ho o =
-  ho &
-  #hudCanvas %~ fmap (#color %~ scaleOpac o) &
-  #hudTitles %~ fmap (#style . #color %~ scaleOpac o) &
-  #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ scaleOpac o)) &
-  #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o)))) &
-  #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ scaleOpac o))) &
-  #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ scaleOpac o))) &
-  #hudLegend %~ fmap (first (#ltext %~ (#color %~ scaleOpac o))) &
-  #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o)))) &
-  #hudLegend %~ fmap (second (fmap (first (scaleOpacAnn o))))
+  ho
+    & #hudCanvas %~ fmap (#color %~ scaleOpac o)
+    & #hudTitles %~ fmap (#style . #color %~ scaleOpac o)
+    & #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ scaleOpac o))
+    & #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o))))
+    & #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ scaleOpac o)))
+    & #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ scaleOpac o)))
+    & #hudLegend %~ fmap (first (#ltext %~ (#color %~ scaleOpac o)))
+    & #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o))))
+    & #hudLegend %~ fmap (second (fmap (first (scaleOpacAnn o))))
 
 -- | colour reset but scaling opacity
 mix :: Colour -> Colour -> Colour
-mix (Colour r g b o') (Colour _ _ _ o) = Colour r g b (o'*o)
+mix (Colour r g b o') (Colour _ _ _ o) = Colour r g b (o' * o)
 
 -- | The official hud canvas
 defaultCanvas :: RectStyle
@@ -750,8 +750,8 @@ defaultTitle :: Text -> Title
 defaultTitle txt =
   Title
     txt
-    ( defaultTextStyle &
-      #size .~ 0.12
+    ( defaultTextStyle
+        & #size .~ 0.12
     )
     PlaceTop
     AnchorMiddle
@@ -864,7 +864,7 @@ data LegendOptions = LegendOptions
   }
   deriving (Show, Eq, Generic)
 
--- | The official legend options 
+-- | The official legend options
 defaultLegendOptions :: LegendOptions
 defaultLegendOptions =
   LegendOptions
@@ -1640,21 +1640,21 @@ frameChart rs p cs = [Chart (RectA rs) (maybeToList (RectXY . padRect p <$> styl
 
 -- | useful for testing bounding boxes
 frameAllCharts :: [Chart Double] -> [Chart Double]
-frameAllCharts cs = mconcat $ frameChart (border 0.004 light) 0.004 . (:[]) <$> cs
+frameAllCharts cs = mconcat $ frameChart (border 0.004 light) 0.004 . (: []) <$> cs
 
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: Double -> [[Chart Double]] -> [Chart Double]
 hori _ [] = []
-hori gap cs = foldl step [] cs
+hori gap cs = foldl' step [] cs
   where
     step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (widthx x) (aligny x - aligny a) + s)))
     widthx xs = maybe 0 (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
-    aligny xs = maybe 0 (\(Rect _ _ y' w') -> (y'+w')/2) (styleBoxes xs)
+    aligny xs = maybe 0 (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
 
 -- | vertically stack a list of charts (proceeding upwards), aligning them to the left
 vert :: Double -> [[Chart Double]] -> [Chart Double]
 vert _ [] = []
-vert gap cs = foldl step [] cs
+vert gap cs = foldl' step [] cs
   where
     step x a = x <> (a & fmap (#xys %~ fmap (\s -> P (alignx x - alignx a) (widthy x) + s)))
     widthy xs = maybe 0 (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)

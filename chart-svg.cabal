@@ -55,6 +55,7 @@ library
     JuicyPixels >= 3.3 && < 3.4,
     attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
+    containers >= 0.6 && < 0.7,
     cubicbezier >= 0.6 && < 0.7,
     foldl >= 1.4 && < 1.5,
     generic-lens >= 1.2 && < 3.0,
