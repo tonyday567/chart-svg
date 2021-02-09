@@ -28,7 +28,6 @@ import Reanimate as Re
 
 main :: IO ()
 main =
-  -- reanimChartSvg defaultReanimateConfig (sOpac lineExample)
   reanimate $
   foldl' seqA (pause 0) $ (applyE (overBeginning 1 fadeInE) . applyE (overEnding 1 fadeOutE)) . mapA pathify . (\cs -> animChartSvg defaultReanimateConfig (const cs)) . (#hudOptions %~ colourHudOptions light) <$> examples
 
@@ -59,18 +58,4 @@ examples =
     vennExample,
     arrowExample
   ]
-
-sOpac :: ChartSvg -> Double -> ChartSvg
-sOpac cs o =
-  scaleOpacChartSvg (Range 0 1) o .
-  (#hudOptions %~ colourHudOptions light) $
-  cs
-
-scaleOpacChartSvg :: Range Double -> Double -> ChartSvg -> ChartSvg
-scaleOpacChartSvg r x cs =
-  cs &
-  #hudOptions .~ scaleOpacHudOptions (cs & view #hudOptions) (project (Range zero one) r x) &
-  #chartList .~
-  ((#annotation %~ scaleOpacAnn (project (Range zero one) r x)) <$>
-    view #chartList cs)
 

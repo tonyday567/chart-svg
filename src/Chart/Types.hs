@@ -111,8 +111,6 @@ module Chart.Types
     LegendOptions (..),
     defaultLegendOptions,
     legendHud,
-    legendChart,
-    legendEntry,
     Orientation (..),
     fromOrientation,
     toOrientation,
@@ -148,7 +146,6 @@ import Control.Lens
 import Data.Colour
 import Data.FormatN
 import Data.Generics.Labels ()
-import qualified Data.List as List
 import Data.Path
 import qualified Data.Text as Text
 import Data.Time
@@ -257,7 +254,7 @@ data RectStyle = RectStyle
 
 -- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (palette1 List.!! 1) (palette1 List.!! 2)
+defaultRectStyle = RectStyle 0.01 (palette1 1) (palette1 2)
 
 -- | solid rectangle, no border
 --
@@ -346,8 +343,8 @@ defaultGlyphStyle :: GlyphStyle
 defaultGlyphStyle =
   GlyphStyle
     0.03
-    (palette1 List.!! 1)
-    (palette1 List.!! 2)
+    (palette1 1)
+    (palette1 2)
     0.003
     SquareGlyph
     Nothing
@@ -452,7 +449,7 @@ data PathStyle = PathStyle
 -- | the style
 defaultPathStyle :: PathStyle
 defaultPathStyle =
-  PathStyle 0.01 (palette1 List.!! 1) (palette1 List.!! 2)
+  PathStyle 0.01 (palette1 1) (palette1 2)
 
 -- | Convert from a path command list to a PathA chart
 toPathChart :: PathStyle -> [(PathInfo Double, Point Double)] -> Chart Double
@@ -666,6 +663,7 @@ colourHudOptions c ho =
   #hudLegend %~ fmap (first (#ltext %~ (#color %~ mix c))) &
   #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ mix c) . (#borderColor %~ mix c))))
 
+-- | adjust the opacity of HudOptions up or down geometrically (scaling by (*o))
 scaleOpacHudOptions :: HudOptions -> Double -> HudOptions
 scaleOpacHudOptions ho o =
   ho &

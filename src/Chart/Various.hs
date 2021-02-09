@@ -36,7 +36,6 @@ where
 import Chart
 import Control.Lens
 import qualified Data.HashMap.Strict as HashMap
-import Data.List ((!!))
 import Data.Time (UTCTime (..))
 import NumHask.Prelude hiding (fold)
 import NumHask.Space
@@ -89,7 +88,7 @@ stdLineChart w p xss =
 
 -- | Can of the main palette
 stdLines :: Double -> [LineStyle]
-stdLines w = (\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> palette1
+stdLines w = (\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> palette1_
 
 -- | Legend template for a line chart.
 lineLegend :: Double -> [Text] -> [Colour] -> (LegendOptions, [(Annotation, Text)])
@@ -97,7 +96,7 @@ lineLegend w rs cs =
   ( defaultLegendOptions
       & #ltext . #size .~ 0.3
       & #lplace .~ PlaceBottom
-      & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) (palette1 !! 4)),
+      & #legendFrame .~ Just (RectStyle 0.02 (palette1 5) (palette1 4)),
     zipWith
       (\a r -> (LineA a, r))
       ((\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> cs)
@@ -129,7 +128,7 @@ titlesHud t x y =
 
 -- | GlyphStyle palette
 gpaletteStyle :: Double -> [GlyphStyle]
-gpaletteStyle s = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ c & #shape .~ fst g & #borderSize .~ snd g) palette1 gpalette
+gpaletteStyle s = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ c & #shape .~ fst g & #borderSize .~ snd g) palette1_ gpalette
 
 -- | Glyph palette
 gpalette :: [(GlyphShape, Double)]

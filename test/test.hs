@@ -15,5 +15,7 @@ main = doctest
     "src/Chart/Bar.hs",
     "src/Chart/Render.hs",
     "src/Chart/Surface.hs",
-    "src/Chart/Examples.hs"
+    "src/Chart/Examples.hs",
+    "src/Data/Colour.hs",
+    "src/Chart/Reanimate.hs"
   ]

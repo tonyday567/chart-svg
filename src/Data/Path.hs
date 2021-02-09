@@ -91,13 +91,13 @@ import Data.FormatN
 parsePath :: Text -> [PathCommand]
 parsePath t = either (const []) id $ A.parseOnly pathParser t
 
--- | To fit in with the requirements of the 'Chart' interface, path instructions need to be decontructed into:
+-- | To fit in with the requirements of the library design, specifically the separation of what a chart is into XY data Points from representation of these points, path instructions need to be decontructed into:
 --
 -- - define a single chart element as a line.
 --
 -- - split a single path element into the start and end points of the line, which become the 'Chart.Types.xys' of a 'Chart.Types.Chart', and the rest of the information, which is called 'PathInfo' and incorporated into the 'Chart.Types.Chart' 'Chart.Types.annotation'.
 --
--- A lot of detail rides on whether the PathInfo is invariant to affine transformations of the 'Chart.Types.xys' points. Cubic and quadratic bezier paths need to be re-projected whenever 'Chart.Types.xys' are re-projected. Arcs are problematic (See 'Chart.Examples.problematic2' & 'Chart.Examples.problematic2').
+-- An arc path is variant to affine transformations of the 'Chart.Types.xys' points: angles are not presevred in the new reference frame.
 data PathInfo a =
   StartI |
   LineI |

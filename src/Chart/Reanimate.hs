@@ -10,16 +10,12 @@
 module Chart.Reanimate
   ( ReanimateConfig(..),
     defaultReanimateConfig,
-    reanimChartSvg,
     animChartSvg,
+    ChartReanimate(..),
     chartReanimate,
-    groupTreeA,
+    toTreeA,
     tree,
-    toPixelRGBA8,
-    daText,
-    fromFile,
-    translateDA,
-    scaleDA,
+    treeFromFile,
   )
 where
 
@@ -33,6 +29,10 @@ import Reanimate as Re
 import qualified Graphics.SvgTree.PathParser as Svg
 import Graphics.SvgTree as Svg hiding (Text)
 
+-- | global reanimate configuration.
+--
+-- >>> defaultReanimateConfig
+-- ReanimateConfig {duration = 5.0, background = Just "black", globalFontFamily = Just ["Arial","Helvetica","sans-serif"], globalFontStyle = Just FontStyleNormal, globalAlignment = AlignxMinYMin}
 data ReanimateConfig = ReanimateConfig
   { duration :: Double,
     background :: Maybe Text,
@@ -41,16 +41,14 @@ data ReanimateConfig = ReanimateConfig
     globalAlignment :: Svg.Alignment
   } deriving (Eq, Show, Generic)
 
+-- |
 defaultReanimateConfig :: ReanimateConfig
 defaultReanimateConfig = ReanimateConfig 5 (Just "black") (Just ["Arial", "Helvetica", "sans-serif"]) (Just FontStyleNormal) AlignxMinYMin
 
-reanimChartSvg :: ReanimateConfig -> (Double -> ChartSvg) -> IO ()
-reanimChartSvg cfg cs =
-  reanimate $ animChartSvg cfg cs
-
+-- | Animate a ChartSvg animation.
 animChartSvg :: ReanimateConfig -> (Double -> ChartSvg) -> Animation
 animChartSvg cfg cs =
-  mkAnimation (view #duration cfg) $ groupTreeA cfg cs
+  mkAnimation (view #duration cfg) $ toTreeA cfg cs
 
 globalAtts :: ReanimateConfig -> Svg.DrawAttributes
 globalAtts cfg =
@@ -60,11 +58,27 @@ globalAtts cfg =
     maybe id (\x -> fontStyle .~ Last (Just x))
      (view #globalFontStyle cfg)
 
-data ChartReanimate = ChartReanimate { trees :: [Tree], box :: Rect Double, size :: C.Point Double} deriving (Eq, Show, Generic)
+-- | The output of the raw translation of ChartSvg to a reanimate svg tree.
+data ChartReanimate =
+  ChartReanimate
+  { trees :: [Tree],
+    box :: Rect Double,
+    size :: C.Point Double
+  } deriving (Eq, Show, Generic)
 
--- | create a Tree maker from a duration, and a chartsvg maker.
-groupTreeA :: ReanimateConfig -> (Double -> ChartSvg) -> Double -> Tree
-groupTreeA cfg cs x =
+-- | Render a 'ChartSvg' to 'Tree's, the fitted chart viewbox, and the suggested SVG dimensions
+--
+chartReanimate :: ChartSvg -> ChartReanimate
+chartReanimate cs = ChartReanimate ts rect' size'
+  where
+    (cl'', rect', size') = renderToCRS so cl'
+    so = view #svgOptions cs
+    cl' = renderToCharts cs
+    ts = tree <$> cl''
+
+-- | convert a ChartSvg animation to a Tree animation.
+toTreeA :: ReanimateConfig -> (Double -> ChartSvg) -> Double -> Tree
+toTreeA cfg cs x =
   reCss (cs x & view (#svgOptions . #cssOptions)) $
   mkGroup $ (mkBackground . unpack <$> maybeToList (view #background cfg)) <>
   [ (\cr ->
@@ -94,16 +108,6 @@ withViewBox' vbox par child = Re.translate (-screenWidth/2) (-screenHeight/2) $
   , _documentLocation = ""
   , _documentAspectRatio = par
   }
-
--- | Render a 'ChartSvg' to 'Tree's, the fitted chart viewbox, and the suggested SVG dimensions
---
-chartReanimate :: ChartSvg -> ChartReanimate
-chartReanimate cs = ChartReanimate ts rect' size'
-  where
-    (cl'', rect', size') = renderToCRS so cl'
-    so = view #svgOptions cs
-    cl' = renderToCharts cs
-    ts = tree <$> cl''
 
 -- | Rectange svg
 treeRect :: Rect Double -> Tree
@@ -321,7 +325,7 @@ rectSvg (Rect x z y w) =
     . (rectHeight .~ Just (Num (w - y)))
 
 -- | import a Tree from a file
-fromFile :: FilePath -> IO Tree
-fromFile fp = do
+treeFromFile :: FilePath -> IO Tree
+treeFromFile fp = do
   t <- Svg.loadSvgFile fp
   pure $ maybe Svg.None Re.unbox t

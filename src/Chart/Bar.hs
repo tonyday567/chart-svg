@@ -93,8 +93,8 @@ defaultBarOptions =
              )
     )
   where
-    gs = (\x -> RectStyle 0.002 x x) <$> palette1
-    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette1
+    gs = (\x -> RectStyle 0.002 x x) <$> palette1_
+    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette1_
 
 -- | imagine a dataframe you get in other languages:
 --
