@@ -1,36 +1,32 @@
 #!/usr/bin/env stack
 -- stack runghc --package reanimate
 
-{- | reanimate example
-
-To run this example:
-
-stack runghc --package reanimate app/reanimate-example.hs
-
-and wait for the browser to open ...
-
--}
+{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE NegativeLiterals #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE MonoLocalBinds #-}
 
+-- | reanimate example
+--
+-- To run this example:
+--
+-- stack runghc --package reanimate app/reanimate-example.hs
+--
+-- and wait for the browser to open ...
 module Main where
 
 import Chart
 import Chart.Examples
+import Chart.Reanimate
 import Control.Lens hiding (transform)
 import NumHask.Prelude hiding (fold)
-import Chart.Reanimate
 import Reanimate as Re
 
 main :: IO ()
 main =
-  -- reanimChartSvg defaultReanimateConfig (sOpac lineExample)
   reanimate $
-  foldl' seqA (pause 0) $ (applyE (overBeginning 1 fadeInE) . applyE (overEnding 1 fadeOutE)) . mapA pathify . (\cs -> animChartSvg defaultReanimateConfig (const cs)) . (#hudOptions %~ colourHudOptions light) <$> examples
+    foldl' seqA (pause 0) $ (applyE (overBeginning 1 fadeInE) . applyE (overEnding 1 fadeOutE)) . mapA pathify . (\cs -> animChartSvg defaultReanimateConfig (const cs)) . (#hudOptions %~ colourHudOptions light) <$> examples
 
 examples :: [ChartSvg]
 examples =
@@ -59,18 +55,3 @@ examples =
     vennExample,
     arrowExample
   ]
-
-sOpac :: ChartSvg -> Double -> ChartSvg
-sOpac cs o =
-  scaleOpacChartSvg (Range 0 1) o .
-  (#hudOptions %~ colourHudOptions light) $
-  cs
-
-scaleOpacChartSvg :: Range Double -> Double -> ChartSvg -> ChartSvg
-scaleOpacChartSvg r x cs =
-  cs &
-  #hudOptions .~ scaleOpacHudOptions (cs & view #hudOptions) (project (Range zero one) r x) &
-  #chartList .~
-  ((#annotation %~ scaleOpacAnn (project (Range zero one) r x)) <$>
-    view #chartList cs)
-

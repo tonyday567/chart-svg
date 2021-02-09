@@ -38,26 +38,25 @@ module Chart.Render
 where
 
 import Chart.Types
-import Data.Colour
-import Data.Path
 import Control.Lens hiding (transform)
+import Data.Colour
 import Data.Generics.Labels ()
+import Data.Path
+import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Lazy
 import Lucid
-import qualified Lucid.Base as Lucid
 import Lucid.Base
+import qualified Lucid.Base as Lucid
 import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
-import qualified Data.Text as Text
 
 -- | Specification of a chart for rendering to SVG
-data ChartSvg
-  = ChartSvg
-      { svgOptions :: SvgOptions,
-        hudOptions :: HudOptions,
-        hudList :: [Hud Double],
-        chartList :: [Chart Double]
-      }
+data ChartSvg = ChartSvg
+  { svgOptions :: SvgOptions,
+    hudOptions :: HudOptions,
+    hudList :: [Hud Double],
+    chartList :: [Chart Double]
+  }
   deriving (Generic)
 
 instance Semigroup ChartSvg where
@@ -68,6 +67,7 @@ instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty [] []
 
 -- * rendering
+
 -- | @svg@ element + svg 2 attributes
 svg2Tag :: Term [Attribute] (s -> t) => s -> t
 svg2Tag m =
@@ -81,8 +81,8 @@ renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Ht
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
   with
     ( svg2Tag
-        ( cssText csso <>
-            mconcat (svg <$> cs)
+        ( cssText csso
+            <> mconcat (svg <$> cs)
         )
     )
     [ width_ (show w'),
@@ -105,20 +105,22 @@ geometricPrecision = style_ [type_ "text/css"] ("* { shape-rendering: geometricP
 
 makeCharts :: ChartAspect -> HudOptions -> [Chart Double] -> [Chart Double]
 makeCharts asp ho cs =
-  let (hs', hc') = makeHud (padBox $ dataBoxes cs) ho in
-    runHud (initialCanvas asp (cs<>hc')) hs' (cs <> hc')
+  let (hs', hc') = makeHud (padBox $ dataBoxes cs) ho
+   in runHud (initialCanvas asp (cs <> hc')) hs' (cs <> hc')
 
 renderToCRS :: SvgOptions -> [Chart Double] -> ([Chart Double], Rect Double, Point Double)
 renderToCRS so cs = (cs', rect', size')
   where
     rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
     cs' =
-      cs &
-      runHud penult [chartAspectHud (so ^. #chartAspect)] &
-      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
-        (so ^. #chartFrame)
+      cs
+        & runHud penult [chartAspectHud (so ^. #chartAspect)]
+        & maybe
+          id
+          (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+          (so ^. #chartFrame)
     Point w h = NH.width rect'
-    size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
+    size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
     penult = case so ^. #chartAspect of
       FixedAspect _ -> styleBoxesS cs
       CanvasAspect _ -> dataBoxesS cs
@@ -136,14 +138,16 @@ renderChartsWith so cs =
   where
     rect' = styleBoxesS cs' & maybe id padRect (so ^. #outerPad)
     cs' =
-      cs &
-      runHud penult [chartAspectHud (so ^. #chartAspect)] &
-      maybe id (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
-        (so ^. #chartFrame)
+      cs
+        & runHud penult [chartAspectHud (so ^. #chartAspect)]
+        & maybe
+          id
+          (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
+          (so ^. #chartFrame)
     cs'' =
       maybe [] (\c -> [Chart (RectA (blob c)) [RectXY rect']]) (so ^. #background) <> cs'
     Point w h = NH.width rect'
-    size' = Point ((so ^. #svgHeight)/h*w) (so ^. #svgHeight)
+    size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
     penult = case so ^. #chartAspect of
       FixedAspect _ -> styleBoxesS cs
       CanvasAspect _ -> dataBoxesS cs
@@ -362,11 +366,11 @@ attsLine o =
     term "stroke" (toHex $ o ^. #color),
     term "stroke-opacity" (show $ opac $ o ^. #color),
     term "fill" "none"
-  ] <>
-  maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap) <>
-  maybe [] (\x -> [term "stroke-linejoin" (fromLineJoin x)]) (o ^. #linejoin) <>
-  maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray) <>
-  maybe [] (\x -> [term "stroke-dashoffset" (show x)]) (o ^. #dashoffset)
+  ]
+    <> maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap)
+    <> maybe [] (\x -> [term "stroke-linejoin" (fromLineJoin x)]) (o ^. #linejoin)
+    <> maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray)
+    <> maybe [] (\x -> [term "stroke-dashoffset" (show x)]) (o ^. #dashoffset)
 
 -- | PathStyle to Attributes
 attsPath :: PathStyle -> [Lucid.Attribute]
@@ -390,10 +394,9 @@ toTranslateText (Point x y) =
 -- - from counter-clockwise is a positive rotation to clockwise is positive
 --
 -- - flip y dimension
---
 toRotateText :: Double -> Point Double -> Text
 toRotateText r (Point x y) =
-  "rotate(" <> show (-r*180/pi) <> ", " <> show x <> ", " <> show (- y) <> ")"
+  "rotate(" <> show (- r * 180 / pi) <> ", " <> show x <> ", " <> show (- y) <> ")"
 
 toScaleText :: Double -> Text
 toScaleText x =

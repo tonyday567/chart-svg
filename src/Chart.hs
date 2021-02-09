@@ -4,10 +4,12 @@
 -- | A haskell Charting library targetting SVGs
 module Chart
   ( -- * Usage
+
     --
     -- $setup
 
     -- * Overview
+
     --
     -- $overview
 
@@ -190,7 +192,7 @@ import NumHask.Space
 --
 -- and an Annotation to describe representation of this data; three line styles with different colors and widths:
 --
--- >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1
+-- >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1_
 --
 -- and this is enough to create a Chart.
 --
@@ -198,25 +200,9 @@ import NumHask.Space
 -- >>> :t lineExample
 -- lineExample :: ChartSvg
 --
--- Most charts will, in reality, be a list of charts such as this, and much of the library API is designed for this.
+-- > writeChartSvg "other/line.svg" lineExample
 --
--- > writeChartSvg "other/lines.svg" lineExample
---
--- ![lines example](other/lines.svg)
---
--- chart-svg takes inspiration from gaming heads-up display aesthetics. Chart decorations such as titles and axes are tools to interpret the landscape of data being viewed. They should be readily transparent, have sane defaults but be fully configurable.
---
--- The library considers a hud to be a recipe for the creation of a 'Chart' list, but with the physical, on-the-page representation of the data in mind.
---
--- Here is the line chart presented with default hud options.
---
--- > writeChartSvgHud "other/lineshud.svg" lineChart
---
--- ![hud example](other/lineshud.svg)
---
--- 'Hud' creation is a process of integrating the data domain and the physical representation. In the chart above, for example, the axis placement takes into account the physical attributes of the thick blue line which extends slightly beyond the abstract data range. The data area (the canvas) has also been extended so that a tick value (3.5 on the x-axis) can be included.
---
--- Beyond this, there is nothing special about hud elements such as tick marks and titles, axes. Once they are created (with 'runHudWith') they themselves become charts.
+-- ![lines example](other/line.svg)
 --
 
 -- $hud
@@ -236,4 +222,4 @@ import NumHask.Space
 -- This process is encapsulated in 'runHud'.
 --
 -- An important quality of 'runHud' (and conversion of charts to svg in general)is that this is the point at which the 'XY's of the chart are converted from the data domain to the page domain. Once the hud and the chart has been integrated there is no going back and the original data is forgotten. This is an opinionated aspect of chart-svg. A counter-example is d3 which stores the raw data in the svg element it represents.
-
+--

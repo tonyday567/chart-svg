@@ -19,6 +19,7 @@ module Chart.Bar
 where
 
 import Chart.Types
+import Chart.Render
 import Control.Lens
 import Data.Colour
 import Data.FormatN
@@ -39,25 +40,24 @@ import NumHask.Space
 -- | Typical bar chart options.
 --
 -- >>> let barDataExample = BarData [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]] (Just (("row " <>) . pack . show <$> [1 .. 11])) (Just (("column " <>) . pack . show <$> [1 .. 2]))
--- >>> let (ho, cs) = barChart defaultBarOptions barDataExample
+-- >>> let barExample = barChart defaultBarOptions barDataExample
 --
--- > writeChartSvg "other/bar.svg" (ChartSvg defaultSvgOptions ho [] cs)
+-- > writeChartSvg "other/bar.svg" barExample
 --
 -- ![bar chart example](other/bar.svg)
-data BarOptions
-  = BarOptions
-      { barRectStyles :: [RectStyle],
-        barTextStyles :: [TextStyle],
-        outerGap :: Double,
-        innerGap :: Double,
-        textGap :: Double,
-        textGapNegative :: Double,
-        displayValues :: Bool,
-        valueFormatN :: FormatN,
-        accumulateValues :: Bool,
-        barOrientation :: Orientation,
-        barHudOptions :: HudOptions
-      }
+data BarOptions = BarOptions
+  { barRectStyles :: [RectStyle],
+    barTextStyles :: [TextStyle],
+    outerGap :: Double,
+    innerGap :: Double,
+    textGap :: Double,
+    textGapNegative :: Double,
+    displayValues :: Bool,
+    valueFormatN :: FormatN,
+    accumulateValues :: Bool,
+    barOrientation :: Orientation,
+    barHudOptions :: HudOptions
+  }
   deriving (Show, Eq, Generic)
 
 -- | The official bar options.
@@ -93,8 +93,8 @@ defaultBarOptions =
              )
     )
   where
-    gs = (\x -> RectStyle 0.002 x x) <$> palette1
-    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette1
+    gs = (\x -> RectStyle 0.002 x x) <$> palette1_
+    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette1_
 
 -- | imagine a dataframe you get in other languages:
 --
@@ -103,12 +103,11 @@ defaultBarOptions =
 -- - maybe some row names
 --
 -- - maybe some column names
-data BarData
-  = BarData
-      { barData :: [[Double]],
-        barRowLabels :: Maybe [Text],
-        barColumnLabels :: Maybe [Text]
-      }
+data BarData = BarData
+  { barData :: [[Double]],
+    barRowLabels :: Maybe [Text],
+    barColumnLabels :: Maybe [Text]
+  }
   deriving (Show, Eq, Generic)
 
 -- | Convert BarData to rectangles
@@ -191,8 +190,9 @@ barTicks bd
   | isNothing (bd ^. #barRowLabels) =
     TickLabels $ pack . show <$> [0 .. (maxRows (bd ^. #barData) - 1)]
   | otherwise =
-    TickLabels $ take (maxRows (bd ^. #barData)) $
-      fromMaybe [] (bd ^. #barRowLabels) <> repeat ""
+    TickLabels $
+      take (maxRows (bd ^. #barData)) $
+        fromMaybe [] (bd ^. #barRowLabels) <> repeat ""
 
 tickFirstAxis :: BarData -> [AxisOptions] -> [AxisOptions]
 tickFirstAxis _ [] = []
@@ -205,14 +205,16 @@ barLegend bd bo
   | isNothing (bd ^. #barColumnLabels) = []
   | otherwise = zip (RectA <$> bo ^. #barRectStyles) $ take (length (bd ^. #barData)) $ fromMaybe [] (bd ^. #barColumnLabels) <> repeat ""
 
--- | A bar chart with hud trimmings.
+-- | A bar chart.
 --
 -- By convention only, the first axis (if any) is the bar axis.
-barChart :: BarOptions -> BarData -> (HudOptions, [Chart Double])
+barChart :: BarOptions -> BarData -> ChartSvg
 barChart bo bd =
-  ( bo ^. #barHudOptions & #hudLegend %~ fmap (second (const (barLegend bd bo))) & #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo),
-    bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
-  )
+  mempty &
+  #hudOptions .~ bo ^. #barHudOptions &
+  #hudOptions . #hudLegend %~ fmap (second (const (barLegend bd bo))) &
+  #hudOptions . #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo) &
+  #chartList .~ bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
 
 flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
 flipAllAxes o = fmap (bool id flipAxis (o == Vert))

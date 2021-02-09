@@ -1,6 +1,6 @@
 cabal-version:  2.4
 name:           chart-svg
-version:        0.2.1
+version:        0.2.2
 synopsis:       Charting library targetting SVGs.
 description:
     This package provides a charting library targetting SVG as the rendered output.
@@ -10,7 +10,7 @@ description:
     >>> import Chart
     >>> :set -XOverloadedLabels
     >>>let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
-    >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1
+    >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1_
     >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
     .
     > writeChartSvg "other/line.svg" lineExample
@@ -55,6 +55,7 @@ library
     JuicyPixels >= 3.3 && < 3.4,
     attoparsec >= 0.13 && < 0.14,
     base >=4.7 && <5,
+    containers >= 0.6 && < 0.7,
     cubicbezier >= 0.6 && < 0.7,
     foldl >= 1.4 && < 1.5,
     generic-lens >= 1.2 && < 3.0,

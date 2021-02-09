@@ -28,28 +28,29 @@ module Data.Colour
     fromHex,
     unsafeFromHex,
     palette1,
+    palette1_,
     transparent,
     black,
     white,
     light,
     dark,
-    grey,
   )
 where
 
 import qualified Data.Attoparsec.Text as A
 import Data.FormatN
 import Data.Generics.Labels ()
+import qualified Data.List as List
 import qualified Data.Text as Text
 import Graphics.Color.Model
 import NumHask.Prelude as NHP
 import qualified Prelude as P
 
 -- | Wrapper for 'Color'.
-newtype Colour =
-  Colour'
+newtype Colour = Colour'
   { color' :: Color (Alpha RGB) Double
-  } deriving (Eq, Generic)
+  }
+  deriving (Eq, Generic)
 
 -- | Constructor pattern.
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
@@ -99,11 +100,11 @@ blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
 -- True
 --
 -- >>> blends 0.6 [black, (Colour 0.2 0.6 0.8 0.5), white]
--- RGBA 0.16 0.48 0.64 0.60
+-- Colour 0.36 0.68 0.84 0.60
 blends :: Double -> [Colour] -> Colour
 blends _ [] = light
 blends _ [c] = c
-blends x cs = blend r (cs P.!! i) (cs P.!! (i+1))
+blends x cs = blend r (cs P.!! i) (cs P.!! (i + 1))
   where
     l = length cs - 1
     x' = x * fromIntegral l
@@ -159,9 +160,16 @@ hexDigit n
 i2d :: Int -> Char
 i2d i = chr (ord '0' + i)
 
--- | some RGBA colors
-palette1 :: [Colour]
-palette1 =
+-- | select a Colour from the palette
+--
+-- >>> palette1 0
+-- Colour 0.69 0.35 0.16 1.00
+palette1 :: Int -> Colour
+palette1 x = cycle palette1_ List.!! x
+
+-- | finite list of Colours
+palette1_ :: [Colour]
+palette1_ =
   [ Colour 0.69 0.35 0.16 1.00,
     Colour 0.65 0.81 0.89 1.00,
     Colour 0.12 0.47 0.71 1.00,
@@ -178,26 +186,42 @@ palette1 =
   ]
 
 -- |
+--
+-- >>> black
+-- Colour 0.00 0.00 0.00 1.00
 black :: Colour
 black = Colour 0 0 0 1
 
 -- |
+--
+-- >>> white
+-- Colour 0.99 0.99 0.99 1.00
 white :: Colour
 white = Colour 0.99 0.99 0.99 1
 
 -- |
+--
+-- For lighter huds against a dark background ...
+--
+-- > colourHudOptions light defaultHudOptions
+--
+-- >>> light
+-- Colour 0.94 0.94 0.94 1.00
 light :: Colour
 light = Colour 0.94 0.94 0.94 1
 
 -- |
+--
+-- dark is hardcoded in most of the default options.
+--
+-- >>> dark
+-- Colour 0.05 0.05 0.05 1.00
 dark :: Colour
 dark = Colour 0.05 0.05 0.05 1
 
-grey :: Colour
-grey = Colour 0.5 0.5 0.5 1
-
--- |
+-- | zero opacity black
+--
+-- >>> transparent
+-- Colour 0.00 0.00 0.00 0.00
 transparent :: Colour
 transparent = Colour 0 0 0 0
-
-

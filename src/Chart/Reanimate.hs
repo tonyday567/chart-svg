@@ -2,101 +2,74 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 -- | Integration of reanimate and chart-svg
 module Chart.Reanimate
-  ( ReanimateConfig(..),
+  ( ReanimateConfig (..),
     defaultReanimateConfig,
-    reanimChartSvg,
     animChartSvg,
+    ChartReanimate (..),
     chartReanimate,
-    groupTreeA,
+    toTreeA,
     tree,
-    toPixelRGBA8,
-    daText,
-    fromFile,
-    translateDA,
-    scaleDA,
+    treeFromFile,
   )
 where
 
-import Chart as C hiding (transform, Line, renderChartsWith)
+import Chart as C hiding (Line, renderChartsWith, transform)
 import Codec.Picture.Types
 import Control.Lens hiding (transform)
 import qualified Data.Attoparsec.Text as A
+import Graphics.SvgTree as Svg hiding (Text)
+import qualified Graphics.SvgTree.PathParser as Svg
 import Linear.V2
 import NumHask.Prelude hiding (fold)
 import Reanimate as Re
-import qualified Graphics.SvgTree.PathParser as Svg
-import Graphics.SvgTree as Svg hiding (Text)
 
+-- | global reanimate configuration.
+--
+-- >>> defaultReanimateConfig
+-- ReanimateConfig {duration = 5.0, background = Just "black", globalFontFamily = Just ["Arial","Helvetica","sans-serif"], globalFontStyle = Just FontStyleNormal, globalAlignment = AlignxMinYMin}
 data ReanimateConfig = ReanimateConfig
   { duration :: Double,
     background :: Maybe Text,
     globalFontFamily :: Maybe [Text],
     globalFontStyle :: Maybe Svg.FontStyle,
     globalAlignment :: Svg.Alignment
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
+-- |
 defaultReanimateConfig :: ReanimateConfig
 defaultReanimateConfig = ReanimateConfig 5 (Just "black") (Just ["Arial", "Helvetica", "sans-serif"]) (Just FontStyleNormal) AlignxMinYMin
 
-reanimChartSvg :: ReanimateConfig -> (Double -> ChartSvg) -> IO ()
-reanimChartSvg cfg cs =
-  reanimate $ animChartSvg cfg cs
-
+-- | Animate a ChartSvg animation.
 animChartSvg :: ReanimateConfig -> (Double -> ChartSvg) -> Animation
 animChartSvg cfg cs =
-  mkAnimation (view #duration cfg) $ groupTreeA cfg cs
+  mkAnimation (view #duration cfg) $ toTreeA cfg cs
 
 globalAtts :: ReanimateConfig -> Svg.DrawAttributes
 globalAtts cfg =
-  mempty &
-    maybe id (\x -> fontFamily .~ Last (Just (fmap unpack x)))
-     (view #globalFontFamily cfg) .
-    maybe id (\x -> fontStyle .~ Last (Just x))
-     (view #globalFontStyle cfg)
+  mempty
+    & maybe
+      id
+      (\x -> fontFamily .~ Last (Just (fmap unpack x)))
+      (view #globalFontFamily cfg)
+      . maybe
+        id
+        (\x -> fontStyle .~ Last (Just x))
+        (view #globalFontStyle cfg)
 
-data ChartReanimate = ChartReanimate { trees :: [Tree], box :: Rect Double, size :: C.Point Double} deriving (Eq, Show, Generic)
-
--- | create a Tree maker from a duration, and a chartsvg maker.
-groupTreeA :: ReanimateConfig -> (Double -> ChartSvg) -> Double -> Tree
-groupTreeA cfg cs x =
-  reCss (cs x & view (#svgOptions . #cssOptions)) $
-  mkGroup $ (mkBackground . unpack <$> maybeToList (view #background cfg)) <>
-  [ (\cr ->
-       let (Rect x z y w) =
-             view #box cr in
-         withViewBox' (x,y,z-x,w-y)
-         (PreserveAspectRatio False (view #globalAlignment cfg) Nothing) $
-         flipYAxis $
-         groupTrees (globalAtts cfg) $ view #trees cr) $
-    chartReanimate
-    (cs x)
-  ]
-
-reCss :: CssOptions -> (Tree -> Tree)
-reCss NoCssOptions = id
-reCss UseCssCrisp = Svg.cssApply (Svg.cssRulesOfText "* { shape-rendering: crispEdges; }")
-reCss UseGeometricPrecision = Svg.cssApply (Svg.cssRulesOfText "* { shape-rendering: geometricPrecision; }")
-
-withViewBox' :: (Double, Double, Double, Double) -> Svg.PreserveAspectRatio -> Tree -> Tree
-withViewBox' vbox par child = Re.translate (-screenWidth/2) (-screenHeight/2) $
-  svgTree Document
-  { _documentViewBox = Just vbox
-  , _documentWidth = Just (Num screenWidth)
-  , _documentHeight = Just (Num screenHeight)
-  , _documentElements = [child]
-  , _documentDescription = ""
-  , _documentLocation = ""
-  , _documentAspectRatio = par
+-- | The output of the raw translation of ChartSvg to a reanimate svg tree.
+data ChartReanimate = ChartReanimate
+  { trees :: [Tree],
+    box :: Rect Double,
+    size :: C.Point Double
   }
+  deriving (Eq, Show, Generic)
 
 -- | Render a 'ChartSvg' to 'Tree's, the fitted chart viewbox, and the suggested SVG dimensions
---
 chartReanimate :: ChartSvg -> ChartReanimate
 chartReanimate cs = ChartReanimate ts rect' size'
   where
@@ -104,6 +77,44 @@ chartReanimate cs = ChartReanimate ts rect' size'
     so = view #svgOptions cs
     cl' = renderToCharts cs
     ts = tree <$> cl''
+
+-- | convert a ChartSvg animation to a Tree animation.
+toTreeA :: ReanimateConfig -> (Double -> ChartSvg) -> Double -> Tree
+toTreeA cfg cs x =
+  reCss (cs x & view (#svgOptions . #cssOptions)) $
+    mkGroup $
+      (mkBackground . unpack <$> maybeToList (view #background cfg))
+        <> [ ( \cr ->
+                 let (Rect x z y w) =
+                       view #box cr
+                  in withViewBox'
+                       (x, y, z - x, w - y)
+                       (PreserveAspectRatio False (view #globalAlignment cfg) Nothing)
+                       $ flipYAxis $
+                         groupTrees (globalAtts cfg) $ view #trees cr
+             )
+               $ chartReanimate
+                 (cs x)
+           ]
+
+reCss :: CssOptions -> (Tree -> Tree)
+reCss NoCssOptions = id
+reCss UseCssCrisp = Svg.cssApply (Svg.cssRulesOfText "* { shape-rendering: crispEdges; }")
+reCss UseGeometricPrecision = Svg.cssApply (Svg.cssRulesOfText "* { shape-rendering: geometricPrecision; }")
+
+withViewBox' :: (Double, Double, Double, Double) -> Svg.PreserveAspectRatio -> Tree -> Tree
+withViewBox' vbox par child =
+  Re.translate (- screenWidth / 2) (- screenHeight / 2) $
+    svgTree
+      Document
+        { _documentViewBox = Just vbox,
+          _documentWidth = Just (Num screenWidth),
+          _documentHeight = Just (Num screenHeight),
+          _documentElements = [child],
+          _documentDescription = "",
+          _documentLocation = "",
+          _documentAspectRatio = par
+        }
 
 -- | Rectange svg
 treeRect :: Rect Double -> Tree
@@ -159,10 +170,12 @@ treeShape (HLineGlyph x') s (C.Point x y) =
       (pointSvg (C.Point (x + s / 2) y))
 treeShape (PathGlyph path) s p =
   Svg.PathTree
-  (Svg.Path
-   (Svg.defaultSvg &
-    (Svg.drawAttributes %~ scaleDA (C.Point s s) . translateDA p))
-    (either mempty id $ A.parseOnly Svg.pathParser path))
+    ( Svg.Path
+        ( Svg.defaultSvg
+            & (Svg.drawAttributes %~ scaleDA (C.Point s s) . translateDA p)
+        )
+        (either mempty id $ A.parseOnly Svg.pathParser path)
+    )
 
 -- | GlyphStyle to svg Tree
 treeGlyph :: GlyphStyle -> C.Point Double -> Tree
@@ -181,13 +194,15 @@ treeLine xs =
 treePath :: [PathInfo Double] -> [C.Point Double] -> Tree
 treePath s p =
   PathTree $
-  Path mempty (zipWith
-               (curry toPathCommand)
-               s
-               (fmap (\(C.Point x y) -> C.Point x (-y)) p))
+    Path
+      mempty
+      ( zipWith
+          (curry toPathCommand)
+          s
+          (fmap (\(C.Point x y) -> C.Point x (- y)) p)
+      )
 
 -- | convert a 'Chart' to a 'Tree'
---
 tree :: Chart Double -> Tree
 tree (Chart (TextA s ts) xs) =
   groupTrees (daText s) (zipWith (treeText s) ts (toPoint <$> xs))
@@ -208,24 +223,25 @@ groupTrees da' tree' =
   GroupTree (drawAttributes %~ (<> da') $ groupChildren .~ tree' $ defaultSvg)
 
 -- * DrawAttribute computations
+
 daRect :: RectStyle -> DrawAttributes
 daRect o =
-  mempty &
-  (strokeWidth .~ Last (Just $ Num (o ^. #borderSize))) &
-  (strokeColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor))) &
-  (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor)) &
-  (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color))) &
-  (fillOpacity ?~ realToFrac (opac $ o ^. #color))
+  mempty
+    & (strokeWidth .~ Last (Just $ Num (o ^. #borderSize)))
+    & (strokeColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor)))
+    & (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor))
+    & (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
 
 daText :: () => TextStyle -> DrawAttributes
 daText o =
-  mempty &
-  (fontSize .~ Last (Just $ Num (o ^. #size))) &
-  (strokeWidth .~ Last (Just $ Num 0)) &
-  (strokeColor .~ Last (Just FillNone)) &
-  (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color))) &
-  (fillOpacity ?~ realToFrac (opac $ o ^. #color)) &
-  (textAnchor .~ Last (Just (toTextAnchor $ o ^. #anchor)))
+  mempty
+    & (fontSize .~ Last (Just $ Num (o ^. #size)))
+    & (strokeWidth .~ Last (Just $ Num 0))
+    & (strokeColor .~ Last (Just FillNone))
+    & (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
+    & (textAnchor .~ Last (Just (toTextAnchor $ o ^. #anchor)))
   where
     toTextAnchor :: Anchor -> Svg.TextAnchor
     toTextAnchor AnchorMiddle = TextAnchorMiddle
@@ -234,30 +250,39 @@ daText o =
 
 daGlyph :: GlyphStyle -> DrawAttributes
 daGlyph o =
-  mempty &
-  (strokeWidth .~ Last (Just $ Num (o ^. #borderSize))) &
-  (strokeColor .~
-   Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor))) &
-  (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor)) &
-  (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color))) &
-  (fillOpacity ?~ realToFrac (opac $ o ^. #color)) &
-  maybe id (\(C.Point x y) -> transform ?~ [Translate x (-y)]) (o ^. #translate)
+  mempty
+    & (strokeWidth .~ Last (Just $ Num (o ^. #borderSize)))
+    & ( strokeColor
+          .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor))
+      )
+    & (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor))
+    & (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
+    & maybe id (\(C.Point x y) -> transform ?~ [Translate x (- y)]) (o ^. #translate)
 
 daLine :: LineStyle -> DrawAttributes
 daLine o =
-  mempty &
-  (strokeWidth .~ Last (Just $ Num (o ^. #width))) &
-  (strokeColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color))) &
-  (strokeOpacity ?~ realToFrac (opac $ o ^. #color)) &
-  (fillColor .~ Last (Just FillNone)) &
-  maybe id (\x -> strokeLineCap .~ Last (Just $ fromLineCap' x))
-  (o ^. #linecap) &
-  maybe id (\x -> strokeLineJoin .~ Last (Just $ fromLineJoin' x))
-  (o ^. #linejoin) &
-  maybe id (\x -> strokeOffset .~ Last (Just $ Num x))
-  (o ^. #dashoffset) &
-  maybe id (\xs -> strokeDashArray .~ Last (Just (Num <$> xs)))
-  (o ^. #dasharray)
+  mempty
+    & (strokeWidth .~ Last (Just $ Num (o ^. #width)))
+    & (strokeColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (strokeOpacity ?~ realToFrac (opac $ o ^. #color))
+    & (fillColor .~ Last (Just FillNone))
+    & maybe
+      id
+      (\x -> strokeLineCap .~ Last (Just $ fromLineCap' x))
+      (o ^. #linecap)
+    & maybe
+      id
+      (\x -> strokeLineJoin .~ Last (Just $ fromLineJoin' x))
+      (o ^. #linejoin)
+    & maybe
+      id
+      (\x -> strokeOffset .~ Last (Just $ Num x))
+      (o ^. #dashoffset)
+    & maybe
+      id
+      (\xs -> strokeDashArray .~ Last (Just (Num <$> xs)))
+      (o ^. #dasharray)
 
 fromLineCap' :: LineCap -> Svg.Cap
 fromLineCap' LineCapButt = CapButt
@@ -271,13 +296,15 @@ fromLineJoin' LineJoinRound = JoinRound
 
 daPath :: PathStyle -> DrawAttributes
 daPath o =
-  mempty &
-  (strokeWidth .~ Last (Just $ Num (o ^. #borderSize))) &
-  (strokeColor .~ Last
-   (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor))) &
-  (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor)) &
-  (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color))) &
-  (fillOpacity ?~ realToFrac (opac $ o ^. #color))
+  mempty
+    & (strokeWidth .~ Last (Just $ Num (o ^. #borderSize)))
+    & ( strokeColor
+          .~ Last
+            (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor))
+      )
+    & (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor))
+    & (fillColor .~ Last (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
 
 -- * svg primitives
 
@@ -299,7 +326,7 @@ pointSvg (C.Point x y) = (Num x, Num (- y))
 rotatePDA :: (HasDrawAttributes s) => Double -> C.Point Double -> s -> s
 rotatePDA a (C.Point x y) s = s & transform %~ (Just . maybe r (<> r))
   where
-    r = [Rotate (-a*180/pi) (Just (x, -y))]
+    r = [Rotate (- a * 180 / pi) (Just (x, - y))]
 
 -- | A DrawAttributes to translate by a Point.
 translateDA :: (HasDrawAttributes s) => C.Point Double -> s -> s
@@ -321,7 +348,7 @@ rectSvg (Rect x z y w) =
     . (rectHeight .~ Just (Num (w - y)))
 
 -- | import a Tree from a file
-fromFile :: FilePath -> IO Tree
-fromFile fp = do
+treeFromFile :: FilePath -> IO Tree
+treeFromFile fp = do
   t <- Svg.loadSvgFile fp
   pure $ maybe Svg.None Re.unbox t

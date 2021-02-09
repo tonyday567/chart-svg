@@ -9,6 +9,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -34,8 +35,8 @@ module Data.FormatN
   )
 where
 
+import Data.Containers.ListUtils (nubOrd)
 import Data.Generics.Labels ()
-import Data.List (nub)
 import Data.Scientific
 import qualified Data.Text as Text
 import NumHask.Prelude
@@ -118,7 +119,7 @@ roundSig n x = scientific r' (e - length ds0)
     (ds0, ds1) = splitAt (n + 1) ds
     r =
       (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds0 :: Double)
-        + fromIntegral (foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0^length ds1)
+        + fromIntegral (foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0 ^ length ds1)
     r' = round r :: Integer
 
 -- | format numbers between 0.001 and 1,000,000 using digit and comma notation and exponential outside this range, with x significant figures.
@@ -214,7 +215,7 @@ precision f (Just n0) xs =
   where
     precLoop f' n xs' =
       let s = f' (Just n) <$> xs'
-       in if s == nub s || n > 4
+       in if s == nubOrd s || n > 4
             then s
             else precLoop f' (n + 1) xs'
 
@@ -235,4 +236,3 @@ showOr f x = bool (bool f' s' (Text.length s' < Text.length f')) "0" (x < 1e-6 &
   where
     f' = formatN f x
     s' = show x
-    

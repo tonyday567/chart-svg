@@ -1,7 +1,7 @@
+{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -15,7 +15,6 @@ module Chart.Examples
     textExample,
     glyphsExample,
     lineExample,
-    barDataExample,
     barExample,
     waveExample,
     lglyphExample,
@@ -40,7 +39,6 @@ where
 
 import Chart
 import Control.Lens
-import qualified Data.List as List
 import qualified Data.Text as Text
 import NumHask.Prelude hiding (lines)
 
@@ -85,8 +83,8 @@ rss =
 
 ropts :: [RectStyle]
 ropts =
-  [ blob (palette1 List.!! 1),
-    blob (palette1 List.!! 2)
+  [ blob (palette1 1),
+    blob (palette1 2)
   ]
 
 -- | line example
@@ -103,7 +101,7 @@ ropts =
 -- >>> xs
 -- [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0],[Point 0.0 0.0,Point 3.2 3.0],[Point 0.5 4.0,Point 0.5 0.0]]
 --
--- >>> let anns = zipWith (\w c -> LineA (defaultLineStyle & #width .~ w & #color .~ c)) [0.015, 0.03, 0.01] palette1
+-- >>> let anns = zipWith (\w c -> LineA (defaultLineStyle & #width .~ w & #color .~ c)) [0.015, 0.03, 0.01] palette1_
 -- >>> anns
 -- [LineA (LineStyle {width = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {width = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {width = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing})]
 --
@@ -117,12 +115,13 @@ ropts =
 lineExample :: ChartSvg
 lineExample =
   mempty
-    & #svgOptions . #chartAspect .~ CanvasAspect 1.5
+    & #svgOptions . #chartAspect
+    .~ CanvasAspect 1.5
     & #hudOptions
     .~ exampleLineHudOptions
-           "Line Chart"
-           (Just "An example from chart-svg")
-           (Just (defaultLegendOptions, zip (LineA <$> lopts) ["hockey", "line", "vertical"]))
+      "Line Chart"
+      (Just "An example from chart-svg")
+      (Just (defaultLegendOptions, zip (LineA <$> lopts) ["hockey", "line", "vertical"]))
     & #chartList
     .~ zipWith (\s d -> Chart (LineA s) (fmap PointXY d)) lopts ls
 
@@ -136,9 +135,9 @@ ls =
 
 lopts :: [LineStyle]
 lopts =
-  [ defaultLineStyle & #color .~ (palette1 List.!! 0) & #width .~ 0.015,
-    defaultLineStyle & #color .~ (palette1 List.!! 1) & #width .~ 0.03,
-    defaultLineStyle & #color .~ (palette1 List.!! 2) & #width .~ 0.01
+  [ defaultLineStyle & #color .~ palette1 0 & #width .~ 0.015,
+    defaultLineStyle & #color .~ palette1 1 & #width .~ 0.03,
+    defaultLineStyle & #color .~ palette1 2 & #width .~ 0.01
   ]
 
 exampleLineHudOptions :: Text -> Maybe Text -> Maybe (LegendOptions, [(Annotation, Text)]) -> HudOptions
@@ -169,7 +168,7 @@ textExample :: ChartSvg
 textExample =
   mempty & #chartList
     .~ zipWith
-      Chart 
+      Chart
       (TextA (defaultTextStyle & (#color .~ dark) & (#size .~ (0.05 :: Double))) . (: []) . fst <$> ts)
       ((: []) . PointXY . snd <$> ts)
   where
@@ -184,9 +183,10 @@ textExample =
 -- ![glyphs example](other/glyphs.svg)
 glyphsExample :: ChartSvg
 glyphsExample =
-  mempty &
-  #svgOptions . #svgHeight .~ 50 &
-  #chartList
+  mempty
+    & #svgOptions . #svgHeight
+    .~ 50
+      & #chartList
     .~ zipWith
       ( \(sh, bs) p ->
           Chart
@@ -216,20 +216,18 @@ barDataExample :: BarData
 barDataExample =
   BarData
     [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]]
-    (Just (("row " <>) . pack . show <$> ([1 .. 11]::[Int])))
-    (Just (("column " <>) . pack . show <$> ([1 .. 2]::[Int])))
+    (Just (("row " <>) . pack . show <$> ([1 .. 11] :: [Int])))
+    (Just (("column " <>) . pack . show <$> ([1 .. 2] :: [Int])))
 
 -- | Bar chart example.
 --
 -- ![bar example](other/bar.svg)
 barExample :: ChartSvg
-barExample = mempty & #hudOptions .~ hc & #chartList .~ cs
-  where
-    (hc, cs) = barChart defaultBarOptions barDataExample
+barExample = barChart defaultBarOptions barDataExample
 
 -- | A reminder that Text scale is at representation level, and so doesn't scale compared with other chart elements, such as a rectangle.
 --
--- ![text local example](other/textlocal.svg) 
+-- ![text local example](other/textlocal.svg)
 textLocalExample :: ChartSvg
 textLocalExample =
   mempty & #chartList
@@ -267,7 +265,7 @@ gopts3 =
           . (#size .~ 0.08)
           $ defaultGlyphStyle
     )
-    palette1
+    palette1_
     [EllipseGlyph 1.5, SquareGlyph, CircleGlyph]
 
 -- | Glyph + Lines
@@ -309,7 +307,7 @@ lglyphExample = mempty & #chartList .~ (txt <> gly)
                 ( defaultGlyphStyle
                     & #size .~ 0.01
                     & #borderSize .~ 0
-                    & #color .~ palette1 List.!! 2
+                    & #color .~ palette1 2
                 )
             )
             (PointXY <$> [d])
@@ -328,7 +326,7 @@ compoundExample = lglyphExample <> glinesExample
 labelExample :: ChartSvg
 labelExample =
   mempty & #chartList
-    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ -pi/4) ["text at (1,1) rotated by -(pi/4) radians"]) [PointXY (Point 1.0 1.0)]]
+    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ - pi / 4) ["text at (1,1) rotated by -(pi/4) radians"]) [PointXY (Point 1.0 1.0)]]
 
 -- | legend test
 --
@@ -367,10 +365,10 @@ waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (PointXY 
 -- ![venn diagram](other/venn.svg)
 vennExample :: ChartSvg
 vennExample =
-  mempty &
-  #chartList .~ zipWith (\c x -> Chart (PathA (defaultPathStyle & #color .~ setOpac 0.2 c) (fst <$> x)) (PointXY . snd <$> x)) palette1 (toPathXYs . parsePath <$> vennSegs) &
-  #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1) &
-  #hudOptions .~ defaultHudOptions
+  mempty
+    & #chartList .~ zipWith (\c x -> Chart (PathA (defaultPathStyle & #color .~ setOpac 0.2 c) (fst <$> x)) (PointXY . snd <$> x)) palette1_ (toPathXYs . parsePath <$> vennSegs)
+    & #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1)
+    & #hudOptions .~ defaultHudOptions
 
 {-
 These were originally based on:
@@ -386,36 +384,36 @@ These were originally based on:
 -}
 vennSegs :: [Text]
 vennSegs =
-      [ "M0.0,-1.2320508075688774 A0.5 0.5 0.0 1 1 1.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,-1.2320508075688774 Z",
-        "M-1.0,0.5 A0.5 0.5 0.0 1 0 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -1.0,0.5 Z",
-        "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z",
-        "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 Z",
-        "M0.0,0.5 A1.0 1.0 0.0 0 1 -1.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,0.5 Z",
-        "M0.0,-1.2320508075688774 A1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.0,-1.2320508075688774 Z",
-        "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 Z"
-      ]
+  [ "M0.0,-1.2320508075688774 A0.5 0.5 0.0 1 1 1.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,-1.2320508075688774 Z",
+    "M-1.0,0.5 A0.5 0.5 0.0 1 0 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -1.0,0.5 Z",
+    "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z",
+    "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 Z",
+    "M0.0,0.5 A1.0 1.0 0.0 0 1 -1.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,0.5 Z",
+    "M0.0,-1.2320508075688774 A1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.0,-1.2320508075688774 Z",
+    "M0.5,-0.3660254037844387 A1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 1 0.5,-0.3660254037844387 Z"
+  ]
 
 -- | Compound path example.
 --
 -- ![path test](other/path.svg)
 pathExample :: ChartSvg
 pathExample =
-  mempty &
-   #chartList .~ [path', c0] &
-   #hudOptions .~ defaultHudOptions &
-   #svgOptions %~
-   ((#outerPad ?~ 0.1) .
-    (#chartAspect .~ ChartAspect))
+  mempty
+    & #chartList .~ [path', c0]
+    & #hudOptions .~ defaultHudOptions
+    & #svgOptions
+    %~ ( (#outerPad ?~ 0.1)
+           . (#chartAspect .~ ChartAspect)
+       )
   where
     ps =
-      [
-        (StartI, Point 0 0),
+      [ (StartI, Point 0 0),
         (LineI, Point 1 0),
         (CubicI (Point 0.2 0) (Point 0.25 1), Point 1 1),
         (QuadI (Point -1 2), Point 0 1),
-        (ArcI (ArcInfo (Point 1 1) (-pi/6) False False), Point 0 0)
+        (ArcI (ArcInfo (Point 1 1) (- pi / 6) False False), Point 0 0)
       ]
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 List.!! 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (PointXY . snd <$> ps)
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (PointXY . snd <$> ps)
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY . snd <$> ps)
 
 -- | ellipse example
@@ -423,41 +421,37 @@ pathExample =
 -- (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) 0 True True))
 --
 -- ![ellipse example](other/ellipse.svg)
---
 ellipseExample :: ChartSvg
 ellipseExample =
-  mempty &
-   #chartList .~ [ell, ellFull, c0, bbox, xradii, yradii] &
-   #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
+  mempty
+    & #chartList .~ [ell, ellFull, c0, bbox, xradii, yradii]
+    & #hudOptions .~ defaultHudOptions
+    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
   where
-    p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi/3) True True)
+    p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p
-    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0..100])
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
-    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [c,p1,p2])
+    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
+    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [c, p1, p2])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
     xradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [ellipse c r phi' 0, ellipse c r phi' pi])
-    yradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [ellipse c r phi' (pi/2), ellipse c r phi' (3/2*pi)])
+    yradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [ellipse c r phi' (pi / 2), ellipse c r phi' (3 / 2 * pi)])
 
 -- | arc example
 --
 -- ![arc example](other/arc.svg)
---
--- There is a bug for rotated ellipses. See 'problematic2' for scaling issue when phi is non-zero.
---
 arcExample :: ChartSvg
 arcExample =
-  mempty &
-   #chartList .~ [arc, ell, c0, bbox] &
-   #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ FixedAspect 1))
+  mempty
+    & #chartList .~ [arc, ell, c0, bbox]
+    & #hudOptions .~ defaultHudOptions
+    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ FixedAspect 1))
   where
     p1 = ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) 0 False True)
     ps = singletonArc p1
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p1
-    arc = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 List.!! 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
+    arc = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
     c0 = Chart (GlyphA defaultGlyphStyle) [PointXY c]
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p1)]
 
@@ -466,67 +460,79 @@ arcExample =
 -- ![arc flags example](other/arcflags.svg)
 arcFlagsExample :: ChartSvg
 arcFlagsExample =
-  mempty &
-   #chartList .~
-     vert 0.02
-     [hori 0.02
-       [ [Chart BlankA [R -0.4 0.4 -1 5],
-          Chart (TextA (defaultTextStyle & #size .~ 0.6 & #rotation .~ Just (pi/2)) ["Sweep"]) [P 0.1 2]],
-         vert 0.02
-         [[Chart BlankA [R -0.25 0.25 -1 2],
-           Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi/2)) ["True"]) [P 0.1 0.5]],
-          [Chart BlankA [R -0.25 0.25 -1 2],
-           Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi/2)) ["False"]) [P 0.1 0.5]]
-       ],
-         vert 0.02
-         [checkFlags False True (setOpac 0.3 dark) & view #chartList,
-          checkFlags False False (setOpac 0.3 dark) & view #chartList,
-          [Chart BlankA [R -1 2 -0.25 0.25],
-           Chart (TextA (defaultTextStyle & #size .~ 0.4) ["False"]) [P 0.5 -0.1]]
-         ],
-         vert 0.02
-         [checkFlags True True (setOpac 0.3 dark) & view #chartList,
-          checkFlags True False (setOpac 0.3 dark) & view #chartList,
-           [Chart BlankA [R -1 2 -0.25 0.25],
-            Chart (TextA (defaultTextStyle & #size .~ 0.4) ["True"]) [P 0.5 -0.1]]
-         ]
-       ],
-      [ Chart BlankA [R 0 9 -2.75 -3.25],
-        Chart (TextA (defaultTextStyle & #size .~ 0.6) ["Large"]) [P 5.5 -3.0]]
-      ] &
-   #hudOptions .~ mempty &
-   #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
+  mempty
+    & #chartList
+    .~ vert
+      0.02
+      [ hori
+          0.02
+          [ [ Chart BlankA [R -0.4 0.4 -1 5],
+              Chart (TextA (defaultTextStyle & #size .~ 0.6 & #rotation .~ Just (pi / 2)) ["Sweep"]) [P 0.1 2]
+            ],
+            vert
+              0.02
+              [ [ Chart BlankA [R -0.25 0.25 -1 2],
+                  Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2)) ["True"]) [P 0.1 0.5]
+                ],
+                [ Chart BlankA [R -0.25 0.25 -1 2],
+                  Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2)) ["False"]) [P 0.1 0.5]
+                ]
+              ],
+            vert
+              0.02
+              [ checkFlags False True (setOpac 0.3 dark) & view #chartList,
+                checkFlags False False (setOpac 0.3 dark) & view #chartList,
+                [ Chart BlankA [R -1 2 -0.25 0.25],
+                  Chart (TextA (defaultTextStyle & #size .~ 0.4) ["False"]) [P 0.5 -0.1]
+                ]
+              ],
+            vert
+              0.02
+              [ checkFlags True True (setOpac 0.3 dark) & view #chartList,
+                checkFlags True False (setOpac 0.3 dark) & view #chartList,
+                [ Chart BlankA [R -1 2 -0.25 0.25],
+                  Chart (TextA (defaultTextStyle & #size .~ 0.4) ["True"]) [P 0.5 -0.1]
+                ]
+              ]
+          ],
+        [ Chart BlankA [R 0 9 -2.75 -3.25],
+          Chart (TextA (defaultTextStyle & #size .~ 0.6) ["Large"]) [P 5.5 -3.0]
+        ]
+      ]
+    & #hudOptions
+    .~ mempty
+    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
 
 checkFlags :: Bool -> Bool -> Colour -> ChartSvg
 checkFlags large sweep co =
-  mempty &
-  #hudOptions .~ defaultHudOptions &
-  #svgOptions . #chartAspect .~ UnadjustedAspect &
-  #chartList .~ [c1, c2, ell, arc1]
+  mempty
+    & #hudOptions .~ defaultHudOptions
+    & #svgOptions . #chartAspect .~ UnadjustedAspect
+    & #chartList .~ [c1, c2, ell, arc1]
   where
     c = Point 1.0 1.0
     p1 = ArcPosition (Point 0.0 1.0) (Point 1.0 0.0) (ArcInfo (Point 1.0 1.0) 0 large sweep)
     ps1 = singletonPie' c p1
     (ArcCentroid c' r phi' ang0 angd) = arcCentroid p1
     arc1 = Chart (PathA (defaultPathStyle & #color .~ co & #borderColor .~ setOpac 0.5 dark) (fst <$> ps1)) (PointXY . snd <$> ps1)
-    c1 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) (PointXY . ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0..100])
-    c2 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) (PointXY . ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0..100])
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.05 & #color .~ setOpac 0.5 co) (PointXY . ellipse c' r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0..100])
+    c1 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) (PointXY . ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100])
+    c2 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) (PointXY . ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.05 & #color .~ setOpac 0.5 co) (PointXY . ellipse c' r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
 
 -- | quad example
 --
 -- ![quad example](other/quad.svg)
 quadExample :: ChartSvg
 quadExample =
-  mempty &
-   #chartList .~ [path', curve, c0, bbox] &
-   #hudOptions .~ defaultHudOptions &
-   #svgOptions %~ ((#outerPad ?~ 0.05) . (#chartAspect .~ ChartAspect))
+  mempty
+    & #chartList .~ [path', curve, c0, bbox]
+    & #hudOptions .~ defaultHudOptions
+    & #svgOptions %~ ((#outerPad ?~ 0.05) . (#chartAspect .~ ChartAspect))
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1)
     ps = singletonQuad p
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 List.!! 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . quadBezier p . (/100.0) <$> [0..100])
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . quadBezier p . (/ 100.0) <$> [0 .. 100])
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (quadBox p)]
 
@@ -535,41 +541,43 @@ quadExample =
 -- ![cubic example](other/cubic.svg)
 cubicExample :: ChartSvg
 cubicExample =
-  mempty &
-   #chartList .~ [path', curve, c0, bbox] &
-   #hudOptions .~ mempty &
-   #svgOptions %~ ((#outerPad ?~ 0.02) . (#chartAspect .~ ChartAspect))
+  mempty
+    & #chartList .~ [path', curve, c0, bbox]
+    & #hudOptions .~ mempty
+    & #svgOptions %~ ((#outerPad ?~ 0.02) . (#chartAspect .~ ChartAspect))
   where
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
     ps = singletonCubic p
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 List.!! 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ (palette1 List.!! 1)) (PointXY . cubicBezier p . (/100.0) <$> [0..100])
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . cubicBezier p . (/ 100.0) <$> [0 .. 100])
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control1, control2, cubicBezier p 0.8])
     bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (cubicBox p)]
 
 -- | The common way to create a surface chart is usually a grid over a function.
 --
 -- ![surface example](other/surface.svg)
---
 surfaceExample :: ChartSvg
 surfaceExample =
-  mempty &
-  #hudList .~ hs &
-  #chartList .~ cs &
-  #svgOptions .~ (defaultSvgOptions & #cssOptions .~ UseCssCrisp)
+  mempty
+    & #hudList .~ hs
+    & #chartList .~ cs
+    & #svgOptions .~ (defaultSvgOptions & #cssOptions .~ UseCssCrisp)
   where
     t = "rosenbrock"
     grain = Point 20 20
     r = one
     f = fst . bimap (-1.0 *) (-1.0 .*) . rosenbrock 1 10
     (cs, hs) =
-      surfacefl f
-      (defaultSurfaceOptions &
-       #soGrain .~ grain &
-       #soRange .~ r &
-       #soStyle . #surfaceColors .~ take 6 palette1)
-      (defaultSurfaceLegendOptions t &
-       #sloStyle . #surfaceColors .~ take 6 palette1)
+      surfacefl
+        f
+        ( defaultSurfaceOptions
+            & #soGrain .~ grain
+            & #soRange .~ r
+            & #soStyle . #surfaceColors .~ (palette1 <$> [0 .. 5])
+        )
+        ( defaultSurfaceLegendOptions t
+            & #sloStyle . #surfaceColors .~ (palette1 <$> [0 .. 5])
+        )
 
 -- | arrow example
 --
@@ -578,25 +586,25 @@ surfaceExample =
 -- ![arrow example](other/arrow.svg)
 arrowExample :: ChartSvg
 arrowExample =
-  mempty &
-  #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#axisTick . #ltick .~ Nothing)) &
-  #chartList .~ ((\p -> chart (tail . f $ p) (angle . f $ p) p) <$> ps) &
-  #svgOptions .~ defaultSvgOptions
+  mempty
+    & #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#axisTick . #ltick .~ Nothing))
+    & #chartList .~ ((\p -> chart (tail . f $ p) (angle . f $ p) p) <$> ps)
+    & #svgOptions .~ defaultSvgOptions
   where
     f = snd . bimap (-1.0 *) (-1.0 .*) . rosenbrock 1 10
     ps = grid MidPos (one :: Rect Double) (Point 10 10 :: Point Int) :: [Point Double]
     arrow = PathGlyph "M -1 0 L 1 0 M 1 0 L 0.4 0.3 M 1 0 L 0.4 -0.3"
     gs s r' =
-      defaultGlyphStyle &
-      #borderSize .~ 0.05 &
-      #size .~ s &
-      #borderColor .~ dark &
-      #rotation .~ Just r' &
-      #shape .~ arrow
+      defaultGlyphStyle
+        & #borderSize .~ 0.05
+        & #size .~ s
+        & #borderColor .~ dark
+        & #rotation .~ Just r'
+        & #shape .~ arrow
     chart s r' p = Chart (GlyphA (gs s r')) [PointXY p]
 
     tail :: Point Double -> Double
-    tail = max 0.05 . min 0.02 . (*0.01) . (/avmag) . norm
+    tail = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . norm
 
     avmag = sum (norm . f <$> ps) / fromIntegral (length ps)
 
@@ -608,7 +616,7 @@ arrowExample =
 -- > f'y = 2 * b * y - 2 * b * x^2
 -- > f a b (Point x y) = (a^2 - 2ax + x^2 + b * y^2 - b * 2 * y * x^2 + b * x^4, Point (-2a + 2 * x - b * 4 * y * x + 4 * b * x ^ 3), 2 * b * y - 2 * b * x^2)
 rosenbrock :: Double -> Double -> Point Double -> (Double, Point Double)
-rosenbrock a b (Point x y) = (a^2 - 2*a*x + x^2 + b * y^2 - b * 2 * y * x^2 + b * x^4, Point (-2*a + 2 * x - b * 4 * y * x + 4 * b * x^3) (2 * b * y - 2 * b * x^2))
+rosenbrock a b (Point x y) = (a ^ 2 - 2 * a * x + x ^ 2 + b * y ^ 2 - b * 2 * y * x ^ 2 + b * x ^ 4, Point (-2 * a + 2 * x - b * 4 * y * x + 4 * b * x ^ 3) (2 * b * y - 2 * b * x ^ 2))
 
 -- | Run this to refresh haddock example SVGs.
 writeAllExamples :: IO ()

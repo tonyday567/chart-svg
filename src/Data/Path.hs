@@ -1,12 +1,12 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NegativeLiterals #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 -- | SVG path manipulation
 module Data.Path
@@ -48,21 +48,22 @@ module Data.Path
     toSingletonArc,
     pathBoxes,
     pathBox,
-  ) where
+  )
+where
 
-import qualified Graphics.SvgTree as SvgTree
-import Graphics.SvgTree (PathCommand (..), Origin(..))
-import Graphics.SvgTree.PathParser
-import qualified Data.Attoparsec.Text as A
-import qualified Data.Text as Text
-import NumHask.Space
-import NumHask.Prelude hiding (rotate)
-import qualified Linear
 import qualified Control.Foldl as L
 import Control.Lens hiding ((...))
-import Data.Generics.Labels ()
-import qualified Geom2D.CubicBezier as B
+import qualified Data.Attoparsec.Text as A
 import Data.FormatN
+import Data.Generics.Labels ()
+import qualified Data.Text as Text
+import qualified Geom2D.CubicBezier as B
+import Graphics.SvgTree (Origin (..), PathCommand (..))
+import qualified Graphics.SvgTree as SvgTree
+import Graphics.SvgTree.PathParser
+import qualified Linear
+import NumHask.Prelude hiding (rotate)
+import NumHask.Space
 
 -- $setup
 -- >>> :set -XRebindableSyntax
@@ -78,7 +79,6 @@ import Data.FormatN
 -- [SVG d](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d)
 --
 -- [SVG path](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
---
 
 -- | parse a raw path string
 --
@@ -87,23 +87,22 @@ import Data.FormatN
 -- [MoveTo OriginAbsolute [V2 (-1.0) 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,V2 0.0 (-1.2320508075688774)),(1.0,1.0,0.0,False,False,V2 (-0.5) (-0.3660254037844387)),(1.0,1.0,0.0,False,False,V2 (-1.0) 0.5)],EndPath]
 --
 -- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
---
 parsePath :: Text -> [PathCommand]
 parsePath t = either (const []) id $ A.parseOnly pathParser t
 
--- | To fit in with the requirements of the 'Chart' interface, path instructions need to be decontructed into:
+-- | To fit in with the requirements of the library design, specifically the separation of what a chart is into XY data Points from representation of these points, path instructions need to be decontructed into:
 --
 -- - define a single chart element as a line.
 --
 -- - split a single path element into the start and end points of the line, which become the 'Chart.Types.xys' of a 'Chart.Types.Chart', and the rest of the information, which is called 'PathInfo' and incorporated into the 'Chart.Types.Chart' 'Chart.Types.annotation'.
 --
--- A lot of detail rides on whether the PathInfo is invariant to affine transformations of the 'Chart.Types.xys' points. Cubic and quadratic bezier paths need to be re-projected whenever 'Chart.Types.xys' are re-projected. Arcs are problematic (See 'Chart.Examples.problematic2' & 'Chart.Examples.problematic2').
-data PathInfo a =
-  StartI |
-  LineI |
-  CubicI (Point a) (Point a) |
-  QuadI (Point a) |
-  ArcI (ArcInfo a)
+-- An arc path is variant to affine transformations of the 'Chart.Types.xys' points: angles are not presevred in the new reference frame.
+data PathInfo a
+  = StartI
+  | LineI
+  | CubicI (Point a) (Point a)
+  | QuadI (Point a)
+  | ArcI (ArcInfo a)
   deriving (Show, Eq, Generic)
 
 -- | convert from a path info, start point, end point triple to a path text clause.
@@ -129,37 +128,44 @@ data PathInfo a =
 -- - arc rotation is expressed as positive degrees for a clockwise rotation in SVG, and counter-clockwise in radians for chart-svg
 --
 -- - A positive y-direction is down for SVG and up for chart-svg
---
 toPathAbsolute ::
   -- | (info, start, end)
   (PathInfo Double, Point Double) ->
   -- | path text
   Text
-toPathAbsolute (StartI,p) = "M " <> pp p
-toPathAbsolute (LineI,p) = "L " <> pp p
+toPathAbsolute (StartI, p) = "M " <> pp p
+toPathAbsolute (LineI, p) = "L " <> pp p
 toPathAbsolute (CubicI c1 c2, next) =
-  "C " <>
-  pp c1 <> " " <>
-  pp c2 <> " " <>
-  pp next
+  "C "
+    <> pp c1
+    <> " "
+    <> pp c2
+    <> " "
+    <> pp next
 toPathAbsolute (QuadI control, next) =
-  "Q " <>
-  pp control <> " " <>
-  pp next
+  "Q "
+    <> pp control
+    <> " "
+    <> pp next
 toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2) =
-  "A " <>
-  show x <> " " <>
-  show y <> " " <>
-  show (-phi' * 180 / pi) <> " " <>
-  bool "0" "1" l <> " " <>
-  bool "0" "1" sw <> " " <>
-  pp x2
+  "A "
+    <> show x
+    <> " "
+    <> show y
+    <> " "
+    <> show (- phi' * 180 / pi)
+    <> " "
+    <> bool "0" "1" l
+    <> " "
+    <> bool "0" "1" sw
+    <> " "
+    <> pp x2
 
 -- | render a point (including a flip of the y dimension).
 pp :: Point Double -> Text
 pp (Point x y) =
-  showOr (FormatFixed (Just 4)) x <> "," <>
-  showOr (FormatFixed (Just 4)) (bool (-y) y (y==zero))
+  showOr (FormatFixed (Just 4)) x <> ","
+    <> showOr (FormatFixed (Just 4)) (bool (- y) y (y == zero))
 
 -- | convert an (info, point) list to an svg d path text.
 toPathAbsolutes :: [(PathInfo Double, Point Double)] -> Text
@@ -167,33 +173,32 @@ toPathAbsolutes = L.fold (L.Fold step begin done)
   where
     done = Text.intercalate " " . reverse
     begin = []
-    step ts (info, next) = toPathAbsolute (info, next):ts
+    step ts (info, next) = toPathAbsolute (info, next) : ts
 
 -- | Convert from PathInfo to PathCommand
 toPathCommand ::
   (PathInfo Double, Point Double) ->
   -- | path text
   PathCommand
-toPathCommand (StartI,p) = MoveTo OriginAbsolute [toV2 p]
-toPathCommand (LineI,p) = LineTo OriginAbsolute [toV2 p]
+toPathCommand (StartI, p) = MoveTo OriginAbsolute [toV2 p]
+toPathCommand (LineI, p) = LineTo OriginAbsolute [toV2 p]
 toPathCommand (CubicI c1 c2, p) = CurveTo OriginAbsolute [(toV2 c1, toV2 c2, toV2 p)]
 toPathCommand (QuadI c, p) = QuadraticBezier OriginAbsolute [(toV2 c, toV2 p)]
 toPathCommand (ArcI (ArcInfo (Point rx ry) phi' l sw), p) =
-  EllipticalArc OriginAbsolute [(rx,ry,phi',l,sw,toV2 p)]
+  EllipticalArc OriginAbsolute [(rx, ry, phi', l, sw, toV2 p)]
 
 toV2 :: Point a -> Linear.V2 a
 toV2 (Point x y) = Linear.V2 x y
 
-data StateInfo =
-  StateInfo
-  {
-    -- | previous position
+data StateInfo = StateInfo
+  { -- | previous position
     cur :: Point Double,
     -- | start point (to close out the path)
     start :: Point Double,
     -- | last control point
     infoControl :: Point Double
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 stateInfo0 :: StateInfo
 stateInfo0 = StateInfo zero zero zero
@@ -203,125 +208,128 @@ stateInfo0 = StateInfo zero zero zero
 -- flips the y-dimension of points.
 toInfo :: StateInfo -> SvgTree.PathCommand -> (StateInfo, [(PathInfo Double, Point Double)])
 toInfo s (MoveTo _ []) = (s, [])
-toInfo _ (MoveTo OriginAbsolute (x:xs)) = L.fold (L.Fold step begin (second reverse)) (fromV2 <$> xs)
+toInfo _ (MoveTo OriginAbsolute (x : xs)) = L.fold (L.Fold step begin (second reverse)) (fromV2 <$> xs)
   where
     x0 = fromV2 x
     begin = (StateInfo x0 x0 zero, [(StartI, x0)])
-    step (s, p) a = (s & #cur .~ a, (LineI, a):p)
-toInfo s (MoveTo OriginRelative (x:xs)) = L.fold (L.Fold step begin (second reverse)) (fromV2 <$> xs)
+    step (s, p) a = (s & #cur .~ a, (LineI, a) : p)
+toInfo s (MoveTo OriginRelative (x : xs)) = L.fold (L.Fold step begin (second reverse)) (fromV2 <$> xs)
   where
     x0 = s ^. #cur + fromV2 x
     begin = (StateInfo x0 x0 zero, [(StartI, x0)])
-    step (s, p) a = let a' = a + s ^. #cur in (s & #cur .~ a', (LineI, a'):p)
+    step (s, p) a = let a' = a + s ^. #cur in (s & #cur .~ a', (LineI, a') : p)
 toInfo s EndPath = (s, [(LineI, s ^. #start)])
-toInfo s (LineTo OriginAbsolute xs) = L.fold (L.Fold step (s,[]) (second reverse)) (fromV2 <$> xs)
+toInfo s (LineTo OriginAbsolute xs) = L.fold (L.Fold step (s, []) (second reverse)) (fromV2 <$> xs)
   where
-    step (s, p) a = (s & #cur .~ a, (LineI, a):p)
-toInfo s (LineTo OriginRelative xs) = L.fold (L.Fold step (s,[]) (second reverse)) (fromV2 <$> xs)
+    step (s, p) a = (s & #cur .~ a, (LineI, a) : p)
+toInfo s (LineTo OriginRelative xs) = L.fold (L.Fold step (s, []) (second reverse)) (fromV2 <$> xs)
   where
-    step (s, p) a = let a' = a + s ^. #cur in (s & #cur .~ a', (LineI, a'):p)
-toInfo s (HorizontalTo OriginAbsolute xs) = L.fold (L.Fold step (s,[]) (second reverse)) xs
+    step (s, p) a = let a' = a + s ^. #cur in (s & #cur .~ a', (LineI, a') : p)
+toInfo s (HorizontalTo OriginAbsolute xs) = L.fold (L.Fold step (s, []) (second reverse)) xs
   where
     step (s@(StateInfo (Point _ cy) _ _), p) a =
-      let a' = Point a cy in (s & #cur .~ a', (LineI, a'):p)
-toInfo s (HorizontalTo OriginRelative xs) = L.fold (L.Fold step (s,[]) (second reverse)) xs
+      let a' = Point a cy in (s & #cur .~ a', (LineI, a') : p)
+toInfo s (HorizontalTo OriginRelative xs) = L.fold (L.Fold step (s, []) (second reverse)) xs
   where
     step (s@(StateInfo (Point cx cy) _ _), p) a =
-      let a' = Point (a+cx) cy in (s & #cur .~ a', (LineI, a'):p)
-toInfo s (VerticalTo OriginAbsolute xs) = L.fold (L.Fold step (s,[]) (second reverse)) xs
+      let a' = Point (a + cx) cy in (s & #cur .~ a', (LineI, a') : p)
+toInfo s (VerticalTo OriginAbsolute xs) = L.fold (L.Fold step (s, []) (second reverse)) xs
   where
     step (s@(StateInfo (Point cx _) _ _), p) a =
-      let a' = Point cx a in (s & #cur .~ a', (LineI, a'):p)
-toInfo s (VerticalTo OriginRelative xs) = L.fold (L.Fold step (s,[]) (second reverse)) xs
+      let a' = Point cx a in (s & #cur .~ a', (LineI, a') : p)
+toInfo s (VerticalTo OriginRelative xs) = L.fold (L.Fold step (s, []) (second reverse)) xs
   where
     step (s@(StateInfo (Point cx cy) _ _), p) a =
-      let a' = Point cx (a+cy) in (s & #cur .~ a', (LineI, a'):p)
+      let a' = Point cx (a + cy) in (s & #cur .~ a', (LineI, a') : p)
 toInfo s (CurveTo OriginAbsolute xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
-    xs' = (\(c1,c2,x2) -> (fromV2 c1, fromV2 c2, fromV2 x2)) <$> xs
-    step (s, p) (c1,c2,x2) =
-          (s & #cur .~ x2 & #infoControl .~ c2, (CubicI c1 c2, x2):p)
+    xs' = (\(c1, c2, x2) -> (fromV2 c1, fromV2 c2, fromV2 x2)) <$> xs
+    step (s, p) (c1, c2, x2) =
+      (s & #cur .~ x2 & #infoControl .~ c2, (CubicI c1 c2, x2) : p)
 toInfo s (CurveTo OriginRelative xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
-    xs' = (\(c1,c2,x2) -> (fromV2 c1, fromV2 c2, fromV2 x2)) <$> xs
-    step (s, p) (c1,c2,x2) =
-          (s & #cur .~ (x2 + s ^. #cur) & #infoControl .~ (c2 + s ^. #cur), (CubicI (c1+ s ^. #cur) (c2 + s ^. #cur), x2 + s ^. #cur):p)
+    xs' = (\(c1, c2, x2) -> (fromV2 c1, fromV2 c2, fromV2 x2)) <$> xs
+    step (s, p) (c1, c2, x2) =
+      (s & #cur .~ (x2 + s ^. #cur) & #infoControl .~ (c2 + s ^. #cur), (CubicI (c1 + s ^. #cur) (c2 + s ^. #cur), x2 + s ^. #cur) : p)
 toInfo s (SmoothCurveTo OriginAbsolute xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
     xs' = bimap fromV2 fromV2 <$> xs
-    step (s, p) (c2,x2) =
-          (s & #cur .~ x2, (CubicI (s ^. #cur - (s ^. #infoControl - s^. #cur)) c2, x2):p)
+    step (s, p) (c2, x2) =
+      (s & #cur .~ x2, (CubicI (s ^. #cur - (s ^. #infoControl - s ^. #cur)) c2, x2) : p)
 toInfo s (SmoothCurveTo OriginRelative xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
     xs' = bimap fromV2 fromV2 <$> xs
-    step (s, p) (c2,x2) =
-          (s &
-           #cur .~ (x2 + s ^. #cur) &
-           #infoControl .~ (c2 + s ^. #cur),
-           (CubicI (s ^. #cur - (s ^. #infoControl - s^. #cur)) (c2 + s ^. #cur), x2 + s ^. #cur):p)
+    step (s, p) (c2, x2) =
+      ( s
+          & #cur .~ (x2 + s ^. #cur)
+          & #infoControl .~ (c2 + s ^. #cur),
+        (CubicI (s ^. #cur - (s ^. #infoControl - s ^. #cur)) (c2 + s ^. #cur), x2 + s ^. #cur) : p
+      )
 toInfo s (QuadraticBezier OriginAbsolute xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
     xs' = bimap fromV2 fromV2 <$> xs
     step (s, p) (c1, x2) =
-          (s &
-           #cur .~ x2 &
-           #infoControl .~ c1,
-           (QuadI c1, x2):p)
+      ( s
+          & #cur .~ x2
+          & #infoControl .~ c1,
+        (QuadI c1, x2) : p
+      )
 toInfo s (QuadraticBezier OriginRelative xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
     xs' = bimap fromV2 fromV2 <$> xs
-    step (s, p) (c1,x2) =
-          (s & #cur .~ x2 & #infoControl .~ (c1 + s ^. #cur), (QuadI (c1 + s ^. #cur), x2 + s ^. #cur):p)
+    step (s, p) (c1, x2) =
+      (s & #cur .~ x2 & #infoControl .~ (c1 + s ^. #cur), (QuadI (c1 + s ^. #cur), x2 + s ^. #cur) : p)
 toInfo s (SmoothQuadraticBezierCurveTo OriginAbsolute xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
     xs' = fromV2 <$> xs
     step (s, p) x2 =
-          (s &
-           #cur .~ x2 &
-           #infoControl .~ (s ^. #cur - (s ^. #infoControl - s ^. #cur)),
-           (QuadI (s ^. #cur - (s ^. #infoControl - s^. #cur)), x2):p)
+      ( s
+          & #cur .~ x2
+          & #infoControl .~ (s ^. #cur - (s ^. #infoControl - s ^. #cur)),
+        (QuadI (s ^. #cur - (s ^. #infoControl - s ^. #cur)), x2) : p
+      )
 toInfo s (SmoothQuadraticBezierCurveTo OriginRelative xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
     xs' = fromV2 <$> xs
     step (s, p) x2 =
-          (s &
-           #cur .~ (x2 + s ^. #cur) &
-           #infoControl .~ (s ^. #cur - (s ^. #infoControl - s ^. #cur)),
-           (QuadI (s ^. #cur - (s ^. #infoControl - s^. #cur)), x2 + s ^. #cur):p)
+      ( s
+          & #cur .~ (x2 + s ^. #cur)
+          & #infoControl .~ (s ^. #cur - (s ^. #infoControl - s ^. #cur)),
+        (QuadI (s ^. #cur - (s ^. #infoControl - s ^. #cur)), x2 + s ^. #cur) : p
+      )
 toInfo s (EllipticalArc OriginAbsolute xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
-    xs' = (\(x,y,r,l,sw,x2) -> (x,y,r,l,sw,fromV2 x2)) <$> xs
-    step (s, p) a@(_,_,_,_,_,x2) =
-          (s & #cur .~ x2, (fromPathEllipticalArc (s ^. #cur) a, x2):p)
+    xs' = (\(x, y, r, l, sw, x2) -> (x, y, r, l, sw, fromV2 x2)) <$> xs
+    step (s, p) a@(_, _, _, _, _, x2) =
+      (s & #cur .~ x2, (fromPathEllipticalArc (s ^. #cur) a, x2) : p)
 toInfo s (EllipticalArc OriginRelative xs) =
-  L.fold (L.Fold step (s,[]) (second reverse)) xs'
+  L.fold (L.Fold step (s, []) (second reverse)) xs'
   where
-    xs' = (\(x,y,r,l,sw,x2) -> (x,y,r,l,sw,fromV2 x2)) <$> xs
-    step (s, p) a@(_,_,_,_,_,x2) =
-      let x2' = x2 + s ^. #cur in
-          (s & #cur .~ x2', (fromPathEllipticalArc (s ^. #cur) a, x2'):p)
+    xs' = (\(x, y, r, l, sw, x2) -> (x, y, r, l, sw, fromV2 x2)) <$> xs
+    step (s, p) a@(_, _, _, _, _, x2) =
+      let x2' = x2 + s ^. #cur
+       in (s & #cur .~ x2', (fromPathEllipticalArc (s ^. #cur) a, x2') : p)
 
 fromPathEllipticalArc :: Point a -> (a, a, a, Bool, Bool, Point a) -> PathInfo a
 fromPathEllipticalArc _ (x, y, r, l, s, _) = ArcI (ArcInfo (Point x y) r l s)
 
 fromV2 :: (Subtractive a) => Linear.V2 a -> Point a
-fromV2 (Linear.V2 x y) = Point x (-y)
+fromV2 (Linear.V2 x y) = Point x (- y)
 
 -- | Convert from a path command list to a PathA specification
---
 toPathXYs :: [SvgTree.PathCommand] -> [(PathInfo Double, Point Double)]
 toPathXYs [] = []
 toPathXYs xs =
-  snd (foldl' (\(x,l) a -> second (l<>) $ toInfo x a) (stateInfo0,[]) xs)
+  snd (foldl' (\(x, l) a -> second (l <>) $ toInfo x a) (stateInfo0, []) xs)
 
 -- | convert cubic position to path info.
 singletonCubic :: CubicPosition Double -> [(PathInfo Double, Point Double)]
@@ -348,14 +356,13 @@ singletonPie' c (ArcPosition s e i) = [(StartI, c), (LineI, s), (ArcI i, e), (Li
 
 -- | convert path info to an ArcPosition.
 toSingletonArc :: [(PathInfo Double, Point Double)] -> Maybe (ArcPosition Double)
-toSingletonArc ((StartI, s):(ArcI i, e):_) = Just $ ArcPosition s e i
+toSingletonArc ((StartI, s) : (ArcI i, e) : _) = Just $ ArcPosition s e i
 toSingletonArc _ = Nothing
 
 -- * Arc types
+
 -- | Information about an individual arc path.
---
-data ArcInfo a =
-  ArcInfo
+data ArcInfo a = ArcInfo
   { -- | ellipse radii
     radii :: Point a,
     -- | rotation of the ellipse. positive means counter-clockwise (which is different to SVG).
@@ -363,22 +370,21 @@ data ArcInfo a =
     large :: Bool,
     -- | sweep means clockwise
     clockwise :: Bool
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 -- | Specification of an Arc using positional referencing as per SVG standard.
-data ArcPosition a =
-  ArcPosition
+data ArcPosition a = ArcPosition
   { posStart :: Point a,
     posEnd :: Point a,
     posInfo :: ArcInfo a
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 -- | Arc specification based on centroidal interpretation.
 --
 -- See: https://www.w3.org/TR/SVG/implnote.html#ArcConversionEndpointToCenter
---
-data ArcCentroid a =
-  ArcCentroid
+data ArcCentroid a = ArcCentroid
   { -- | ellipse center
     centroid :: Point a,
     -- | ellipse radii
@@ -389,7 +395,8 @@ data ArcCentroid a =
     ang0 :: a,
     -- | difference between ending point angle and starting point angle
     angdiff :: a
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 -- | convert from an ArcPosition spec to ArcCentroid spec.
 --
@@ -401,25 +408,27 @@ data ArcCentroid a =
 arcCentroid :: (FromInteger a, Ord a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi large clockwise)) = ArcCentroid c (Point rx ry) phi ang1 angd
   where
-    (Point x1' y1') = rotateP (-phi) ((p1 - p2) /. two)
+    (Point x1' y1') = rotateP (- phi) ((p1 - p2) /. two)
     (Point rx' ry') = rad
-    l = x1'**2/rx'**2 + y1'**2/ry'**2
-    (rx,ry) = bool (rx',ry') (rx'*sqrt l, ry'*sqrt l) (l > 1)
-    snumer = max 0 $ (rx*rx*ry*ry) - (rx*rx*y1'*y1') - (ry*ry*x1'*x1')
-    s = bool -1 1 (large == clockwise) * sqrt
-      (snumer / (rx*rx*y1'*y1' + ry*ry*x1'*x1'))
-    cx' = s *  rx * y1' / ry
-    cy' = s * (-ry) * x1' / rx
+    l = x1' ** 2 / rx' ** 2 + y1' ** 2 / ry' ** 2
+    (rx, ry) = bool (rx', ry') (rx' * sqrt l, ry' * sqrt l) (l > 1)
+    snumer = max 0 $ (rx * rx * ry * ry) - (rx * rx * y1' * y1') - (ry * ry * x1' * x1')
+    s =
+      bool -1 1 (large == clockwise)
+        * sqrt
+          (snumer / (rx * rx * y1' * y1' + ry * ry * x1' * x1'))
+    cx' = s * rx * y1' / ry
+    cy' = s * (- ry) * x1' / rx
     cx = (x1 + x2) / 2 + cos phi * cx' - sin phi * cy'
     cy = (y1 + y2) / 2 + sin phi * cx' + cos phi * cy'
     c = Point cx cy
-    ang1 = angle (Point (-(cx'-x1')/rx) (-(cy'-y1')/ry))
-    ang2 = angle (Point (-(cx'+x1')/rx) (-(cy'+y1')/ry))
+    ang1 = angle (Point (- (cx' - x1') / rx) (- (cy' - y1') / ry))
+    ang2 = angle (Point (- (cx' + x1') / rx) (- (cy' + y1') / ry))
     angd' = ang2 - ang1
     angd =
-      bool 0 (2*pi) (not clockwise && angd'<0) +
-      bool 0 (-2*pi) (clockwise && angd'>0) +
-      angd'
+      bool 0 (2 * pi) (not clockwise && angd' < 0)
+        + bool 0 (-2 * pi) (clockwise && angd' > 0)
+        + angd'
 
 -- | convert from an ArcCentroid to an ArcPosition specification.
 --
@@ -431,13 +440,12 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi larg
 -- - angle diff is pi and large is True
 --
 -- - radii are less than they should be and thus get scaled up.
---
 arcPosition :: (Ord a, Signed a, TrigField a) => ArcCentroid a -> ArcPosition a
 arcPosition (ArcCentroid c r phi ang1 angd) =
   ArcPosition p1 p2 (ArcInfo r phi large clockwise)
   where
     p1 = ellipse c r phi ang1
-    p2 = ellipse c r phi (ang1+angd)
+    p2 = ellipse c r phi (ang1 + angd)
     large = abs angd > pi
     clockwise = angd < zero
 
@@ -455,7 +463,6 @@ arcPosition (ArcCentroid c r phi ang1 angd) =
 -- > c + (rotate phi |. (r * ray theta))
 --
 -- See also: [wolfram](https://mathworld.wolfram.com/Ellipse.html)
---
 ellipse :: (Direction b a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
 ellipse c r phi theta = c + (rotate phi |. (r * ray theta))
 
@@ -468,21 +475,22 @@ arcBox :: ArcPosition Double -> Rect Double
 arcBox p = space1 pts
   where
     (ArcCentroid c r phi ang0 angd) = arcCentroid p
-    (x',y') = arcDerivs r phi
+    (x', y') = arcDerivs r phi
     angr = ang0 ... (ang0 + angd) :: Range Double
     angs =
-      filter (|.| angr)
-      [ x',
-        x' - 2 * pi,
-        x'+pi,
-        x'-pi,
-        y',
-        y' - 2 * pi,
-        y'+pi,
-        y'-pi,
-        ang0,
-        ang0+angd
-      ]
+      filter
+        (|.| angr)
+        [ x',
+          x' - 2 * pi,
+          x' + pi,
+          x' - pi,
+          y',
+          y' - 2 * pi,
+          y' + pi,
+          y' - pi,
+          ang0,
+          ang0 + angd
+        ]
     pts = ellipse c r phi <$> angs
 
 -- | potential arc turning points.
@@ -492,32 +500,32 @@ arcBox p = space1 pts
 arcDerivs :: Point Double -> Double -> (Double, Double)
 arcDerivs (Point rx ry) phi = (thetax1, thetay1)
   where
-    thetax1 = atan2 (-sin phi * ry) (cos phi * rx)
+    thetax1 = atan2 (- sin phi * ry) (cos phi * rx)
     thetay1 = atan2 (cos phi * ry) (sin phi * rx)
 
 -- * bezier
+
 -- | Quadratic bezier curve expressed in positional terms.
---
-data QuadPosition a =
-  QuadPosition
+data QuadPosition a = QuadPosition
   { -- | starting point
     qposStart :: Point a,
     -- | ending point
     qposEnd :: Point a,
     -- | control point
     qposControl :: Point a
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 -- | Quadratic bezier curve with control point expressed in polar terms normalised to the start - end line.
-data QuadPolar a =
-  QuadPolar
+data QuadPolar a = QuadPolar
   { -- | starting point
     qpolStart :: Point a,
     -- | ending point
     qpolEnd :: Point a,
     -- | control point in terms of distance from and angle to the qp0 - qp2 line
     qpolControl :: Polar a a
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
@@ -547,20 +555,20 @@ quadPosition (QuadPolar start end control) = QuadPosition start end control'
 -- Point 0.9999999933333332 -0.33333333333333326
 quadBezier :: (ExpField a, FromInteger a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start end control) theta =
-  (1 - theta)^2 .* start +
-  2 * (1-theta) * theta .* control +
-  theta^2 .* end
+  (1 - theta) ^ 2 .* start
+    + 2 * (1 - theta) * theta .* control
+    + theta ^ 2 .* end
 
 -- | QuadPosition turning points.
 --
 -- >>> quadDerivs (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
 -- [0.6666666666666666,0.3333333333333333]
 quadDerivs :: QuadPosition Double -> [Double]
-quadDerivs (QuadPosition start end control) = [x',y']
+quadDerivs (QuadPosition start end control) = [x', y']
   where
     (Point detx dety) = start - 2 .* control + end
-    x' = bool ((_x start - _x control)/detx) (2 * (_x control - _x start)) (detx==0)
-    y' = bool ((_y start - _y control)/dety) (2 * (_y control - _y start)) (dety==0)
+    x' = bool ((_x start - _x control) / detx) (2 * (_x control - _x start)) (detx == 0)
+    y' = bool ((_y start - _y control) / dety) (2 * (_y control - _y start)) (dety == 0)
 
 -- | Bounding box for a QuadPosition
 --
@@ -570,13 +578,12 @@ quadBox :: QuadPosition Double -> Rect Double
 quadBox p = space1 pts
   where
     ts = quadDerivs p
-    pts = quadBezier p <$> ([0,1] <> ts)
+    pts = quadBezier p <$> ([0, 1] <> ts)
 
 -- | cubic bezier curve
 --
 -- Note that the ordering is different to the svg standard.
-data CubicPosition a =
-  CubicPosition
+data CubicPosition a = CubicPosition
   { -- | starting point
     cposStart :: Point a,
     -- | ending point
@@ -585,11 +592,11 @@ data CubicPosition a =
     cposControl1 :: Point a,
     -- | control point 2
     cposControl2 :: Point a
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 -- | A polar representation of a cubic bezier with control points expressed as polar and normalised to the start - end line.
-data CubicPolar a =
-  CubicPolar
+data CubicPolar a = CubicPolar
   { -- | starting point
     cpolStart :: Point a,
     -- | ending point
@@ -598,7 +605,8 @@ data CubicPolar a =
     cpolControl1 :: Polar a a,
     -- | control point in terms of distance from and angle to the start end line
     cpolControl2 :: Polar a a
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
@@ -633,46 +641,50 @@ cubicPosition (CubicPolar start end control1 control2) = CubicPosition start end
 -- Point 0.6767766952966369 1.2071067811865475
 cubicBezier :: (ExpField a, FromInteger a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start end control1 control2) theta =
-  (1 - theta)^3 .* start +
-  3 * (1-theta)^2 * theta .* control1 +
-  3 * (1-theta) * theta^2 .* control2 +
-  theta^3 .* end
+  (1 - theta) ^ 3 .* start
+    + 3 * (1 - theta) ^ 2 * theta .* control1
+    + 3 * (1 - theta) * theta ^ 2 .* control2
+    + theta ^ 3 .* end
 
 -- | Turning point positions for a CubicPosition (0,1 or 2)
 --
 -- >>> cubicDerivs (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 -- [0.8535533905932737,0.14644660940672624,0.5]
 cubicDerivs :: CubicPosition Double -> [Double]
-cubicDerivs (CubicPosition (Point c0x c0y) (Point c3x c3y)
-             (Point c1x c1y) (Point c2x c2y)) =
-  B.bezierHoriz b <> B.bezierVert b
-  where
-    b =
-      B.CubicBezier
-      (B.Point c0x c0y)
-      (B.Point c1x c1y)
-      (B.Point c2x c2y)
-      (B.Point c3x c3y)
+cubicDerivs
+  ( CubicPosition
+      (Point c0x c0y)
+      (Point c3x c3y)
+      (Point c1x c1y)
+      (Point c2x c2y)
+    ) =
+    B.bezierHoriz b <> B.bezierVert b
+    where
+      b =
+        B.CubicBezier
+          (B.Point c0x c0y)
+          (B.Point c1x c1y)
+          (B.Point c2x c2y)
+          (B.Point c3x c3y)
 
 -- | Bounding box for a CubicPosition
 --
 -- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 -- Rect 0.0 1.0 -0.20710678118654752 1.2071067811865475
---
 cubicBox :: CubicPosition Double -> Rect Double
 cubicBox p = space1 pts
   where
     ts = cubicDerivs p
-    pts = cubicBezier p <$>
-          filter
+    pts =
+      cubicBezier p
+        <$> filter
           (|.| Range 0 1)
-          ([0,1] <> ts)
+          ([0, 1] <> ts)
 
 -- | Bounding box for a list of path XYs.
---
 pathBoxes :: [(PathInfo Double, Point Double)] -> Maybe (Rect Double)
 pathBoxes [] = Nothing
-pathBoxes (x:xs) =
+pathBoxes (x : xs) =
   L.fold (L.Fold step begin (Just . snd)) xs
   where
     begin :: (Point Double, Rect Double)
@@ -684,7 +696,6 @@ pathBoxes (x:xs) =
     step (start, r) a = (snd a, pathBox start a <> r)
 
 -- | Bounding box for a path info, start and end Points.
---
 pathBox :: Point Double -> (PathInfo Double, Point Double) -> Rect Double
 pathBox start (info, end) =
   case info of

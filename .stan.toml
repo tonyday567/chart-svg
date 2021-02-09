@@ -1,0 +1,40 @@
+[[check]]
+type = "Exclude"
+id = "STAN-0302"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0101"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0208"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0214"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0005"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0006"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0012"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0103"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0013"
+scope = "all"
+[[check]]
+type = "Exclude"
+id = "STAN-0213"
+scope = "all"

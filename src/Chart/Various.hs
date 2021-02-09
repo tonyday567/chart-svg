@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
@@ -36,7 +35,6 @@ where
 import Chart
 import Control.Lens
 import qualified Data.HashMap.Strict as HashMap
-import Data.List ((!!))
 import Data.Time (UTCTime (..))
 import NumHask.Prelude hiding (fold)
 import NumHask.Space
@@ -89,7 +87,7 @@ stdLineChart w p xss =
 
 -- | Can of the main palette
 stdLines :: Double -> [LineStyle]
-stdLines w = (\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> palette1
+stdLines w = (\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> palette1_
 
 -- | Legend template for a line chart.
 lineLegend :: Double -> [Text] -> [Colour] -> (LegendOptions, [(Annotation, Text)])
@@ -97,7 +95,7 @@ lineLegend w rs cs =
   ( defaultLegendOptions
       & #ltext . #size .~ 0.3
       & #lplace .~ PlaceBottom
-      & #legendFrame .~ Just (RectStyle 0.02 (palette1 !! 5) (palette1 !! 4)),
+      & #legendFrame .~ Just (RectStyle 0.02 (palette1 5) (palette1 4)),
     zipWith
       (\a r -> (LineA a, r))
       ((\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> cs)
@@ -129,7 +127,7 @@ titlesHud t x y =
 
 -- | GlyphStyle palette
 gpaletteStyle :: Double -> [GlyphStyle]
-gpaletteStyle s = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ c & #shape .~ fst g & #borderSize .~ snd g) palette1 gpalette
+gpaletteStyle s = zipWith (\c g -> defaultGlyphStyle & #size .~ s & #color .~ c & #shape .~ fst g & #borderSize .~ snd g) palette1_ gpalette
 
 -- | Glyph palette
 gpalette :: [(GlyphShape, Double)]
@@ -154,9 +152,9 @@ quantileChart ::
   [LineStyle] ->
   [AxisOptions] ->
   [[Double]] ->
-  (HudOptions, [Chart Double])
+  ChartSvg
 quantileChart title names ls as xs =
-  (hudOptions, chart')
+  mempty & #hudOptions .~ hudOptions & #chartList .~ chart'
   where
     hudOptions =
       defaultHudOptions
@@ -194,9 +192,9 @@ digitChart ::
   Text ->
   [UTCTime] ->
   [Double] ->
-  (HudOptions, [Chart Double])
+  ChartSvg
 digitChart title utcs xs =
-  (hudOptions, [c])
+  mempty & #hudOptions .~ hudOptions & #chartList .~ [c]
   where
     hudOptions =
       defaultHudOptions
@@ -226,10 +224,10 @@ histChart ::
   Range Double ->
   Int ->
   [Double] ->
-  (HudOptions, [Chart Double])
+  ChartSvg
 histChart title names r g xs =
   barChart defaultBarOptions barData
-    & first (#hudTitles .~ [defaultTitle title])
+    & (#hudOptions . #hudTitles .~ [defaultTitle title])
   where
     barData = BarData [hr] names Nothing
     hcuts = grid OuterPos r g
@@ -246,8 +244,9 @@ quantileHistChart ::
   [Double] ->
   -- | quantile values
   [Double] ->
-  (HudOptions, [Chart Double])
-quantileHistChart title names qs vs = (hudOptions, [chart'])
+  ChartSvg
+quantileHistChart title names qs vs =
+  mempty & #hudOptions .~ hudOptions & #chartList .~ [chart']
   where
     hudOptions =
       defaultHudOptions
@@ -321,4 +320,3 @@ makeTitles (t, xt, yt) =
 -- | Chart for double list of Text.
 tableChart :: [[Text]] -> [Chart Double]
 tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (P x <$> take (length ts) [0 ..])) tss [0 ..]
-

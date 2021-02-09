@@ -1,3 +1,14 @@
+0.2.2
+===
+
+* Changed api for palette
+
+0.2.1
+===
+
+* Changed api for reanimate hooks.
+* Rationalised default options.
+
 0.2.0
 =====
 
