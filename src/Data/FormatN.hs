@@ -27,10 +27,12 @@ module Data.FormatN
     comma,
     expt,
     dollar,
+    percent,
     formatN,
     precision,
     formatNs,
     showOr,
+    roundSig,
   )
 where
 
@@ -44,6 +46,7 @@ import Data.Bifunctor
 import GHC.Generics hiding (prec)
 import Data.Foldable
 import Data.Bool
+import Prelude
 
 -- $setup
 --

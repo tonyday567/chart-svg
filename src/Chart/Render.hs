@@ -51,6 +51,10 @@ import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
 import Data.Text (Text, pack, unpack)
 
+-- $setup
+-- >>> import Control.Lens
+-- >>> import Chart
+
 -- | Specification of a chart for rendering to SVG
 data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
@@ -162,7 +166,7 @@ renderHudChart so hs cs = renderChartsWith so (runHud (initialCanvas (so ^. #cha
 -- | Render a chart using the supplied svg and hud config.
 --
 -- >>> chartSvg mempty
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"300.0\" viewBox=\"-0.52 -0.52 1.04 1.04\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"></svg>"
+-- "<svg height=\"300.0\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-0.52 -0.52 1.04 1.04\"></svg>"
 chartSvg :: ChartSvg -> Text
 chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> hs') (cs <> cs')
   where

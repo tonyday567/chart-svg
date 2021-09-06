@@ -15,6 +15,7 @@ module Chart.Bar
     barRange,
     bars,
     barChart,
+    barRects,
   )
 where
 
@@ -41,6 +42,7 @@ import GHC.OverloadedLabels
 -- >>> :set -XOverloadedStrings
 -- >>> import Chart
 -- >>> import Control.Lens
+-- >>> import Data.Text (pack)
 
 -- | Typical bar chart options.
 --

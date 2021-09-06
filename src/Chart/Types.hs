@@ -167,7 +167,9 @@ import NumHask.Prelude
 --
 -- >>> :set -XOverloadedLabels
 -- >>> import Control.Lens
+-- >>> import Chart
 -- >>> import Chart.Render
+-- >>> import Data.Colour
 
 -- * Chart
 
@@ -289,6 +291,7 @@ border s c = RectStyle s c transparent
 -- >>> defaultTextStyle
 -- TextStyle {size = 8.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing}
 --
+-- >>> import qualified Data.Text as Text
 -- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
 --
 -- ![text example](other/text.svg)
@@ -1633,6 +1636,7 @@ styleBoxesS xss = padBox $ foldRect $ catMaybes (styleBox <$> xss)
 
 -- | additively pad a [Chart]
 --
+-- >>> import NumHask.Prelude (one)
 -- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [RectXY one]]
 -- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = [R -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, xys = [R -0.605 0.605 -0.605 0.605]}]
 padChart :: Double -> [Chart Double] -> [Chart Double]

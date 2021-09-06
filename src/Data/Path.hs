@@ -70,7 +70,13 @@ import Data.Bifunctor
 import NumHask.Prelude
 
 -- $setup
+-- FIXME:
+-- :set -XRebindableSyntax gets timed out by cabal-docspec here, but NoImplicitPrelude works.
+-- >>> :set -XNoImplicitPrelude
+-- >>> :set -XNegativeLiterals
 -- >>> import Chart
+-- >>> import NumHask.Prelude
+--
 
 -- $path
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.

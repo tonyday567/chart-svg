@@ -44,6 +44,10 @@ import Data.Text (Text, pack)
 import GHC.OverloadedLabels
 import NumHask.Prelude hiding (lines)
 
+-- $setup
+-- >>> import Chart
+-- >>> import Control.Lens
+
 -- | unit example
 --
 -- ![unit example](other/unit.svg)
