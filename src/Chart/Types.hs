@@ -6,11 +6,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -149,16 +149,23 @@ import Data.Generics.Labels ()
 import Data.Path
 import qualified Data.Text as Text
 import Data.Time
-import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
 import Text.HTML.TagSoup hiding (Attribute)
-import qualified Prelude as P
+import GHC.OverloadedLabels
+import Data.String
+import Data.Text (Text, pack)
+import Control.Monad.State.Lazy
+import Data.List.NonEmpty (NonEmpty (..))
+import Data.Bifunctor
+import GHC.Generics
+import Data.Maybe
+import Data.Foldable hiding (sum)
+import Data.Bool
+import NumHask.Prelude
 
 -- $setup
 --
 -- >>> :set -XOverloadedLabels
--- >>> :set -XNoImplicitPrelude
--- >>> -- import NumHask.Prelude
 -- >>> import Control.Lens
 -- >>> import Chart.Render
 
@@ -411,7 +418,7 @@ toLineJoin _ = LineJoinMiter
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> Text
-fromDashArray xs = Text.intercalate " " $ show <$> xs
+fromDashArray xs = Text.intercalate " " $ (pack . show) <$> xs
 
 -- | line style
 --
@@ -470,8 +477,8 @@ toOrientation "Vert" = Vert
 toOrientation _ = Hori
 
 -- | additive padding
-padRect :: (Num a) => a -> Rect a -> Rect a
-padRect p (Rect x z y w) = Rect (x P.- p) (z P.+ p) (y P.- p) (w P.+ p)
+padRect :: (Subtractive a) => a -> Rect a -> Rect a
+padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
 
 -- |
 data CssOptions = UseGeometricPrecision | UseCssCrisp | NoCssOptions deriving (Show, Eq, Generic)

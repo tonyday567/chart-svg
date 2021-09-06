@@ -1,10 +1,10 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE NegativeLiterals #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
@@ -62,13 +62,14 @@ import Graphics.SvgTree (Origin (..), PathCommand (..))
 import qualified Graphics.SvgTree as SvgTree
 import Graphics.SvgTree.PathParser
 import qualified Linear
-import NumHask.Prelude hiding (rotate)
 import NumHask.Space
+import Data.Text (Text, pack)
+import GHC.Generics
+import GHC.OverloadedLabels
+import Data.Bifunctor
+import NumHask.Prelude
 
 -- $setup
--- >>> :set -XRebindableSyntax
--- >>> :set -XNegativeLiterals
--- >>> import NumHask.Prelude
 -- >>> import Chart
 
 -- $path
@@ -149,11 +150,11 @@ toPathAbsolute (QuadI control, next) =
     <> pp next
 toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2) =
   "A "
-    <> show x
+    <> (pack $ show x)
     <> " "
-    <> show y
+    <> (pack $ show y)
     <> " "
-    <> show (- phi' * 180 / pi)
+    <> (pack $ show (- phi' * 180 / pi))
     <> " "
     <> bool "0" "1" l
     <> " "
@@ -531,7 +532,7 @@ data QuadPolar a = QuadPolar
 --
 -- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
 -- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {magnitude = 2.1213203435596424, direction = -0.7853981633974483}}
-quadPolar :: (ExpField a, TrigField a) => QuadPosition a -> QuadPolar a
+quadPolar :: (Eq a, ExpField a, TrigField a) => QuadPosition a -> QuadPolar a
 quadPolar (QuadPosition start end control) = QuadPolar start end control'
   where
     mp = (start + end) /. two
@@ -615,7 +616,7 @@ data CubicPolar a = CubicPolar
 --
 -- >>> cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 -- CubicPolar {cpolStart = Point 0.0 0.0, cpolEnd = Point 1.0 1.0, cpolControl1 = Polar {magnitude = 1.1180339887498947, direction = -1.2490457723982544}, cpolControl2 = Polar {magnitude = 1.1180339887498947, direction = 1.8925468811915387}}
-cubicPolar :: (ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
+cubicPolar :: (Eq a, ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
 cubicPolar (CubicPosition start end control1 control2) = CubicPolar start end control1' control2'
   where
     mp = (start + end) /. two
@@ -629,7 +630,7 @@ cubicPolar (CubicPosition start end control1 control2) = CubicPolar start end co
 --
 -- >>> cubicPosition $ cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 -- CubicPosition {cposStart = Point 0.0 0.0, cposEnd = Point 1.0 1.0, cposControl1 = Point 1.0 -1.0, cposControl2 = Point 1.6653345369377348e-16 2.0}
-cubicPosition :: (ExpField a, TrigField a) => CubicPolar a -> CubicPosition a
+cubicPosition :: (Eq a, ExpField a, TrigField a) => CubicPolar a -> CubicPosition a
 cubicPosition (CubicPolar start end control1 control2) = CubicPosition start end control1' control2'
   where
     control1' = norm (end - start) .* coord control1 + (start + end) /. two

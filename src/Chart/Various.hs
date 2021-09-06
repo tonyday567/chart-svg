@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 -- | Various common chart patterns.
@@ -36,8 +35,12 @@ import Chart
 import Control.Lens
 import qualified Data.HashMap.Strict as HashMap
 import Data.Time (UTCTime (..))
-import NumHask.Prelude hiding (fold)
 import NumHask.Space
+import Data.Text (Text)
+import Data.Bifunctor
+import Data.Maybe
+import Data.Foldable
+import NumHask.Prelude (one)
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 xify :: [Double] -> [Point Double]

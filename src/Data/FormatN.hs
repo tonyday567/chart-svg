@@ -8,7 +8,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
@@ -39,12 +38,15 @@ import Data.Containers.ListUtils (nubOrd)
 import Data.Generics.Labels ()
 import Data.Scientific
 import qualified Data.Text as Text
-import NumHask.Prelude
+import Data.Text (Text, pack)
+import Data.String
+import Data.Bifunctor
+import GHC.Generics hiding (prec)
+import Data.Foldable
+import Data.Bool
 
 -- $setup
 --
--- >>> :set -XNoImplicitPrelude
--- >>> -- import NumHask.Prelude
 
 -- | Number formatting options.
 --
@@ -171,7 +173,7 @@ comma n x
   | x < 0 = "-" <> comma n (- x)
   | x < 1000 || x > 1e6 = prec n x
   | otherwise = case n of
-    Nothing -> addcomma (show x)
+    Nothing -> addcomma (pack $ show x)
     Just _ -> addcomma (prec n x)
   where
     addcomma :: Text -> Text
@@ -232,7 +234,7 @@ formatNs FormatNone xs = pack . show <$> xs
 
 -- | Format with the shorter of show and formatN.
 showOr :: FormatN -> Double -> Text
-showOr f x = bool (bool f' s' (Text.length s' < Text.length f')) "0" (x < 1e-6 && x > -1e-6)
+showOr f x = bool (bool f' (pack s') (Text.length (pack s') < Text.length f')) "0" (x < 1e-6 && x > -1e-6)
   where
     f' = formatN f x
     s' = show x

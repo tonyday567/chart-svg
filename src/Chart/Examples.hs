@@ -40,6 +40,8 @@ where
 import Chart
 import Control.Lens
 import qualified Data.Text as Text
+import Data.Text (Text, pack)
+import GHC.OverloadedLabels
 import NumHask.Prelude hiding (lines)
 
 -- | unit example
@@ -650,4 +652,4 @@ writeAllExamples = do
   writeChartSvg "other/cubic.svg" cubicExample
   writeChartSvg "other/arrow.svg" arrowExample
 
-  putStrLn ("ok" :: Text)
+  putStrLn "ok"

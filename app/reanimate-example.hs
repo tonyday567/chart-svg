@@ -2,10 +2,8 @@
 -- stack runghc --package reanimate
 
 {-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 
 -- | reanimate example
 --
@@ -20,8 +18,8 @@ import Chart
 import Chart.Examples
 import Chart.Reanimate
 import Control.Lens hiding (transform)
-import NumHask.Prelude hiding (fold)
 import Reanimate as Re
+import Data.Foldable
 
 main :: IO ()
 main =

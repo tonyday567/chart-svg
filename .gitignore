@@ -9,3 +9,4 @@ dist-newstyle
 /.hie/
 /app/.reanimate/
 /app/reanimate-example.mp4
+/cabal.project.local*

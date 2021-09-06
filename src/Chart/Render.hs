@@ -49,6 +49,7 @@ import Lucid.Base
 import qualified Lucid.Base as Lucid
 import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
+import Data.Text (Text, pack, unpack)
 
 -- | Specification of a chart for rendering to SVG
 data ChartSvg = ChartSvg
@@ -85,9 +86,9 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
             <> mconcat (svg <$> cs)
         )
     )
-    [ width_ (show w'),
-      height_ (show h'),
-      makeAttribute "viewBox" (show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
+    [ width_ (pack $ show w'),
+      height_ (pack $ show h'),
+      makeAttribute "viewBox" (pack $ show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
 
 cssText :: CssOptions -> Html ()
@@ -188,7 +189,7 @@ chartSvgHud cs =
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()
 writeChartSvg fp cs =
-  writeFile fp (chartSvg cs)
+  writeFile fp (unpack $ chartSvg cs)
 
 -- | Write a chart to a file with default svg options and no hud.
 writeChartSvgDefault :: FilePath -> [Chart Double] -> IO ()
@@ -209,10 +210,10 @@ svgRect :: Rect Double -> Lucid.Html ()
 svgRect (Rect x z y w) =
   terms
     "rect"
-    [ width_ (show $ z - x),
-      height_ (show $ w - y),
-      term "x" (show x),
-      term "y" (show $ - w)
+    [ width_ (pack $ show $ z - x),
+      height_ (pack $ show $ w - y),
+      term "x" (pack $ show x),
+      term "y" (pack $ show $ - w)
     ]
 
 -- | Text svg
@@ -220,8 +221,8 @@ svgText :: TextStyle -> Text -> Point Double -> Lucid.Html ()
 svgText s t p@(Point x y) =
   term
     "text"
-    ( [ term "x" (show x),
-        term "y" (show $ - y)
+    ( [ term "x" (pack $ show x),
+        term "y" (pack $ show $ - y)
       ]
         <> maybe [] (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
     )
@@ -232,16 +233,16 @@ svgLine :: [Point Double] -> Lucid.Html ()
 svgLine [] = mempty
 svgLine xs = terms "polyline" [term "points" (toPointsText xs)]
   where
-    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> show x <> "," <> show (- y)) <$> xs'
+    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> (pack $ show x <> "," <> show (- y))) <$> xs'
 
 -- | GlyphShape to svg Tree
 svgShape :: GlyphShape -> Double -> Point Double -> Lucid.Html ()
 svgShape CircleGlyph s (Point x y) =
   terms
     "circle"
-    [ term "cx" (show x),
-      term "cy" (show $ - y),
-      term "r" (show $ 0.5 * s)
+    [ term "cx" (pack $ show x),
+      term "cy" (pack $ show $ - y),
+      term "r" (pack $ show $ 0.5 * s)
     ]
 svgShape SquareGlyph s p =
   svgRect (move p ((s *) <$> one))
@@ -250,12 +251,12 @@ svgShape (RectSharpGlyph x') s p =
 svgShape (RectRoundedGlyph x' rx ry) s p =
   terms
     "rect"
-    [ term "width" (show $ z - x),
-      term "height" (show $ w - y),
-      term "x" (show x),
-      term "y" (show $ - w),
-      term "rx" (show rx),
-      term "ry" (show ry)
+    [ term "width" (pack $ show $ z - x),
+      term "height" (pack $ show $ w - y),
+      term "x" (pack $ show x),
+      term "y" (pack $ show $ - w),
+      term "rx" (pack $ show rx),
+      term "ry" (pack $ show ry)
     ]
   where
     (Rect x z y w) = move p (NH.scale (Point s (x' * s)) one)
@@ -263,20 +264,20 @@ svgShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   terms
     "polygon"
     [ term "transform" (toTranslateText p),
-      term "points" (show (s * xa) <> "," <> show (- (s * ya)) <> " " <> show (s * xb) <> "," <> show (- (s * yb)) <> " " <> show (s * xc) <> "," <> show (- (s * yc)))
+      term "points" (pack $ show (s * xa) <> "," <> show (- (s * ya)) <> " " <> show (s * xb) <> "," <> show (- (s * yb)) <> " " <> show (s * xc) <> "," <> show (- (s * yc)))
     ]
 svgShape (EllipseGlyph x') s (Point x y) =
   terms
     "ellipse"
-    [ term "cx" (show x),
-      term "cy" (show $ - y),
-      term "rx" (show $ 0.5 * s),
-      term "ry" (show $ 0.5 * s * x')
+    [ term "cx" ((pack . show) x),
+      term "cy" ((pack . show) $ - y),
+      term "rx" ((pack . show) $ 0.5 * s),
+      term "ry" ((pack . show) $ 0.5 * s * x')
     ]
 svgShape (VLineGlyph _) s (Point x y) =
-  terms "polyline" [term "points" (show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
+  terms "polyline" [term "points" (pack $ show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
 svgShape (HLineGlyph _) s (Point x y) =
-  terms "polyline" [term "points" (show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
+  terms "polyline" [term "points" (pack $ show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
 svgShape (PathGlyph path) s p =
   terms "path" [term "d" path, term "transform" (toTranslateText p <> " " <> toScaleText s)]
 
@@ -325,11 +326,11 @@ terms t = with $ makeXmlElementNoEnd t
 -- | RectStyle to Attributes
 attsRect :: RectStyle -> [Lucid.Attribute]
 attsRect o =
-  [ term "stroke-width" (show $ o ^. #borderSize),
+  [ term "stroke-width" (pack $ show $ o ^. #borderSize),
     term "stroke" (hex $ o ^. #borderColor),
-    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
+    term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
     term "fill" (hex $ o ^. #color),
-    term "fill-opacity" (show $ opac $ o ^. #color)
+    term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
 
 -- | TextStyle to Attributes
@@ -338,8 +339,8 @@ attsText o =
   [ term "stroke-width" "0.0",
     term "stroke" "none",
     term "fill" (toHex $ o ^. #color),
-    term "fill-opacity" (show $ opac $ o ^. #color),
-    term "font-size" (show $ o ^. #size),
+    term "fill-opacity" (pack $ show $ opac $ o ^. #color),
+    term "font-size" (pack $ show $ o ^. #size),
     term "text-anchor" (toTextAnchor $ o ^. #anchor)
   ]
   where
@@ -351,40 +352,40 @@ attsText o =
 -- | GlyphStyle to Attributes
 attsGlyph :: GlyphStyle -> [Lucid.Attribute]
 attsGlyph o =
-  [ term "stroke-width" (show $ o ^. #borderSize),
+  [ term "stroke-width" (pack $ show $ o ^. #borderSize),
     term "stroke" (toHex $ o ^. #borderColor),
-    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
+    term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
     term "fill" (toHex $ o ^. #color),
-    term "fill-opacity" (show $ opac $ o ^. #color)
+    term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
     <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
 
 -- | LineStyle to Attributes
 attsLine :: LineStyle -> [Lucid.Attribute]
 attsLine o =
-  [ term "stroke-width" (show $ o ^. #width),
+  [ term "stroke-width" (pack $ show $ o ^. #width),
     term "stroke" (toHex $ o ^. #color),
-    term "stroke-opacity" (show $ opac $ o ^. #color),
+    term "stroke-opacity" (pack $ show $ opac $ o ^. #color),
     term "fill" "none"
   ]
     <> maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap)
     <> maybe [] (\x -> [term "stroke-linejoin" (fromLineJoin x)]) (o ^. #linejoin)
     <> maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray)
-    <> maybe [] (\x -> [term "stroke-dashoffset" (show x)]) (o ^. #dashoffset)
+    <> maybe [] (\x -> [term "stroke-dashoffset" (pack $ show x)]) (o ^. #dashoffset)
 
 -- | PathStyle to Attributes
 attsPath :: PathStyle -> [Lucid.Attribute]
 attsPath o =
-  [ term "stroke-width" (show $ o ^. #borderSize),
+  [ term "stroke-width" (pack $ show $ o ^. #borderSize),
     term "stroke" (hex $ o ^. #borderColor),
-    term "stroke-opacity" (show $ opac $ o ^. #borderColor),
+    term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
     term "fill" (hex $ o ^. #color),
-    term "fill-opacity" (show $ opac $ o ^. #color)
+    term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
 
 -- | includes a flip of the y dimension.
 toTranslateText :: Point Double -> Text
-toTranslateText (Point x y) =
+toTranslateText (Point x y) = pack $
   "translate(" <> show x <> ", " <> show (- y) <> ")"
 
 -- | includes reference changes:
@@ -395,9 +396,9 @@ toTranslateText (Point x y) =
 --
 -- - flip y dimension
 toRotateText :: Double -> Point Double -> Text
-toRotateText r (Point x y) =
+toRotateText r (Point x y) = pack $
   "rotate(" <> show (- r * 180 / pi) <> ", " <> show x <> ", " <> show (- y) <> ")"
 
 toScaleText :: Double -> Text
-toScaleText x =
+toScaleText x = pack $
   "scale(" <> show x <> ")"

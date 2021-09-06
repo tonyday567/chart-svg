@@ -43,8 +43,10 @@ import Data.Generics.Labels ()
 import qualified Data.List as List
 import qualified Data.Text as Text
 import Graphics.Color.Model
-import NumHask.Prelude as NHP
-import qualified Prelude as P
+import Data.Text (Text, pack)
+import Data.Bifunctor
+import Data.Char
+import GHC.Generics hiding (prec)
 
 -- | Wrapper for 'Color'.
 newtype Colour = Colour'
@@ -104,7 +106,7 @@ blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
 blends :: Double -> [Colour] -> Colour
 blends _ [] = light
 blends _ [c] = c
-blends x cs = blend r (cs P.!! i) (cs P.!! (i + 1))
+blends x cs = blend r (cs List.!! i) (cs List.!! (i + 1))
   where
     l = length cs - 1
     x' = x * fromIntegral l
@@ -138,7 +140,7 @@ toHex c =
     <> Text.justifyRight 2 '0' (hex' g)
     <> Text.justifyRight 2 '0' (hex' b)
   where
-    (ColorRGBA r g b _) = toIntegral . toWord8 <$> color' c
+    (ColorRGBA r g b _) = fromIntegral . toWord8 <$> color' c
 
 -- |
 hex' :: Int -> Text
@@ -153,8 +155,8 @@ hex' i
 -- |
 hexDigit :: Int -> Text
 hexDigit n
-  | n <= 9 = Text.singleton P.$! i2d n
-  | otherwise = Text.singleton P.$! toEnum (n + 87)
+  | n <= 9 = Text.singleton $! i2d n
+  | otherwise = Text.singleton $! toEnum (n + 87)
 
 -- |
 i2d :: Int -> Char

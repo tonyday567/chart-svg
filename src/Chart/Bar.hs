@@ -2,8 +2,8 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | bar charts
@@ -25,15 +25,20 @@ import Data.Colour
 import Data.FormatN
 import Data.Generics.Labels ()
 import qualified Data.List.NonEmpty as NonEmpty
-import NumHask.Prelude
 import NumHask.Space
+import Data.Text (Text, pack)
+import Data.Bifunctor
+import Data.List (transpose, scanl')
+import GHC.Generics
+import Data.Bool
+import Data.Maybe
+import NumHask.Prelude
+import GHC.OverloadedLabels
 
 -- $setup
 --
 -- >>> :set -XOverloadedLabels
 -- >>> :set -XOverloadedStrings
--- >>> :set -XNoImplicitPrelude
--- >>> import NumHask.Prelude
 -- >>> import Chart
 -- >>> import Control.Lens
 

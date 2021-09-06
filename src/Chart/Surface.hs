@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Surface chart combinators.
@@ -29,8 +29,12 @@ import Control.Lens
 import Data.Colour
 import Data.FormatN
 import Data.Generics.Labels ()
-import NumHask.Prelude
 import NumHask.Space
+import Data.Text (Text)
+import Data.Bifunctor
+import GHC.Generics
+import NumHask.Prelude
+import GHC.OverloadedLabels
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions

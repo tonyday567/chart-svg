@@ -6,7 +6,7 @@ module Chart
   ( -- * Usage
 
     --
-    -- $setup
+    -- $usage
 
     -- * Overview
 
@@ -155,14 +155,9 @@ import NumHask.Space
 
 -- $setup
 --
--- >>> import Chart
---
--- chart-svg works well with "NumHask.Prelude" and "Control.Lens" but neither are necessary.
---
 -- >>> :set -XOverloadedLabels
--- >>> :set -XNoImplicitPrelude
+-- >>> import Chart
 -- >>> import Control.Lens
--- >>> import NumHask.Prelude
 
 -- $overview
 --
