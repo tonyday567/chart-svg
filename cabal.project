@@ -6,6 +6,4 @@ write-ghc-environment-files: always
 -- Might be helpful when hackage doesn't build properly...
 keep-going: True
 
-allow-newer:
-  websockets:attoparsec,
-  cassava:attoparsec
+allow-newer: attoparsec
