@@ -39,8 +39,8 @@ where
 
 import Chart
 import Control.Lens
-import qualified Data.Text as Text
 import Data.Text (Text, pack)
+import qualified Data.Text as Text
 import GHC.OverloadedLabels
 import NumHask.Prelude hiding (lines)
 
@@ -83,8 +83,8 @@ rectExample =
 
 rss :: [[Rect Double]]
 rss =
-  [ gridR (\x -> exp (- (x ** 2) / 2)) (Range -5 5) 50,
-    gridR (\x -> 0.5 * exp (- (x ** 2) / 8)) (Range -5 5) 50
+  [ gridR (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50,
+    gridR (\x -> 0.5 * exp (-(x ** 2) / 8)) (Range -5 5) 50
   ]
 
 ropts :: [RectStyle]
@@ -331,7 +331,7 @@ compoundExample = lglyphExample <> glinesExample
 labelExample :: ChartSvg
 labelExample =
   mempty & #chartList
-    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ - pi / 4) ["text at (1,1) rotated by -(pi/4) radians"]) [PointXY (Point 1.0 1.0)]]
+    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ -pi / 4) ["text at (1,1) rotated by -(pi/4) radians"]) [PointXY (Point 1.0 1.0)]]
 
 -- | legend test
 --
@@ -416,7 +416,7 @@ pathExample =
         (LineI, Point 1 0),
         (CubicI (Point 0.2 0) (Point 0.25 1), Point 1 1),
         (QuadI (Point -1 2), Point 0 1),
-        (ArcI (ArcInfo (Point 1 1) (- pi / 6) False False), Point 0 0)
+        (ArcI (ArcInfo (Point 1 1) (-pi / 6) False False), Point 0 0)
       ]
     path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (PointXY . snd <$> ps)
     c0 = Chart (GlyphA defaultGlyphStyle) (PointXY . snd <$> ps)

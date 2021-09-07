@@ -42,6 +42,7 @@ import Control.Lens hiding (transform)
 import Data.Colour
 import Data.Generics.Labels ()
 import Data.Path
+import Data.Text (Text, pack, unpack)
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Lazy
 import Lucid
@@ -49,7 +50,6 @@ import Lucid.Base
 import qualified Lucid.Base as Lucid
 import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
-import Data.Text (Text, pack, unpack)
 
 -- $setup
 -- >>> import Control.Lens
@@ -92,7 +92,7 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
     )
     [ width_ (pack $ show w'),
       height_ (pack $ show h'),
-      makeAttribute "viewBox" (pack $ show x <> " " <> show (- w) <> " " <> show (z - x) <> " " <> show (w - y))
+      makeAttribute "viewBox" (pack $ show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
 
 cssText :: CssOptions -> Html ()
@@ -217,7 +217,7 @@ svgRect (Rect x z y w) =
     [ width_ (pack $ show $ z - x),
       height_ (pack $ show $ w - y),
       term "x" (pack $ show x),
-      term "y" (pack $ show $ - w)
+      term "y" (pack $ show $ -w)
     ]
 
 -- | Text svg
@@ -226,7 +226,7 @@ svgText s t p@(Point x y) =
   term
     "text"
     ( [ term "x" (pack $ show x),
-        term "y" (pack $ show $ - y)
+        term "y" (pack $ show $ -y)
       ]
         <> foldMap (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
     )
@@ -237,7 +237,7 @@ svgLine :: [Point Double] -> Lucid.Html ()
 svgLine [] = mempty
 svgLine xs = terms "polyline" [term "points" (toPointsText xs)]
   where
-    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (- y))) <$> xs'
+    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs'
 
 -- | GlyphShape to svg Tree
 svgShape :: GlyphShape -> Double -> Point Double -> Lucid.Html ()
@@ -245,7 +245,7 @@ svgShape CircleGlyph s (Point x y) =
   terms
     "circle"
     [ term "cx" (pack $ show x),
-      term "cy" (pack $ show $ - y),
+      term "cy" (pack $ show $ -y),
       term "r" (pack $ show $ 0.5 * s)
     ]
 svgShape SquareGlyph s p =
@@ -258,7 +258,7 @@ svgShape (RectRoundedGlyph x' rx ry) s p =
     [ term "width" (pack $ show $ z - x),
       term "height" (pack $ show $ w - y),
       term "x" (pack $ show x),
-      term "y" (pack $ show $ - w),
+      term "y" (pack $ show $ -w),
       term "rx" (pack $ show rx),
       term "ry" (pack $ show ry)
     ]
@@ -268,20 +268,20 @@ svgShape (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   terms
     "polygon"
     [ term "transform" (toTranslateText p),
-      term "points" (pack $ show (s * xa) <> "," <> show (- (s * ya)) <> " " <> show (s * xb) <> "," <> show (- (s * yb)) <> " " <> show (s * xc) <> "," <> show (- (s * yc)))
+      term "points" (pack $ show (s * xa) <> "," <> show (-(s * ya)) <> " " <> show (s * xb) <> "," <> show (-(s * yb)) <> " " <> show (s * xc) <> "," <> show (-(s * yc)))
     ]
 svgShape (EllipseGlyph x') s (Point x y) =
   terms
     "ellipse"
     [ term "cx" ((pack . show) x),
-      term "cy" ((pack . show) $ - y),
+      term "cy" ((pack . show) $ -y),
       term "rx" ((pack . show) $ 0.5 * s),
       term "ry" ((pack . show) $ 0.5 * s * x')
     ]
 svgShape (VLineGlyph _) s (Point x y) =
-  terms "polyline" [term "points" (pack $ show x <> "," <> show (- (y - s / 2)) <> "\n" <> show x <> "," <> show (- (y + s / 2)))]
+  terms "polyline" [term "points" (pack $ show x <> "," <> show (-(y - s / 2)) <> "\n" <> show x <> "," <> show (-(y + s / 2)))]
 svgShape (HLineGlyph _) s (Point x y) =
-  terms "polyline" [term "points" (pack $ show (x - s / 2) <> "," <> show (- y) <> "\n" <> show (x + s / 2) <> "," <> show (- y))]
+  terms "polyline" [term "points" (pack $ show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]
 svgShape (PathGlyph path) s p =
   terms "path" [term "d" path, term "transform" (toTranslateText p <> " " <> toScaleText s)]
 
@@ -389,8 +389,9 @@ attsPath o =
 
 -- | includes a flip of the y dimension.
 toTranslateText :: Point Double -> Text
-toTranslateText (Point x y) = pack $
-  "translate(" <> show x <> ", " <> show (- y) <> ")"
+toTranslateText (Point x y) =
+  pack $
+    "translate(" <> show x <> ", " <> show (-y) <> ")"
 
 -- | includes reference changes:
 --
@@ -400,9 +401,11 @@ toTranslateText (Point x y) = pack $
 --
 -- - flip y dimension
 toRotateText :: Double -> Point Double -> Text
-toRotateText r (Point x y) = pack $
-  "rotate(" <> show (- r * 180 / pi) <> ", " <> show x <> ", " <> show (- y) <> ")"
+toRotateText r (Point x y) =
+  pack $
+    "rotate(" <> show (-r * 180 / pi) <> ", " <> show x <> ", " <> show (-y) <> ")"
 
 toScaleText :: Double -> Text
-toScaleText x = pack $
-  "scale(" <> show x <> ")"
+toScaleText x =
+  pack $
+    "scale(" <> show x <> ")"

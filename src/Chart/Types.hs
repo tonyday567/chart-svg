@@ -6,11 +6,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -143,25 +143,25 @@ module Chart.Types
 where
 
 import Control.Lens
+import Control.Monad.State.Lazy
+import Data.Bifunctor
+import Data.Bool
 import Data.Colour
+import Data.Foldable hiding (sum)
 import Data.FormatN
 import Data.Generics.Labels ()
+import Data.List.NonEmpty (NonEmpty (..))
+import Data.Maybe
 import Data.Path
-import qualified Data.Text as Text
-import Data.Time
-import NumHask.Space as NH hiding (Element)
-import Text.HTML.TagSoup hiding (Attribute)
-import GHC.OverloadedLabels
 import Data.String
 import Data.Text (Text, pack)
-import Control.Monad.State.Lazy
-import Data.List.NonEmpty (NonEmpty (..))
-import Data.Bifunctor
+import qualified Data.Text as Text
+import Data.Time
 import GHC.Generics
-import Data.Maybe
-import Data.Foldable hiding (sum)
-import Data.Bool
+import GHC.OverloadedLabels
 import NumHask.Prelude
+import NumHask.Space as NH hiding (Element)
+import Text.HTML.TagSoup hiding (Attribute)
 
 -- $setup
 --
@@ -1045,7 +1045,7 @@ title_ t a =
       | otherwise = t ^. #style
     rot
       | t ^. #place == PlaceRight = pi / 2
-      | t ^. #place == PlaceLeft = - pi / 2
+      | t ^. #place == PlaceLeft = -pi / 2
       | otherwise = 0
     placePos' (Rect x z y w) = case t ^. #place of
       PlaceTop -> Point ((x + z) / 2.0) (w + (t ^. #buff))
@@ -1072,10 +1072,10 @@ title_ t a =
         Point 0.0 ((w - y) / 2.0)
       | t ^. #anchor == AnchorEnd
           && t ^. #place `elem` [PlaceTop, PlaceBottom] =
-        Point ((- x + z) / 2.0) 0.0
+        Point ((-x + z) / 2.0) 0.0
       | t ^. #anchor == AnchorEnd
           && t ^. #place == PlaceLeft =
-        Point 0.0 ((- y + w) / 2.0)
+        Point 0.0 ((-y + w) / 2.0)
       | t ^. #anchor == AnchorEnd
           && t ^. #place == PlaceRight =
         Point 0.0 ((y - w) / 2.0)
@@ -1106,10 +1106,10 @@ placeRot pl = case pl of
 textPos :: Place -> TextStyle -> Double -> Point Double
 textPos pl tt b = case pl of
   PlaceTop -> Point 0 b
-  PlaceBottom -> Point 0 (- b - 0.5 * (tt ^. #vsize) * (tt ^. #size))
+  PlaceBottom -> Point 0 (-b - 0.5 * (tt ^. #vsize) * (tt ^. #size))
   PlaceLeft ->
     Point
-      (- b)
+      (-b)
       ((tt ^. #nudge1) * (tt ^. #vsize) * (tt ^. #size))
   PlaceRight ->
     Point
@@ -1584,7 +1584,7 @@ styleBoxText ::
   Rect Double
 styleBoxText o t p = move p $ maybe flat (`rotationBound` flat) (o ^. #rotation)
   where
-    flat = Rect ((- x' / 2.0) + x' * a') (x' / 2 + x' * a') ((- y' / 2) - n1') (y' / 2 - n1')
+    flat = Rect ((-x' / 2.0) + x' * a') (x' / 2 + x' * a') ((-y' / 2) - n1') (y' / 2 - n1')
     s = o ^. #size
     h = o ^. #hsize
     v = o ^. #vsize

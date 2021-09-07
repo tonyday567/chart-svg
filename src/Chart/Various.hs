@@ -33,14 +33,14 @@ where
 
 import Chart
 import Control.Lens
-import qualified Data.HashMap.Strict as HashMap
-import Data.Time (UTCTime (..))
-import NumHask.Space
-import Data.Text (Text)
 import Data.Bifunctor
-import Data.Maybe
 import Data.Foldable
+import qualified Data.HashMap.Strict as HashMap
+import Data.Maybe
+import Data.Text (Text)
+import Data.Time (UTCTime (..))
 import NumHask.Prelude (one)
+import NumHask.Space
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 xify :: [Double] -> [Point Double]

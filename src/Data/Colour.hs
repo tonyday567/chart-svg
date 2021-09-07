@@ -38,16 +38,16 @@ module Data.Colour
 where
 
 import qualified Data.Attoparsec.Text as A
+import Data.Bifunctor
+import Data.Char
+import Data.Either
 import Data.FormatN
 import Data.Generics.Labels ()
 import qualified Data.List as List
-import qualified Data.Text as Text
-import Graphics.Color.Model
 import Data.Text (Text, pack)
-import Data.Bifunctor
-import Data.Char
+import qualified Data.Text as Text
 import GHC.Generics hiding (prec)
-import Data.Either
+import Graphics.Color.Model
 
 -- | Wrapper for 'Color'.
 newtype Colour = Colour'
@@ -146,7 +146,7 @@ toHex c =
 -- |
 hex' :: Int -> Text
 hex' i
-  | i < 0 = "-" <> go (- i)
+  | i < 0 = "-" <> go (-i)
   | otherwise = go i
   where
     go n

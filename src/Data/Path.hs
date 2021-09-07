@@ -1,10 +1,10 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
@@ -54,21 +54,21 @@ where
 import qualified Control.Foldl as L
 import Control.Lens hiding ((...))
 import qualified Data.Attoparsec.Text as A
+import Data.Bifunctor
+import Data.Either
 import Data.FormatN
 import Data.Generics.Labels ()
+import Data.Text (Text, pack)
 import qualified Data.Text as Text
+import GHC.Generics
+import GHC.OverloadedLabels
 import qualified Geom2D.CubicBezier as B
 import Graphics.SvgTree (Origin (..), PathCommand (..))
 import qualified Graphics.SvgTree as SvgTree
 import Graphics.SvgTree.PathParser
 import qualified Linear
-import NumHask.Space
-import Data.Text (Text, pack)
-import GHC.Generics
-import GHC.OverloadedLabels
-import Data.Bifunctor
 import NumHask.Prelude
-import Data.Either
+import NumHask.Space
 
 -- $setup
 -- FIXME:
@@ -77,7 +77,6 @@ import Data.Either
 -- >>> :set -XNegativeLiterals
 -- >>> import Chart
 -- >>> import NumHask.Prelude
---
 
 -- $path
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -161,7 +160,7 @@ toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2) =
     <> " "
     <> (pack . show) y
     <> " "
-    <> (pack . show) (- phi' * 180 / pi)
+    <> (pack . show) (-phi' * 180 / pi)
     <> " "
     <> bool "0" "1" l
     <> " "
@@ -173,7 +172,7 @@ toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2) =
 pp :: Point Double -> Text
 pp (Point x y) =
   showOr (FormatFixed (Just 4)) x <> ","
-    <> showOr (FormatFixed (Just 4)) (bool (- y) y (y == zero))
+    <> showOr (FormatFixed (Just 4)) (bool (-y) y (y == zero))
 
 -- | convert an (info, point) list to an svg d path text.
 toPathAbsolutes :: [(PathInfo Double, Point Double)] -> Text
@@ -331,7 +330,7 @@ fromPathEllipticalArc :: Point a -> (a, a, a, Bool, Bool, Point a) -> PathInfo a
 fromPathEllipticalArc _ (x, y, r, l, s, _) = ArcI (ArcInfo (Point x y) r l s)
 
 fromV2 :: (Subtractive a) => Linear.V2 a -> Point a
-fromV2 (Linear.V2 x y) = Point x (- y)
+fromV2 (Linear.V2 x y) = Point x (-y)
 
 -- | Convert from a path command list to a PathA specification
 toPathXYs :: [SvgTree.PathCommand] -> [(PathInfo Double, Point Double)]
@@ -416,7 +415,7 @@ data ArcCentroid a = ArcCentroid
 arcCentroid :: (FromInteger a, Ord a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi large clockwise)) = ArcCentroid c (Point rx ry) phi ang1 angd
   where
-    (Point x1' y1') = rotateP (- phi) ((p1 - p2) /. two)
+    (Point x1' y1') = rotateP (-phi) ((p1 - p2) /. two)
     (Point rx' ry') = rad
     l = x1' ** 2 / rx' ** 2 + y1' ** 2 / ry' ** 2
     (rx, ry) = bool (rx', ry') (rx' * sqrt l, ry' * sqrt l) (l > 1)
@@ -426,12 +425,12 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi larg
         * sqrt
           (snumer / (rx * rx * y1' * y1' + ry * ry * x1' * x1'))
     cx' = s * rx * y1' / ry
-    cy' = s * (- ry) * x1' / rx
+    cy' = s * (-ry) * x1' / rx
     cx = (x1 + x2) / 2 + cos phi * cx' - sin phi * cy'
     cy = (y1 + y2) / 2 + sin phi * cx' + cos phi * cy'
     c = Point cx cy
-    ang1 = angle (Point (- (cx' - x1') / rx) (- (cy' - y1') / ry))
-    ang2 = angle (Point (- (cx' + x1') / rx) (- (cy' + y1') / ry))
+    ang1 = angle (Point (-(cx' - x1') / rx) (-(cy' - y1') / ry))
+    ang2 = angle (Point (-(cx' + x1') / rx) (-(cy' + y1') / ry))
     angd' = ang2 - ang1
     angd =
       bool 0 (2 * pi) (not clockwise && angd' < 0)
@@ -508,7 +507,7 @@ arcBox p = space1 pts
 arcDerivs :: Point Double -> Double -> (Double, Double)
 arcDerivs (Point rx ry) phi = (thetax1, thetay1)
   where
-    thetax1 = atan2 (- sin phi * ry) (cos phi * rx)
+    thetax1 = atan2 (-sin phi * ry) (cos phi * rx)
     thetay1 = atan2 (cos phi * ry) (sin phi * rx)
 
 -- * bezier

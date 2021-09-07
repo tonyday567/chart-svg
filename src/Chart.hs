@@ -198,7 +198,6 @@ import NumHask.Space
 -- > writeChartSvg "other/line.svg" lineExample
 --
 -- ![lines example](other/line.svg)
---
 
 -- $hud
 --
@@ -217,4 +216,3 @@ import NumHask.Space
 -- This process is encapsulated in 'runHud'.
 --
 -- An important quality of 'runHud' (and conversion of charts to svg in general)is that this is the point at which the 'XY's of the chart are converted from the data domain to the page domain. Once the hud and the chart has been integrated there is no going back and the original data is forgotten. This is an opinionated aspect of chart-svg. A counter-example is d3 which stores the raw data in the svg element it represents.
---

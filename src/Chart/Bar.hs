@@ -19,22 +19,22 @@ module Chart.Bar
   )
 where
 
-import Chart.Types
 import Chart.Render
+import Chart.Types
 import Control.Lens
+import Data.Bifunctor
+import Data.Bool
 import Data.Colour
 import Data.FormatN
 import Data.Generics.Labels ()
+import Data.List (scanl', transpose)
 import qualified Data.List.NonEmpty as NonEmpty
-import NumHask.Space
-import Data.Text (Text, pack)
-import Data.Bifunctor
-import Data.List (transpose, scanl')
-import GHC.Generics
-import Data.Bool
 import Data.Maybe
-import NumHask.Prelude
+import Data.Text (Text, pack)
+import GHC.Generics
 import GHC.OverloadedLabels
+import NumHask.Prelude
+import NumHask.Space
 
 -- $setup
 --
@@ -217,11 +217,11 @@ barLegend bd bo
 -- By convention only, the first axis (if any) is the bar axis.
 barChart :: BarOptions -> BarData -> ChartSvg
 barChart bo bd =
-  mempty &
-  #hudOptions .~ bo ^. #barHudOptions &
-  #hudOptions . #hudLegend %~ fmap (second (const (barLegend bd bo))) &
-  #hudOptions . #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo) &
-  #chartList .~ bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
+  mempty
+    & #hudOptions .~ bo ^. #barHudOptions
+    & #hudOptions . #hudLegend %~ fmap (second (const (barLegend bd bo)))
+    & #hudOptions . #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo)
+    & #chartList .~ bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
 
 flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
 flipAllAxes o = fmap (bool id flipAxis (o == Vert))

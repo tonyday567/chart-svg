@@ -20,14 +20,14 @@ import Chart as C hiding (Line, renderChartsWith, transform)
 import Codec.Picture.Types
 import Control.Lens hiding (transform)
 import qualified Data.Attoparsec.Text as A
+import Data.Maybe
+import Data.Text (Text, unpack)
+import GHC.Generics
 import Graphics.SvgTree as Svg hiding (Text)
 import qualified Graphics.SvgTree.PathParser as Svg
 import Linear.V2
-import Reanimate as Re
-import Data.Text (Text, unpack)
-import GHC.Generics
 import NumHask.Prelude (one)
-import Data.Maybe
+import Reanimate as Re
 
 -- | global reanimate configuration.
 --
@@ -106,7 +106,7 @@ reCss UseGeometricPrecision = Svg.cssApply (Svg.cssRulesOfText "* { shape-render
 
 withViewBox' :: (Double, Double, Double, Double) -> Svg.PreserveAspectRatio -> Tree -> Tree
 withViewBox' vbox par child =
-  Re.translate (- screenWidth / 2) (- screenHeight / 2) $
+  Re.translate (-screenWidth / 2) (-screenHeight / 2) $
     svgTree
       Document
         { _documentViewBox = Just vbox,
@@ -147,9 +147,9 @@ treeShape (TriangleGlyph (C.Point xa ya) (C.Point xb yb) (C.Point xc yc)) s p =
     $ (drawAttributes %~ translateDA p) defaultSvg
   where
     rps =
-      [ V2 (s * xa) (- s * ya),
-        V2 (s * xb) (- s * yb),
-        V2 (s * xc) (- s * yc)
+      [ V2 (s * xa) (-s * ya),
+        V2 (s * xb) (-s * yb),
+        V2 (s * xc) (-s * yc)
       ]
 treeShape (EllipseGlyph x') s p =
   EllipseTree $
@@ -161,7 +161,7 @@ treeShape (EllipseGlyph x') s p =
 treeShape (VLineGlyph x') s (C.Point x y) =
   LineTree $
     Line
-      (mempty & strokeWidth .~  Just (Num x'))
+      (mempty & strokeWidth .~ Just (Num x'))
       (pointSvg (C.Point x (y - s / 2)))
       (pointSvg (C.Point x (y + s / 2)))
 treeShape (HLineGlyph x') s (C.Point x y) =
@@ -189,7 +189,7 @@ treeGlyph s p =
 treeLine :: [C.Point Double] -> Tree
 treeLine xs =
   PolyLineTree
-    . (polyLinePoints .~ ((\(C.Point x y) -> V2 x (- y)) <$> xs))
+    . (polyLinePoints .~ ((\(C.Point x y) -> V2 x (-y)) <$> xs))
     $ defaultSvg
 
 -- | GlyphStyle to svg Tree
@@ -201,7 +201,7 @@ treePath s p =
       ( zipWith
           (curry toPathCommand)
           s
-          (fmap (\(C.Point x y) -> C.Point x (- y)) p)
+          (fmap (\(C.Point x y) -> C.Point x (-y)) p)
       )
 
 -- | convert a 'Chart' to a 'Tree'
@@ -260,7 +260,7 @@ daGlyph o =
     & (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor))
     & (fillColor .~ Just (ColorRef (toPixelRGBA8 $ o ^. #color)))
     & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
-    & maybe id (\(C.Point x y) -> transform ?~ [Translate x (- y)]) (o ^. #translate)
+    & maybe id (\(C.Point x y) -> transform ?~ [Translate x (-y)]) (o ^. #translate)
 
 daLine :: LineStyle -> DrawAttributes
 daLine o =
@@ -301,8 +301,7 @@ daPath o =
   mempty
     & (strokeWidth .~ Just (Num (o ^. #borderSize)))
     & ( strokeColor
-          .~
-            Just (ColorRef (toPixelRGBA8 $ o ^. #borderColor))
+          .~ Just (ColorRef (toPixelRGBA8 $ o ^. #borderColor))
       )
     & (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor))
     & (fillColor .~ Just (ColorRef (toPixelRGBA8 $ o ^. #color)))
@@ -322,19 +321,19 @@ toPixelRGBA8 (Colour r g b o) =
 -- | convert a point to the svg co-ordinate system
 -- The svg coordinate system has the y-axis going from top to bottom.
 pointSvg :: C.Point Double -> (Svg.Number, Svg.Number)
-pointSvg (C.Point x y) = (Num x, Num (- y))
+pointSvg (C.Point x y) = (Num x, Num (-y))
 
 -- | A DrawAttributes to rotate around a point by x degrees.
 rotatePDA :: (HasDrawAttributes s) => Double -> C.Point Double -> s -> s
 rotatePDA a (C.Point x y) s = s & transform %~ (Just . maybe r (<> r))
   where
-    r = [Rotate (- a * 180 / pi) (Just (x, - y))]
+    r = [Rotate (-a * 180 / pi) (Just (x, -y))]
 
 -- | A DrawAttributes to translate by a Point.
 translateDA :: (HasDrawAttributes s) => C.Point Double -> s -> s
 translateDA (C.Point x' y') =
   transform
-    %~ (\x -> Just $ maybe [Translate x' (- y')] (<> [Translate x' (- y')]) x)
+    %~ (\x -> Just $ maybe [Translate x' (-y')] (<> [Translate x' (-y')]) x)
 
 -- | A DrawAttributes to translate by a Point.
 scaleDA :: (HasDrawAttributes s) => C.Point Double -> s -> s
@@ -345,7 +344,7 @@ scaleDA (C.Point x' y') =
 -- | convert a Rect to the svg co-ordinate system
 rectSvg :: Rect Double -> Svg.Rectangle -> Svg.Rectangle
 rectSvg (Rect x z y w) =
-  (rectUpperLeftCorner .~ (Num x, Num (- w)))
+  (rectUpperLeftCorner .~ (Num x, Num (-w)))
     . (rectWidth .~ Just (Num (z - x)))
     . (rectHeight .~ Just (Num (w - y)))
 

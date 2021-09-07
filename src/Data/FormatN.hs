@@ -36,20 +36,19 @@ module Data.FormatN
   )
 where
 
+import Data.Bifunctor
+import Data.Bool
 import Data.Containers.ListUtils (nubOrd)
+import Data.Foldable
 import Data.Generics.Labels ()
 import Data.Scientific
-import qualified Data.Text as Text
-import Data.Text (Text, pack)
 import Data.String
-import Data.Bifunctor
+import Data.Text (Text, pack)
+import qualified Data.Text as Text
 import GHC.Generics hiding (prec)
-import Data.Foldable
-import Data.Bool
 import Prelude
 
 -- $setup
---
 
 -- | Number formatting options.
 --
@@ -144,7 +143,7 @@ roundSig n x = scientific r' (e - length ds0)
 -- "1.2e6"
 prec :: Maybe Int -> Double -> Text
 prec n x
-  | x < 0 = "-" <> prec n (- x)
+  | x < 0 = "-" <> prec n (-x)
   | x == 0 = decimal n (toRealFloat x')
   | x < 0.001 = expt n x
   | x > 1e6 = expt n x
@@ -173,7 +172,7 @@ decimal n x = x''
 -- "1,230"
 comma :: Maybe Int -> Double -> Text
 comma n x
-  | x < 0 = "-" <> comma n (- x)
+  | x < 0 = "-" <> comma n (-x)
   | x < 1000 || x > 1e6 = prec n x
   | otherwise = case n of
     Nothing -> addcomma (pack $ show x)
@@ -191,7 +190,7 @@ comma n x
 -- "$0.0123"
 dollar :: Maybe Int -> Double -> Text
 dollar n x
-  | x < 0 = "-" <> dollar n (- x)
+  | x < 0 = "-" <> dollar n (-x)
   | otherwise = "$" <> comma n x
 
 -- | fixed percent, always decimal notation

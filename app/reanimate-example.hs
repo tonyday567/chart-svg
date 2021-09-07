@@ -18,8 +18,8 @@ import Chart
 import Chart.Examples
 import Chart.Reanimate
 import Control.Lens hiding (transform)
-import Reanimate as Re
 import Data.Foldable
+import Reanimate as Re
 
 main :: IO ()
 main =

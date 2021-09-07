@@ -26,15 +26,15 @@ where
 
 import Chart.Types
 import Control.Lens
+import Data.Bifunctor
 import Data.Colour
 import Data.FormatN
 import Data.Generics.Labels ()
-import NumHask.Space
 import Data.Text (Text)
-import Data.Bifunctor
 import GHC.Generics
-import NumHask.Prelude
 import GHC.OverloadedLabels
+import NumHask.Prelude
+import NumHask.Space
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
