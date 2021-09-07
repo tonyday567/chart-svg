@@ -7,5 +7,5 @@ write-ghc-environment-files: always
 keep-going: True
 
 allow-newer:
-  websockets:attoparsec
+  websockets:attoparsec,
   cassava:attoparsec
