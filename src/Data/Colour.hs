@@ -47,6 +47,7 @@ import Data.Text (Text, pack)
 import Data.Bifunctor
 import Data.Char
 import GHC.Generics hiding (prec)
+import Data.Either
 
 -- | Wrapper for 'Color'.
 newtype Colour = Colour'
@@ -130,7 +131,7 @@ fromHex = first pack . A.parseOnly parseHex
 
 -- |
 unsafeFromHex :: Text -> Color RGB Double
-unsafeFromHex t = either (const (ColorRGB 0 0 0)) id $ A.parseOnly parseHex t
+unsafeFromHex t = fromRight (ColorRGB 0 0 0) $ A.parseOnly parseHex t
 
 -- | convert from 'Colour' to #xxxxxx
 toHex :: Colour -> Text

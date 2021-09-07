@@ -68,6 +68,7 @@ import GHC.Generics
 import GHC.OverloadedLabels
 import Data.Bifunctor
 import NumHask.Prelude
+import Data.Either
 
 -- $setup
 -- FIXME:
@@ -95,7 +96,7 @@ import NumHask.Prelude
 --
 -- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 parsePath :: Text -> [PathCommand]
-parsePath t = either (const []) id $ A.parseOnly pathParser t
+parsePath t = fromRight [] $ A.parseOnly pathParser t
 
 -- | To fit in with the requirements of the library design, specifically the separation of what a chart is into XY data Points from representation of these points, path instructions need to be decontructed into:
 --
@@ -156,11 +157,11 @@ toPathAbsolute (QuadI control, next) =
     <> pp next
 toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2) =
   "A "
-    <> (pack $ show x)
+    <> (pack . show) x
     <> " "
-    <> (pack $ show y)
+    <> (pack . show) y
     <> " "
-    <> (pack $ show (- phi' * 180 / pi))
+    <> (pack . show) (- phi' * 180 / pi)
     <> " "
     <> bool "0" "1" l
     <> " "

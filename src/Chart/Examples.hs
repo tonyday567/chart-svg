@@ -153,8 +153,7 @@ exampleLineHudOptions t1 t2 legends' =
       .~ ( [ defaultTitle t1
                & #style . #size .~ 0.08
            ]
-             <> maybe
-               []
+             <> foldMap
                ( \x ->
                    [ defaultTitle x
                        & #style . #size .~ 0.05

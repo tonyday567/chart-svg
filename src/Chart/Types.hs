@@ -421,7 +421,7 @@ toLineJoin _ = LineJoinMiter
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> Text
-fromDashArray xs = Text.intercalate " " $ (pack . show) <$> xs
+fromDashArray xs = Text.intercalate " " $ pack . show <$> xs
 
 -- | line style
 --
@@ -913,7 +913,7 @@ makeHud xs cfg =
   ([axes] <> can <> titles <> l, xsext)
   where
     xs' = padBox (Just xs)
-    can = maybe [] (\x -> [canvas x]) (cfg ^. #hudCanvas)
+    can = foldMap (\x -> [canvas x]) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
     ticks =
       (\a -> freezeTicks (a ^. #place) xs' (a ^. #axisTick . #tstyle))
@@ -924,7 +924,7 @@ makeHud xs cfg =
         (cfg ^. #hudAxes)
         ticks
     tickRects = catMaybes (snd <$> ticks)
-    xsext = bool [Chart BlankA (RectXY <$> tickRects)] [] (tickRects == [])
+    xsext = bool [Chart BlankA (RectXY <$> tickRects)] [] (null tickRects)
     axes =
       foldr simulHud mempty $
         ( \x ->
@@ -933,8 +933,7 @@ makeHud xs cfg =
         )
           <$> hudaxes
     l =
-      maybe
-        []
+      foldMap
         (\(lo, ats) -> [legendHud lo (legendChart ats lo)])
         (cfg ^. #hudLegend)
 

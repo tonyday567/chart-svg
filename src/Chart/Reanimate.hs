@@ -56,11 +56,11 @@ globalAtts cfg =
   mempty
     & maybe
       id
-      (\x -> fontFamily .~  (Just (fmap unpack x)))
+      (\x -> fontFamily .~ Just (fmap unpack x))
       (view #globalFontFamily cfg)
       . maybe
         id
-        (\x -> fontStyle .~  (Just x))
+        (\x -> fontStyle .~ Just x)
         (view #globalFontStyle cfg)
 
 -- | The output of the raw translation of ChartSvg to a reanimate svg tree.
@@ -161,13 +161,13 @@ treeShape (EllipseGlyph x') s p =
 treeShape (VLineGlyph x') s (C.Point x y) =
   LineTree $
     Line
-      (mempty & strokeWidth .~  (Just (Num x')))
+      (mempty & strokeWidth .~  Just (Num x'))
       (pointSvg (C.Point x (y - s / 2)))
       (pointSvg (C.Point x (y + s / 2)))
 treeShape (HLineGlyph x') s (C.Point x y) =
   LineTree $
     Line
-      (mempty & strokeWidth .~  (Just (Num x')))
+      (mempty & strokeWidth .~ Just (Num x'))
       (pointSvg (C.Point (x - s / 2) y))
       (pointSvg (C.Point (x + s / 2) y))
 treeShape (PathGlyph path) s p =
@@ -229,21 +229,21 @@ groupTrees da' tree' =
 daRect :: RectStyle -> DrawAttributes
 daRect o =
   mempty
-    & (strokeWidth .~  (Just $ Num (o ^. #borderSize)))
-    & (strokeColor .~  (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor)))
+    & (strokeWidth .~ Just (Num (o ^. #borderSize)))
+    & (strokeColor .~ Just (ColorRef (toPixelRGBA8 $ o ^. #borderColor)))
     & (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor))
-    & (fillColor .~  (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (fillColor .~ Just (ColorRef (toPixelRGBA8 $ o ^. #color)))
     & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
 
 daText :: () => TextStyle -> DrawAttributes
 daText o =
   mempty
-    & (fontSize .~  (Just $ Num (o ^. #size)))
-    & (strokeWidth .~  (Just $ Num 0))
-    & (strokeColor .~  (Just FillNone))
-    & (fillColor .~  (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (fontSize .~ Just (Num (o ^. #size)))
+    & (strokeWidth .~ Just (Num 0))
+    & (strokeColor .~ Just FillNone)
+    & (fillColor .~ Just (ColorRef (toPixelRGBA8 $ o ^. #color)))
     & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
-    & (textAnchor .~  (Just (toTextAnchor $ o ^. #anchor)))
+    & (textAnchor .~ Just (toTextAnchor $ o ^. #anchor))
   where
     toTextAnchor :: Anchor -> Svg.TextAnchor
     toTextAnchor AnchorMiddle = TextAnchorMiddle
@@ -253,37 +253,37 @@ daText o =
 daGlyph :: GlyphStyle -> DrawAttributes
 daGlyph o =
   mempty
-    & (strokeWidth .~  (Just $ Num (o ^. #borderSize)))
+    & (strokeWidth .~ Just (Num (o ^. #borderSize)))
     & ( strokeColor
-          .~  (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor))
+          .~ Just (ColorRef (toPixelRGBA8 $ o ^. #borderColor))
       )
     & (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor))
-    & (fillColor .~  (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (fillColor .~ Just (ColorRef (toPixelRGBA8 $ o ^. #color)))
     & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
     & maybe id (\(C.Point x y) -> transform ?~ [Translate x (- y)]) (o ^. #translate)
 
 daLine :: LineStyle -> DrawAttributes
 daLine o =
   mempty
-    & (strokeWidth .~  (Just $ Num (o ^. #width)))
-    & (strokeColor .~  (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (strokeWidth .~ Just (Num (o ^. #width)))
+    & (strokeColor .~ Just (ColorRef (toPixelRGBA8 $ o ^. #color)))
     & (strokeOpacity ?~ realToFrac (opac $ o ^. #color))
-    & (fillColor .~  (Just FillNone))
+    & (fillColor .~ Just FillNone)
     & maybe
       id
-      (\x -> strokeLineCap .~  (Just $ fromLineCap' x))
+      (\x -> strokeLineCap .~ Just (fromLineCap' x))
       (o ^. #linecap)
     & maybe
       id
-      (\x -> strokeLineJoin .~  (Just $ fromLineJoin' x))
+      (\x -> strokeLineJoin .~ Just (fromLineJoin' x))
       (o ^. #linejoin)
     & maybe
       id
-      (\x -> strokeOffset .~  (Just $ Num x))
+      (\x -> strokeOffset .~ Just (Num x))
       (o ^. #dashoffset)
     & maybe
       id
-      (\xs -> strokeDashArray .~  (Just (Num <$> xs)))
+      (\xs -> strokeDashArray .~ Just (Num <$> xs))
       (o ^. #dasharray)
 
 fromLineCap' :: LineCap -> Svg.Cap
@@ -299,13 +299,13 @@ fromLineJoin' LineJoinRound = JoinRound
 daPath :: PathStyle -> DrawAttributes
 daPath o =
   mempty
-    & (strokeWidth .~  (Just $ Num (o ^. #borderSize)))
+    & (strokeWidth .~ Just (Num (o ^. #borderSize)))
     & ( strokeColor
           .~
-            (Just $ ColorRef (toPixelRGBA8 $ o ^. #borderColor))
+            Just (ColorRef (toPixelRGBA8 $ o ^. #borderColor))
       )
     & (strokeOpacity ?~ realToFrac (opac $ o ^. #borderColor))
-    & (fillColor .~  (Just $ ColorRef (toPixelRGBA8 $ o ^. #color)))
+    & (fillColor .~ Just (ColorRef (toPixelRGBA8 $ o ^. #color)))
     & (fillOpacity ?~ realToFrac (opac $ o ^. #color))
 
 -- * svg primitives

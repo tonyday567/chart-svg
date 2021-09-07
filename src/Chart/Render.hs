@@ -150,7 +150,7 @@ renderChartsWith so cs =
           (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
           (so ^. #chartFrame)
     cs'' =
-      maybe [] (\c -> [Chart (RectA (blob c)) [RectXY rect']]) (so ^. #background) <> cs'
+      foldMap (\c -> [Chart (RectA (blob c)) [RectXY rect']]) (so ^. #background) <> cs'
     Point w h = NH.width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
     penult = case so ^. #chartAspect of
@@ -228,7 +228,7 @@ svgText s t p@(Point x y) =
     ( [ term "x" (pack $ show x),
         term "y" (pack $ show $ - y)
       ]
-        <> maybe [] (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
+        <> foldMap (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
     )
     (toHtmlRaw t)
 
@@ -237,7 +237,7 @@ svgLine :: [Point Double] -> Lucid.Html ()
 svgLine [] = mempty
 svgLine xs = terms "polyline" [term "points" (toPointsText xs)]
   where
-    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> (pack $ show x <> "," <> show (- y))) <$> xs'
+    toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (- y))) <$> xs'
 
 -- | GlyphShape to svg Tree
 svgShape :: GlyphShape -> Double -> Point Double -> Lucid.Html ()
@@ -362,7 +362,7 @@ attsGlyph o =
     term "fill" (toHex $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
-    <> maybe [] ((: []) . term "transform" . toTranslateText) (o ^. #translate)
+    <> foldMap ((: []) . term "transform" . toTranslateText) (o ^. #translate)
 
 -- | LineStyle to Attributes
 attsLine :: LineStyle -> [Lucid.Attribute]
@@ -372,10 +372,10 @@ attsLine o =
     term "stroke-opacity" (pack $ show $ opac $ o ^. #color),
     term "fill" "none"
   ]
-    <> maybe [] (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap)
-    <> maybe [] (\x -> [term "stroke-linejoin" (fromLineJoin x)]) (o ^. #linejoin)
-    <> maybe [] (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray)
-    <> maybe [] (\x -> [term "stroke-dashoffset" (pack $ show x)]) (o ^. #dashoffset)
+    <> foldMap (\x -> [term "stroke-linecap" (fromLineCap x)]) (o ^. #linecap)
+    <> foldMap (\x -> [term "stroke-linejoin" (fromLineJoin x)]) (o ^. #linejoin)
+    <> foldMap (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray)
+    <> foldMap (\x -> [term "stroke-dashoffset" (pack $ show x)]) (o ^. #dashoffset)
 
 -- | PathStyle to Attributes
 attsPath :: PathStyle -> [Lucid.Attribute]
