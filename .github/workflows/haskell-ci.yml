@@ -35,7 +35,7 @@ jobs:
             compilerKind: ghc
             compilerVersion: 9.0.1
             setup-method: ghcup
-            allow-failure: false
+            allow-failure: true
           - compiler: ghc-8.10.4
             compilerKind: ghc
             compilerVersion: 8.10.4
@@ -187,7 +187,7 @@ jobs:
           echo "package chart-svg" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           cat >> cabal.project <<EOF
-          allow-newer: websockets:attoparsec
+          allow-newer: websockets:attoparseccassava:attoparsec
           EOF
           if $HEADHACKAGE; then
           echo "allow-newer: $($HCPKG list --simple-output | sed -E 's/([a-zA-Z-]+)-[0-9.]+/*:\1,/g')" >> cabal.project
