@@ -21,7 +21,7 @@ main = do
   writeChartSvgHud "lineshud.svg" lineChart
 ```
 
-![chart-svg example](other/lineshud.svg)
+![chart-svg example](other/line.svg)
 
 Examples
 ===
