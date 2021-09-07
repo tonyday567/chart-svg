@@ -11,3 +11,4 @@ dist-newstyle
 /app/reanimate-example.mp4
 /cabal.project.local*
 /.ghc.environment.x86_64-darwin-8.10.4
+/.hkgr/
