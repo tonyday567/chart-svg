@@ -47,6 +47,7 @@ import NumHask.Prelude hiding (lines)
 -- $setup
 -- >>> import Chart
 -- >>> import Control.Lens
+--
 
 -- | unit example
 --

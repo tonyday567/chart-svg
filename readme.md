@@ -1,9 +1,8 @@
 chart-svg
 =========
-
-[![Build
-Status](https://travis-ci.org/tonyday567/chart-svg.svg)](https://travis-ci.org/tonyday567/chart-svg)
 [![Hackage](https://img.shields.io/hackage/v/chart-svg.svg)](https://hackage.haskell.org/package/chart-svg)
+[![Build Status](https://github.com/tonyday567/chart-svg/workflows/haskell-ci/badge.svg)](https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci) [![Hackage Deps](https://img.shields.io/hackage-deps/v/chart-svg.svg)](http://packdeps.haskellers.com/reverse/chart-svg)
+
 
 A chart library targetting SVG.
 
@@ -29,7 +28,7 @@ Examples
 
 See the code in Chart.Examples for practical usage.
 
-Also included is an example which demonstrates reanimate integration.
+Also included is an app which demonstrates reanimate integration.
 
 Chart Types
 ===

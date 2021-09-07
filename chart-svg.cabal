@@ -1,38 +1,37 @@
-cabal-version:  2.4
-name:           chart-svg
-version:        0.2.3
-synopsis:       Charting library targetting SVGs.
+cabal-version:   2.4
+name:            chart-svg
+version:         0.2.3
+synopsis:        Charting library targetting SVGs.
 description:
-    This package provides a charting library targetting SVG as the rendered output.
-    .
-    == Usage
-    .
-    >>> import Chart
-    >>> :set -XOverloadedLabels
-    >>>let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
-    >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1_
-    >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
-    .
-    > writeChartSvg "other/line.svg" lineExample
-    .
-    ![main example](docs/other/lines.svg)
-    .
-    See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
+  This package provides a charting library targetting SVG as the rendered output.
+  .
+  == Usage
+  .
+  >>> import Chart
+  >>> :set -XOverloadedLabels
+  >>>let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
+  >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1_
+  >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
+  .
+  > writeChartSvg "other/line.svg" lineExample
+  .
+  ![main example](docs/other/lines.svg)
+  .
+  See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
 
-category:       charts
-homepage:       https://github.com/tonyday567/chart-svg#readme
-bug-reports:    https://github.com/tonyday567/chart-svg/issues
-author:         Tony Day
-maintainer:     tonyday567@gmail.com
-copyright:      Tony Day (c) 2017
-license:        BSD-3-Clause
-license-file:   LICENSE
-build-type:     Simple
-extra-doc-files:
-  other/*.svg
+category:        charts
+homepage:        https://github.com/tonyday567/chart-svg#readme
+bug-reports:     https://github.com/tonyday567/chart-svg/issues
+author:          Tony Day
+maintainer:      tonyday567@gmail.com
+copyright:       Tony Day (c) 2017
+license:         BSD-3-Clause
+license-file:    LICENSE
+build-type:      Simple
+extra-doc-files: other/*.svg
 
 source-repository head
-  type: git
+  type:     git
   location: https://github.com/tonyday567/chart-svg
 
 library
@@ -41,82 +40,59 @@ library
     Chart.Bar
     Chart.Examples
     Chart.Reanimate
-    Chart.Surface
     Chart.Render
+    Chart.Surface
     Chart.Types
     Chart.Various
     Data.Colour
     Data.FormatN
     Data.Path
-  hs-source-dirs:
-    src
+
+  hs-source-dirs:     src
   build-depends:
-    Color >= 0.3 && < 0.4,
-    JuicyPixels >= 3.3 && < 3.4,
-    attoparsec >= 0.13 && < 0.14,
-    base >=4.7 && <5,
-    containers >= 0.6 && < 0.7,
-    cubicbezier >= 0.6 && < 0.7,
-    foldl >= 1.4 && < 1.5,
-    generic-lens >= 1.2 && < 3.0,
-    lens >= 4.0 && < 5,
-    linear >= 1.21 && < 1.22,
-    lucid >= 2.9 && < 2.10,
-    mtl >= 2.2.2,
-    numhask ^>= 0.8,
-    numhask-space ^>= 0.8,
-    reanimate >= 1.1.1.0 && < 1.2,
-    reanimate-svg >= 0.13 && < 0.14,
-    scientific >= 0.3 && < 0.4,
-    tagsoup >= 0.14 && < 0.15,
-    text >= 1.2 && < 1.3,
-    time >= 1.9 && < 1.10,
-    transformers >= 0.5 && < 0.6,
-    unordered-containers >= 0.2 && < 0.3,
-  default-language: Haskell2010
-  default-extensions:
-    StrictData
+    , attoparsec            ^>=0.14
+    , base                  >=4.7     && <5
+    , Color                 ^>=0.3
+    , containers            ^>=0.6
+    , cubicbezier           ^>=0.6
+    , foldl                 ^>=1.4
+    , generic-lens          >=1.2     && <3.0
+    , JuicyPixels           ^>=3.3
+    , lens                  ^>=5.0
+    , linear                ^>=1.21
+    , lucid                 ^>=2.9
+    , mtl                   ^>=2.2.2
+    , numhask               ^>=0.8
+    , numhask-space         ^>=0.8
+    , reanimate             ^>=1.1.1.0
+    , reanimate-svg         ^>=0.13
+    , scientific            ^>=0.3
+    , tagsoup               ^>=0.14
+    , text                  ^>=1.2
+    , time                  ^>=1.9
+    , transformers          ^>=0.5
+    , unordered-containers  ^>=0.2
+
+  default-language:   Haskell2010
+  default-extensions: StrictData
   ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
-    -fwrite-ide-info
-    -hiedir=.hie
+    -Wall -Wcompat -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wredundant-constraints -fwrite-ide-info
+    -hiedir=.hie -Wunused-packages
 
 executable reanimate-example
-  main-is: reanimate-example.hs
-  hs-source-dirs:
-    app
+  main-is:            reanimate-example.hs
+  hs-source-dirs:     app
   build-depends:
-    attoparsec >= 0.13 && < 0.14,
-    JuicyPixels >= 3.3.5 && < 3.4,
-    base >=4.7 && <5,
-    bytestring >= 0.10 && < 0.11,
-    chart-svg,
-    concurrency >= 1.11 && < 1.12,
-    foldl >= 1.4 && < 1.5,
-    lucid >= 2.9 && < 2.10,
-    lens >= 4.19 && < 4.20,
-    linear >= 1.21 && < 1.22,
-    numhask ^>= 0.8.1,
-    numhask-space ^>= 0.8.1,
-    reanimate >= 1.1.1.0 && < 1.2,
-    reanimate-svg >= 0.13 && < 0.14,
-    text >= 1.2 && < 1.3,
-    time >= 1.9 && < 1.10,
-    transformers >= 0.5 && < 0.6,
-    unordered-containers >= 0.2 && < 0.3,
-    vector >= 0.12 && < 0.13,
-  default-language: Haskell2010
+    , base       >=4.7     && <5
+    , chart-svg
+    , lens       ^>=5.0
+    , reanimate  ^>=1.1.1.0
+
+  default-language:   Haskell2010
   default-extensions:
   ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
-    -funbox-strict-fields
-    -fwrite-ide-info
-    -hiedir=.hie
+    -Wall -Wcompat -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wredundant-constraints
+    -funbox-strict-fields -fwrite-ide-info -hiedir=.hie
+    -Wunused-packages
