@@ -1,6 +1,6 @@
 cabal-version:  2.4
 name:           chart-svg
-version:        0.2.2
+version:        0.2.3
 synopsis:       Charting library targetting SVGs.
 description:
     This package provides a charting library targetting SVG as the rendered output.
