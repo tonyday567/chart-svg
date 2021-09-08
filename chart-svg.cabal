@@ -15,7 +15,7 @@ description:
   .
   > writeChartSvg "other/line.svg" lineExample
   .
-  ![main example](docs/other/lines.svg)
+  ![main example](docs/other/line.svg)
   .
   See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
 

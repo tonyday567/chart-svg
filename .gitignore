@@ -12,3 +12,4 @@ dist-newstyle
 /cabal.project.local*
 /.ghc.environment.x86_64-darwin-8.10.4
 /.hkgr/
+/docs/
