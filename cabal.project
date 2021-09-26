@@ -58,5 +58,4 @@ write-ghc-environment-files: always
 -- Might be helpful when hackage doesn't build properly...
 keep-going: True
 
--- allow-newer: websockets:attoparsec
 allow-newer: base, lens:template-haskell, attoparsec:ghc-prim, integer-logarithms:bytestring, integer-logarithms:ghc-bignum, integer-logarithms:ghc-prim, JuicyPixels:bytestring, tdigest:binary, linear:binary, bytes:binary, these:binary, strict:binary, text:binary, binary-orphans:binary, JuicyPixels:binary, numhask-space:semigroupoids, tdigest:semigroupoids, foldl:semigroupoids, websockets:attoparsec, aeson:ghc-prim, aeson:template-haskell, validation:lens, scientific:template-haskell, semialign:semigroupoids

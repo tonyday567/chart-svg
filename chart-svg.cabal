@@ -53,14 +53,13 @@ library
 
   hs-source-dirs:     src
   build-depends:
-    , attoparsec            ^>=0.14
+    , attoparsec            >=0.13.2 && < 0.15
     , base                  >=4.7     && <5
     , Color                 ^>=0.3
     , containers            ^>=0.6
     , cubicbezier           ^>=0.6
     , foldl                 ^>=1.4
     , generic-lens          >=1.2     && <3.0
-    , JuicyPixels           ^>=3.3
     , lens                  ^>=5.1
     , linear                ^>=1.21
     , lucid                 ^>=2.9
