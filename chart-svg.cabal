@@ -43,7 +43,6 @@ library
     Chart
     Chart.Bar
     Chart.Examples
-    Chart.Reanimate
     Chart.Render
     Chart.Surface
     Chart.Types
@@ -54,22 +53,19 @@ library
 
   hs-source-dirs:     src
   build-depends:
-    , attoparsec            ^>=0.14
+    , attoparsec            >=0.13.2 && < 0.15
     , base                  >=4.7     && <5
     , Color                 ^>=0.3
     , containers            ^>=0.6
     , cubicbezier           ^>=0.6
     , foldl                 ^>=1.4
     , generic-lens          >=1.2     && <3.0
-    , JuicyPixels           ^>=3.3
     , lens                  ^>=5.0
     , linear                ^>=1.21
     , lucid                 ^>=2.9
     , mtl                   ^>=2.2.2
     , numhask               ^>=0.8
     , numhask-space         ^>=0.8
-    , reanimate             ^>=1.1.1.0
-    , reanimate-svg         ^>=0.13
     , scientific            ^>=0.3
     , tagsoup               ^>=0.14
     , text                  ^>=1.2
@@ -83,20 +79,3 @@ library
     -Wall -Wcompat -Wincomplete-record-updates
     -Wincomplete-uni-patterns -Wredundant-constraints -fwrite-ide-info
     -hiedir=.hie -Wunused-packages
-
-executable reanimate-example
-  main-is:            reanimate-example.hs
-  hs-source-dirs:     app
-  build-depends:
-    , base       >=4.7     && <5
-    , chart-svg
-    , lens       ^>=5.0
-    , reanimate  ^>=1.1.1.0
-
-  default-language:   Haskell2010
-  default-extensions:
-  ghc-options:
-    -Wall -Wcompat -Wincomplete-record-updates
-    -Wincomplete-uni-patterns -Wredundant-constraints
-    -funbox-strict-fields -fwrite-ide-info -hiedir=.hie
-    -Wunused-packages

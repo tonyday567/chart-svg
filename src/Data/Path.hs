@@ -63,12 +63,13 @@ import qualified Data.Text as Text
 import GHC.Generics
 import GHC.OverloadedLabels
 import qualified Geom2D.CubicBezier as B
-import Graphics.SvgTree (Origin (..), PathCommand (..))
-import qualified Graphics.SvgTree as SvgTree
-import Graphics.SvgTree.PathParser
+-- import Graphics.SvgTree.PathParser
 import qualified Linear
 import NumHask.Prelude
 import NumHask.Space
+import Data.Functor
+import Control.Applicative
+import           Data.Scientific            (toRealFloat)
 
 -- $setup
 -- FIXME:
@@ -96,6 +97,106 @@ import NumHask.Space
 -- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 parsePath :: Text -> [PathCommand]
 parsePath t = fromRight [] $ A.parseOnly pathParser t
+
+commaWsp :: A.Parser ()
+commaWsp = A.skipSpace *> A.option () (A.string "," $> ()) <* A.skipSpace
+
+-- | Real Point, fully determined and
+-- independent of the rendering context.
+type RPoint = Linear.V2 Coord
+
+type Coord = Double
+
+point :: A.Parser RPoint
+point = Linear.V2 <$> num <* commaWsp <*> num
+
+pathParser :: A.Parser [PathCommand]
+pathParser = A.skipSpace *> A.many1 command
+
+num :: A.Parser Double
+num = realToFrac <$> (A.skipSpace *> plusMinus <* A.skipSpace)
+  where doubleNumber :: A.Parser Double
+        doubleNumber = toRealFloat <$> A.scientific <|> shorthand
+
+        plusMinus = negate <$ A.string "-" <*> doubleNumber
+                 <|> A.string "+" *> doubleNumber
+                 <|> doubleNumber
+
+        shorthand = process' <$> (A.string "." *> A.many1 A.digit)
+        process' = either (const 0) id . A.parseOnly doubleNumber . pack . (++) "0."
+
+flag :: A.Parser Bool
+flag = fmap (/='0') A.digit
+
+command :: A.Parser PathCommand
+command =  (MoveTo OriginAbsolute <$ A.string "M" <*> pointList)
+       <|> (MoveTo OriginRelative <$ A.string "m" <*> pointList)
+       <|> (LineTo OriginAbsolute <$ A.string "L" <*> pointList)
+       <|> (LineTo OriginRelative <$ A.string "l" <*> pointList)
+       <|> (HorizontalTo OriginAbsolute <$ A.string "H" <*> coordList)
+       <|> (HorizontalTo OriginRelative <$ A.string "h" <*> coordList)
+       <|> (VerticalTo OriginAbsolute <$ A.string "V" <*> coordList)
+       <|> (VerticalTo OriginRelative <$ A.string "v" <*> coordList)
+       <|> (CurveTo OriginAbsolute <$ A.string "C" <*> manyComma curveToArgs)
+       <|> (CurveTo OriginRelative <$ A.string "c" <*> manyComma curveToArgs)
+       <|> (SmoothCurveTo OriginAbsolute <$ A.string "S" <*> pointPairList)
+       <|> (SmoothCurveTo OriginRelative <$ A.string "s" <*> pointPairList)
+       <|> (QuadraticBezier OriginAbsolute <$ A.string "Q" <*> pointPairList)
+       <|> (QuadraticBezier OriginRelative <$ A.string "q" <*> pointPairList)
+       <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ A.string "T" <*> pointList)
+       <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ A.string "t" <*> pointList)
+       <|> (EllipticalArc OriginAbsolute <$ A.string "A" <*> manyComma ellipticalArgs)
+       <|> (EllipticalArc OriginRelative <$ A.string "a" <*> manyComma ellipticalArgs)
+       <|> (EndPath <$ A.string "Z" <* commaWsp)
+       <|> (EndPath <$ A.string "z" <* commaWsp)
+    where pointList = point `A.sepBy1` commaWsp
+          pointPair = (,) <$> point <* commaWsp <*> point
+          pointPairList = pointPair `A.sepBy1` commaWsp
+          coordList = num `A.sepBy1` commaWsp
+          curveToArgs = (,,) <$> (point <* commaWsp)
+                             <*> (point <* commaWsp)
+                             <*> point
+          manyComma a = a `A.sepBy1` commaWsp
+
+          numComma = num <* commaWsp
+          flagComma = flag <* commaWsp
+          ellipticalArgs = (,,,,,) <$> numComma
+                                   <*> numComma
+                                   <*> numComma
+                                   <*> flagComma
+                                   <*> flagComma
+                                   <*> point
+
+-- | Path command definition (ripped from reanimate-svg).
+data PathCommand
+  = -- | 'M' or 'm' command
+    MoveTo !Origin ![RPoint]
+  | -- | Line to, 'L' or 'l' Svg path command.
+    LineTo !Origin ![RPoint]
+  | -- | Equivalent to the 'H' or 'h' svg path command.
+    HorizontalTo !Origin ![Coord]
+  | -- | Equivalent to the 'V' or 'v' svg path command.
+    VerticalTo !Origin ![Coord]
+  | -- | Cubic bezier, 'C' or 'c' command
+    CurveTo !Origin ![(RPoint, RPoint, RPoint)]
+  | -- | Smooth cubic bezier, equivalent to 'S' or 's' command
+    SmoothCurveTo !Origin ![(RPoint, RPoint)]
+  | -- | Quadratic bezier, 'Q' or 'q' command
+    QuadraticBezier !Origin ![(RPoint, RPoint)]
+  | -- | Quadratic bezier, 'T' or 't' command
+    SmoothQuadraticBezierCurveTo !Origin ![RPoint]
+  | -- | Elliptical arc, 'A' or 'a' command.
+    EllipticalArc !Origin ![(Coord, Coord, Coord, Bool, Bool, RPoint)]
+  | -- | Close the path, 'Z' or 'z' svg path command.
+    EndPath
+  deriving (Eq, Show, Generic)
+
+-- | Tell if a path command is absolute (in the current
+-- user coordiante) or relative to the previous point.
+data Origin
+  = OriginAbsolute -- ^ Next point in absolute coordinate
+  | OriginRelative -- ^ Next point relative to the previous
+  deriving (Eq, Show, Generic)
 
 -- | To fit in with the requirements of the library design, specifically the separation of what a chart is into XY data Points from representation of these points, path instructions need to be decontructed into:
 --
@@ -213,7 +314,7 @@ stateInfo0 = StateInfo zero zero zero
 -- | Convert a path command fragment to an instruction + point.
 --
 -- flips the y-dimension of points.
-toInfo :: StateInfo -> SvgTree.PathCommand -> (StateInfo, [(PathInfo Double, Point Double)])
+toInfo :: StateInfo -> PathCommand -> (StateInfo, [(PathInfo Double, Point Double)])
 toInfo s (MoveTo _ []) = (s, [])
 toInfo _ (MoveTo OriginAbsolute (x : xs)) = L.fold (L.Fold step begin (second reverse)) (fromV2 <$> xs)
   where
@@ -333,7 +434,7 @@ fromV2 :: (Subtractive a) => Linear.V2 a -> Point a
 fromV2 (Linear.V2 x y) = Point x (-y)
 
 -- | Convert from a path command list to a PathA specification
-toPathXYs :: [SvgTree.PathCommand] -> [(PathInfo Double, Point Double)]
+toPathXYs :: [PathCommand] -> [(PathInfo Double, Point Double)]
 toPathXYs [] = []
 toPathXYs xs =
   snd (foldl' (\(x, l) a -> second (l <>) $ toInfo x a) (stateInfo0, []) xs)
