@@ -1,20 +1,10 @@
--- OPTIONS_GHC -F -pgmF=record-dot-preprocessor
 {-# LANGUAGE NegativeLiterals #-}
-{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE AllowAmbiguousTypes, FunctionalDependencies, ScopedTypeVariables, PolyKinds, TypeApplications, DataKinds, FlexibleInstances #-}
-{-# LANGUAGE NamedFieldPuns, RecordWildCards #-}
-{-# LANGUAGE OverloadedRecordDot, RebindableSyntax #-}
 
 -- | Examples of chart construction.
 module Chart.Examples
@@ -53,37 +43,17 @@ import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.OverloadedLabels
 import NumHask.Prelude hiding (lines)
--- import GHC.Records.Compat
-import GHC.Records
--- import Data.Generics.Product.Fields
-
-{- -- | Constraint representing the fact that the field @x@ can be get and set on
---   the record type @r@ and has field type @a@.  This constraint will be solved
---   automatically, but manual instances may be provided as well.
---
---   The function should satisfy the invariant:
---
--- > uncurry ($) (hasField @x r) == r
-class HasField x r a | x r -> a where
-  -- | Function to get and set a field in a record.
-  hasField :: r -> (a -> r, a)
-
-getField :: forall x r a . HasField x r a => r -> a
-getField = snd . hasField @x
-
-setField :: forall x r a . HasField x r a => r -> a -> r
-setField = undefined -- fst . hasField @x
---}
 
 -- $setup
 -- >>> import Chart
 -- >>> import Control.Lens
+--
 
 -- | unit example
 --
 -- ![unit example](other/unit.svg)
 unitExample :: ChartSvg
-unitExample = mempty { chartList = [Chart (RectA defaultRectStyle) [one]] }
+unitExample = mempty & #chartList .~ [Chart (RectA defaultRectStyle) [one]]
 
 -- | 'HudOptions' example
 --
@@ -91,28 +61,17 @@ unitExample = mempty { chartList = [Chart (RectA defaultRectStyle) [one]] }
 hudOptionsExample :: ChartSvg
 hudOptionsExample =
   mempty
-    { hudOptions = colourHudOptions dark defaultHudOptions,
-      chartList = [Chart BlankA [one]]
-    }
-
-chartSvgMempty :: ChartSvg
-chartSvgMempty = mempty
+    & #hudOptions .~ colourHudOptions dark defaultHudOptions
+    & #chartList .~ [Chart BlankA [one]]
 
 -- | 'SvgOptions' example.
 --
 -- ![svgoptions example](other/svgoptions.svg)
 svgOptionsExample :: ChartSvg
 svgOptionsExample =
-  mempty{
-    -- using record-dot-preprocessor
-    -- svgOptions.chartAspect = FixedAspect 0.7,
-    -- svgOptions = mempty.svgOptions {chartAspect = FixedAspect 0.7},
-    svgOptions = ((.svgOptions) (mempty @ChartSvg)) {chartAspect = FixedAspect 0.7},
-    -- svgOptions = chartSvgMempty.svgOptions {chartAspect = FixedAspect 0.7},
-    -- svgOptions = #svgOptions chartSvgMempty, -- {chartAspect = FixedAspect 0.7},
-    -- svgOptions = ((getField @"svgOptions") (mempty @ChartSvg)) {chartAspect = FixedAspect 0.7},
-    chartList = zipWith (\s d -> Chart (LineA s) (fmap PointXY d)) lopts ls
-  }
+  mempty
+    & #svgOptions %~ #chartAspect .~ FixedAspect 0.7
+    & #chartList .~ zipWith (\s d -> Chart (LineA s) (fmap PointXY d)) lopts ls
 
 -- | rect example
 --
