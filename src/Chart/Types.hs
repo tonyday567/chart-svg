@@ -1031,7 +1031,7 @@ title_ t a =
   Chart
     ( TextA
         ( style'
-            & #rotation ?~ rot
+            & #rotation .~ bool Nothing (Just rot) (rot == 0)
         )
         [t ^. #text]
     )
@@ -1043,10 +1043,11 @@ title_ t a =
       | t ^. #anchor == AnchorEnd =
         #anchor .~ AnchorEnd $ t ^. #style
       | otherwise = t ^. #style
+    rot' = fromMaybe 0 (t ^. #style . #rotation)
     rot
-      | t ^. #place == PlaceRight = pi / 2
-      | t ^. #place == PlaceLeft = -pi / 2
-      | otherwise = 0
+      | t ^. #place == PlaceRight = pi / 2 + rot'
+      | t ^. #place == PlaceLeft = -pi / 2 + rot'
+      | otherwise = rot'
     placePos' (Rect x z y w) = case t ^. #place of
       PlaceTop -> Point ((x + z) / 2.0) (w + (t ^. #buff))
       PlaceBottom ->
