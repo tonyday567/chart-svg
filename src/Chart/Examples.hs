@@ -11,6 +11,7 @@ module Chart.Examples
   ( unitExample,
     svgOptionsExample,
     hudOptionsExample,
+    hudOptionsDarkExample,
     rectExample,
     textExample,
     glyphsExample,
@@ -63,6 +64,17 @@ hudOptionsExample =
   mempty
     & #hudOptions .~ colourHudOptions dark defaultHudOptions
     & #chartList .~ [Chart BlankA [one]]
+    & #svgOptions . #cssOptions . #preferColorScheme .~ PreferLight
+
+-- | 'HudOptions' PreferDark example
+--
+-- ![hudoptions dark example](other/hudoptionsdark.svg)
+hudOptionsDarkExample :: ChartSvg
+hudOptionsDarkExample =
+  mempty
+    & #hudOptions .~ colourHudOptions light defaultHudOptions
+    & #chartList .~ [Chart BlankA [one]]
+    & #svgOptions . #cssOptions . #preferColorScheme .~ PreferDark
 
 -- | 'SvgOptions' example.
 --
@@ -567,7 +579,7 @@ surfaceExample =
   mempty
     & #hudList .~ hs
     & #chartList .~ cs
-    & #svgOptions .~ (defaultSvgOptions & #cssOptions .~ UseCssCrisp)
+    & #svgOptions .~ (defaultSvgOptions & #cssOptions . #shapeRendering .~ UseCssCrisp)
   where
     t = "rosenbrock"
     grain = Point 20 20
@@ -635,6 +647,7 @@ writeAllExamples = do
   writeChartSvg "other/line.svg" lineExample
   writeChartSvg "other/svgoptions.svg" svgOptionsExample
   writeChartSvg "other/hudoptions.svg" hudOptionsExample
+  writeChartSvg "other/hudoptionsdark.svg" hudOptionsDarkExample
   writeChartSvg "other/legend.svg" legendExample
   -- charts in Chart.Bar docs
   writeChartSvg "other/bar.svg" barExample

@@ -3,6 +3,8 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Rendering charts to SVG.
@@ -21,8 +23,6 @@ module Chart.Render
     writeChartSvgDefault,
     writeChartSvgHud,
     svg2Tag,
-    cssCrisp,
-    geometricPrecision,
     svg,
     terms,
     makeAttribute,
@@ -50,6 +50,7 @@ import Lucid.Base
 import qualified Lucid.Base as Lucid
 import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
+import NeatInterpolation
 
 -- $setup
 -- >>> import Control.Lens
@@ -96,17 +97,39 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
     ]
 
 cssText :: CssOptions -> Html ()
-cssText UseCssCrisp = cssCrisp
-cssText UseGeometricPrecision = geometricPrecision
-cssText NoCssOptions = mempty
+cssText csso = style_ [] $
+  cssShapeRendering (csso ^. #shapeRendering) <>
+  cssPreferColorScheme ("white", "black") (csso ^. #preferColorScheme)
 
--- | crisp edges css
-cssCrisp :: Html ()
-cssCrisp = style_ [type_ "text/css"] ("* { shape-rendering: crispEdges; }" :: Text)
+cssShapeRendering :: CssShapeRendering -> Text
+cssShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPrecision; }"
+cssShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
+cssShapeRendering NoShapeRendering = mempty
 
--- | crisp edges css
-geometricPrecision :: Html ()
-geometricPrecision = style_ [type_ "text/css"] ("* { shape-rendering: geometricPrecision; }" :: Text)
+cssPreferColorScheme :: (Text, Text) -> CssPreferColorScheme -> Text
+cssPreferColorScheme (bglight, _) PreferLight =
+  [trimming|
+    svg {
+      color-scheme: light dark;
+    }
+    @media (prefers-color-scheme:light) {
+      svg {
+        background-color: $bglight;
+      }
+    }
+  |]
+cssPreferColorScheme (_, bgdark) PreferDark =
+  [trimming|
+    svg {
+      color-scheme: light dark;
+    }
+    @media (prefers-color-scheme:dark) {
+      svg {
+        background-color: $bgdark;
+      }
+    }
+  |]
+cssPreferColorScheme _ PreferNormal = mempty
 
 makeCharts :: ChartAspect -> HudOptions -> [Chart Double] -> [Chart Double]
 makeCharts asp ho cs =

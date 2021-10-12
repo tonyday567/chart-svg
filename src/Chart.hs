@@ -110,7 +110,10 @@ module Chart
     toOrientation,
 
     -- * SVG primitives
+    CssShapeRendering (..),
+    CssPreferColorScheme (..),
     CssOptions (..),
+    defaultCssOptions,
     SvgOptions (..),
     defaultSvgOptions,
     defaultSvgFrame,

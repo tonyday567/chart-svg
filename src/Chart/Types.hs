@@ -116,7 +116,10 @@ module Chart.Types
     toOrientation,
 
     -- * SVG primitives
+    CssShapeRendering (..),
+    CssPreferColorScheme (..),
     CssOptions (..),
+    defaultCssOptions,
     SvgOptions (..),
     defaultSvgOptions,
     defaultSvgFrame,
@@ -483,8 +486,18 @@ toOrientation _ = Hori
 padRect :: (Subtractive a) => a -> Rect a -> Rect a
 padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
 
--- |
-data CssOptions = UseGeometricPrecision | UseCssCrisp | NoCssOptions deriving (Show, Eq, Generic)
+
+data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
+
+data CssPreferColorScheme = PreferDark | PreferLight | PreferNormal deriving (Show, Eq, Generic)
+
+-- | css options
+-- >>> defaultCssOptions
+data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme} deriving (Show, Eq, Generic)
+
+-- | No special shape rendering and no reponse to OS color scheme preferences.
+defaultCssOptions :: CssOptions
+defaultCssOptions = CssOptions NoShapeRendering PreferNormal
 
 -- | The basis for the x-y ratio of the final chart
 --
@@ -525,7 +538,7 @@ initialCanvas UnadjustedAspect cs = dataBoxesS cs
 -- | SVG tag options.
 --
 -- >>> defaultSvgOptions
--- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, cssOptions = NoCssOptions, chartAspect = FixedAspect 1.5, background = Nothing}
+-- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, cssOptions = defaultCssOptions, chartAspect = FixedAspect 1.5, background = Nothing}
 --
 --
 -- ![svgoptions example](other/svgoptions.svg)
@@ -542,7 +555,7 @@ data SvgOptions = SvgOptions
 
 -- | The official svg options
 defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing NoCssOptions (FixedAspect 1.5) Nothing
+defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing defaultCssOptions (FixedAspect 1.5) Nothing
 
 -- | frame style
 defaultSvgFrame :: RectStyle

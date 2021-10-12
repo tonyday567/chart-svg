@@ -1,0 +1,51 @@
+packages: chart-svg.cabal
+
+source-repository-package
+    type: git
+    location: https://github.com/tonyday567/cereal
+    tag: 70f0b00d62d80e56b71c463fa2e8f6c2413155bb
+
+source-repository-package
+    type: git
+    location: https://github.com/andreasabel/blaze-builder
+    tag: 7cd106139c64ab59cba67904ddcf5a141dcf81cd
+
+source-repository-package
+    type: git
+    location: https://github.com/tonyday567/generic-lens
+    tag: c70fac58e802a555de05b1e90e1c752be1f19405
+    subdir: generic-lens-core
+
+source-repository-package
+    type: git
+    location: https://github.com/tonyday567/generic-lens
+    tag: c70fac58e802a555de05b1e90e1c752be1f19405
+    subdir: generic-lens
+
+source-repository-package
+    type: git
+    location: https://github.com/tonyday567/newtype-generics
+    tag: 76f76f530a4a124cf5fb822a765eafb0a5666db8
+
+source-repository-package
+    type: git
+    location: https://github.com/tonyday567/attoparsec
+    tag: 634c58e8ad6e3c4202922790a0d4c18d18b60518
+
+source-repository-package
+    type: git
+    location: https://github.com/ekmett/semigroupoids
+    tag: 12367e49dfa3796c60211cc03235e468cc1ce2cc
+
+source-repository-package
+    type: git
+    location: https://github.com/ekmett/lens
+    tag: 4e3c6166c054da87d09229cb7f4513f759e78b82
+
+-- https://github.com/haskell/cabal/issues/6087
+-- write-ghc-environment-files: always
+
+-- Might be helpful when hackage doesn't build properly...
+-- keep-going: True
+
+allow-newer: base, lens:template-haskell, attoparsec:ghc-prim, integer-logarithms:bytestring, integer-logarithms:ghc-bignum, integer-logarithms:ghc-prim, JuicyPixels:bytestring, tdigest:binary, linear:binary, bytes:binary, these:binary, strict:binary, text:binary, binary-orphans:binary, JuicyPixels:binary, numhask-space:semigroupoids, tdigest:semigroupoids, foldl:semigroupoids, websockets:attoparsec
