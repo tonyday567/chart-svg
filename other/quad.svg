@@ -1,4 +1,11 @@
-<svg width="332.5498942989464" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.6823211801526162 -0.5833034558344269 1.2811423603052323 1.1557444903171854" height="300.0"><style></style><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="5.0e-2"><rect width="0.9912594250674862" x="-0.45893824491487023" y="-0.5" height="0.8928651148670972"/></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.45893824491487023,0.39286511486709713
+<svg width="332.5498942989464" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.6823211801526162 -0.5833034558344269 1.2811423603052323 1.1557444903171854" height="300.0"><style>svg {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme:light) {
+  svg {
+    background-color: white;
+  }
+}</style><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="5.0e-2"><rect width="0.9912594250674862" x="-0.45893824491487023" y="-0.5" height="0.8928651148670972"/></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.45893824491487023,0.39286511486709713
 0.532321180152616,0.39286511486709713"/></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.45893824491487023,0.30357860338038745
 0.532321180152616,0.30357860338038745"/></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.45893824491487023,0.2142920918936777
 0.532321180152616,0.2142920918936777"/></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.45893824491487023,0.12500558040696802

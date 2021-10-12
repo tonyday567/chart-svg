@@ -497,7 +497,7 @@ data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorS
 
 -- | No special shape rendering and no reponse to OS color scheme preferences.
 defaultCssOptions :: CssOptions
-defaultCssOptions = CssOptions NoShapeRendering PreferNormal
+defaultCssOptions = CssOptions NoShapeRendering PreferLight
 
 -- | The basis for the x-y ratio of the final chart
 --

@@ -1,4 +1,11 @@
-<svg width="312.5971457599038" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="0.0 -4.94987663248166 9.0 8.637314948722489" height="300.0"><style></style><g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.6" fill-opacity="1.0" text-anchor="middle"><text x="0.5549999999999999" y="-0.0" transform="rotate(-90.0, 0.5549999999999999, -0.0)">Sweep</text></g><g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="1.7149999999999999" y="1.5099999999999998" transform="rotate(-90.0, 1.7149999999999999, 1.5099999999999998)">True</text></g><g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="1.7149999999999999" y="-1.5100000000000002" transform="rotate(-90.0, 1.7149999999999999, -1.5100000000000002)">False</text></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="5.409999999999999,1.6699999999999995
+<svg width="312.5971457599038" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="0.0 -4.94987663248166 9.0 8.637314948722489" height="300.0"><style>svg {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme:light) {
+  svg {
+    background-color: white;
+  }
+}</style><g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.6" fill-opacity="1.0" text-anchor="middle"><text x="0.5549999999999999" y="-0.0" transform="rotate(-90.0, 0.5549999999999999, -0.0)">Sweep</text></g><g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="1.7149999999999999" y="1.5099999999999998" transform="rotate(-90.0, 1.7149999999999999, 1.5099999999999998)">True</text></g><g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="1.7149999999999999" y="-1.5100000000000002" transform="rotate(-90.0, 1.7149999999999999, -1.5100000000000002)">False</text></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="5.409999999999999,1.6699999999999995
 5.408026728428272,1.607209480470686
 5.402114701314478,1.5446667664356952
 5.392287250728689,1.4826186854142747

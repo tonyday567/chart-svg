@@ -1,4 +1,11 @@
-<svg width="425.764192139738" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.8125 -0.5825 1.6249999999999998 1.145" height="300.0"><style></style><g stroke-opacity="1.0" fill="none" stroke="#b05929" stroke-width="1.5e-2"><polyline points="-0.75,0.30000000000000004
+<svg width="425.764192139738" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.8125 -0.5825 1.6249999999999998 1.145" height="300.0"><style>svg {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme:light) {
+  svg {
+    background-color: white;
+  }
+}</style><g stroke-opacity="1.0" fill="none" stroke="#b05929" stroke-width="1.5e-2"><polyline points="-0.75,0.30000000000000004
 -0.2142857142857144,0.30000000000000004
 0.3214285714285712,-0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="3.0e-2"><polyline points="-0.75,0.5
 0.7499999999999998,-0.10000000000000009"/></g><g stroke-opacity="1.0" fill="none" stroke="#1f78b5" stroke-width="1.0e-2"><polyline points="-0.4821428571428572,-0.30000000000000004
