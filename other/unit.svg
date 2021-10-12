@@ -1,8 +1,8 @@
 <svg width="442.8571428571429" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.775 -0.525 1.55 1.05" height="300.0"><style>svg {
   color-scheme: light dark;
 }
-@media (prefers-color-scheme:light) {
+@media (prefers-color-scheme:dark) {
   svg {
-    background-color: white;
+    background-color: #f0f0f0;
   }
 }</style><g stroke-opacity="1.0" fill="#1f78b5" stroke="#a6cfe3" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="1.5" x="-0.75" y="-0.5" height="1.0"/></g></svg>

@@ -1,9 +1,9 @@
 <svg width="441.21648345456595" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.8759951587651147 -0.594 1.6769903175302294 1.14025" height="300.0"><style>svg {
   color-scheme: light dark;
 }
-@media (prefers-color-scheme:light) {
+@media (prefers-color-scheme:dark) {
   svg {
-    background-color: white;
+    background-color: #f0f0f0;
   }
 }</style><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="end"><text x="0.3752423510316214" y="0.5" transform="rotate(-0.0, 0.3752423510316214, 0.5)">An example from chart-svg</text></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="8.0e-2" fill-opacity="1.0" text-anchor="middle"><text x="-0.22980689995525283" y="-0.5" transform="rotate(-0.0, -0.22980689995525283, -0.5)">Line Chart</text></g><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="5.0e-2"><rect width="1.0772198435402474" x="-0.728907988597132" y="-0.444722650231125" height="0.7704160246533129"/></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.728907988597132,0.32569337442218793
 0.34831185494311523,0.32569337442218793"/></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.728907988597132,0.24865177195685662

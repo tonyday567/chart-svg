@@ -99,36 +99,37 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
 cssText :: CssOptions -> Html ()
 cssText csso = style_ [] $
   cssShapeRendering (csso ^. #shapeRendering) <>
-  cssPreferColorScheme ("white", "black") (csso ^. #preferColorScheme)
+  cssPreferColorScheme (light, dark) (csso ^. #preferColorScheme)
 
 cssShapeRendering :: CssShapeRendering -> Text
 cssShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPrecision; }"
 cssShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 cssShapeRendering NoShapeRendering = mempty
 
-cssPreferColorScheme :: (Text, Text) -> CssPreferColorScheme -> Text
+cssPreferColorScheme :: (Colour, Colour) -> CssPreferColorScheme -> Text
 cssPreferColorScheme (bglight, _) PreferLight =
-  [trimming|
-    svg {
-      color-scheme: light dark;
-    }
-    @media (prefers-color-scheme:light) {
-      svg {
-        background-color: $bglight;
-      }
-    }
-  |]
-cssPreferColorScheme (_, bgdark) PreferDark =
   [trimming|
     svg {
       color-scheme: light dark;
     }
     @media (prefers-color-scheme:dark) {
       svg {
-        background-color: $bgdark;
+        background-color: $c;
       }
     }
   |]
+    where c = hex bglight
+cssPreferColorScheme (_, bgdark) PreferDark =
+  [trimming|
+    svg {
+      color-scheme: light dark;
+    }
+    @media (prefers-color-scheme:light) {
+      svg {
+        background-color: $c;
+      }
+    }
+  |] where c = hex bgdark
 cssPreferColorScheme _ PreferNormal = mempty
 
 makeCharts :: ChartAspect -> HudOptions -> [Chart Double] -> [Chart Double]

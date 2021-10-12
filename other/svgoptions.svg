@@ -1,9 +1,9 @@
 <svg width="217.41176470588235" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.385 -0.5275 0.7699999999999999 1.0625" height="300.0"><style>svg {
   color-scheme: light dark;
 }
-@media (prefers-color-scheme:light) {
+@media (prefers-color-scheme:dark) {
   svg {
-    background-color: white;
+    background-color: #f0f0f0;
   }
 }</style><g stroke-opacity="1.0" fill="none" stroke="#b05929" stroke-width="1.5e-2"><polyline points="-0.35,0.29999999999999993
 -9.999999999999998e-2,0.29999999999999993

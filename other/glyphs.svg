@@ -1,9 +1,9 @@
 <svg width="401.25" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.8250000000000001 -0.15 1.605 0.2" height="50.0"><style>svg {
   color-scheme: light dark;
 }
-@media (prefers-color-scheme:light) {
+@media (prefers-color-scheme:dark) {
   svg {
-    background-color: white;
+    background-color: #f0f0f0;
   }
 }</style><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="1.0e-2" fill-opacity="1.0"><circle cx="-0.75" cy="-2.5e-2" r="5.0e-2"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="0.10000000000000009" x="-0.6125" y="-7.500000000000001e-2" height="0.1"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="9.999999999999998e-2" x="-0.42500000000000004" y="-6.25e-2" height="7.500000000000001e-2"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="9.999999999999998e-2" x="-0.2375" y="-6.25e-2" height="7.500000000000001e-2" ry="1.0e-2" rx="1.0e-2"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="0.0" fill-opacity="1.0"><ellipse cx="-1.1102230246251565e-16" cy="-2.5e-2" ry="3.7500000000000006e-2" rx="5.0e-2"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="1.0e-2" fill-opacity="1.0"><polyline points="0.18749999999999978,2.5e-2
 0.18749999999999978,-7.500000000000001e-2"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="1.0e-2" fill-opacity="1.0"><polyline points="0.325,-2.5e-2
