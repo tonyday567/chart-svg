@@ -20,7 +20,7 @@ main = do
   writeChartSvgHud "lineshud.svg" lineChart
 ```
 
-![chart-svg example](other/line.svg)
+![chart-svg example](other/lined.svg)
 
 Examples
 ===
@@ -32,43 +32,38 @@ Chart Types
 
 rect
 
-![](other/unit.svg)
+![](other/unitd.svg)
 
 line
 
-![](other/line.svg)
+![](other/lined.svg)
 
 text
 
-![](other/text.svg)
+![](other/textd.svg)
 
 glyph
 
-![](other/glyphs.svg)
+![](other/glyphsd.svg)
 
 bar
 
-![](other/bar.svg)
+![](other/bard.svg)
 
 surface
 
-![](other/surface.svg)
+![](other/surfaced.svg)
 
 arrow
 
-![](other/arrow.svg)
+![](other/arrowd.svg)
 
 hud
 ---
 
 default hud
 
-![](other/hudoptions.svg)
-
-hud against a dark background
-
-![](other/hudoptionsdark.svg)
-
+![](other/hudoptionsd.svg)
 
 
 

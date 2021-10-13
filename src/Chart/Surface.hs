@@ -21,6 +21,7 @@ module Chart.Surface
     surfacefl,
     SurfaceLegendOptions (..),
     defaultSurfaceLegendOptions,
+    surfaceAxisOptions,
   )
 where
 
@@ -132,23 +133,23 @@ data SurfaceLegendOptions = SurfaceLegendOptions
   }
   deriving (Eq, Show, Generic)
 
-surfaceAxisOptions :: AxisOptions
-surfaceAxisOptions =
+surfaceAxisOptions :: Colour -> AxisOptions
+surfaceAxisOptions c =
   AxisOptions
     Nothing
     Nothing
     ( Tick
         (TickRound (FormatPrec (Just 3)) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #color .~ dark & #shape .~ VLineGlyph 0.005, 0.01))
-        (Just (defaultTextTick, 0.03))
+        (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c & #shape .~ VLineGlyph 0.005, 0.01))
+        (Just (defaultTextTick & #color .~ c, 0.03))
         Nothing
     )
     PlaceRight
 
 -- | official surface legend options
-defaultSurfaceLegendOptions :: Text -> SurfaceLegendOptions
-defaultSurfaceLegendOptions t =
-  SurfaceLegendOptions defaultSurfaceStyle t 0.05 100 surfaceAxisOptions surfaceLegendOptions
+defaultSurfaceLegendOptions :: Colour -> Text -> SurfaceLegendOptions
+defaultSurfaceLegendOptions c t =
+  SurfaceLegendOptions defaultSurfaceStyle t 0.05 100 (surfaceAxisOptions c) surfaceLegendOptions
 
 surfaceLegendOptions :: LegendOptions
 surfaceLegendOptions =

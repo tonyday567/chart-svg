@@ -35,6 +35,7 @@ module Chart.Examples
     vennExample,
     arrowExample,
     writeAllExamples,
+    writeAllExamplesDark,
   )
 where
 
@@ -75,6 +76,7 @@ hudOptionsDarkExample =
     & #hudOptions .~ colourHudOptions light defaultHudOptions
     & #chartList .~ [Chart BlankA [one]]
     & #svgOptions . #cssOptions . #preferColorScheme .~ PreferDark
+    & #svgOptions . #background .~ Just dark
 
 -- | 'SvgOptions' example.
 --
@@ -182,12 +184,12 @@ exampleLineHudOptions t1 t2 legends' =
 -- | text example
 --
 -- ![text example](other/text.svg)
-textExample :: ChartSvg
-textExample =
+textExample :: Colour -> ChartSvg
+textExample textColour =
   mempty & #chartList
     .~ zipWith
       Chart
-      (TextA (defaultTextStyle & (#color .~ dark) & (#size .~ (0.05 :: Double))) . (: []) . fst <$> ts)
+      (TextA (defaultTextStyle & (#color .~ textColour) & (#size .~ (0.05 :: Double))) . (: []) . fst <$> ts)
       ((: []) . PointXY . snd <$> ts)
   where
     ts :: [(Text, Point Double)]
@@ -574,8 +576,8 @@ cubicExample =
 -- | The common way to create a surface chart is usually a grid over a function.
 --
 -- ![surface example](other/surface.svg)
-surfaceExample :: ChartSvg
-surfaceExample =
+surfaceExample :: Colour -> ChartSvg
+surfaceExample c =
   mempty
     & #hudList .~ hs
     & #chartList .~ cs
@@ -593,8 +595,11 @@ surfaceExample =
             & #soRange .~ r
             & #soStyle . #surfaceColors .~ (palette1 <$> [0 .. 5])
         )
-        ( defaultSurfaceLegendOptions t
+        ( defaultSurfaceLegendOptions c t
             & #sloStyle . #surfaceColors .~ (palette1 <$> [0 .. 5])
+            & #sloLegendOptions . #ltext . #color .~ c
+            & #sloAxisOptions .~ surfaceAxisOptions c
+            & #sloLegendOptions . #legendFrame %~ fmap (#borderColor .~ c)
         )
 
 -- | arrow example
@@ -602,8 +607,8 @@ surfaceExample =
 -- Which happens to be the gradient of the surface example.
 --
 -- ![arrow example](other/arrow.svg)
-arrowExample :: ChartSvg
-arrowExample =
+arrowExample :: Colour -> ChartSvg
+arrowExample arrowColour =
   mempty
     & #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#axisTick . #ltick .~ Nothing))
     & #chartList .~ ((\p -> chart (tail . f $ p) (angle . f $ p) p) <$> ps)
@@ -616,7 +621,7 @@ arrowExample =
       defaultGlyphStyle
         & #borderSize .~ 0.05
         & #size .~ s
-        & #borderColor .~ dark
+        & #borderColor .~ arrowColour
         & #rotation .~ Just r'
         & #shape .~ arrow
     chart s r' p = Chart (GlyphA (gs s r')) [PointXY p]
@@ -636,37 +641,57 @@ arrowExample =
 rosenbrock :: Double -> Double -> Point Double -> (Double, Point Double)
 rosenbrock a b (Point x y) = (a ^ 2 - 2 * a * x + x ^ 2 + b * y ^ 2 - b * 2 * y * x ^ 2 + b * x ^ 4, Point (-2 * a + 2 * x - b * 4 * y * x + 4 * b * x ^ 3) (2 * b * y - 2 * b * x ^ 2))
 
+
+pathChartSvg :: Colour -> [(FilePath, ChartSvg)]
+pathChartSvg c =
+  [
+    ("other/unit.svg",unitExample),
+    ("other/rect.svg",rectExample),
+    ("other/text.svg",textExample c),
+    ("other/glyphs.svg",glyphsExample),
+    ("other/line.svg",lineExample),
+    ("other/svgoptions.svg",svgOptionsExample),
+    ("other/hudoptions.svg",hudOptionsExample),
+    ("other/hudoptionsdark.svg",hudOptionsDarkExample),
+    ("other/legend.svg",legendExample),
+      -- charts in Chart.Bar docs
+    ("other/bar.svg",barExample),
+      -- charts in Chart.Surface docs
+    ("other/surface.svg",surfaceExample c),
+      -- extra Charts
+    ("other/wave.svg",waveExample),
+    ("other/lglyph.svg",lglyphExample),
+    ("other/glines.svg",glinesExample),
+    ("other/compound.svg",compoundExample),
+    ("other/textlocal.svg",textLocalExample),
+    ("other/label.svg",labelExample),
+    ("other/venn.svg",vennExample),
+    ("other/path.svg",pathExample),
+    ("other/arc.svg",arcExample),
+    ("other/arcflags.svg",arcFlagsExample),
+    ("other/ellipse.svg",ellipseExample),
+    ("other/quad.svg",quadExample),
+    ("other/cubic.svg",cubicExample),
+    ("other/arrow.svg",arrowExample c)
+  ]
+
 -- | Run this to refresh haddock example SVGs.
 writeAllExamples :: IO ()
 writeAllExamples = do
-  -- charts in Chart docs
-  writeChartSvg "other/unit.svg" unitExample
-  writeChartSvg "other/rect.svg" rectExample
-  writeChartSvg "other/text.svg" textExample
-  writeChartSvg "other/glyphs.svg" glyphsExample
-  writeChartSvg "other/line.svg" lineExample
-  writeChartSvg "other/svgoptions.svg" svgOptionsExample
-  writeChartSvg "other/hudoptions.svg" hudOptionsExample
-  writeChartSvg "other/hudoptionsdark.svg" hudOptionsDarkExample
-  writeChartSvg "other/legend.svg" legendExample
-  -- charts in Chart.Bar docs
-  writeChartSvg "other/bar.svg" barExample
-  -- charts in Chart.Surface docs
-  writeChartSvg "other/surface.svg" surfaceExample
-  -- extra Charts
-  writeChartSvg "other/wave.svg" waveExample
-  writeChartSvg "other/lglyph.svg" lglyphExample
-  writeChartSvg "other/glines.svg" glinesExample
-  writeChartSvg "other/compound.svg" compoundExample
-  writeChartSvg "other/textlocal.svg" textLocalExample
-  writeChartSvg "other/label.svg" labelExample
-  writeChartSvg "other/venn.svg" vennExample
-  writeChartSvg "other/path.svg" pathExample
-  writeChartSvg "other/arc.svg" arcExample
-  writeChartSvg "other/arcflags.svg" arcFlagsExample
-  writeChartSvg "other/ellipse.svg" ellipseExample
-  writeChartSvg "other/quad.svg" quadExample
-  writeChartSvg "other/cubic.svg" cubicExample
-  writeChartSvg "other/arrow.svg" arrowExample
-
+  sequence_ $ uncurry writeChartSvg <$> pathChartSvg dark
   putStrLn "ok"
+
+-- | Version of charts with a dark-friendly hud
+writeAllExamplesDark :: IO ()
+writeAllExamplesDark = do
+  sequence_ $
+    uncurry writeChartSvg .
+    bimap
+    ((<> "d.svg") . reverse . drop 4 . reverse)
+    (\x ->
+       x &
+       #hudOptions %~ colourHudOptions light &
+       #svgOptions . #cssOptions . #preferColorScheme .~ PreferDark
+    ) <$>
+    pathChartSvg light
+  putStrLn "dark version, ok"

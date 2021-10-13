@@ -1,0 +1,8 @@
+<svg width="573.2594690189848" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.775 -0.5276917562724014 2.0115517241379313 1.0526917562724014" height="300.0"><style>svg {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme:light) {
+  svg {
+    background-color: #0d0d0d;
+  }
+}</style><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="8.0e-2" fill-opacity="1.0" text-anchor="start"><text x="-0.75" y="0.4623655913978495">a pretty long piece of text</text></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="8.0e-2" fill-opacity="1.0" text-anchor="start"><text x="-0.10344827586206895" y="-0.4336917562724014">another pretty long piece of text</text></g><g stroke-opacity="1.0" fill="#1f78b5" stroke="#a6cfe3" stroke-width="1.0e-2" fill-opacity="0.1"><rect width="0.6982758620689655" x="-0.75" y="0.3960573476702509" height="0.10394265232974909"/></g><g stroke-opacity="1.0" fill="#1f78b5" stroke="#a6cfe3" stroke-width="1.0e-2" fill-opacity="0.1"><rect width="0.853448275862069" x="-0.10344827586206895" y="-0.5" height="0.1039426523297492"/></g></svg>
