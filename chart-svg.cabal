@@ -42,6 +42,7 @@ library
   exposed-modules:
     Chart
     Chart.Chart
+    Chart.Style
     Chart.Bar
     Chart.Examples
     Chart.Render
