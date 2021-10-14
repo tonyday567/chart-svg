@@ -48,6 +48,9 @@ module Data.Path
     toSingletonArc,
     pathBoxes,
     pathBox,
+    pathBoxes',
+    projectArcPosition',
+    projectControls',
   )
 where
 
@@ -66,10 +69,11 @@ import qualified Geom2D.CubicBezier as B
 -- import Graphics.SvgTree.PathParser
 import qualified Linear
 import NumHask.Prelude
-import NumHask.Space
+import NumHask.Space as NH
 import Data.Functor
 import Control.Applicative
 import           Data.Scientific            (toRealFloat)
+import Data.List.NonEmpty (NonEmpty (..))
 
 -- $setup
 -- FIXME:
@@ -803,6 +807,19 @@ pathBoxes (x : xs) =
       (Point Double, Rect Double)
     step (start, r) a = (snd a, pathBox start a <> r)
 
+-- | Bounding box for a list of path XYs.
+pathBoxes' :: NonEmpty (PathInfo Double, Point Double) -> Rect Double
+pathBoxes' (x :| xs) =
+  L.fold (L.Fold step begin snd) xs
+  where
+    begin :: (Point Double, Rect Double)
+    begin = (snd x, singleton (snd x))
+    step ::
+      (Point Double, Rect Double) ->
+      (PathInfo Double, Point Double) ->
+      (Point Double, Rect Double)
+    step (start, r) a = (snd a, pathBox start a <> r)
+
 -- | Bounding box for a path info, start and end Points.
 pathBox :: Point Double -> (PathInfo Double, Point Double) -> Rect Double
 pathBox start (info, end) =
@@ -812,3 +829,38 @@ pathBox start (info, end) =
     CubicI c1 c2 -> cubicBox (CubicPosition start end c1 c2)
     QuadI c -> quadBox (QuadPosition start end c)
     ArcI i -> arcBox (ArcPosition start end i)
+
+-- | project an ArcPosition given new and old Rects
+--
+-- The radii of the ellipse can be represented as:
+--
+-- Point rx 0 & Point 0 ry
+--
+-- These two points are firstly rotated by p and then undergo scaling...
+projectArcPosition' :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInfo Double
+projectArcPosition' new old (ArcPosition _ _ (ArcInfo (Point rx ry) phi l cl)) = ArcInfo (Point rx'' ry'') phi l cl
+  where
+    rx' = rotateP phi (Point rx zero)
+    rx'' = norm $ rx' * NH.width new / NH.width old
+    ry' = rotateP phi (Point zero ry)
+    ry'' = norm $ ry' * NH.width new / NH.width old
+
+projectControls' :: Foldable t =>
+  Rect Double
+  -> Rect Double
+  -> t (PathInfo Double, Point Double)
+  -> [(PathInfo Double, Point Double)]
+projectControls' new old ps = (reverse . snd) (foldl' (\(prevp, l) (i, xy) -> (xy, projectControl new old prevp xy i : l)) (zero, []) ps)
+
+projectControl
+  :: Rect Double
+  -> Rect Double
+  -> Point Double
+  -> Point Double
+  -> PathInfo Double
+  -> (PathInfo Double, Point Double)
+projectControl new old _ p (CubicI c1 c2) =
+      (CubicI (projectOnP new old c1) (projectOnP new old c2), projectOnP new old p)
+projectControl new old _ p (QuadI c) =
+      (QuadI (projectOnP new old c), projectOnP new old p)
+projectControl new old p1 p2 (ArcI ai) = (ArcI $ projectArcPosition' new old (ArcPosition p1 p2 ai), projectOnP new old p2)

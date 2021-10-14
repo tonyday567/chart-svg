@@ -40,7 +40,7 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Time (UTCTime (..))
 import NumHask.Prelude (one)
-import NumHask.Space
+import NumHask.Space hiding (singleton)
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 xify :: [Double] -> [Point Double]
@@ -66,15 +66,15 @@ yify' xs =
 addLineX :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
 addLineX y ls cs = cs <> [l]
   where
-    l = Chart (LineA ls) (PointXY <$> [Point lx y, Point ux y])
-    (Rect lx ux _ _) = fromMaybe one $ foldRect $ mconcat $ fmap toRect . xys <$> cs
+    l = Chart (LineA ls) (singleton (PointXY <$> [Point lx y, Point ux y]))
+    (Rect lx ux _ _) = fromMaybe one $ foldRect $ mconcat $ mconcat $ fmap (fmap toRect) . xys <$> cs
 
 -- | add a verticle line at x
 addLineY :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
 addLineY x ls cs = cs <> [zeroLine]
   where
-    zeroLine = Chart (LineA ls) (PointXY <$> [Point x ly, Point x uy])
-    (Rect _ _ ly uy) = fromMaybe one $ foldRect $ mconcat $ fmap toRect . xys <$> cs
+    zeroLine = Chart (LineA ls) (singleton (PointXY <$> [Point x ly, Point x uy]))
+    (Rect _ _ ly uy) = fromMaybe one $ foldRect $ mconcat $ mconcat $ fmap (fmap toRect) . xys <$> cs
 
 -- | interpret a [[Double]] as a series of lines with x coordinates of [0..]
 stdLineChart :: Double -> [Colour] -> [[Double]] -> [Chart Double]
@@ -83,7 +83,7 @@ stdLineChart w p xss =
     ( \c xs ->
         Chart
           (LineA (defaultLineStyle & #color .~ c & #width .~ w))
-          (xify' xs)
+          (singleton (xify' xs))
     )
     p
     xss
@@ -179,7 +179,7 @@ quantileChart title names ls as xs =
       zipWith
         (\l c -> Chart (LineA l) c)
         ls
-        (zipWith P [0 ..] <$> xs)
+        (singleton (zipWith P [0 ..] <$> xs))
 
 -- | /blendMidLineStyle n w/ produces n lines of width w interpolated between two colors.
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
@@ -212,13 +212,13 @@ digitChart title utcs xs =
                 & #size .~ 0.01
             )
         )
-        (xify' xs)
+        (singleton (xify' xs))
 
 -- | scatter chart
 scatterChart ::
   [[Point Double]] ->
   [Chart Double]
-scatterChart xss = zipWith (\gs xs -> Chart (GlyphA gs) (PointXY <$> xs)) (gpaletteStyle 0.02) xss
+scatterChart xss = zipWith (\gs xs -> Chart (GlyphA gs) (singleton (PointXY <$> xs))) (gpaletteStyle 0.02) xss
 
 -- | histogram chart
 histChart ::
@@ -266,7 +266,7 @@ quantileHistChart title names qs vs =
                )
                names
            ]
-    chart' = Chart (RectA defaultRectStyle) (RectXY <$> hr)
+    chart' = Chart (RectA defaultRectStyle) (singleton (RectXY <$> hr))
     hr =
       zipWith
         (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
@@ -322,4 +322,4 @@ makeTitles (t, xt, yt) =
 
 -- | Chart for double list of Text.
 tableChart :: [[Text]] -> [Chart Double]
-tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (P x <$> take (length ts) [0 ..])) tss [0 ..]
+tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (singleton (P x <$> take (length ts) [0 ..]))) tss [0 ..]

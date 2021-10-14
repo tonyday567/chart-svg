@@ -55,7 +55,7 @@ import NumHask.Prelude hiding (lines)
 --
 -- ![unit example](other/unit.svg)
 unitExample :: ChartSvg
-unitExample = mempty & #chartList .~ [Chart (RectA defaultRectStyle) [one]]
+unitExample = mempty & #chartList .~ [Chart (RectA defaultRectStyle) ([[one]])]
 
 -- | 'HudOptions' example
 --
@@ -64,7 +64,7 @@ hudOptionsExample :: ChartSvg
 hudOptionsExample =
   mempty
     & #hudOptions .~ colourHudOptions dark defaultHudOptions
-    & #chartList .~ [Chart BlankA [one]]
+    & #chartList .~ [Chart BlankA [[one]]]
     & #svgOptions . #cssOptions . #preferColorScheme .~ PreferLight
 
 -- | 'HudOptions' PreferDark example
@@ -74,7 +74,7 @@ hudOptionsDarkExample :: ChartSvg
 hudOptionsDarkExample =
   mempty
     & #hudOptions .~ colourHudOptions light defaultHudOptions
-    & #chartList .~ [Chart BlankA [one]]
+    & #chartList .~ [Chart BlankA [[one]]]
     & #svgOptions . #cssOptions . #preferColorScheme .~ PreferDark
     & #svgOptions . #background .~ Just dark
 
@@ -85,7 +85,7 @@ svgOptionsExample :: ChartSvg
 svgOptionsExample =
   mempty
     & #svgOptions %~ #chartAspect .~ FixedAspect 0.7
-    & #chartList .~ zipWith (\s d -> Chart (LineA s) (fmap PointXY d)) lopts ls
+    & #chartList .~ zipWith (\s d -> Chart (LineA s) (singleton (fmap PointXY d))) lopts ls
 
 -- | rect example
 --
@@ -93,8 +93,10 @@ svgOptionsExample =
 rectExample :: ChartSvg
 rectExample =
   mempty
-    & #hudOptions .~ (defaultHudOptions & #hudAxes .~ [defaultAxisOptions])
-    & #chartList .~ zipWith Chart (RectA <$> ropts) (fmap RectXY <$> rss)
+    & #hudOptions .~ (defaultHudOptions &
+                      #hudAxes .~ [defaultAxisOptions & #axisTick . #ltick .~ Nothing] &
+                      #hudCanvas .~ Nothing)
+    & #chartList .~ zipWith (\ann rs -> Chart (RectA ann) (singleton (RectXY <$> rs))) ropts rss
 
 rss :: [[Rect Double]]
 rss =
@@ -104,8 +106,8 @@ rss =
 
 ropts :: [RectStyle]
 ropts =
-  [ blob (palette1 1),
-    blob (palette1 2)
+  [ blob (setOpac 0.3 (palette1 3)),
+    blob (setOpac 0.3 (palette1 5))
   ]
 
 -- | line example
@@ -144,7 +146,7 @@ lineExample =
       (Just "An example from chart-svg")
       (Just (defaultLegendOptions, zip (LineA <$> lopts) ["hockey", "line", "vertical"]))
     & #chartList
-    .~ zipWith (\s d -> Chart (LineA s) (fmap PointXY d)) lopts ls
+    .~ zipWith (\s d -> Chart (LineA s) (singleton (fmap PointXY d))) lopts ls
 
 ls :: [[Point Double]]
 ls =
@@ -190,7 +192,7 @@ textExample textColour =
     .~ zipWith
       Chart
       (TextA (defaultTextStyle & (#color .~ textColour) & (#size .~ (0.05 :: Double))) . (: []) . fst <$> ts)
-      ((: []) . PointXY . snd <$> ts)
+      (singleton . singleton . PointXY . snd <$> ts)
   where
     ts :: [(Text, Point Double)]
     ts =
@@ -217,7 +219,7 @@ glyphsExample =
                     & #shape .~ sh
                 )
             )
-            [p]
+            [[p]]
       )
       [ (CircleGlyph, 0.01 :: Double),
         (SquareGlyph, 0.01),
@@ -253,8 +255,8 @@ textLocalExample =
   mempty & #chartList
     .~ [ t1,
          t2,
-         Chart (RectA rs) [RectXY (padBox $ styleBox t1)],
-         Chart (RectA rs) [RectXY (padBox $ styleBox t2)]
+         Chart (RectA rs) [[RectXY (padBox $ styleBox t1)]],
+         Chart (RectA rs) [[RectXY (padBox $ styleBox t2)]]
        ]
   where
     rs = defaultRectStyle & #color %~ setOpac 0.1
@@ -264,14 +266,14 @@ textLocalExample =
             (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.5 & #size .~ 0.08)
             ["a pretty long piece of text"]
         )
-        [zero]
+        [[zero]]
     t2 =
       Chart
         ( TextA
             (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.5 & #size .~ 0.08)
             ["another pretty long piece of text"]
         )
-        [P 1 1]
+        [[P 1 1]]
 
 -- | compound chart
 gopts3 :: [GlyphStyle]
@@ -294,8 +296,8 @@ gopts3 =
 glinesExample :: ChartSvg
 glinesExample = mempty & #chartList .~ (cs <> gs)
   where
-    cs = zipWith (\d s -> Chart (LineA s) (PointXY <$> d)) ls lopts
-    gs = zipWith (\d s -> Chart (GlyphA s) (PointXY <$> d)) ls gopts3
+    cs = zipWith (\d s -> Chart (LineA s) (singleton (PointXY <$> d))) ls lopts
+    gs = zipWith (\d s -> Chart (GlyphA s) (singleton (PointXY <$> d))) ls gopts3
 
 lgdata :: [(Text, Point Double)]
 lgdata =
@@ -317,7 +319,7 @@ lglyphExample = mempty & #chartList .~ (txt <> gly)
                 )
                 [t]
             )
-            (PointXY <$> [p + Point 0 0.2])
+            (singleton (PointXY <$> [p + Point 0 0.2]))
       )
         <$> lgdata
     gly =
@@ -330,7 +332,7 @@ lglyphExample = mempty & #chartList .~ (txt <> gly)
                     & #color .~ palette1 2
                 )
             )
-            (PointXY <$> [d])
+            (singleton (PointXY <$> [d]))
       )
         <$> (snd <$> lgdata)
 
@@ -346,7 +348,7 @@ compoundExample = lglyphExample <> glinesExample
 labelExample :: ChartSvg
 labelExample =
   mempty & #chartList
-    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ -pi / 4) ["text at (1,1) rotated by -(pi/4) radians"]) [PointXY (Point 1.0 1.0)]]
+    .~ [Chart (TextA (defaultTextStyle & #rotation ?~ -pi / 4) ["text at (1,1) rotated by -(pi/4) radians"]) [[PointXY (Point 1.0 1.0)]]]
 
 -- | legend test
 --
@@ -378,7 +380,7 @@ legendExample =
 --
 -- ![wave example](other/wave.svg)
 waveExample :: ChartSvg
-waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (PointXY <$> gridP sin (Range 0 (2 * pi)) 30)]
+waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (singleton (PointXY <$> gridP sin (Range 0 (2 * pi)) 30))]
 
 -- | venn diagram
 --
@@ -386,7 +388,7 @@ waveExample = mempty & #chartList .~ [Chart (GlyphA defaultGlyphStyle) (PointXY 
 vennExample :: ChartSvg
 vennExample =
   mempty
-    & #chartList .~ zipWith (\c x -> Chart (PathA (defaultPathStyle & #color .~ setOpac 0.2 c) (fst <$> x)) (PointXY . snd <$> x)) palette1_ (toPathXYs . parsePath <$> vennSegs)
+    & #chartList .~ zipWith (\c x -> Chart (PathA (defaultPathStyle & #color .~ setOpac 0.2 c) (fst <$> x)) (singleton (PointXY . snd <$> x))) palette1_ (toPathXYs . parsePath <$> vennSegs)
     & #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1)
     & #hudOptions .~ defaultHudOptions
 
@@ -433,8 +435,8 @@ pathExample =
         (QuadI (Point -1 2), Point 0 1),
         (ArcI (ArcInfo (Point 1 1) (-pi / 6) False False), Point 0 0)
       ]
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (PointXY . snd <$> ps)
-    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY . snd <$> ps)
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) (fst <$> ps)) (singleton (PointXY . snd <$> ps))
+    c0 = Chart (GlyphA defaultGlyphStyle) (singleton (PointXY . snd <$> ps))
 
 -- | ellipse example
 --
@@ -450,12 +452,12 @@ ellipseExample =
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p
-    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100])
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
-    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [c, p1, p2])
-    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p)]
-    xradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [ellipse c r phi' 0, ellipse c r phi' pi])
-    yradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (PointXY <$> [ellipse c r phi' (pi / 2), ellipse c r phi' (3 / 2 * pi)])
+    ellFull = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (singleton . PointXY . ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (singleton . PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
+    c0 = Chart (GlyphA defaultGlyphStyle) (singleton (PointXY <$> [c, p1, p2]))
+    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [[RectXY (arcBox p)]]
+    xradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (singleton (PointXY <$> [ellipse c r phi' 0, ellipse c r phi' pi]))
+    yradii = Chart (LineA $ defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) (singleton (PointXY <$> [ellipse c r phi' (pi / 2), ellipse c r phi' (3 / 2 * pi)]))
 
 -- | arc example
 --
@@ -470,10 +472,10 @@ arcExample =
     p1 = ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) 0 False True)
     ps = singletonArc p1
     (ArcCentroid c r phi' ang0 angd) = arcCentroid p1
-    arc = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
-    c0 = Chart (GlyphA defaultGlyphStyle) [PointXY c]
-    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (arcBox p1)]
+    arc = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (singleton . PointXY . snd <$> ps)
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (singleton . PointXY . ellipse c r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
+    c0 = Chart (GlyphA defaultGlyphStyle) [[PointXY c]]
+    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [[RectXY (arcBox p1)]]
 
 -- | Reproduction of the flag explanation chart in <https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths>
 --
@@ -486,37 +488,37 @@ arcFlagsExample =
       0.02
       [ hori
           0.02
-          [ [ Chart BlankA [R -0.4 0.4 -1 5],
-              Chart (TextA (defaultTextStyle & #size .~ 0.6 & #rotation .~ Just (pi / 2)) ["Sweep"]) [P 0.1 2]
+          [ [ Chart BlankA [[R -0.4 0.4 -1 5]],
+              Chart (TextA (defaultTextStyle & #size .~ 0.6 & #rotation .~ Just (pi / 2)) ["Sweep"]) [[P 0.1 2]]
             ],
             vert
               0.02
-              [ [ Chart BlankA [R -0.25 0.25 -1 2],
-                  Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2)) ["True"]) [P 0.1 0.5]
+              [ [ Chart BlankA [[R -0.25 0.25 -1 2]],
+                  Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2)) ["True"]) [[P 0.1 0.5]]
                 ],
-                [ Chart BlankA [R -0.25 0.25 -1 2],
-                  Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2)) ["False"]) [P 0.1 0.5]
+                [ Chart BlankA [[R -0.25 0.25 -1 2]],
+                  Chart (TextA (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2)) ["False"]) [[P 0.1 0.5]]
                 ]
               ],
             vert
               0.02
               [ checkFlags False True (setOpac 0.3 dark) & view #chartList,
                 checkFlags False False (setOpac 0.3 dark) & view #chartList,
-                [ Chart BlankA [R -1 2 -0.25 0.25],
-                  Chart (TextA (defaultTextStyle & #size .~ 0.4) ["False"]) [P 0.5 -0.1]
+                [ Chart BlankA [[R -1 2 -0.25 0.25]],
+                  Chart (TextA (defaultTextStyle & #size .~ 0.4) ["False"]) [[P 0.5 -0.1]]
                 ]
               ],
             vert
               0.02
               [ checkFlags True True (setOpac 0.3 dark) & view #chartList,
                 checkFlags True False (setOpac 0.3 dark) & view #chartList,
-                [ Chart BlankA [R -1 2 -0.25 0.25],
-                  Chart (TextA (defaultTextStyle & #size .~ 0.4) ["True"]) [P 0.5 -0.1]
+                [ Chart BlankA [[R -1 2 -0.25 0.25]],
+                  Chart (TextA (defaultTextStyle & #size .~ 0.4) ["True"]) [[P 0.5 -0.1]]
                 ]
               ]
           ],
-        [ Chart BlankA [R 0 9 -2.75 -3.25],
-          Chart (TextA (defaultTextStyle & #size .~ 0.6) ["Large"]) [P 5.5 -3.0]
+        [ Chart BlankA [[R 0 9 -2.75 -3.25]],
+          Chart (TextA (defaultTextStyle & #size .~ 0.6) ["Large"]) [[P 5.5 -3.0]]
         ]
       ]
     & #hudOptions
@@ -534,10 +536,10 @@ checkFlags large sweep co =
     p1 = ArcPosition (Point 0.0 1.0) (Point 1.0 0.0) (ArcInfo (Point 1.0 1.0) 0 large sweep)
     ps1 = singletonPie' c p1
     (ArcCentroid c' r phi' ang0 angd) = arcCentroid p1
-    arc1 = Chart (PathA (defaultPathStyle & #color .~ co & #borderColor .~ setOpac 0.5 dark) (fst <$> ps1)) (PointXY . snd <$> ps1)
-    c1 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) (PointXY . ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100])
-    c2 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) (PointXY . ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100])
-    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.05 & #color .~ setOpac 0.5 co) (PointXY . ellipse c' r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
+    arc1 = Chart (PathA (defaultPathStyle & #color .~ co & #borderColor .~ setOpac 0.5 dark) (fst <$> ps1)) (singleton . PointXY . snd <$> ps1)
+    c1 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) (singleton . PointXY . ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100])
+    c2 = Chart (LineA $ defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) (singleton . PointXY . ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100])
+    ell = Chart (LineA $ defaultLineStyle & #width .~ 0.05 & #color .~ setOpac 0.5 co) (singleton . PointXY . ellipse c' r phi' . (\x -> ang0 + angd * x / 100.0) <$> [0 .. 100])
 
 -- | quad example
 --
@@ -551,10 +553,10 @@ quadExample =
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1)
     ps = singletonQuad p
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . quadBezier p . (/ 100.0) <$> [0 .. 100])
-    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control])
-    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (quadBox p)]
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (singleton . PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (singleton . PointXY . quadBezier p . (/ 100.0) <$> [0 .. 100])
+    c0 = Chart (GlyphA defaultGlyphStyle) (singleton (PointXY <$> [start, end, control]))
+    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [[RectXY (quadBox p)]]
 
 -- | cubic example
 --
@@ -568,10 +570,10 @@ cubicExample =
   where
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
     ps = singletonCubic p
-    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (PointXY . snd <$> ps)
-    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (PointXY . cubicBezier p . (/ 100.0) <$> [0 .. 100])
-    c0 = Chart (GlyphA defaultGlyphStyle) (PointXY <$> [start, end, control1, control2, cubicBezier p 0.8])
-    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [RectXY (cubicBox p)]
+    path' = Chart (PathA (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) (fst <$> ps)) (singleton . PointXY . snd <$> ps)
+    curve = Chart (LineA $ defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) (singleton . PointXY . cubicBezier p . (/ 100.0) <$> [0 .. 100])
+    c0 = Chart (GlyphA defaultGlyphStyle) (singleton (PointXY <$> [start, end, control1, control2, cubicBezier p 0.8]))
+    bbox = Chart (RectA $ defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [[RectXY (cubicBox p)]]
 
 -- | The common way to create a surface chart is usually a grid over a function.
 --
@@ -624,7 +626,7 @@ arrowExample arrowColour =
         & #borderColor .~ arrowColour
         & #rotation .~ Just r'
         & #shape .~ arrow
-    chart s r' p = Chart (GlyphA (gs s r')) [PointXY p]
+    chart s r' p = Chart (GlyphA (gs s r')) [[PointXY p]]
 
     tail :: Point Double -> Double
     tail = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . norm

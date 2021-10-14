@@ -136,6 +136,9 @@ module Chart
     styleBoxText,
     styleBoxGlyph,
 
+    -- * singleton
+    singleton,
+
     -- * Re-exports
     module Chart.Render,
     module Chart.Bar,
@@ -154,7 +157,7 @@ import Chart.Types
 import Data.Colour
 import Data.FormatN
 import Data.Path
-import NumHask.Space
+import NumHask.Space hiding (singleton)
 
 -- $setup
 --

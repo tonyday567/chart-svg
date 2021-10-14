@@ -32,7 +32,7 @@ Chart Types
 
 rect
 
-![](other/unitd.svg)
+![](other/rectd.svg)
 
 line
 

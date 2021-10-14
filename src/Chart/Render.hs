@@ -24,6 +24,11 @@ module Chart.Render
     writeChartSvgHud,
     svg2Tag,
     svg,
+    svgRect,
+    svgText,
+    svgLine,
+    svgGlyph,
+    svgPath,
     terms,
     makeAttribute,
 
@@ -49,7 +54,7 @@ import Lucid
 import Lucid.Base
 import qualified Lucid.Base as Lucid
 import NumHask.Prelude
-import NumHask.Space as NH hiding (Element)
+import NumHask.Space as NH hiding (Element, singleton)
 import NeatInterpolation
 
 -- $setup
@@ -174,7 +179,7 @@ renderChartsWith so cs =
           (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
           (so ^. #chartFrame)
     cs'' =
-      foldMap (\c -> [Chart (RectA (blob c)) [RectXY rect']]) (so ^. #background) <> cs'
+      foldMap (\c -> [Chart (RectA (blob c)) (singleton [RectXY rect'])]) (so ^. #background) <> cs'
     Point w h = NH.width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
     penult = case so ^. #chartAspect of
@@ -331,16 +336,16 @@ svgAtts (PathA s _) = attsPath s
 svgAtts BlankA = mempty
 
 svgHtml :: Chart Double -> Lucid.Html ()
-svgHtml (Chart (TextA s ts) xs) =
-  mconcat $ zipWith (\t p -> svgText s t (toPoint p)) ts xs
+svgHtml (Chart (TextA s ts) xss) =
+  mconcat $ mconcat $ fmap (\xs -> zipWith (\t p -> svgText s t (toPoint p)) ts xs) xss
 svgHtml (Chart (GlyphA s) xs) =
-  mconcat $ svgGlyph s . toPoint <$> xs
+  mconcat $ mconcat $ fmap (svgGlyph s . toPoint) <$> xs
 svgHtml (Chart (LineA _) xs) =
-  svgLine $ toPoint <$> xs
+  mconcat $ fmap svgLine $ fmap toPoint <$> xs
 svgHtml (Chart (RectA _) xs) =
-  mconcat $ svgRect . toRect <$> xs
+  mconcat $ mconcat $ fmap (svgRect . toRect) <$> xs
 svgHtml (Chart (PathA _ infos) xs) =
-  svgPath infos $ toPoint <$> xs
+  mconcat $ fmap (svgPath infos) $ fmap toPoint <$> xs
 svgHtml (Chart BlankA _) = mempty
 
 -- | Low-level conversion of a Chart to svg

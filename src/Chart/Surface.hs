@@ -35,7 +35,7 @@ import Data.Text (Text)
 import GHC.Generics
 import GHC.OverloadedLabels
 import NumHask.Prelude
-import NumHask.Space
+import NumHask.Space hiding (singleton)
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -86,7 +86,7 @@ surfaces rs ps =
   ( \(SurfaceData r c) ->
       Chart
         (RectA (rs & #color .~ c))
-        [RectXY r]
+        (singleton [RectXY r])
   )
     <$> ps
 
@@ -177,12 +177,12 @@ surfaceLegendChart dataRange l =
           || l ^. #sloLegendOptions . #lplace == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
-    t = Chart (TextA (l ^. #sloLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #sloTitle]) [zero]
+    t = Chart (TextA (l ^. #sloLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #sloTitle]) (singleton [zero])
     hs = vert (l ^. #sloLegendOptions . #vgap) [a, [t]]
     vertGlyph :: [Chart Double]
     vertGlyph =
       zipWith
-        (\r c -> Chart (RectA $ blob c) [RectXY r])
+        (\r c -> Chart (RectA $ blob c) (singleton [RectXY r]))
         ( (\xr -> Ranges xr (Range 0 (l ^. #sloWidth)))
             <$> gridSpace
               dataRange
@@ -194,7 +194,7 @@ surfaceLegendChart dataRange l =
     horiGlyph :: [Chart Double]
     horiGlyph =
       zipWith
-        (\r c -> Chart (RectA $ blob c) [RectXY r])
+        (\r c -> Chart (RectA $ blob c) (singleton [RectXY r]))
         ( (\yr -> Ranges (Range 0 (l ^. #sloWidth)) yr)
             <$> gridSpace
               dataRange

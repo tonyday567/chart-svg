@@ -34,7 +34,7 @@ import Data.Text (Text, pack)
 import GHC.Generics
 import GHC.OverloadedLabels
 import NumHask.Prelude
-import NumHask.Space
+import NumHask.Space hiding (singleton)
 
 -- $setup
 --
@@ -176,7 +176,7 @@ barRange ys'@(y : ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0 
 -- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.69 0.35 0.16 1.00, color = Colour 0.69 0.35 0.16 1.00}), xys = [R 5.0e-2 0.45 0.0 1.0,R 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.65 0.81 0.89 1.00}), xys = [R 0.45 0.8500000000000001 0.0 2.0,R 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, xys = [R -5.0e-2 1.9500000000000002 0.0 3.0]}]
 bars :: BarOptions -> BarData -> [Chart Double]
 bars bo bd =
-  zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (fmap RectXY <$> barRects bo (bd ^. #barData)) <> [Chart BlankA [RectXY (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)]]
+  zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (singleton (fmap RectXY <$> barRects bo (bd ^. #barData))) <> [Chart BlankA (singleton [RectXY (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)])]
   where
     (Rect x z y w) = fromMaybe one $ foldRect $ catMaybes $ foldRect <$> barRects bo (bd ^. #barData)
 
@@ -261,4 +261,4 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = zipWith 
 -- | text, hold the bars
 barTextCharts :: BarOptions -> BarData -> [Chart Double]
 barTextCharts bo bd =
-  zipWith (\o d -> Chart (TextA o (fst <$> d)) (PointXY . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))
+  zipWith (\o d -> Chart (TextA o (fst <$> d)) (singleton . PointXY . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))
