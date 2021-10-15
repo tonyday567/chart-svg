@@ -12,6 +12,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
@@ -20,6 +21,13 @@
 -- | Stylistic elements
 module Chart.Style
   ( -- * Styles
+    Styles(..),
+    scaleStyle,
+    scaleOpac,
+    scaleOpacStyle,
+    colourStyle,
+
+    -- * Specific Styles
     RectStyle (..),
     defaultRectStyle,
     blob,
@@ -47,6 +55,10 @@ module Chart.Style
     -- toPathChart,
     defaultPathStyle,
 
+    -- * SVG Options
+    SvgOptions (..),
+    defaultSvgOptions,
+    defaultSvgFrame,
     ChartAspect (..),
     toChartAspect,
     fromChartAspect,
@@ -54,38 +66,25 @@ module Chart.Style
     fromOrientation,
     toOrientation,
 
-    -- * SVG primitives
-    CssShapeRendering (..),
-    CssPreferColorScheme (..),
+    -- * SVG Style primitives
     CssOptions (..),
     defaultCssOptions,
-    SvgOptions (..),
-    defaultSvgOptions,
-    defaultSvgFrame,
-
+    CssShapeRendering (..),
+    CssPreferColorScheme (..),
   )
 where
 
-import Control.Lens
-import Control.Monad.State.Lazy
-import Data.Bifunctor
-import Data.Bool
 import Data.Colour
-import Data.Foldable hiding (sum)
-import Data.FormatN
 import Data.Generics.Labels ()
-import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
-import Data.Path
 import Data.String
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
-import Data.Time
 import GHC.Generics
-import GHC.OverloadedLabels
 import NumHask.Prelude
 import NumHask.Space as NH hiding (Element, singleton)
-import Text.HTML.TagSoup hiding (Attribute)
+import GHC.OverloadedLabels
+import Control.Lens
 
 -- $setup
 --
@@ -94,6 +93,73 @@ import Text.HTML.TagSoup hiding (Attribute)
 -- >>> import Chart
 -- >>> import Chart.Render
 -- >>> import Data.Colour
+{-
+-- | Unification of styles.
+--
+class Style a where
+  scaleOpac :: Double -> a -> a
+  colorStyle :: Colour -> a -> a
+  defaultStyle :: a
+  scaleStyle :: Double -> a -> a
+
+
+-}
+-- type Style_ = forall a. Style a
+
+data Styles
+  = RectA RectStyle
+  | TextA TextStyle
+  | GlyphA GlyphStyle
+  | LineA LineStyle
+  | PathA PathStyle
+  deriving (Eq, Show, Generic)
+
+-- | Generically scale an Annotation.
+scaleStyle :: Double -> Styles -> Styles
+scaleStyle x (LineA a) = LineA $ a & #width %~ (* x)
+scaleStyle x (RectA a) = RectA $ a & #borderSize %~ (* x)
+scaleStyle x (TextA a) = TextA (a & #size %~ (* x))
+scaleStyle x (GlyphA a) = GlyphA (a & #size %~ (* x))
+scaleStyle x (PathA a) = PathA (a & #borderSize %~ (* x))
+
+-- | dim (or brighten) the opacity of an Annotation by a scale
+scaleOpacStyle :: Double -> Styles -> Styles
+scaleOpacStyle x (RectA s) = RectA s'
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+scaleOpacStyle x (TextA s) = TextA s'
+  where
+    s' = s & #color %~ scaleOpac x
+scaleOpacStyle x (LineA s) = LineA s'
+  where
+    s' = s & #color %~ scaleOpac x
+scaleOpacStyle x (GlyphA s) = GlyphA s'
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+scaleOpacStyle x (PathA s) = PathA s'
+  where
+    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+
+scaleOpac :: Double -> Colour -> Colour
+scaleOpac x (Colour r g b o') = Colour r g b (o' * x)
+
+-- | select a main colour
+colourStyle :: Colour -> Styles -> Styles
+colourStyle c (RectA s) = RectA s'
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
+colourStyle c (TextA s) = TextA s'
+  where
+    s' = s & #color %~ mix c
+colourStyle c (LineA s) = LineA s'
+  where
+    s' = s & #color %~ mix c
+colourStyle c (GlyphA s) = GlyphA s'
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
+colourStyle c (PathA s) = PathA s'
+  where
+    s' = s & #color %~ mix c & #borderColor %~ mix c
 
 -- | Rectangle styling
 --

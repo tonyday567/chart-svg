@@ -18,51 +18,8 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 -- | Chart API
-module Chart.Types
-  ( -- * Chart
-    Chart (..),
-    moveChart,
-    projectXYs,
-    projectXYsWith,
-    projectArcPosition,
-
-    -- * Annotation
-    Annotation (..),
-    annotationText,
-    scaleAnn,
-    scaleOpacAnn,
-    colourAnn,
-    padRect,
-
-    -- * Styles
-    RectStyle (..),
-    defaultRectStyle,
-    blob,
-    clear,
-    border,
-    TextStyle (..),
-    defaultTextStyle,
-    GlyphStyle (..),
-    defaultGlyphStyle,
-    GlyphShape (..),
-    glyphText,
-    LineStyle (..),
-    defaultLineStyle,
-    LineCap (..),
-    fromLineCap,
-    toLineCap,
-    LineJoin (..),
-    fromLineJoin,
-    toLineJoin,
-    fromDashArray,
-    Anchor (..),
-    fromAnchor,
-    toAnchor,
-    PathStyle (..),
-    toPathChart,
-    defaultPathStyle,
-
-    -- * Hud types
+module Chart.Hud
+  ( -- * Hud types
     ChartDims (..),
     HudT (..),
     Hud,
@@ -75,10 +32,6 @@ module Chart.Types
     runHudWith,
     runHud,
     makeHud,
-    ChartAspect (..),
-    toChartAspect,
-    fromChartAspect,
-    initialCanvas,
     chartAspectHud,
     canvas,
     title,
@@ -111,43 +64,12 @@ module Chart.Types
     LegendOptions (..),
     defaultLegendOptions,
     legendHud,
-    Orientation (..),
-    fromOrientation,
-    toOrientation,
 
-    -- * SVG primitives
-    CssShapeRendering (..),
-    CssPreferColorScheme (..),
-    CssOptions (..),
-    defaultCssOptions,
-    SvgOptions (..),
-    defaultSvgOptions,
-    defaultSvgFrame,
-
-    -- * Chart manipulation
-    padChart,
-    frameChart,
-    frameAllCharts,
-    hori,
-    vert,
-    stack,
-
-    -- * Bounding box calculation
-    padBox,
-    dataBox,
-    dataBoxes,
-    dataBoxesS,
-    styleBox,
-    styleBoxes,
-    styleBoxesS,
-    styleBoxText,
-    styleBoxGlyph,
-
-    -- * singleton
-    singleton,
   )
 where
 
+import Chart.Chart
+import Chart.Style
 import Control.Lens
 import Control.Monad.State.Lazy
 import Data.Bifunctor
@@ -156,416 +78,19 @@ import Data.Colour
 import Data.Foldable hiding (sum)
 import Data.FormatN
 import Data.Generics.Labels ()
-import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe
-import Data.Path
 import Data.String
-import Data.Text (Text, pack)
-import qualified Data.Text as Text
+import Data.Text (Text)
 import Data.Time
 import GHC.Generics
 import GHC.OverloadedLabels
 import NumHask.Prelude
 import NumHask.Space as NH hiding (Element, singleton)
-import Text.HTML.TagSoup hiding (Attribute)
+import Data.Path
 
--- $setup
---
--- >>> :set -XOverloadedLabels
--- >>> import Control.Lens
--- >>> import Chart
--- >>> import Chart.Render
--- >>> import Data.Colour
-
--- * Chart
-
--- | A `Chart` is annotated xy-data.
---
-data Chart a = Chart
-  { -- | annotation style for the data
-    annotation :: Annotation,
-    -- | list of list of data elements, either points or rectangles.
-    xys :: [[XY a]]
-  }
-  deriving (Eq, Show, Generic)
-
-
--- | How data will be represented onscreen.
---
--- The definition of what might be an Annotation type is opinionated.
---
--- More complex combinations across Annotations can be constructed from combining charts.  See 'Chart.Example.glinesExample', 'Chart.Examples.lglyphExample' and "Chart.Bar" for examples.
---
--- There may be exceptions, but the approximate magnitude of annotation values are in reference to the size of the screen.  For example, a size of 0.01 (say), will means about 1% of the height and/or width of the screen height or width.
-data Annotation
-  = RectA RectStyle
-  | TextA TextStyle [Text]
-  | GlyphA GlyphStyle
-  | LineA LineStyle
-  | PathA PathStyle [PathInfo Double]
-  | BlankA
-  deriving (Eq, Show, Generic)
-
--- | textifier
-annotationText :: Annotation -> Text
-annotationText (RectA _) = "RectA"
-annotationText TextA {} = "TextA"
-annotationText (GlyphA _) = "GlyphA"
-annotationText (LineA _) = "LineA"
-annotationText PathA {} = "PathA"
-annotationText BlankA = "BlankA"
-
--- | dim (or brighten) the opacity of an Annotation by a scale
-scaleOpacAnn :: Double -> Annotation -> Annotation
-scaleOpacAnn x (RectA s) = RectA s'
-  where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacAnn x (TextA s ts) = TextA s' ts
-  where
-    s' = s & #color %~ scaleOpac x
-scaleOpacAnn x (LineA s) = LineA s'
-  where
-    s' = s & #color %~ scaleOpac x
-scaleOpacAnn x (GlyphA s) = GlyphA s'
-  where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacAnn x (PathA s pis) = PathA s' pis
-  where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacAnn _ BlankA = BlankA
-
-scaleOpac :: Double -> Colour -> Colour
-scaleOpac x (Colour r g b o') = Colour r g b (o' * x)
-
--- | select a main colour
-colourAnn :: Colour -> Annotation -> Annotation
-colourAnn c (RectA s) = RectA s'
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
-colourAnn c (TextA s ts) = TextA s' ts
-  where
-    s' = s & #color %~ mix c
-colourAnn c (LineA s) = LineA s'
-  where
-    s' = s & #color %~ mix c
-colourAnn c (GlyphA s) = GlyphA s'
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
-colourAnn c (PathA s pis) = PathA s' pis
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
-colourAnn _ BlankA = BlankA
-
--- | Rectangle styling
---
--- >>> defaultRectStyle
--- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}
---
--- ![unit example](other/unit.svg)
-data RectStyle = RectStyle
-  { borderSize :: Double,
-    borderColor :: Colour,
-    color :: Colour
-  }
-  deriving (Show, Eq, Generic)
-
--- | the style
-defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (palette1 1) (palette1 2)
-
--- | solid rectangle, no border
---
--- >>> blob black
--- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 1.00}
-blob :: Colour -> RectStyle
-blob = RectStyle 0 transparent
-
--- | transparent rect
---
--- >>> clear
--- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
-clear :: RectStyle
-clear = RectStyle 0 transparent transparent
-
--- | transparent rectangle, with border
---
--- >>> border 0.01 transparent
--- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
-border :: Double -> Colour -> RectStyle
-border s c = RectStyle s c transparent
-
--- | Text styling
---
--- >>> defaultTextStyle
--- TextStyle {size = 8.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing}
---
--- >>> import qualified Data.Text as Text
--- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
---
--- ![text example](other/text.svg)
-data TextStyle = TextStyle
-  { size :: Double,
-    color :: Colour,
-    anchor :: Anchor,
-    hsize :: Double,
-    vsize :: Double,
-    nudge1 :: Double,
-    rotation :: Maybe Double
-  }
-  deriving (Show, Eq, Generic)
-
--- | position anchor
-data Anchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
-
--- | text
-fromAnchor :: (IsString s) => Anchor -> s
-fromAnchor AnchorMiddle = "Middle"
-fromAnchor AnchorStart = "Start"
-fromAnchor AnchorEnd = "End"
-
--- | from text
-toAnchor :: (Eq s, IsString s) => s -> Anchor
-toAnchor "Middle" = AnchorMiddle
-toAnchor "Start" = AnchorStart
-toAnchor "End" = AnchorEnd
-toAnchor _ = AnchorMiddle
-
--- | the offical text style
-defaultTextStyle :: TextStyle
-defaultTextStyle =
-  TextStyle 0.08 dark AnchorMiddle 0.5 1.45 -0.2 Nothing
-
--- | Glyph styling
---
--- >>> defaultGlyphStyle
--- GlyphStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, borderColor = Colour 0.12 0.47 0.71 1.00, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
---
--- ![glyph example](other/glyphs.svg)
-data GlyphStyle = GlyphStyle
-  { -- | glyph radius
-    size :: Double,
-    -- | fill color
-    color :: Colour,
-    -- | stroke color
-    borderColor :: Colour,
-    -- | stroke width (adds a bit to the bounding box)
-    borderSize :: Double,
-    shape :: GlyphShape,
-    rotation :: Maybe Double,
-    translate :: Maybe (Point Double)
-  }
-  deriving (Show, Eq, Generic)
-
--- | the offical glyph style
-defaultGlyphStyle :: GlyphStyle
-defaultGlyphStyle =
-  GlyphStyle
-    0.03
-    (palette1 1)
-    (palette1 2)
-    0.003
-    SquareGlyph
-    Nothing
-    Nothing
-
--- | glyph shapes
-data GlyphShape
-  = CircleGlyph
-  | SquareGlyph
-  | EllipseGlyph Double
-  | RectSharpGlyph Double
-  | RectRoundedGlyph Double Double Double
-  | TriangleGlyph (Point Double) (Point Double) (Point Double)
-  | VLineGlyph Double
-  | HLineGlyph Double
-  | PathGlyph Text
-  deriving (Show, Eq, Generic)
-
--- | textifier
-glyphText :: GlyphShape -> Text
-glyphText sh =
-  case sh of
-    CircleGlyph -> "Circle"
-    SquareGlyph -> "Square"
-    TriangleGlyph {} -> "Triangle"
-    EllipseGlyph _ -> "Ellipse"
-    RectSharpGlyph _ -> "RectSharp"
-    RectRoundedGlyph {} -> "RectRounded"
-    VLineGlyph _ -> "VLine"
-    HLineGlyph _ -> "HLine"
-    PathGlyph _ -> "Path"
-
--- | line cap style
-data LineCap = LineCapButt | LineCapRound | LineCapSquare deriving (Eq, Show, Generic)
-
--- | textifier
-fromLineCap :: (IsString s) => LineCap -> s
-fromLineCap LineCapButt = "butt"
-fromLineCap LineCapRound = "round"
-fromLineCap LineCapSquare = "square"
-
--- | readifier
-toLineCap :: (Eq s, IsString s) => s -> LineCap
-toLineCap "butt" = LineCapButt
-toLineCap "round" = LineCapRound
-toLineCap "square" = LineCapSquare
-toLineCap _ = LineCapButt
-
--- | line cap style
-data LineJoin = LineJoinMiter | LineJoinBevel | LineJoinRound deriving (Eq, Show, Generic)
-
--- | textifier
-fromLineJoin :: (IsString s) => LineJoin -> s
-fromLineJoin LineJoinMiter = "miter"
-fromLineJoin LineJoinBevel = "bevel"
-fromLineJoin LineJoinRound = "round"
-
--- | readifier
-toLineJoin :: (Eq s, IsString s) => s -> LineJoin
-toLineJoin "miter" = LineJoinMiter
-toLineJoin "bevel" = LineJoinBevel
-toLineJoin "round" = LineJoinRound
-toLineJoin _ = LineJoinMiter
-
--- | Convert a dash representation from a list to text
-fromDashArray :: [Double] -> Text
-fromDashArray xs = Text.intercalate " " $ pack . show <$> xs
-
--- | line style
---
--- >>> defaultLineStyle
--- LineStyle {width = 1.2e-2, color = Colour 0.05 0.05 0.05 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}
---
--- ![line example](other/line.svg)
---
--- See also <https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute>
-data LineStyle = LineStyle
-  { width :: Double,
-    color :: Colour,
-    linecap :: Maybe LineCap,
-    linejoin :: Maybe LineJoin,
-    dasharray :: Maybe [Double],
-    dashoffset :: Maybe Double
-  }
-  deriving (Show, Eq, Generic)
-
--- | the official default line style
-defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
-
--- | Path styling
---
--- >>> defaultPathStyle
--- PathStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}
-data PathStyle = PathStyle
-  { borderSize :: Double,
-    borderColor :: Colour,
-    color :: Colour
-  }
-  deriving (Show, Eq, Generic)
-
--- | the style
-defaultPathStyle :: PathStyle
-defaultPathStyle =
-  PathStyle 0.01 (palette1 1) (palette1 2)
-
--- | Convert from a path command list to a PathA chart
-toPathChart :: PathStyle -> [(PathInfo Double, Point Double)] -> Chart Double
-toPathChart ps xs = Chart (PathA ps (fst <$> xs)) (singleton (PointXY . snd <$> xs))
-
--- | Verticle or Horizontal
-data Orientation = Vert | Hori deriving (Eq, Show, Generic)
-
--- | textifier
-fromOrientation :: (IsString s) => Orientation -> s
-fromOrientation Hori = "Hori"
-fromOrientation Vert = "Vert"
-
--- | readifier
-toOrientation :: (Eq s, IsString s) => s -> Orientation
-toOrientation "Hori" = Hori
-toOrientation "Vert" = Vert
-toOrientation _ = Hori
-
--- | additive padding
-padRect :: (Subtractive a) => a -> Rect a -> Rect a
-padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
-
-
-data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
-
-data CssPreferColorScheme = PreferDark | PreferLight | PreferNormal deriving (Show, Eq, Generic)
-
--- | css options
--- >>> defaultCssOptions
-data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme} deriving (Show, Eq, Generic)
-
--- | No special shape rendering and no reponse to OS color scheme preferences.
-defaultCssOptions :: CssOptions
-defaultCssOptions = CssOptions NoShapeRendering PreferLight
-
--- | The basis for the x-y ratio of the final chart
---
--- Default style features tend towards assuming that the usual height of the overall svg image is around 1, and ChartAspect is based on this assumption, so that a ChartAspect of "FixedAspect 1.5", say, means a height of 1 and a width of 1.5.
-data ChartAspect
-  = -- | Rescale charts to a fixed x-y ratio, inclusive of hud and style features
-    FixedAspect Double
-  | -- | Rescale charts to an overall height of 1, preserving the x-y ratio of the data canvas.
-    CanvasAspect Double
-  | -- | Rescale charts to a height of 1, preserving the existing x-y ratio of the underlying charts, inclusive of hud and style.
-    ChartAspect
-  | -- | Do not rescale.
-    UnadjustedAspect
-  deriving (Show, Eq, Generic)
-
--- | textifier
-fromChartAspect :: (IsString s) => ChartAspect -> s
-fromChartAspect (FixedAspect _) = "FixedAspect"
-fromChartAspect (CanvasAspect _) = "CanvasAspect"
-fromChartAspect ChartAspect = "ChartAspect"
-fromChartAspect UnadjustedAspect = "UnadjustedAspect"
-
--- | readifier
-toChartAspect :: (Eq s, IsString s) => s -> Double -> ChartAspect
-toChartAspect "FixedAspect" a = FixedAspect a
-toChartAspect "CanvasAspect" a = CanvasAspect a
-toChartAspect "ChartAspect" _ = ChartAspect
-toChartAspect "UnadjustedAspect" _ = UnadjustedAspect
-toChartAspect _ _ = ChartAspect
-
--- | calculation of the canvas given the 'ChartAspect'
-initialCanvas :: ChartAspect -> [Chart Double] -> Rect Double
-initialCanvas (FixedAspect a) _ = aspect a
-initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = aspect $ ratio $ styleBoxesS cs
-initialCanvas UnadjustedAspect cs = dataBoxesS cs
-
--- | SVG tag options.
---
--- >>> defaultSvgOptions
--- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, cssOptions = defaultCssOptions, chartAspect = FixedAspect 1.5, background = Nothing}
---
---
--- ![svgoptions example](other/svgoptions.svg)
-data SvgOptions = SvgOptions
-  { svgHeight :: Double,
-    outerPad :: Maybe Double,
-    innerPad :: Maybe Double,
-    chartFrame :: Maybe RectStyle,
-    cssOptions :: CssOptions,
-    chartAspect :: ChartAspect,
-    background :: Maybe Colour
-  }
-  deriving (Eq, Show, Generic)
-
--- | The official svg options
-defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing defaultCssOptions (FixedAspect 1.5) Nothing
-
--- | frame style
-defaultSvgFrame :: RectStyle
-defaultSvgFrame = border 0.01 dark
-
+-- * Hud
 -- | Dimensions that are tracked in the 'HudT':
 --
 -- - chartDim: the rectangular dimension of the physical representation of a chart on the screen so that new hud elements can be appended. Adding a hud piece tends to expand the chart dimension.
@@ -607,11 +132,11 @@ chartAspectHud fa = Hud $ \cs -> do
   canvasd <- use #canvasDim
   chartd <- use #chartDim
   case fa of
-    FixedAspect a -> pure $ projectXYs (aspect a) cs
+    FixedAspect a -> pure $ project_ (aspect a) cs
     CanvasAspect a ->
       pure $
-        projectXYs (aspect (a * ratio canvasd / ratio chartd)) cs
-    ChartAspect -> pure $ projectXYs (aspect $ ratio chartd) cs
+        project_ (aspect (a * ratio canvasd / ratio chartd)) cs
+    ChartAspect -> pure $ project_ (aspect $ ratio chartd) cs
     UnadjustedAspect -> pure cs
 
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (and the use of a linear type is an open question).
@@ -631,9 +156,9 @@ runHudWith ca xs hs cs =
     ((unhud $ mconcat hs) cs')
     (ChartDims ca' da' xs)
   where
-    da' = fromMaybe one $ dataBoxes cs'
-    ca' = fromMaybe one $ styleBoxes cs'
-    cs' = projectXYsWith ca xs cs
+    da' = boxes cs'
+    ca' = sboxes cs'
+    cs' = projectWith_ ca xs <$> cs
 
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
 --
@@ -647,7 +172,7 @@ runHud ::
   [Chart Double] ->
   -- | integrated chart list
   [Chart Double]
-runHud ca hs cs = runHudWith ca (padBox $ dataBoxes cs) hs cs
+runHud ca hs cs = runHudWith ca (padBox $ boxes cs) hs cs
 
 -- | Typical configurable hud elements. Anything else can be hand-coded as a 'HudT'.
 --
@@ -656,7 +181,7 @@ data HudOptions = HudOptions
   { hudCanvas :: Maybe RectStyle,
     hudTitles :: [Title],
     hudAxes :: [AxisOptions],
-    hudLegend :: Maybe (LegendOptions, [(Annotation, Text)])
+    hudLegend :: Maybe (LegendOptions, [(Styles, Text)])
   }
   deriving (Eq, Show, Generic)
 
@@ -703,8 +228,7 @@ scaleOpacHudOptions ho o =
     & #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ scaleOpac o)))
     & #hudLegend %~ fmap (first (#ltext %~ (#color %~ scaleOpac o)))
     & #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o))))
-    & #hudLegend %~ fmap (second (fmap (first (scaleOpacAnn o))))
-
+    & #hudLegend %~ fmap (second (fmap (first (scaleOpacStyle o))))
 
 -- | The official hud canvas
 defaultCanvas :: RectStyle
@@ -906,19 +430,6 @@ defaultLegendOptions =
     PlaceRight
     0.25
 
--- | Generically scale an Annotation.
-scaleAnn :: Double -> Annotation -> Annotation
-scaleAnn x (LineA a) = LineA $ a & #width %~ (* x)
-scaleAnn x (RectA a) = RectA $ a & #borderSize %~ (* x)
-scaleAnn x (TextA a txs) = TextA (a & #size %~ (* x)) txs
-scaleAnn x (GlyphA a) = GlyphA (a & #size %~ (* x))
-scaleAnn x (PathA a pxs) = PathA (a & #borderSize %~ (* x)) pxs
-scaleAnn _ BlankA = BlankA
-
--- | Translate the data in a chart.
-moveChart :: (Additive a) => XY a -> [Chart a] -> [Chart a]
-moveChart sp = fmap (#xys %~ fmap (fmap (sp +)))
-
 -- | Make huds from a HudOptions.
 --
 -- Some huds, such as the creation of tick values, can extend the data dimension of a chart, so we return a blank chart with the new data dimension.
@@ -927,7 +438,7 @@ makeHud :: Rect Double -> HudOptions -> ([Hud Double], [Chart Double])
 makeHud xs cfg =
   ([axes] <> can <> titles <> l, xsext)
   where
-    xs' = padBox (Just xs)
+    xs' = padBox xs
     can = foldMap (\x -> [canvas x]) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
     ticks =
@@ -939,7 +450,7 @@ makeHud xs cfg =
         (cfg ^. #hudAxes)
         ticks
     tickRects = catMaybes (snd <$> ticks)
-    xsext = bool [Chart BlankA (singleton $ RectXY <$> tickRects)] [] (null tickRects)
+    xsext = bool [BlankChart (NonEmpty.fromList tickRects)] [] (null tickRects)
     axes =
       foldr simulHud mempty $
         ( \x ->
@@ -973,89 +484,89 @@ flipAxis ac = case ac ^. #place of
   PlaceRight -> ac & #place .~ PlaceTop
   PlaceAbsolute _ -> ac
 
-addToRect :: (Ord a) => Rect a -> Maybe (Rect a) -> Rect a
-addToRect r r' = sconcat $ r :| maybeToList r'
-
 -- | Make a canvas hud element.
 canvas :: (Monad m) => RectStyle -> HudT m Double
 canvas s = Hud $ \cs -> do
   a <- use #canvasDim
-  let c = Chart (RectA s) (singleton [RectXY a])
-  #canvasDim .= addToRect a (styleBox c)
+  let c = RectChart s (a:|[])
+  #canvasDim .= a <> sbox_ c
   pure $ c : cs
 
 axisBar_ :: Place -> AxisBar -> Rect Double -> Rect Double -> Chart Double
 axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
   case pl of
     PlaceTop ->
-      Chart
-        (RectA (rstyle b))
-        (singleton
-        [ R
+      RectChart
+        (rstyle b)
+        (NonEmpty.fromList
+        [ Rect
             x
             z
             (w' + b ^. #buff)
             (w' + b ^. #buff + b ^. #wid)
         ])
     PlaceBottom ->
-      Chart
-        (RectA (rstyle b))
-        (singleton
-        [ R
+      RectChart
+        (rstyle b)
+        (NonEmpty.fromList
+        [ Rect
             x
             z
             (y' - b ^. #wid - b ^. #buff)
             (y' - b ^. #buff)
         ])
     PlaceLeft ->
-      Chart
-        (RectA (rstyle b))
-        (singleton
-        [ R
+      RectChart
+        (rstyle b)
+        (NonEmpty.fromList
+        [ Rect
             (x' - b ^. #wid - b ^. #buff)
             (x' - b ^. #buff)
             y
             w
         ])
     PlaceRight ->
-      Chart
-        (RectA (rstyle b))
-        (singleton
-        [ R
+      RectChart
+        (rstyle b)
+        (NonEmpty.fromList
+        [ Rect
             (z' + (b ^. #buff))
             (z' + (b ^. #buff) + (b ^. #wid))
             y
             w
         ])
     PlaceAbsolute (Point x'' _) ->
-      Chart
-        (RectA (rstyle b))
-        (singleton
-        [ R
+      RectChart
+        (rstyle b)
+        (NonEmpty.fromList
+        [ Rect
             (x'' + (b ^. #buff))
             (x'' + (b ^. #buff) + (b ^. #wid))
             y
             w
         ])
 
+{-
+addChartBox :: Chart Double -> Rect Double -> Rect Double
+addChartBox c r = sconcat (r :| maybeToList (styleBox c))
+
+addChartBoxes :: [Chart Double] -> Rect Double -> Rect Double
+addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
+-}
+
 makeAxisBar :: (Monad m) => Place -> AxisBar -> HudT m Double
 makeAxisBar pl b = Hud $ \cs -> do
   da <- use #chartDim
   ca <- use #canvasDim
   let c = axisBar_ pl b ca da
-  #chartDim .= addChartBox c da
+  #chartDim .= da <> sbox_ c
   pure $ c : cs
 
 title_ :: Title -> Rect Double -> Chart Double
 title_ t a =
-  Chart
-    ( TextA
-        ( style'
-            & #rotation .~ bool Nothing (Just rot) (rot == 0)
-        )
-        [t ^. #text]
-    )
-    (singleton [PointXY (placePos' a + alignPos a)])
+  TextChart
+    ( style'& #rotation .~ bool Nothing (Just rot) (rot == 0))
+    (NonEmpty.fromList [(t ^. #text, placePos' a + alignPos a)])
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -1107,7 +618,7 @@ title :: (Monad m) => Title -> HudT m Double
 title t = Hud $ \cs -> do
   ca <- use #chartDim
   let c = title_ t ca
-  #chartDim .= addChartBox c ca
+  #chartDim .= ca <> sbox_ c
   pure $ c : cs
 
 placePos :: Place -> Double -> Rect Double -> Point Double
@@ -1155,10 +666,10 @@ placeTextAnchor pl
   | pl == PlaceRight = #anchor .~ AnchorStart
   | otherwise = id
 
-placeGridLines :: Place -> Rect Double -> Double -> Double -> [XY Double]
+placeGridLines :: Place -> Rect Double -> Double -> Double -> NonEmpty (Point Double)
 placeGridLines pl (Rect x z y w) a b
-  | pl `elem` [PlaceTop, PlaceBottom] = [P a (y - b), P a (w + b)]
-  | otherwise = [P (x - b) a, P (z + b) a]
+  | pl `elem` [PlaceTop, PlaceBottom] = NonEmpty.fromList [Point a (y - b), Point a (w + b)]
+  | otherwise = NonEmpty.fromList [Point (x - b) a, Point (z + b) a]
 
 -- | compute tick values and labels given options, ranges and formatting
 ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
@@ -1218,10 +729,10 @@ ticksPlaced ts pl d xs = TickComponents (project (placeRange pl xs) (placeRange 
 
 tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> Rect Double -> Rect Double -> Rect Double -> Chart Double
 tickGlyph_ pl (g, b) ts ca da xs =
-  Chart
-    (GlyphA (g & #rotation .~ placeRot pl))
-    (singleton
-    ( PointXY . (placePos pl b ca +) . placeOrigin pl
+  GlyphChart
+    (g & #rotation .~ placeRot pl)
+    (NonEmpty.fromList
+    ( (placePos pl b ca +) . placeOrigin pl
         <$> positions
           (ticksPlaced ts pl da xs)
     ))
@@ -1238,7 +749,7 @@ tickGlyph pl (g, b) ts = Hud $ \cs -> do
   d <- use #canvasDim
   xs <- use #dataDim
   let c = tickGlyph_ pl (g, b) ts a d xs
-  #chartDim .= addToRect a (styleBox c)
+  #chartDim .= a <> sbox_ c
   pure $ c : cs
 
 tickText_ ::
@@ -1252,12 +763,8 @@ tickText_ ::
 tickText_ pl (txts, b) ts ca da xs =
   zipWith
     ( \txt sp ->
-        Chart
-          ( TextA
-              (placeTextAnchor pl txts)
-              [txt]
-          )
-          (singleton [PointXY sp])
+        TextChart (placeTextAnchor pl txts)
+          (NonEmpty.fromList [(txt, sp)])
     )
     (labels $ ticksPlaced ts pl da xs)
     ( (placePos pl b ca + textPos pl txts b +) . placeOrigin pl
@@ -1276,7 +783,7 @@ tickText pl (txts, b) ts = Hud $ \cs -> do
   da <- use #canvasDim
   xs <- use #dataDim
   let c = tickText_ pl (txts, b) ts ca da xs
-  #chartDim .= addChartBoxes c ca
+  #chartDim .= ca <> sboxes c
   pure $ c <> cs
 
 -- | aka grid lines
@@ -1290,9 +797,12 @@ tickLine pl (ls, b) ts = Hud $ \cs -> do
   da <- use #canvasDim
   xs <- use #dataDim
   let c =
-        Chart (LineA ls) ((\x -> placeGridLines pl da x b)
-          <$> positions (ticksPlaced ts pl da xs))
-  #chartDim %= addChartBoxes [c]
+        LineChart ls
+        ( sconcat $ NonEmpty.fromList $
+          (\x -> placeGridLines pl da x b) <$>
+          positions (ticksPlaced ts pl da xs)
+        )
+  #chartDim %= (<> sbox_ c)
   pure $ c:cs
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
@@ -1394,7 +904,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
         ( \tt ->
             max' $
               (\(Rect x z _ _) -> z - x)
-                . (\x -> styleBoxText (fst tt) x (Point 0 0))
+                . (\x -> styleBoxText_ (fst tt) x (Point 0 0))
                 <$> tickl
         )
         (t ^. #ttick)
@@ -1404,7 +914,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
         ( \tt ->
             max' $
               (\(Rect _ _ y w) -> w - y)
-                . (\x -> styleBoxText (fst tt) x (Point 0 0))
+                . (\x -> styleBoxText_ (fst tt) x (Point 0 0))
                 <$> tickl
         )
         (t ^. #ttick)
@@ -1445,16 +955,11 @@ makeTickDatesContinuous pc fmt n dates =
 legendHud :: LegendOptions -> [Chart Double] -> Hud Double
 legendHud l lcs = Hud $ \cs -> do
   ca <- use #chartDim
-  let cs' = cs <> movedleg ca scaledleg
-  #chartDim .= fromMaybe one (styleBoxes cs')
+  let cs' = (place' ca . scaleChart (l ^. #lscale) <$> lcs) <> cs
+  #chartDim .= sboxes cs'
   pure cs'
   where
-    scaledleg =
-      (#annotation %~ scaleAnn (l ^. #lscale))
-        . (#xys %~ fmap (fmap (fmap (* l ^. #lscale))))
-        <$> lcs
-    movedleg ca' leg =
-      maybe id (moveChart . PointXY . placel (l ^. #lplace) ca') (styleBoxes leg) leg
+    place' ca x = move_ (placel (l ^. #lplace) ca (sbox_ x)) x
     placel pl (Rect x z y w) (Rect x' z' y' w') =
       case pl of
         PlaceTop -> Point ((x + z) / 2.0) (w + (w' - y') / 2.0)
@@ -1465,32 +970,21 @@ legendHud l lcs = Hud $ \cs -> do
 
 legendEntry ::
   LegendOptions ->
-  Annotation ->
+  Styles ->
   Text ->
   (Chart Double, Chart Double)
 legendEntry l a t =
-  ( Chart ann (singleton sps),
-    Chart (TextA (l ^. #ltext & #anchor .~ AnchorStart) [t]) (singleton [zero])
+  ( chart1,
+    TextChart (l ^. #ltext & #anchor .~ AnchorStart) ((t, zero):|[])
   )
   where
-    (ann, sps) = case a of
-      RectA rs ->
-        ( RectA rs,
-          [R 0 (l ^. #lsize) 0 (l ^. #lsize)]
-        )
-      TextA ts txts ->
-        ( TextA (ts & #size .~ (l ^. #lsize)) (take 1 txts),
-          [zero]
-        )
-      GlyphA gs ->
-        ( GlyphA (gs & #size .~ (l ^. #lsize)),
-          [P (0.5 * l ^. #lsize) (0.33 * l ^. #lsize)]
-        )
-      LineA ls ->
-        ( LineA (ls & #width %~ (/ (l ^. #lscale))),
-          [P 0 (1 * l ^. #lsize), P (2 * l ^. #lsize) (1 * l ^. #lsize)]
-        )
-      PathA ps _ ->
+    chart1 = case a of
+      RectA rs -> RectChart rs (Rect 0 (l ^. #lsize) 0 (l ^. #lsize):|[])
+      TextA ts -> TextChart (ts & #size .~ (l ^. #lsize)) (("text",zero):|[])
+      GlyphA gs -> GlyphChart (gs & #size .~ (l ^. #lsize)) (Point (0.5 * l ^. #lsize) (0.33 * l ^. #lsize):|[])
+      LineA ls -> LineChart (ls & #width %~ (/ (l ^. #lscale)))
+          (NonEmpty.fromList [Point 0 (1 * l ^. #lsize), Point (2 * l ^. #lsize) (1 * l ^. #lsize)])
+      PathA ps ->
         ( let cs =
                 singletonCubic
                   ( CubicPosition
@@ -1499,14 +993,9 @@ legendEntry l a t =
                       (Point 0 (0.33 * l ^. #lsize))
                       (Point (0.33 * l ^. #lsize) 0)
                   )
-           in (PathA (ps & #borderSize .~ (l ^. #lsize)) (fst <$> cs), PointXY . snd <$> cs)
-        )
-      BlankA ->
-        ( BlankA,
-          [zero]
-        )
+           in PathChart (ps & #borderSize .~ (l ^. #lsize)) (NonEmpty.fromList cs))
 
-legendChart :: [(Annotation, Text)] -> LegendOptions -> [Chart Double]
+legendChart :: [(Styles, Text)] -> LegendOptions -> [Chart Double]
 legendChart lrs l =
   padChart (l ^. #outerPad)
     . maybe id (\x -> frameChart x (l ^. #innerPad)) (l ^. #legendFrame)
@@ -1515,196 +1004,5 @@ legendChart lrs l =
       <$> es
   where
     es = reverse $ uncurry (legendEntry l) <$> lrs
-    twidth = maybe 0 (\(Rect _ z _ _) -> z) . foldRect $ catMaybes (styleBox . snd <$> es)
-    gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (styleBox t)
-
--- | Project the xys of a chart to a new XY Space.
---
--- > projectXYs (dataBox cs) cs == cs if cs is non-empty
-projectXYs :: Rect Double -> [Chart Double] -> [Chart Double]
-projectXYs _ [] = []
-projectXYs new cs = projectXYsWith new old cs
-  where
-    old = fromMaybe one (dataBoxes cs)
-
--- | Project chart xys to a new XY Space from an old XY Space
---
--- The projections needed are:
---
--- - project the 'xys'
---
--- - project the control points of bezier curves
---
--- - project aspect changes only to radii of ellipticals.
---
--- > projectXYsWith x x == id
-projectXYsWith :: Rect Double -> Rect Double -> [Chart Double] -> [Chart Double]
-projectXYsWith new old cs = cs'
-  where
-    xss = fmap (fmap (projectOn new old)) . xys <$> cs
-    ss = projectAnn <$> cs
-    cs' = zipWith Chart ss xss
-    projectAnn (Chart (PathA ps ips) xys) =
-      PathA ps (projectControls ips xys)
-    projectAnn x = annotation x
-
-    projectControls pis xys =
-      (reverse . snd) (foldl' (\(prevp, l) (i, xy) -> (xy, projectControl prevp xy i : l)) (zero, []) (zip pis (fromMaybe [] $ listToMaybe xys)))
-
-    projectControl _ _ (CubicI c1 c2) =
-      CubicI (projectOnP new old c1) (projectOnP new old c2)
-    projectControl _ _ (QuadI c) =
-      QuadI (projectOnP new old c)
-    projectControl p1 p2 (ArcI ai) = ArcI $ projectArcPosition new old (ArcPosition (toPoint p1) (toPoint p2) ai)
-    projectControl _ _ x = x
-
--- | project an ArcPosition given new and old Rects
---
--- The radii of the ellipse can be represented as:
---
--- Point rx 0 & Point 0 ry
---
--- These two points are firstly rotated by p and then undergo scaling...
-projectArcPosition :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInfo Double
-projectArcPosition new old (ArcPosition _ _ (ArcInfo (Point rx ry) phi l cl)) = ArcInfo (Point rx'' ry'') phi l cl
-  where
-    rx' = rotateP phi (Point rx zero)
-    rx'' = norm $ rx' * NH.width new / NH.width old
-    ry' = rotateP phi (Point zero ry)
-    ry'' = norm $ ry' * NH.width new / NH.width old
-
--- | pad a Rect to remove singleton dimensions
-padBox :: Maybe (Rect Double) -> Rect Double
-padBox = maybe one singletonUnit
-  where
-    singletonUnit (Rect x z y w)
-      | x == z && y == w = Rect (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
-      | x == z = Rect (x - 0.5) (x + 0.5) y w
-      | y == w = Rect x z (y - 0.5) (y + 0.5)
-      | otherwise = Rect x z y w
-
--- | 'Rect' of a 'Chart', not including style
-dataBox :: Chart Double -> Maybe (Rect Double)
-dataBox c =
-  case c ^. #annotation of
-    PathA _ path' -> pathBoxes $ zip path' (toPoint <$> (fromMaybe [] $ listToMaybe $ c ^. #xys))
-    _ -> foldRect $ mconcat $ fmap (fmap toRect) (c ^. #xys)
-
--- | 'Rect' of charts, not including style
-dataBoxes :: [Chart Double] -> Maybe (Rect Double)
-dataBoxes cs = foldRect $ catMaybes $ dataBox <$> cs
-
--- | 'Rect' of charts, not including style, with defaults for Nothing and singleton dimensions if any.
-dataBoxesS :: [Chart Double] -> Rect Double
-dataBoxesS cs = padBox $ foldRect $ catMaybes $ dataBox <$> cs
-
--- | the extra area from text styling
-styleBoxText ::
-  TextStyle ->
-  Text ->
-  Point Double ->
-  Rect Double
-styleBoxText o t p = move p $ maybe flat (`rotationBound` flat) (o ^. #rotation)
-  where
-    flat = Rect ((-x' / 2.0) + x' * a') (x' / 2 + x' * a') ((-y' / 2) - n1') (y' / 2 - n1')
-    s = o ^. #size
-    h = o ^. #hsize
-    v = o ^. #vsize
-    n1 = o ^. #nudge1
-    x' = s * h * fromIntegral (sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
-    y' = s * v
-    n1' = s * n1
-    a' = case o ^. #anchor of
-      AnchorStart -> 0.5
-      AnchorEnd -> -0.5
-      AnchorMiddle -> 0.0
-
--- | the extra area from glyph styling
-styleBoxGlyph :: GlyphStyle -> Rect Double
-styleBoxGlyph s = move p' $
-  sw $ case sh of
-    CircleGlyph -> (sz *) <$> one
-    SquareGlyph -> (sz *) <$> one
-    EllipseGlyph a -> NH.scale (Point sz (a * sz)) one
-    RectSharpGlyph a -> NH.scale (Point sz (a * sz)) one
-    RectRoundedGlyph a _ _ -> NH.scale (Point sz (a * sz)) one
-    VLineGlyph _ -> NH.scale (Point ((s ^. #borderSize) * sz) sz) one
-    HLineGlyph _ -> NH.scale (Point sz ((s ^. #borderSize) * sz)) one
-    TriangleGlyph a b c -> (sz *) <$> sconcat (toRect . PointXY <$> (a :| [b, c]) :: NonEmpty (Rect Double))
-    PathGlyph path' -> (sz *) <$> fromMaybe one (pathBoxes . toPathXYs . parsePath $ path')
-  where
-    sh = s ^. #shape
-    sz = s ^. #size
-    sw = padRect (0.5 * s ^. #borderSize)
-    p' = fromMaybe (Point 0.0 0.0) (s ^. #translate)
-
--- | the geometric dimensions of a Chart inclusive of style geometry, but excluding PathA effects
-styleBox :: Chart Double -> Maybe (Rect Double)
-styleBox (Chart (TextA s ts) xss) = foldRect $ mconcat $ zipWith (\t xs -> fmap (styleBoxText s t . toPoint) xs) ts xss
-styleBox (Chart (GlyphA s) xss) = foldRect $ mconcat $ fmap (\x -> move (toPoint x) (styleBoxGlyph s)) <$> xss
-styleBox (Chart (RectA s) xss) = foldRect $ mconcat (fmap (padRect (0.5 * s ^. #borderSize) . toRect) <$> xss)
-styleBox (Chart (LineA s) xss) = foldRect $ mconcat (fmap (padRect (0.5 * s ^. #width) . toRect) <$> xss)
-styleBox c@(Chart (PathA s _) _) = padRect (0.5 * s ^. #borderSize) <$> dataBox c
-styleBox (Chart BlankA xss) = foldRect $ mconcat (fmap toRect <$> xss)
-
--- | the extra geometric dimensions of a [Chart]
-styleBoxes :: [Chart Double] -> Maybe (Rect Double)
-styleBoxes xss = foldRect $ catMaybes (styleBox <$> xss)
-
--- | the extra geometric dimensions of a [Chart], adjusted for Nothing or singleton dimensions.
-styleBoxesS :: [Chart Double] -> Rect Double
-styleBoxesS xss = padBox $ foldRect $ catMaybes (styleBox <$> xss)
-
--- | additively pad a [Chart]
---
--- >>> import NumHask.Prelude (one)
--- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [RectXY one]]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = [R -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, xys = [R -0.605 0.605 -0.605 0.605]}]
-padChart :: Double -> [Chart Double] -> [Chart Double]
-padChart p cs = cs <> [Chart BlankA (singleton (maybeToList (RectXY . padRect p <$> styleBoxes cs)))]
-
--- | overlay a frame on some charts with some additive padding between
---
--- >>> frameChart defaultRectStyle 0.1 [Chart BlankA []]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = []},Chart {annotation = BlankA, xys = []}]
-frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
-frameChart rs p cs = [Chart (RectA rs) (singleton (maybeToList (RectXY . padRect p <$> styleBoxes cs)))] <> cs
-
--- | useful for testing bounding boxes
-frameAllCharts :: [Chart Double] -> [Chart Double]
-frameAllCharts cs = mconcat $ frameChart (border 0.004 light) 0.004 . (: []) <$> cs
-
--- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
-hori :: Double -> [[Chart Double]] -> [Chart Double]
-hori _ [] = []
-hori gap cs = foldl' step [] cs
-  where
-    step x a = x <> (a & fmap (#xys %~ fmap (fmap (\s -> P (widthx x) (aligny x - aligny a) + s))))
-    widthx xs = maybe 0 (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
-    aligny xs = maybe 0 (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
-
--- | vertically stack a list of charts (proceeding upwards), aligning them to the left
-vert :: Double -> [[Chart Double]] -> [Chart Double]
-vert _ [] = []
-vert gap cs = foldl' step [] cs
-  where
-    step x a = x <> (a & fmap (#xys %~ fmap (fmap (\s -> P (alignx x - alignx a) (widthy x) + s))))
-    widthy xs = maybe 0 (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
-    alignx xs = maybe 0 (\(Rect x' _ _ _) -> x') (styleBoxes xs)
-
--- | stack a list of charts horizontally, then vertically
-stack :: Int -> Double -> [[Chart Double]] -> [Chart Double]
-stack _ _ [] = []
-stack n gap cs = vert gap (hori gap <$> group' cs [])
-  where
-    group' [] acc = reverse acc
-    group' x acc = group' (drop n x) (take n x : acc)
-
-addChartBox :: Chart Double -> Rect Double -> Rect Double
-addChartBox c r = sconcat (r :| maybeToList (styleBox c))
-
-addChartBoxes :: [Chart Double] -> Rect Double -> Rect Double
-addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
-
-singleton :: x -> [x]
-singleton x = [x]
+    twidth = (\(Rect _ z _ _) -> z) $ sboxes (snd <$> es)
+    gapwidth t = (\(Rect _ z _ _) -> z) (sbox_ t)

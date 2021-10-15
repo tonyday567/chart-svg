@@ -22,6 +22,7 @@ module Data.Colour
     opac,
     setOpac,
     hex,
+    mix,
     blend,
     blends,
     toHex,
@@ -84,6 +85,10 @@ setOpac o (Colour r g b _) = Colour r g b o
 -- |
 hex :: Colour -> Text
 hex c = toHex c
+
+-- | colour reset but scaling opacity
+mix :: Colour -> Colour -> Colour
+mix (Colour r g b o') (Colour _ _ _ o) = Colour r g b (o' * o)
 
 -- | interpolate between 2 colors
 blend :: Double -> Colour -> Colour -> Colour

@@ -43,6 +43,8 @@ library
     Chart
     Chart.Chart
     Chart.Style
+    Chart.Hud
+    Chart.Svg
     Chart.Bar
     Chart.Examples
     Chart.Render
