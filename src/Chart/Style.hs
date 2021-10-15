@@ -21,6 +21,7 @@
 -- | Stylistic elements
 module Chart.Style
   ( -- * Styles
+    Style(..),
     Styles(..),
     scaleStyle,
     scaleOpac,
@@ -93,17 +94,15 @@ import Control.Lens
 -- >>> import Chart
 -- >>> import Chart.Render
 -- >>> import Data.Colour
-{-
--- | Unification of styles.
+
+-- | Generic Style functionality.
 --
 class Style a where
-  scaleOpac :: Double -> a -> a
-  colorStyle :: Colour -> a -> a
-  defaultStyle :: a
-  scaleStyle :: Double -> a -> a
+  scaleOpac_ :: Double -> a -> a
+  colorStyle_ :: Colour -> a -> a
+  defaultStyle_ :: a
+  scaleStyle_ :: Double -> a -> a
 
-
--}
 -- type Style_ = forall a. Style a
 
 data Styles
@@ -178,6 +177,12 @@ data RectStyle = RectStyle
 defaultRectStyle :: RectStyle
 defaultRectStyle = RectStyle 0.01 (palette1 1) (palette1 2)
 
+instance Style RectStyle where
+  scaleStyle_ x s = s & #borderSize %~ (* x)
+  defaultStyle_ = defaultRectStyle
+  scaleOpac_ x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+  colorStyle_ c s = s & #color %~ mix c & #borderColor %~ mix c
+
 -- | solid rectangle, no border
 --
 -- >>> blob black
@@ -240,6 +245,12 @@ defaultTextStyle :: TextStyle
 defaultTextStyle =
   TextStyle 0.08 dark AnchorMiddle 0.5 1.45 -0.2 Nothing
 
+instance Style TextStyle where
+  scaleStyle_ x s = s & #size %~ (* x)
+  defaultStyle_ = defaultTextStyle
+  scaleOpac_ x s = s & #color %~ scaleOpac x
+  colorStyle_ x s = s & #color %~ mix x
+
 -- | Glyph styling
 --
 -- >>> defaultGlyphStyle
@@ -272,6 +283,12 @@ defaultGlyphStyle =
     SquareGlyph
     Nothing
     Nothing
+
+instance Style GlyphStyle where
+  scaleStyle_ x s = s & #size %~ (* x)
+  defaultStyle_ = defaultGlyphStyle
+  scaleOpac_ x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+  colorStyle_ x s = s & #color %~ mix x & #borderColor %~ mix x
 
 -- | glyph shapes
 data GlyphShape
@@ -358,6 +375,12 @@ data LineStyle = LineStyle
 defaultLineStyle :: LineStyle
 defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
 
+instance Style LineStyle where
+  scaleStyle_ x s = s & #width %~ (* x)
+  defaultStyle_ = defaultLineStyle
+  scaleOpac_ x s = s & #color %~ scaleOpac x
+  colorStyle_ x s = s & #color %~ mix x
+
 -- | Path styling
 --
 -- >>> defaultPathStyle
@@ -373,6 +396,12 @@ data PathStyle = PathStyle
 defaultPathStyle :: PathStyle
 defaultPathStyle =
   PathStyle 0.01 (palette1 1) (palette1 2)
+
+instance Style PathStyle where
+  scaleStyle_ x s = s & #borderSize %~ (* x)
+  defaultStyle_ = defaultPathStyle
+  scaleOpac_ x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+  colorStyle_ x s = s & #color %~ mix x & #borderColor %~ mix x
 
 {-
 -- | Convert from a path command list to a PathA chart

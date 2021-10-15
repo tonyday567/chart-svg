@@ -955,7 +955,7 @@ makeTickDatesContinuous pc fmt n dates =
 legendHud :: LegendOptions -> [Chart Double] -> Hud Double
 legendHud l lcs = Hud $ \cs -> do
   ca <- use #chartDim
-  let cs' = (place' ca . scaleChart (l ^. #lscale) <$> lcs) <> cs
+  let cs' = (place' ca . scale_ (l ^. #lscale) <$> lcs) <> cs
   #chartDim .= sboxes cs'
   pure cs'
   where

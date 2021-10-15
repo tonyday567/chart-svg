@@ -864,3 +864,5 @@ projectControl new old _ p (CubicI c1 c2) =
 projectControl new old _ p (QuadI c) =
       (QuadI (projectOnP new old c), projectOnP new old p)
 projectControl new old p1 p2 (ArcI ai) = (ArcI $ projectArcPosition' new old (ArcPosition p1 p2 ai), projectOnP new old p2)
+projectControl new old _ p LineI = (LineI, projectOnP new old p)
+projectControl new old _ p StartI = (StartI, projectOnP new old p)

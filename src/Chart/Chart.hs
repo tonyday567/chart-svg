@@ -16,6 +16,8 @@
 {-# LANGUAGE EmptyDataDeriving #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
@@ -39,6 +41,126 @@ import GHC.OverloadedLabels
 import Control.Lens
 import Text.HTML.TagSoup (maybeTagText, parseTags)
 
+class Chart' s a c where
+  box' :: NonEmpty a -> Rect Double
+  sbox' :: (Style s) => s -> NonEmpty a -> Rect Double
+  move' :: Point Double -> NonEmpty a -> NonEmpty a
+  scale' :: Double -> c -> c
+  projectWith' :: Rect Double -> Rect Double -> NonEmpty a -> NonEmpty a
+
+instance Chart' RectStyle (Rect Double) RectChart' where
+  box' = foldRectUnsafe
+  sbox' s a = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
+  move' p a = addPoint p <$> a
+  scale' p (RectChart' s a) = RectChart' (scaleStyle_ p s) (fmap (fmap (*p)) a)
+  projectWith' new old a = projectOnR new old <$> a
+
+data RectChart' = RectChart' RectStyle (NonEmpty (Rect Double))
+
+instance Chart' LineStyle (Point Double) LineChart' where
+  box' = space1
+  sbox' s a = foldRectUnsafe $ padRect (0.5 * Chart.Style.width s) . singleton <$> a
+  move' p a = (p+) <$> a
+  scale' p (LineChart' s a) = LineChart' (scaleStyle_ p s) (fmap (fmap (*p)) a)
+  projectWith' new old a = projectOnP new old <$> a
+
+data LineChart' = LineChart' LineStyle (NonEmpty (Point Double))
+
+data Chart'' = ChartR RectChart' | ChartL LineChart'
+
+-- data ChartFs = forall s a c. ChartFs { charts :: (Chart' s a c) => [Chart' s a c] }
+
+-- * family attempt
+class ChartF c where
+  type StyleF c :: Type
+  type DataF c :: Type
+  boxF :: NonEmpty (DataF c) -> Rect Double
+  sboxF :: StyleF c -> NonEmpty (DataF c) -> Rect Double
+  moveF :: Point Double -> NonEmpty (DataF c) -> NonEmpty (DataF c)
+  scaleF :: Double -> c -> c
+  projectWithF :: Rect Double -> Rect Double -> NonEmpty (DataF c) -> NonEmpty (DataF c)
+
+data RectChartF = RectChartF RectStyle (NonEmpty (Rect Double))
+
+instance ChartF RectChartF where
+  type (StyleF RectChartF) = RectStyle
+  type (DataF RectChartF) = Rect Double
+  boxF = foldRectUnsafe
+  sboxF s a = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
+  moveF p a = addPoint p <$> a
+  scaleF p (RectChartF s a) = RectChartF (scaleStyle_ p s) (fmap (fmap (*p)) a)
+  projectWithF new old a = projectOnR new old <$> a
+
+
+{-
+boxesF :: forall a c. (ChartF c) => [DataF a] -> Rect Double
+boxesF cs = foldRectUnsafe $ fmap boxF cs
+
+boxes' :: forall s a c. (Chart' s a c) => [c] -> Rect Double
+boxes' cs = foldRectUnsafe $ fmap box' cs
+
+-}
+
+class ChartC c where
+  boxC :: c -> Rect Double
+  sboxC :: c -> Rect Double
+  moveC :: Point Double -> c -> c
+  scaleC :: Double -> c -> c
+  projectWithC :: Rect Double -> Rect Double -> c -> c
+
+instance ChartC RectChartC where
+  boxC = foldRectUnsafe . snd
+  sboxC (s,a) = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
+  moveC p a = second (fmap (addPoint p)) a
+  scaleC p (s,a) = (scaleStyle_ p s, fmap (fmap (*p)) a)
+  projectWithC new old a = second (fmap (projectOnR new old)) a
+
+type RectChartC = (RectStyle, NonEmpty (Rect Double))
+
+boxesC :: forall c. (ChartC c) => [c] -> Rect Double
+boxesC cs = foldRectUnsafe $ fmap boxC cs
+
+sboxesC :: forall c. (ChartC c) => [c] -> Rect Double
+sboxesC cs = foldRectUnsafe $ fmap sboxC cs
+
+frameCs :: forall c. (ChartC c) => RectStyle -> Double -> [c] -> RectChartC
+frameCs rs p cs = (rs, padRect p (sboxesC cs):|[])
+
+data Chartable
+  where
+    MkChart :: ChartC a => a -> Chartable
+
+boxesCh :: [Chartable] -> Rect Double
+boxesCh cs = foldRectUnsafe $ fmap f cs
+  where
+    f (MkChart c) = boxC c
+
+sboxesCh :: [Chartable] -> Rect Double
+sboxesCh cs = foldRectUnsafe $ fmap f cs
+  where
+    f (MkChart c) = sboxC c
+
+frameCh :: RectStyle -> Double -> [Chartable] -> [Chartable]
+frameCh rs p cs = MkChart (rs, padRect p (sboxesCh cs):|[]) : cs
+
+consCh :: Chartable -> [Chartable] -> [Chartable]
+consCh c cs = c : cs
+
+newtype ChartN = ChartN { chart :: forall a. (ChartC a) => a }
+
+boxN :: forall c. (ChartC c) => ChartN -> Rect Double
+boxN (ChartN c) = boxC @c c
+
+boxesN :: forall c. (ChartC c) => [ChartN] -> [Rect Double]
+boxesN cs = boxN @c <$> cs
+
+x1 :: RectChartC
+x1 = (defaultRectStyle, one :|[])
+
+x1' :: Rect Double
+x1' = boxesCh [MkChart x1, MkChart x1]
+
+-- * non-family
 data BlankStyle
 
 data Chart a =
@@ -72,6 +194,23 @@ move_ p (LineChart s a) = LineChart s ((p+) <$> a)
 move_ p (GlyphChart s a) = GlyphChart s ((p+) <$> a)
 move_ p (PathChart s a) = PathChart s (second (p+) <$> a)
 move_ p (BlankChart a) = BlankChart (addPoint p <$> a)
+
+-- | Scale both the chart data and the style
+--
+scale_ :: Double -> Chart Double -> Chart Double
+scale_ p (RectChart s a) =
+  RectChart (scaleStyle_ p s) (fmap (fmap (*p)) a)
+scale_ p (LineChart s a) =
+  LineChart (scaleStyle_ p s) (fmap (fmap (*p)) a)
+scale_ p (TextChart s a) =
+  TextChart (scaleStyle_ p s) (fmap (second (fmap (*p))) a)
+scale_ p (GlyphChart s a) =
+  GlyphChart (scaleStyle_ p s) (fmap (fmap (*p)) a)
+scale_ p (PathChart s a) =
+  PathChart (scaleStyle_ p s) (fmap (second (fmap (*p))) a)
+scale_ p (BlankChart a) =
+  BlankChart (fmap (fmap (*p)) a)
+
 
 -- | the extra area from text styling
 styleBoxText_ ::
@@ -149,25 +288,6 @@ padBox (Rect x z y w)
 frameChart :: RectStyle -> Double -> [Chart Double] -> [Chart Double]
 frameChart rs p cs = RectChart rs (padRect p (sboxes cs):|[]):cs
 
--- | Scale both the chart data and the style
---
--- FIXME:
-scaleChart :: Double -> Chart Double -> Chart Double
-scaleChart p (RectChart s a) =
-  let (RectA s') = scaleStyle p (RectA s) in
-  RectChart s' (fmap (fmap (*p)) a)
-{-
-scaleChart p (TextChart s a) = TextChart s (second (p+) <$> a)
-scaleChart p (LineChart s a) = LineChart s ((p+) <$> a)
-scaleChart p (GlyphChart s a) = GlyphChart s ((p+) <$> a)
-scaleChart p (PathChart s a) = PathChart s (second (p+) <$> a)
-scaleChart p (BlankChart a) = BlankChart (addPoint p <$> a)
--}
-   -- FIXME: scaledChart
-    --  (#annotation %~ scaleStyle (l ^. #lscale))
-    --    . (#xys %~ fmap (fmap (fmap (* l ^. #lscale))))
-    --    <$> lcs
-
 -- | additively pad a [Chart]
 --
 -- >>> import NumHask.Prelude (one)
@@ -202,38 +322,3 @@ stack n gap cs = vert gap (hori gap <$> group' cs [])
     group' [] acc = NumHask.Prelude.reverse acc
     group' x acc = group' (NumHask.Prelude.drop n x) (NumHask.Prelude.take n x : acc)
 
-{-
-
--- * Examples
-
--- | unit example()
---
--- ![unit example](other/unit.svg)
-unitExample :: ChartSvg
-unitExample = mempty & #chartTree .~ [RectChart defaultRectStyle (one:|[])]
-
--- |x <> () rect example
---
--- ![rect example](other/rect.svg())
-rectExample :: ChartSvg
-rectExample =
-  mempty
-{-
-    & #hudOptions .~ (defaultHudOptions &
-                      #hudAxes .~ [defaultAxisOptions & #axisTick . #ltick .~ Nothing] x <> ()&
-                      #hudCanvas .~ Nothing)
--}
-()  & #chartTree .~ NumHask.Prelude.zipWith RectChart ropts rss
-
-rss :: [NonEmpty (Rect Double)]
-rss =
-  [ NonEmpty.fromList $ gridR (\x -> exp (-(x ** 2) / 2)) (Range -5 5) 50,
-    NonEmpty.fromList $ gridR (\x -> 0 fs.5 * exp (-(x **x <> () 2) / 8)) (Range -5 5) 50
-  ]
-
-ropts :: [RectStyle()]
-ropts =
-  [ blob (setOpac 0.3 (palette1 3)),
-    blob (setOpac 0.3 (palette1 5))
-  ]
--}
