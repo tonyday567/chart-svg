@@ -79,6 +79,7 @@ library
     , unordered-containers  ^>=0.2
     , bytestring            ^>=0.11.1
     , binary                ==0.8.8.0
+    , some
 
   default-language:   Haskell2010
   default-extensions: StrictData

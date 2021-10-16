@@ -18,12 +18,14 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 -- | Chart API
 module Chart.Chart where
@@ -36,129 +38,114 @@ import qualified Data.Text as Text
 import Data.Text (Text)
 import NumHask.Prelude
 import NumHask.Space as NH hiding (Element)
-import Data.List.NonEmpty as NonEmpty
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty(..))
 import GHC.OverloadedLabels
 import Control.Lens
 import Text.HTML.TagSoup (maybeTagText, parseTags)
+import Data.Colour
+import Data.Typeable
+import Unsafe.Coerce
 
-class Chart' s a c where
-  box' :: NonEmpty a -> Rect Double
-  sbox' :: (Style s) => s -> NonEmpty a -> Rect Double
-  move' :: Point Double -> NonEmpty a -> NonEmpty a
-  scale' :: Double -> c -> c
-  projectWith' :: Rect Double -> Rect Double -> NonEmpty a -> NonEmpty a
+class StyleC s where
+  scaleOpacC :: Double -> s -> s
+  colorStyleC :: Colour -> s -> s
+  defaultStyleC :: s
+  scaleStyleC :: Double -> s -> s
+  sboxStyleC :: Rect Double -> s -> Rect Double
 
-instance Chart' RectStyle (Rect Double) RectChart' where
-  box' = foldRectUnsafe
-  sbox' s a = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
-  move' p a = addPoint p <$> a
-  scale' p (RectChart' s a) = RectChart' (scaleStyle_ p s) (fmap (fmap (*p)) a)
-  projectWith' new old a = projectOnR new old <$> a
+instance StyleC RectStyle where
+  scaleStyleC x s = s & #borderSize %~ (* x)
+  defaultStyleC = defaultRectStyle
+  scaleOpacC x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+  colorStyleC c s = s & #color %~ mix c & #borderColor %~ mix c
+  sboxStyleC r s = padRect (0.5 * view #borderSize s) r
 
-data RectChart' = RectChart' RectStyle (NonEmpty (Rect Double))
+-- This is existential quantification
+data SomeStyle where
+  SomeStyle :: (StyleC s, Show s, Eq s, Typeable s) => s -> SomeStyle
+  -- deriving (Show)
 
-instance Chart' LineStyle (Point Double) LineChart' where
-  box' = space1
-  sbox' s a = foldRectUnsafe $ padRect (0.5 * Chart.Style.width s) . singleton <$> a
-  move' p a = (p+) <$> a
-  scale' p (LineChart' s a) = LineChart' (scaleStyle_ p s) (fmap (fmap (*p)) a)
-  projectWith' new old a = projectOnP new old <$> a
+-- Non-GADT version would be (still existential quantification)
+-- data SomeStyle = forall a. (StyleC a, Show a) => SomeStyle a
 
-data LineChart' = LineChart' LineStyle (NonEmpty (Point Double))
+instance Show SomeStyle
+  where
+    show (SomeStyle a) = show a
 
-data Chart'' = ChartR RectChart' | ChartL LineChart'
+instance Eq SomeStyle
+  where
+    (==) (SomeStyle a) (SomeStyle b) =
+      bool False (Just a == cast b) (typeOf a == typeOf b)
 
--- data ChartFs = forall s a c. ChartFs { charts :: (Chart' s a c) => [Chart' s a c] }
+-- This is Rank2Types
+-- newtype SomeStyle = SomeStyle { unstyle :: forall a. (StyleC a) => a }
+--
+-- which doesn't work for:
+-- scaleStyleC' :: Rect Double -> Styleable' -> Rect Double
+-- scaleStyleC' r (Styleable' s) = sboxStyleC r s
+-- scaleStyleC' :: Rect Double -> Styleable' -> Rect Double
+-- scaleStyleC' r s = sboxStyleC r (unstyle s)
 
--- * family attempt
-class ChartF c where
-  type StyleF c :: Type
-  type DataF c :: Type
-  boxF :: NonEmpty (DataF c) -> Rect Double
-  sboxF :: StyleF c -> NonEmpty (DataF c) -> Rect Double
-  moveF :: Point Double -> NonEmpty (DataF c) -> NonEmpty (DataF c)
-  scaleF :: Double -> c -> c
-  projectWithF :: Rect Double -> Rect Double -> NonEmpty (DataF c) -> NonEmpty (DataF c)
+class DataD d a where
+  boxD :: d a -> Rect a
+  moveD :: Point a -> d a -> d a
+  scaleD :: a -> d a -> d a
+  projectWithD :: Rect a -> Rect a -> d a -> d a
 
-data RectChartF = RectChartF RectStyle (NonEmpty (Rect Double))
+-- This is existential quantification
+data SomeData a where
+  SomeData :: (DataD d a, Eq (d a), Show (d a), Typeable d, Typeable a) => d a -> SomeData a
+  -- deriving (Show)
 
-instance ChartF RectChartF where
-  type (StyleF RectChartF) = RectStyle
-  type (DataF RectChartF) = Rect Double
-  boxF = foldRectUnsafe
-  sboxF s a = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
-  moveF p a = addPoint p <$> a
-  scaleF p (RectChartF s a) = RectChartF (scaleStyle_ p s) (fmap (fmap (*p)) a)
-  projectWithF new old a = projectOnR new old <$> a
+-- Non-GADT version would be (still existential quantification)
+-- data SomeStyle = forall a. (StyleC a, Show a) => SomeStyle a
 
+instance Show (SomeData a)
+  where
+    show (SomeData a) = show a
+
+instance Eq (SomeData a)
+  where
+    (==) (SomeData a) (SomeData b) =
+      bool False (Just a == cast b) (typeOf a == typeOf b)
+
+instance DataD Rect Double where
+  boxD = id
+  moveD p = addPoint p
+  scaleD p = fmap (*p)
+  projectWithD = projectOnR
 
 {-
-boxesF :: forall a c. (ChartF c) => [DataF a] -> Rect Double
-boxesF cs = foldRectUnsafe $ fmap boxF cs
-
-boxes' :: forall s a c. (Chart' s a c) => [c] -> Rect Double
-boxes' cs = foldRectUnsafe $ fmap box' cs
-
+instance (Traversable f, DataD d) => DataD (f d) where
+  boxD = foldRectUnsafe . fmap boxD
+  moveD p = fmap (moveD p)
+  scaleD p = fmap (scaleD p)
+  projectWithD new old = fmap (projectWithD new old)
 -}
 
-class ChartC c where
-  boxC :: c -> Rect Double
-  sboxC :: c -> Rect Double
-  moveC :: Point Double -> c -> c
-  scaleC :: Double -> c -> c
-  projectWithC :: Rect Double -> Rect Double -> c -> c
+data ChartS f s d a = ChartS
+  { chartStyle :: s,
+    chartData :: f (d a) } deriving (Eq, Show)
 
-instance ChartC RectChartC where
-  boxC = foldRectUnsafe . snd
-  sboxC (s,a) = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
-  moveC p a = second (fmap (addPoint p)) a
-  scaleC p (s,a) = (scaleStyle_ p s, fmap (fmap (*p)) a)
-  projectWithC new old a = second (fmap (projectOnR new old)) a
+c1 :: ChartS [] RectStyle Rect Double
+c1 = ChartS defaultRectStyle [one]
 
-type RectChartC = (RectStyle, NonEmpty (Rect Double))
+-- This is existential quantification
+data SomeChart a where
+  SomeChart :: (Traversable f, StyleC s, Eq s, Show s, Typeable s, DataD d a, Eq (d a), Show (d a), Typeable d) => ChartS f s d a -> SomeChart a
 
-boxesC :: forall c. (ChartC c) => [c] -> Rect Double
-boxesC cs = foldRectUnsafe $ fmap boxC cs
+boxS :: (Ord a, Traversable f, DataD d a) => ChartS f s d a -> Rect a
+boxS c = foldRectUnsafe $ boxD <$> chartData c
 
-sboxesC :: forall c. (ChartC c) => [c] -> Rect Double
-sboxesC cs = foldRectUnsafe $ fmap sboxC cs
+boxesS :: (Ord a, Traversable f, Traversable g, DataD d a) => g (ChartS f s d a) -> Rect a
+boxesS cs = foldRectUnsafe $ fmap boxS cs
 
-frameCs :: forall c. (ChartC c) => RectStyle -> Double -> [c] -> RectChartC
-frameCs rs p cs = (rs, padRect p (sboxesC cs):|[])
+gbox :: (Ord a) => SomeChart a -> Rect a
+gbox (SomeChart c) = boxS c
 
-data Chartable
-  where
-    MkChart :: ChartC a => a -> Chartable
-
-boxesCh :: [Chartable] -> Rect Double
-boxesCh cs = foldRectUnsafe $ fmap f cs
-  where
-    f (MkChart c) = boxC c
-
-sboxesCh :: [Chartable] -> Rect Double
-sboxesCh cs = foldRectUnsafe $ fmap f cs
-  where
-    f (MkChart c) = sboxC c
-
-frameCh :: RectStyle -> Double -> [Chartable] -> [Chartable]
-frameCh rs p cs = MkChart (rs, padRect p (sboxesCh cs):|[]) : cs
-
-consCh :: Chartable -> [Chartable] -> [Chartable]
-consCh c cs = c : cs
-
-newtype ChartN = ChartN { chart :: forall a. (ChartC a) => a }
-
-boxN :: forall c. (ChartC c) => ChartN -> Rect Double
-boxN (ChartN c) = boxC @c c
-
-boxesN :: forall c. (ChartC c) => [ChartN] -> [Rect Double]
-boxesN cs = boxN @c <$> cs
-
-x1 :: RectChartC
-x1 = (defaultRectStyle, one :|[])
-
-x1' :: Rect Double
-x1' = boxesCh [MkChart x1, MkChart x1]
+gboxes :: (Ord a, Traversable f) => f (SomeChart a) -> Rect a
+gboxes cs = foldRectUnsafe $ fmap gbox cs
 
 -- * non-family
 data BlankStyle

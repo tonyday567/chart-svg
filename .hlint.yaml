@@ -1,6 +1,7 @@
 - ignore: {name: Eta reduce}
 - ignore: {name: Use if}
 - ignore: {name: Use head}
+- ignore: {name: Use <$>}
 - ignore: {name: Use first}
 - ignore: {name: 'Use ?~'}
 - ignore: {name: Avoid lambda}
