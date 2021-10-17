@@ -34,7 +34,7 @@ import Chart.Chart
 import Chart.Style
 import Chart.Hud
 import Chart.Surface
-import Chart.Render
+import Chart.Svg
 import Control.Lens
 import Data.Bifunctor
 import Data.Colour
@@ -240,7 +240,7 @@ quantileHistChart ::
   [Double] ->
   ChartSvg
 quantileHistChart title names qs vs =
-  mempty & #hudOptions .~ hudOptions & #chartList .~ [chart']
+  mempty & #hudOptions .~ hudOptions & #chartTree .~ [chart']
   where
     hudOptions =
       defaultHudOptions

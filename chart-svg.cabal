@@ -40,17 +40,17 @@ source-repository head
 
 library
   exposed-modules:
-    Chart
+    -- Chart
     Chart.Chart
     Chart.Style
     Chart.Hud
     Chart.Svg
     Chart.Bar
-    Chart.Examples
+    -- Chart.Examples
     Chart.ExamplesNew
-    Chart.Render
+    -- Chart.Render
     Chart.Surface
-    Chart.Types
+    -- Chart.Types
     Chart.Various
     Data.Colour
     Data.FormatN

@@ -53,7 +53,7 @@ data Chart a =
   LineChart LineStyle (NonEmpty (Point a)) |
   GlyphChart GlyphStyle (NonEmpty (Point a)) |
   PathChart PathStyle (NonEmpty (PathInfo a, Point a)) |
-  BlankChart (NonEmpty (Rect a))
+  BlankChart (NonEmpty (Rect a)) deriving (Eq, Show)
 
 box_ :: Chart Double -> Rect Double
 box_ (RectChart _ a) = foldRectUnsafe a
