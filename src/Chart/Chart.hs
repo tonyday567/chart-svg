@@ -43,9 +43,9 @@ import Data.List.NonEmpty (NonEmpty(..))
 import GHC.OverloadedLabels
 import Control.Lens
 import Text.HTML.TagSoup (maybeTagText, parseTags)
-import Data.Colour
+-- import Data.Colour
 import Data.Typeable
-import Unsafe.Coerce
+-- import Unsafe.Coerce
 
 class (Eq d, Show d) => DataD d where
   boxD :: d -> Rect Double
@@ -119,8 +119,14 @@ instance Eq SomeChart
 -- >>> :t \(SomeChart c) -> (foldRectUnsafe . fmap boxD . chartData) c
 -- \(SomeChart c) -> (foldRectUnsafe . fmap boxD . chartData) c
 --   :: SomeChart -> Rect Double
-withSomeChart :: SomeChart -> (forall d f s. (Traversable f, Typeable f, Style s, Eq s, Show s, Typeable s, DataD d, Eq d, Show (f d), Typeable d, Typeable (f d)) => ChartZ f s d -> b) -> b
+withSomeChart :: SomeChart -> (forall d f s. (Traversable f, Style s, DataD d, Show (f d)) => ChartZ f s d -> b) -> b
 withSomeChart (SomeChart c) f = f c
+
+-- |
+--
+-- >>> applySomeChart (foldRectUnsafe . fmap boxD . chartData) (SomeChart c1)
+applySomeChart :: (forall d f s. (Traversable f, Typeable f, Style s, Eq s, Show s, Typeable s, DataD d, Eq d, Show (f d), Typeable d, Typeable (f d)) => ChartZ f s d -> b) -> SomeChart -> b
+applySomeChart f (SomeChart c) = f c
 
 -- |
 --
@@ -135,8 +141,13 @@ mapSomeChart f cs = fmap f' cs
 --
 -- >>> modifySomeChart (\c -> c {chartStyle = scaleOpacStyle 1 (chartStyle c)}) (SomeChart c1) == SomeChart c1
 -- True
-modifySomeChart :: (forall d f s. (Traversable f, Style s, Eq s, Show s, Typeable s, DataD d, Eq d, Show (f d)) => ChartZ f s d -> ChartZ f s d) -> SomeChart -> SomeChart
+modifySomeChart :: (forall d f s. (Traversable f, Style s, DataD d) => ChartZ f s d -> ChartZ f s d) -> SomeChart -> SomeChart
 modifySomeChart f (SomeChart c) = SomeChart (f c)
+
+
+-- >>> let cs = [modifySomeChart (\c -> c {chartData = fmap (projectWithD one (Rect 0 1 0 1)) (chartData c)}) (SomeChart c1), SomeChart c1]
+-- >>> applySomeChart (foldRectUnsafe . fmap boxD . chartData) <$> cs
+-- [Rect -1.0 0.0 -1.0 0.0,Rect -0.5 0.5 -0.5 0.5]
 
 boxSS :: ChartZ f s d -> Rect Double
 boxSS (ChartZ _ d) = foldRectUnsafe $ boxD <$> d
