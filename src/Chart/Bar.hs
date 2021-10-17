@@ -19,8 +19,10 @@ module Chart.Bar
   )
 where
 
-import Chart.Render
-import Chart.Types
+import Chart.Svg
+import Chart.Chart
+import Chart.Style
+import Chart.Hud
 import Control.Lens
 import Data.Bifunctor
 import Data.Bool
@@ -176,7 +178,7 @@ barRange ys'@(y : ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0 
 -- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.69 0.35 0.16 1.00, color = Colour 0.69 0.35 0.16 1.00}), xys = [R 5.0e-2 0.45 0.0 1.0,R 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.65 0.81 0.89 1.00}), xys = [R 0.45 0.8500000000000001 0.0 2.0,R 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, xys = [R -5.0e-2 1.9500000000000002 0.0 3.0]}]
 bars :: BarOptions -> BarData -> [Chart Double]
 bars bo bd =
-  zipWith (\o d -> Chart (RectA o) d) (bo ^. #barRectStyles) (singleton (fmap RectXY <$> barRects bo (bd ^. #barData))) <> [Chart BlankA (singleton [RectXY (Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w)])]
+  zipWith (\o d -> RectChart o (fromList d)) (bo ^. #barRectStyles) (barRects bo (bd ^. #barData)) <> [BlankChart (fromList [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w])]
   where
     (Rect x z y w) = fromMaybe one $ foldRect $ catMaybes $ foldRect <$> barRects bo (bd ^. #barData)
 
@@ -206,7 +208,7 @@ tickFirstAxis _ [] = []
 tickFirstAxis bd (x : xs) = (x & #axisTick . #tstyle .~ barTicks bd) : xs
 
 -- | bar legend
-barLegend :: BarData -> BarOptions -> [(Annotation, Text)]
+barLegend :: BarData -> BarOptions -> [(Styles, Text)]
 barLegend bd bo
   | null (bd ^. #barData) = []
   | isNothing (bd ^. #barColumnLabels) = []
@@ -221,7 +223,7 @@ barChart bo bd =
     & #hudOptions .~ bo ^. #barHudOptions
     & #hudOptions . #hudLegend %~ fmap (second (const (barLegend bd bo)))
     & #hudOptions . #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo)
-    & #chartList .~ bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
+    & #chartTree .~ bars bo bd <> bool [] (barTextCharts bo bd) (bo ^. #displayValues)
 
 flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
 flipAllAxes o = fmap (bool id flipAxis (o == Vert))
@@ -261,4 +263,4 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = zipWith 
 -- | text, hold the bars
 barTextCharts :: BarOptions -> BarData -> [Chart Double]
 barTextCharts bo bd =
-  zipWith (\o d -> Chart (TextA o (fst <$> d)) (singleton . PointXY . snd <$> d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))
+  zipWith (\o d -> TextChart o (fromList d)) (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))

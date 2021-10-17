@@ -25,7 +25,9 @@ module Chart.Surface
   )
 where
 
-import Chart.Types
+import Chart.Chart
+import Chart.Style
+import Chart.Hud
 import Control.Lens
 import Data.Bifunctor
 import Data.Colour
@@ -84,9 +86,9 @@ data SurfaceData = SurfaceData
 surfaces :: RectStyle -> [SurfaceData] -> [Chart Double]
 surfaces rs ps =
   ( \(SurfaceData r c) ->
-      Chart
-        (RectA (rs & #color .~ c))
-        (singleton [RectXY r])
+      RectChart
+        (rs & #color .~ c)
+        (fromList [r])
   )
     <$> ps
 
@@ -177,12 +179,12 @@ surfaceLegendChart dataRange l =
           || l ^. #sloLegendOptions . #lplace == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
-    t = Chart (TextA (l ^. #sloLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #sloTitle]) (singleton [zero])
+    t = TextChart (l ^. #sloLegendOptions . #ltext & #anchor .~ AnchorStart) (fromList [(l ^. #sloTitle, zero)])
     hs = vert (l ^. #sloLegendOptions . #vgap) [a, [t]]
     vertGlyph :: [Chart Double]
     vertGlyph =
       zipWith
-        (\r c -> Chart (RectA $ blob c) (singleton [RectXY r]))
+        (\r c -> RectChart (blob c) (fromList [r]))
         ( (\xr -> Ranges xr (Range 0 (l ^. #sloWidth)))
             <$> gridSpace
               dataRange
@@ -194,7 +196,7 @@ surfaceLegendChart dataRange l =
     horiGlyph :: [Chart Double]
     horiGlyph =
       zipWith
-        (\r c -> Chart (RectA $ blob c) (singleton [RectXY r]))
+        (\r c -> RectChart (blob c) (fromList [r]))
         ( (\yr -> Ranges (Range 0 (l ^. #sloWidth)) yr)
             <$> gridSpace
               dataRange
@@ -212,7 +214,7 @@ isHori l =
 makeSurfaceTick :: SurfaceLegendOptions -> [Chart Double] -> [Chart Double]
 makeSurfaceTick l pchart = phud
   where
-    r = fromMaybe one (styleBoxes pchart)
+    r = sboxes pchart
     r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions . #lsize)) (Rect 0 (l ^. #sloLegendOptions . #lsize) 0 (l ^. #sloWidth)) (isHori l)
     (hs, _) =
       makeHud

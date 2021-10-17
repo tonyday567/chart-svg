@@ -6,9 +6,7 @@
 module Chart.Various
   ( -- * sub-chart patterns
     xify,
-    xify',
     yify,
-    yify',
     addLineX,
     addLineY,
     stdLineChart,
@@ -31,15 +29,22 @@ module Chart.Various
   )
 where
 
-import Chart
+import Chart.Bar
+import Chart.Chart
+import Chart.Style
+import Chart.Hud
+import Chart.Surface
+import Chart.Render
 import Control.Lens
 import Data.Bifunctor
+import Data.Colour
 import Data.Foldable
+import Data.FormatN
 import qualified Data.HashMap.Strict as HashMap
 import Data.Maybe
 import Data.Text (Text)
 import Data.Time (UTCTime (..))
-import NumHask.Prelude (one)
+import NumHask.Prelude (fromList)
 import NumHask.Space hiding (singleton)
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
@@ -47,43 +52,33 @@ xify :: [Double] -> [Point Double]
 xify ys =
   zipWith Point [0 ..] ys
 
--- | convert from [a] to [XY a], by adding the index as the x axis
-xify' :: [Double] -> [XY Double]
-xify' ys =
-  zipWith P [0 ..] ys
-
 -- | convert from [a] to [Point a], by adding the index as the y axis
 yify :: [Double] -> [Point Double]
 yify xs =
   zipWith Point xs [0 ..]
 
--- | convert from [a] to [XY a], by adding the index as the y axis
-yify' :: [Double] -> [XY Double]
-yify' xs =
-  zipWith P xs [0 ..]
-
 -- | add a horizontal line at y
 addLineX :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
 addLineX y ls cs = cs <> [l]
   where
-    l = Chart (LineA ls) (singleton (PointXY <$> [Point lx y, Point ux y]))
-    (Rect lx ux _ _) = fromMaybe one $ foldRect $ mconcat $ mconcat $ fmap (fmap toRect) . xys <$> cs
+    l = LineChart ls (fromList [Point lx y, Point ux y])
+    (Rect lx ux _ _) = sboxes cs
 
 -- | add a verticle line at x
 addLineY :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
 addLineY x ls cs = cs <> [zeroLine]
   where
-    zeroLine = Chart (LineA ls) (singleton (PointXY <$> [Point x ly, Point x uy]))
-    (Rect _ _ ly uy) = fromMaybe one $ foldRect $ mconcat $ mconcat $ fmap (fmap toRect) . xys <$> cs
+    zeroLine = LineChart ls (fromList [Point x ly, Point x uy])
+    (Rect _ _ ly uy) = sboxes cs
 
 -- | interpret a [[Double]] as a series of lines with x coordinates of [0..]
 stdLineChart :: Double -> [Colour] -> [[Double]] -> [Chart Double]
 stdLineChart w p xss =
   zipWith
     ( \c xs ->
-        Chart
-          (LineA (defaultLineStyle & #color .~ c & #width .~ w))
-          (singleton (xify' xs))
+        LineChart
+          (defaultLineStyle & #color .~ c & #width .~ w)
+          (fromList (xify xs))
     )
     p
     xss
@@ -93,7 +88,7 @@ stdLines :: Double -> [LineStyle]
 stdLines w = (\c -> defaultLineStyle & #color .~ c & #width .~ w) <$> palette1_
 
 -- | Legend template for a line chart.
-lineLegend :: Double -> [Text] -> [Colour] -> (LegendOptions, [(Annotation, Text)])
+lineLegend :: Double -> [Text] -> [Colour] -> (LegendOptions, [(Styles, Text)])
 lineLegend w rs cs =
   ( defaultLegendOptions
       & #ltext . #size .~ 0.3
@@ -157,7 +152,7 @@ quantileChart ::
   [[Double]] ->
   ChartSvg
 quantileChart title names ls as xs =
-  mempty & #hudOptions .~ hudOptions & #chartList .~ chart'
+  mempty & #hudOptions .~ hudOptions & #chartTree .~ chart'
   where
     hudOptions =
       defaultHudOptions
@@ -169,17 +164,15 @@ quantileChart title names ls as xs =
                     & #vgap .~ 0.05
                     & #innerPad .~ 0.2
                     & #lplace .~ PlaceRight,
-                  extractAnns names chart'
+                  first LineA <$> zip ls names
                 )
           )
         & #hudAxes .~ as
-    extractAnns = zipWith (\t c -> (c ^. #annotation, t))
 
     chart' =
-      zipWith
-        (\l c -> Chart (LineA l) c)
+      zipWith (\s d -> LineChart s (fromList d))
         ls
-        (singleton (zipWith P [0 ..] <$> xs))
+        (zipWith Point [0 ..] <$> xs)
 
 -- | /blendMidLineStyle n w/ produces n lines of width w interpolated between two colors.
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
@@ -197,28 +190,26 @@ digitChart ::
   [Double] ->
   ChartSvg
 digitChart title utcs xs =
-  mempty & #hudOptions .~ hudOptions & #chartList .~ [c]
+  mempty & #hudOptions .~ hudOptions & #chartTree .~ [c]
   where
     hudOptions =
       defaultHudOptions
         & #hudTitles .~ [defaultTitle title]
         & #hudAxes .~ tsAxes utcs
     c =
-      Chart
-        ( GlyphA
+      GlyphChart
             ( defaultGlyphStyle
                 & #color .~ Colour 0 0 1 1
                 & #shape .~ CircleGlyph
                 & #size .~ 0.01
             )
-        )
-        (singleton (xify' xs))
+        (fromList (xify xs))
 
 -- | scatter chart
 scatterChart ::
   [[Point Double]] ->
   [Chart Double]
-scatterChart xss = zipWith (\gs xs -> Chart (GlyphA gs) (singleton (PointXY <$> xs))) (gpaletteStyle 0.02) xss
+scatterChart xss = zipWith (\gs xs -> GlyphChart gs (fromList xs)) (gpaletteStyle 0.02) xss
 
 -- | histogram chart
 histChart ::
@@ -266,7 +257,7 @@ quantileHistChart title names qs vs =
                )
                names
            ]
-    chart' = Chart (RectA defaultRectStyle) (singleton (RectXY <$> hr))
+    chart' = RectChart defaultRectStyle (fromList hr)
     hr =
       zipWith
         (\(y, w) (x, z) -> Rect x z 0 ((w - y) / (z - x)))
@@ -322,4 +313,4 @@ makeTitles (t, xt, yt) =
 
 -- | Chart for double list of Text.
 tableChart :: [[Text]] -> [Chart Double]
-tableChart tss = zipWith (\ts x -> Chart (TextA defaultTextStyle ts) (singleton (P x <$> take (length ts) [0 ..]))) tss [0 ..]
+tableChart tss = zipWith (\ts x -> TextChart defaultTextStyle (fromList $ zip ts (Point x <$> take (length ts) [0 ..]))) tss [0 ..]

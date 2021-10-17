@@ -21,7 +21,6 @@
 -- | Stylistic elements
 module Chart.Style
   ( -- * Styles
-    Style(..),
     Styles(..),
     scaleStyle_,
     scaleOpacStyle_,
@@ -94,13 +93,6 @@ import Control.Lens
 -- >>> import Chart.Render
 -- >>> import Data.Colour
 
-class (Eq s, Show s) => Style s where
-  defaultStyle :: s
-  boxStyle :: Rect Double -> s -> Rect Double
-  scaleStyle :: Double -> s -> s
-  scaleOpacStyle :: Double -> s -> s
-  colorStyle :: Colour -> s -> s
-
 data Styles
   = RectA RectStyle
   | TextA TextStyle
@@ -170,13 +162,6 @@ data RectStyle = RectStyle
 defaultRectStyle :: RectStyle
 defaultRectStyle = RectStyle 0.01 (palette1 1) (palette1 2)
 
-instance Style RectStyle where
-  defaultStyle = defaultRectStyle
-  boxStyle r s = undefined -- padRect (0.5 * view #borderSize s) r
-  scaleStyle x s = s & #borderSize %~ (* x)
-  scaleOpacStyle x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-  colorStyle c s = s & #color %~ mix c & #borderColor %~ mix c
-
 -- | solid rectangle, no border
 --
 -- >>> blob black
@@ -239,13 +224,6 @@ defaultTextStyle :: TextStyle
 defaultTextStyle =
   TextStyle 0.08 dark AnchorMiddle 0.5 1.45 -0.2 Nothing
 
-instance Style TextStyle where
-  defaultStyle = defaultTextStyle
-  boxStyle r s = undefined -- foldRectUnsafe $ uncurry (styleBoxText_ s) r
-  scaleStyle x s = s & #size %~ (* x)
-  scaleOpacStyle x s = s & #color %~ scaleOpac x
-  colorStyle c s = undefined -- s & #color %~ mix x
-
 -- | Glyph styling
 --
 -- >>> defaultGlyphStyle
@@ -278,13 +256,6 @@ defaultGlyphStyle =
     SquareGlyph
     Nothing
     Nothing
-
-instance Style GlyphStyle where
-  defaultStyle = defaultGlyphStyle
-  boxStyle r s = undefined -- foldRectUnsafe $ (\p -> addPoint p (styleBoxGlyph_ s)) r
-  scaleStyle x s = s & #size %~ (* x)
-  scaleOpacStyle x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-  colorStyle c s = undefined -- s & #color %~ mix x & #borderColor %~ mix x
 
 -- | glyph shapes
 data GlyphShape

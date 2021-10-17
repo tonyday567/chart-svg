@@ -43,133 +43,6 @@ import Data.List.NonEmpty (NonEmpty(..))
 import GHC.OverloadedLabels
 import Control.Lens
 import Text.HTML.TagSoup (maybeTagText, parseTags)
--- import Data.Colour
-import Data.Typeable
--- import Unsafe.Coerce
-
-class (Eq d, Show d) => DataD d where
-  boxD :: d -> Rect Double
-  moveD :: Point Double -> d -> d
-  scaleD :: Double -> d -> d
-  projectWithD :: Rect Double -> Rect Double -> d -> d
-
--- This is existential quantification
-data SomeData where
-  SomeData :: (DataD d, Eq d, Show d, Typeable d, Typeable a) => d -> SomeData
-  -- deriving (Show)
-
--- Non-GADT version would be (still existential quantification)
--- data SomeStyle = forall a. (StyleC a, Show a) => SomeStyle a
-
-instance Show SomeData
-  where
-    show (SomeData a) = show a
-
-instance Eq SomeData
-  where
-    (==) (SomeData a) (SomeData b) =
-      bool False (Just a == cast b) (typeOf a == typeOf b)
-
-instance DataD (Rect Double) where
-  boxD = id
-  moveD p = addPoint p
-  scaleD p = fmap (*p)
-  projectWithD = projectOnR
-
-class ChartC c where
-  boxC :: c -> Rect Double
-  scaleC :: Double -> c -> c
-
-data ChartZ f s d = (Traversable f, Style s, DataD d, Eq (f d), Show (f d)) => ChartZ
-  { chartStyle :: s,
-    chartData :: f d }
-
-instance Eq (ChartZ f s d)
-  where
-    (==) (ChartZ s d) (ChartZ s' d') = s==s' && d==d'
-
-instance Show (ChartZ f s d)
-  where
-    show (ChartZ s d) = "ChartZ " <> "(" <> show s <> ") (" <> show d <> ")"
-
--- This is existential quantification
-data SomeChart where
-  SomeChart :: (Traversable f, Typeable f, Style s, Eq s, Show s, Typeable s, DataD d, Eq d, Show (f d), Typeable d, Typeable (f d)) => ChartZ f s d -> SomeChart
-
-instance Show SomeChart
-  where
-    show (SomeChart a) = show a
-
-instance Eq SomeChart
-  where
-    (==) (SomeChart a) (SomeChart b) =
-      bool False (Just a == cast b) (typeOf a == typeOf b)
-
--- |
---
--- >>> withSomeChart (SomeChart c1) (foldRectUnsafe . fmap boxD . chartData)
--- Rect -0.5 0.5 -0.5 0.5
---
--- equivalent to
--- (\(SomeChart c) -> boxSS c) (SomeChart c1)
--- Rect -0.5 0.5 -0.5 0.5
---
--- Which has an easier type:
---
--- >>> :t \(SomeChart c) -> (foldRectUnsafe . fmap boxD . chartData) c
--- \(SomeChart c) -> (foldRectUnsafe . fmap boxD . chartData) c
---   :: SomeChart -> Rect Double
-withSomeChart :: SomeChart -> (forall d f s. (Traversable f, Style s, DataD d, Show (f d)) => ChartZ f s d -> b) -> b
-withSomeChart (SomeChart c) f = f c
-
--- |
---
--- >>> applySomeChart (foldRectUnsafe . fmap boxD . chartData) (SomeChart c1)
-applySomeChart :: (forall d f s. (Traversable f, Typeable f, Style s, Eq s, Show s, Typeable s, DataD d, Eq d, Show (f d), Typeable d, Typeable (f d)) => ChartZ f s d -> b) -> SomeChart -> b
-applySomeChart f (SomeChart c) = f c
-
--- |
---
--- >>> mapSomeChart (toList . fmap boxD . chartData) [SomeChart c1, SomeChart c1]
--- [[Rect -0.5 0.5 -0.5 0.5],[Rect -0.5 0.5 -0.5 0.5]]
-mapSomeChart :: (Traversable g) => (forall d f s. (Traversable f, Typeable f, Style s, Eq s, Show s, Typeable s, DataD d, Eq d, Show (f d), Typeable d, Typeable (f d)) => ChartZ f s d -> b) -> g SomeChart -> g b
-mapSomeChart f cs = fmap f' cs
-  where
-    f' (SomeChart c) = f c
-
--- |
---
--- >>> modifySomeChart (\c -> c {chartStyle = scaleOpacStyle 1 (chartStyle c)}) (SomeChart c1) == SomeChart c1
--- True
-modifySomeChart :: (forall d f s. (Traversable f, Style s, DataD d) => ChartZ f s d -> ChartZ f s d) -> SomeChart -> SomeChart
-modifySomeChart f (SomeChart c) = SomeChart (f c)
-
-
--- >>> let cs = [modifySomeChart (\c -> c {chartData = fmap (projectWithD one (Rect 0 1 0 1)) (chartData c)}) (SomeChart c1), SomeChart c1]
--- >>> applySomeChart (foldRectUnsafe . fmap boxD . chartData) <$> cs
--- [Rect -1.0 0.0 -1.0 0.0,Rect -0.5 0.5 -0.5 0.5]
-
-boxSS :: ChartZ f s d -> Rect Double
-boxSS (ChartZ _ d) = foldRectUnsafe $ boxD <$> d
-
-boxG :: SomeChart -> Rect Double
-boxG (SomeChart c) = boxSS c
-
--- >>> boxesSS [SomeChart c1, SomeChart c1]
--- Rect -0.5 0.5 -0.5 0.5
--- boxesSS :: (Traversable f) => f SomeChart -> Rect Double
--- boxesSS cs = foldRectUnsafe $ flip withSomeChart boxSS <$> cs
-
--- >>> withSomeChartSS (SomeChartSS c1SS) boxSS
-c1 :: ChartZ [] RectStyle (Rect Double)
-c1 = ChartZ defaultRectStyle [one]
-
-instance (Traversable f) => ChartC (ChartZ f RectStyle (Rect Double)) where
-  boxC (ChartZ s d) =
-    padRect (0.5 * view #borderSize s)
-    (foldRectUnsafe $ fmap boxD d)
-
-  scaleC a (ChartZ s d) = ChartZ (scaleStyle a s) (fmap (scaleD a) d)
 
 -- * non-family
 data BlankStyle
@@ -206,27 +79,22 @@ move_ p (GlyphChart s a) = GlyphChart s ((p+) <$> a)
 move_ p (PathChart s a) = PathChart s (second (p+) <$> a)
 move_ p (BlankChart a) = BlankChart (addPoint p <$> a)
 
-
-scale_ = undefined
-{-
 -- | Scale both the chart data and the style
 --
 scale_ :: Double -> Chart Double -> Chart Double
 scale_ p (RectChart s a) =
-  RectChart (scaleStyle_ p s) (fmap (fmap (*p)) a)
+  RectChart (s & #borderSize %~ (* p)) (fmap (fmap (*p)) a)
 scale_ p (LineChart s a) =
-  LineChart (scaleStyle_ p s) (fmap (fmap (*p)) a)
+  LineChart (s & #width %~ (* p)) (fmap (fmap (*p)) a)
 scale_ p (TextChart s a) =
-  TextChart (scaleStyle_ p s) (fmap (second (fmap (*p))) a)
+  TextChart (s & #size %~ (* p)) (fmap (second (fmap (*p))) a)
 scale_ p (GlyphChart s a) =
-  GlyphChart (scaleStyle_ p s) (fmap (fmap (*p)) a)
+  GlyphChart (s & #size %~ (* p)) (fmap (fmap (*p)) a)
 scale_ p (PathChart s a) =
-  PathChart (scaleStyle_ p s) (fmap (second (fmap (*p))) a)
+  PathChart (s & #borderSize %~ (* p)) (fmap (second (fmap (*p))) a)
 scale_ p (BlankChart a) =
   BlankChart (fmap (fmap (*p)) a)
 
-
--}
 -- | the extra area from text styling
 styleBoxText_ ::
   TextStyle ->
