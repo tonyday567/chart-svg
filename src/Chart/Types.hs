@@ -234,9 +234,6 @@ scaleOpacAnn x (PathA s pis) = PathA s' pis
     s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
 scaleOpacAnn _ BlankA = BlankA
 
-scaleOpac :: Double -> Colour -> Colour
-scaleOpac x (Colour r g b o') = Colour r g b (o' * x)
-
 -- | select a main colour
 colourAnn :: Colour -> Annotation -> Annotation
 colourAnn c (RectA s) = RectA s'

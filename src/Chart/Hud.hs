@@ -228,7 +228,7 @@ scaleOpacHudOptions ho o =
     & #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ scaleOpac o)))
     & #hudLegend %~ fmap (first (#ltext %~ (#color %~ scaleOpac o)))
     & #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o))))
-    & #hudLegend %~ fmap (second (fmap (first (scaleOpacStyle o))))
+    & #hudLegend %~ fmap (second (fmap (first (scaleOpacStyle_ o))))
 
 -- | The official hud canvas
 defaultCanvas :: RectStyle

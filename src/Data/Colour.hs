@@ -21,6 +21,7 @@ module Data.Colour
     pattern Colour,
     opac,
     setOpac,
+    scaleOpac,
     hex,
     mix,
     blend,
@@ -81,6 +82,9 @@ opac (Colour _ _ _ o) = o
 -- | set opacity
 setOpac :: Double -> Colour -> Colour
 setOpac o (Colour r g b _) = Colour r g b o
+
+scaleOpac :: Double -> Colour -> Colour
+scaleOpac x (Colour r g b o') = Colour r g b (o' * x)
 
 -- |
 hex :: Colour -> Text

@@ -23,10 +23,9 @@ module Chart.Style
   ( -- * Styles
     Style(..),
     Styles(..),
-    scaleStyle,
-    scaleOpac,
-    scaleOpacStyle,
-    colourStyle,
+    scaleStyle_,
+    scaleOpacStyle_,
+    colourStyle_,
 
     -- * Specific Styles
     RectStyle (..),
@@ -95,15 +94,12 @@ import Control.Lens
 -- >>> import Chart.Render
 -- >>> import Data.Colour
 
--- | Generic Style functionality.
---
-class Style a where
-  scaleOpac_ :: Double -> a -> a
-  colorStyle_ :: Colour -> a -> a
-  defaultStyle_ :: a
-  scaleStyle_ :: Double -> a -> a
-
--- type Style_ = forall a. Style a
+class (Eq s, Show s) => Style s where
+  defaultStyle :: s
+  boxStyle :: Rect Double -> s -> Rect Double
+  scaleStyle :: Double -> s -> s
+  scaleOpacStyle :: Double -> s -> s
+  colorStyle :: Colour -> s -> s
 
 data Styles
   = RectA RectStyle
@@ -114,49 +110,46 @@ data Styles
   deriving (Eq, Show, Generic)
 
 -- | Generically scale an Annotation.
-scaleStyle :: Double -> Styles -> Styles
-scaleStyle x (LineA a) = LineA $ a & #width %~ (* x)
-scaleStyle x (RectA a) = RectA $ a & #borderSize %~ (* x)
-scaleStyle x (TextA a) = TextA (a & #size %~ (* x))
-scaleStyle x (GlyphA a) = GlyphA (a & #size %~ (* x))
-scaleStyle x (PathA a) = PathA (a & #borderSize %~ (* x))
+scaleStyle_ :: Double -> Styles -> Styles
+scaleStyle_ x (LineA a) = LineA $ a & #width %~ (* x)
+scaleStyle_ x (RectA a) = RectA $ a & #borderSize %~ (* x)
+scaleStyle_ x (TextA a) = TextA (a & #size %~ (* x))
+scaleStyle_ x (GlyphA a) = GlyphA (a & #size %~ (* x))
+scaleStyle_ x (PathA a) = PathA (a & #borderSize %~ (* x))
 
 -- | dim (or brighten) the opacity of an Annotation by a scale
-scaleOpacStyle :: Double -> Styles -> Styles
-scaleOpacStyle x (RectA s) = RectA s'
+scaleOpacStyle_ :: Double -> Styles -> Styles
+scaleOpacStyle_ x (RectA s) = RectA s'
   where
     s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacStyle x (TextA s) = TextA s'
+scaleOpacStyle_ x (TextA s) = TextA s'
   where
     s' = s & #color %~ scaleOpac x
-scaleOpacStyle x (LineA s) = LineA s'
+scaleOpacStyle_ x (LineA s) = LineA s'
   where
     s' = s & #color %~ scaleOpac x
-scaleOpacStyle x (GlyphA s) = GlyphA s'
+scaleOpacStyle_ x (GlyphA s) = GlyphA s'
   where
     s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacStyle x (PathA s) = PathA s'
+scaleOpacStyle_ x (PathA s) = PathA s'
   where
     s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-
-scaleOpac :: Double -> Colour -> Colour
-scaleOpac x (Colour r g b o') = Colour r g b (o' * x)
 
 -- | select a main colour
-colourStyle :: Colour -> Styles -> Styles
-colourStyle c (RectA s) = RectA s'
+colourStyle_ :: Colour -> Styles -> Styles
+colourStyle_ c (RectA s) = RectA s'
   where
     s' = s & #color %~ mix c & #borderColor %~ mix c
-colourStyle c (TextA s) = TextA s'
+colourStyle_ c (TextA s) = TextA s'
   where
     s' = s & #color %~ mix c
-colourStyle c (LineA s) = LineA s'
+colourStyle_ c (LineA s) = LineA s'
   where
     s' = s & #color %~ mix c
-colourStyle c (GlyphA s) = GlyphA s'
+colourStyle_ c (GlyphA s) = GlyphA s'
   where
     s' = s & #color %~ mix c & #borderColor %~ mix c
-colourStyle c (PathA s) = PathA s'
+colourStyle_ c (PathA s) = PathA s'
   where
     s' = s & #color %~ mix c & #borderColor %~ mix c
 
@@ -178,10 +171,11 @@ defaultRectStyle :: RectStyle
 defaultRectStyle = RectStyle 0.01 (palette1 1) (palette1 2)
 
 instance Style RectStyle where
-  scaleStyle_ x s = s & #borderSize %~ (* x)
-  defaultStyle_ = defaultRectStyle
-  scaleOpac_ x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-  colorStyle_ c s = s & #color %~ mix c & #borderColor %~ mix c
+  defaultStyle = defaultRectStyle
+  boxStyle r s = undefined -- padRect (0.5 * view #borderSize s) r
+  scaleStyle x s = s & #borderSize %~ (* x)
+  scaleOpacStyle x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+  colorStyle c s = s & #color %~ mix c & #borderColor %~ mix c
 
 -- | solid rectangle, no border
 --
@@ -246,10 +240,11 @@ defaultTextStyle =
   TextStyle 0.08 dark AnchorMiddle 0.5 1.45 -0.2 Nothing
 
 instance Style TextStyle where
-  scaleStyle_ x s = s & #size %~ (* x)
-  defaultStyle_ = defaultTextStyle
-  scaleOpac_ x s = s & #color %~ scaleOpac x
-  colorStyle_ x s = s & #color %~ mix x
+  defaultStyle = defaultTextStyle
+  boxStyle r s = undefined -- foldRectUnsafe $ uncurry (styleBoxText_ s) r
+  scaleStyle x s = s & #size %~ (* x)
+  scaleOpacStyle x s = s & #color %~ scaleOpac x
+  colorStyle c s = undefined -- s & #color %~ mix x
 
 -- | Glyph styling
 --
@@ -285,10 +280,11 @@ defaultGlyphStyle =
     Nothing
 
 instance Style GlyphStyle where
-  scaleStyle_ x s = s & #size %~ (* x)
-  defaultStyle_ = defaultGlyphStyle
-  scaleOpac_ x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-  colorStyle_ x s = s & #color %~ mix x & #borderColor %~ mix x
+  defaultStyle = defaultGlyphStyle
+  boxStyle r s = undefined -- foldRectUnsafe $ (\p -> addPoint p (styleBoxGlyph_ s)) r
+  scaleStyle x s = s & #size %~ (* x)
+  scaleOpacStyle x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
+  colorStyle c s = undefined -- s & #color %~ mix x & #borderColor %~ mix x
 
 -- | glyph shapes
 data GlyphShape
@@ -375,12 +371,6 @@ data LineStyle = LineStyle
 defaultLineStyle :: LineStyle
 defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
 
-instance Style LineStyle where
-  scaleStyle_ x s = s & #width %~ (* x)
-  defaultStyle_ = defaultLineStyle
-  scaleOpac_ x s = s & #color %~ scaleOpac x
-  colorStyle_ x s = s & #color %~ mix x
-
 -- | Path styling
 --
 -- >>> defaultPathStyle
@@ -396,12 +386,6 @@ data PathStyle = PathStyle
 defaultPathStyle :: PathStyle
 defaultPathStyle =
   PathStyle 0.01 (palette1 1) (palette1 2)
-
-instance Style PathStyle where
-  scaleStyle_ x s = s & #borderSize %~ (* x)
-  defaultStyle_ = defaultPathStyle
-  scaleOpac_ x s = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-  colorStyle_ x s = s & #color %~ mix x & #borderColor %~ mix x
 
 {-
 -- | Convert from a path command list to a PathA chart
