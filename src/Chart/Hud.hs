@@ -540,7 +540,7 @@ makeAxisBar pl b = Hud $ \cs -> do
 title_ :: Title -> Rect Double -> Chart Double
 title_ t a =
   TextChart
-    ( style'& #rotation .~ bool Nothing (Just rot) (rot == 0))
+    ( style' & #rotation .~ bool (Just rot) Nothing (rot == 0))
     [(t ^. #text, addp (placePos' a) (alignPos a))]
   where
     style'
@@ -588,7 +588,7 @@ title_ t a =
         Point 0.0 ((y - w) / 2.0)
       | otherwise = Point 0.0 0.0
 
--- | Add a title to a chart. The logic used to work out placement is flawed due to being able to freely specify text rotation.  It works for specific rotations (Top, Bottom at 0, Left at 90, Right @ 270)
+-- | Add a title to a chart.
 title :: (Monad m) => Title -> HudT m Double
 title t = Hud $ \cs -> do
   ca <- use #chartDim
