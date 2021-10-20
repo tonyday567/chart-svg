@@ -1,22 +1,8 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 -- | Stylistic elements
 module Chart.Style
@@ -34,8 +20,11 @@ module Chart.Style
     border,
     TextStyle (..),
     defaultTextStyle,
+    styleBoxText,
     GlyphStyle (..),
     defaultGlyphStyle,
+    styleBoxGlyph,
+    ScaleBorder(..),
     GlyphShape (..),
     glyphText,
     LineStyle (..),
@@ -51,7 +40,6 @@ module Chart.Style
     fromAnchor,
     toAnchor,
     PathStyle (..),
-    -- toPathChart,
     defaultPathStyle,
 
     -- * SVG Options
@@ -74,16 +62,16 @@ module Chart.Style
 where
 
 import Data.Colour
-import Data.Generics.Labels ()
 import Data.Maybe
 import Data.String
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics
-import NumHask.Prelude
-import NumHask.Space as NH hiding (Element, singleton)
-import GHC.OverloadedLabels
+import Prelude
 import Control.Lens
+import Text.HTML.TagSoup (maybeTagText, parseTags)
+import Data.Path
+import Chart.Data as CD
 
 -- $setup
 --
@@ -222,7 +210,28 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 dark AnchorMiddle 0.5 1.45 -0.2 Nothing
+  TextStyle 0.08 dark AnchorMiddle 0.5 1.45 (-0.2) Nothing
+
+-- | the extra area from text styling
+styleBoxText ::
+  TextStyle ->
+  Text ->
+  Point Double ->
+  Rect Double
+styleBoxText o t p = move p $ maybe flat (`rotationBound` flat) (o ^. #rotation)
+  where
+    flat = Rect ((-x' / 2.0) + x' * a') (x' / 2 + x' * a') ((-y' / 2) - n1') (y' / 2 - n1')
+    s = o ^. #size
+    h = o ^. #hsize
+    v = o ^. #vsize
+    n1 = o ^. #nudge1
+    x' = s * h * fromIntegral (sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
+    y' = s * v
+    n1' = s * n1
+    a' = case o ^. #anchor of
+      AnchorStart -> 0.5
+      AnchorEnd -> -0.5
+      AnchorMiddle -> 0.0
 
 -- | Glyph styling
 --
@@ -257,6 +266,8 @@ defaultGlyphStyle =
     Nothing
     Nothing
 
+data ScaleBorder = ScaleBorder | NoScaleBorder deriving (Show, Eq, Generic)
+
 -- | glyph shapes
 data GlyphShape
   = CircleGlyph
@@ -265,9 +276,10 @@ data GlyphShape
   | RectSharpGlyph Double
   | RectRoundedGlyph Double Double Double
   | TriangleGlyph (Point Double) (Point Double) (Point Double)
-  | VLineGlyph Double
-  | HLineGlyph Double
-  | PathGlyph Text
+  -- ^ line width is determined by borderSize
+  | VLineGlyph
+  | HLineGlyph
+  | PathGlyph Text ScaleBorder
   deriving (Show, Eq, Generic)
 
 -- | textifier
@@ -280,9 +292,28 @@ glyphText sh =
     EllipseGlyph _ -> "Ellipse"
     RectSharpGlyph _ -> "RectSharp"
     RectRoundedGlyph {} -> "RectRounded"
-    VLineGlyph _ -> "VLine"
-    HLineGlyph _ -> "HLine"
-    PathGlyph _ -> "Path"
+    VLineGlyph -> "VLine"
+    HLineGlyph -> "HLine"
+    PathGlyph _ _ -> "Path"
+
+-- | the extra area from glyph styling
+styleBoxGlyph :: GlyphStyle -> Rect Double
+styleBoxGlyph s = move p' $
+  sw $ case sh of
+    CircleGlyph -> (sz *) <$> one
+    SquareGlyph -> (sz *) <$> one
+    EllipseGlyph a -> CD.scale (Point sz (a * sz)) one
+    RectSharpGlyph a -> CD.scale (Point sz (a * sz)) one
+    RectRoundedGlyph a _ _ -> CD.scale (Point sz (a * sz)) one
+    VLineGlyph -> CD.scale (Point ((s ^. #borderSize) * sz) sz) one
+    HLineGlyph -> CD.scale (Point sz ((s ^. #borderSize) * sz)) one
+    TriangleGlyph a b c -> (sz *) <$> space1 [a,b,c]
+    PathGlyph path' _ -> (sz *) <$> (pathBoxes . fmap pathInfoToSvgCoords . toPathXYs . either error id . parsePath $ path')
+  where
+    sh = s ^. #shape
+    sz = s ^. #size
+    sw = padRect (0.5 * s ^. #borderSize)
+    p' = fromMaybe (Point 0.0 0.0) (s ^. #translate)
 
 -- | line cap style
 data LineCap = LineCapButt | LineCapRound | LineCapSquare deriving (Eq, Show, Generic)
@@ -357,13 +388,6 @@ data PathStyle = PathStyle
 defaultPathStyle :: PathStyle
 defaultPathStyle =
   PathStyle 0.01 (palette1 1) (palette1 2)
-
-{-
--- | Convert from a path command list to a PathA chart
-toPathChart :: PathStyle -> [(PathInfo Double, Point Double)] -> Chart Double
-toPathChart ps xs = Chart (PathA ps (fst <$> xs)) (singleton (PointXY . snd <$> xs))
-
--}
 
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)

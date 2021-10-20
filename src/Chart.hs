@@ -13,134 +13,12 @@ module Chart
     --
     -- $overview
 
-    -- * Chart
-    Chart (..),
-    moveChart,
-    projectXYs,
-    projectXYsWith,
-    projectArcPosition,
-
-    -- * Annotation
-    Annotation (..),
-    annotationText,
-    scaleAnn,
-    scaleOpacAnn,
-    colourAnn,
-    padRect,
-
-    -- * Styles
-    RectStyle (..),
-    defaultRectStyle,
-    blob,
-    clear,
-    border,
-    TextStyle (..),
-    defaultTextStyle,
-    GlyphStyle (..),
-    defaultGlyphStyle,
-    GlyphShape (..),
-    glyphText,
-    LineStyle (..),
-    defaultLineStyle,
-    LineCap (..),
-    fromLineCap,
-    toLineCap,
-    LineJoin (..),
-    fromLineJoin,
-    toLineJoin,
-    fromDashArray,
-    Anchor (..),
-    fromAnchor,
-    toAnchor,
-    PathStyle (..),
-    toPathChart,
-    defaultPathStyle,
-
-    -- * Hud types
-    ChartDims (..),
-    HudT (..),
-    Hud,
-    simulHud,
-    HudOptions (..),
-    defaultHudOptions,
-    scaleOpacHudOptions,
-    colourHudOptions,
-    defaultCanvas,
-    runHudWith,
-    runHud,
-    makeHud,
-    ChartAspect (..),
-    toChartAspect,
-    fromChartAspect,
-    initialCanvas,
-    chartAspectHud,
-    canvas,
-    title,
-    tick,
-
-    -- * Hud primitives
-    AxisOptions (..),
-    defaultAxisOptions,
-    flipAxis,
-    Place (..),
-    placeText,
-    AxisBar (..),
-    defaultAxisBar,
-    Title (..),
-    defaultTitle,
-    Tick (..),
-    defaultGlyphTick,
-    defaultTextTick,
-    defaultLineTick,
-    defaultTick,
-    TickStyle (..),
-    defaultTickStyle,
-    tickStyleText,
-    TickExtend (..),
-    adjustTick,
-    makeTickDates,
-    makeTickDatesContinuous,
-    Adjustments (..),
-    defaultAdjustments,
-    LegendOptions (..),
-    defaultLegendOptions,
-    legendHud,
-    Orientation (..),
-    fromOrientation,
-    toOrientation,
-
-    -- * SVG primitives
-    CssShapeRendering (..),
-    CssPreferColorScheme (..),
-    CssOptions (..),
-    defaultCssOptions,
-    SvgOptions (..),
-    defaultSvgOptions,
-    defaultSvgFrame,
-
-    -- * Chart manipulation
-    padChart,
-    frameChart,
-    hori,
-    vert,
-    stack,
-
-    -- * Bounding box calculation
-    padBox,
-    dataBox,
-    dataBoxes,
-    dataBoxesS,
-    styleBox,
-    styleBoxes,
-    styleBoxesS,
-    styleBoxText,
-    styleBoxGlyph,
-
-    -- * singleton
-    singleton,
-
     -- * Re-exports
-    module Chart.Render,
+    module Chart.Primitive,
+    module Chart.Data,
+    module Chart.Hud,
+    module Chart.Style,
+    module Chart.Svg,
     module Chart.Bar,
     module Chart.Surface,
     module Data.Colour,
@@ -150,18 +28,23 @@ module Chart
   )
 where
 
+
 import Chart.Bar
-import Chart.Render
+import Chart.Primitive
+import Chart.Style
+import Chart.Hud
+import Chart.Svg
 import Chart.Surface
-import Chart.Types
 import Data.Colour
 import Data.FormatN
 import Data.Path
 import NumHask.Space hiding (singleton)
+import Chart.Data
 
 -- $setup
 --
 -- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedLists
 -- >>> import Chart
 -- >>> import Control.Lens
 

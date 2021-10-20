@@ -1,19 +1,8 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 -- | Colour representations and combinations, based on <https://hackage.haskell.org/package/Color>
 module Data.Colour
@@ -44,12 +33,13 @@ import Data.Bifunctor
 import Data.Char
 import Data.Either
 import Data.FormatN
-import Data.Generics.Labels ()
 import qualified Data.List as List
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model
+import Data.List.NonEmpty (NonEmpty(..))
+import Data.Foldable
 
 -- | Wrapper for 'Color'.
 newtype Colour = Colour'
@@ -177,10 +167,10 @@ i2d i = chr (ord '0' + i)
 -- >>> palette1 0
 -- Colour 0.69 0.35 0.16 1.00
 palette1 :: Int -> Colour
-palette1 x = cycle palette1_ List.!! x
+palette1 x = cycle (toList palette1_) List.!! x
 
 -- | finite list of Colours
-palette1_ :: [Colour]
+palette1_ :: NonEmpty Colour
 palette1_ =
   [ Colour 0.69 0.35 0.16 1.00,
     Colour 0.65 0.81 0.89 1.00,

@@ -40,17 +40,15 @@ source-repository head
 
 library
   exposed-modules:
-    -- Chart
-    Chart.Chart
+    Chart
+    Chart.Primitive
+    Chart.Data
     Chart.Style
     Chart.Hud
     Chart.Svg
     Chart.Bar
-    -- Chart.Examples
-    Chart.ExamplesNew
-    -- Chart.Render
+    Chart.Examples
     Chart.Surface
-    -- Chart.Types
     Chart.Various
     Data.Colour
     Data.FormatN
@@ -67,7 +65,6 @@ library
     , generic-lens          >=1.2     && <3.0
     , neat-interpolation    ^>= 0.5.1
     , lens                  >=5 && < 5.2
-    , linear                ^>=1.21
     , lucid                 ^>=2.9
     , mtl                   ^>=2.2.2
     , numhask               ^>=0.8
@@ -78,8 +75,6 @@ library
     , time                  ^>=1.9
     , transformers          ^>=0.5
     , unordered-containers  ^>=0.2
-    , bytestring            ^>=0.11.1
-    , binary                ==0.8.8.0
 
   default-language:   Haskell2010
   default-extensions: StrictData

@@ -1,65 +1,53 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE EmptyDataDeriving #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
-
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 -- | Chart API
-module Chart.Svg where
+module Chart.Svg
+  ( ChartSvg(..),
+    writeChartSvg,
+    chartSvg,
+  ) where
 
-import Chart.Chart
+import Chart.Primitive
 import Data.Colour
 import Chart.Style
 import Chart.Hud
-import Data.Generics.Labels ()
 import Data.Path
 import Data.Text (Text, pack, unpack)
 import qualified Data.Text as Text
-import NumHask.Prelude
-import NumHask.Space as NH hiding (Element)
+import Prelude
 import Lucid
-import Data.List.NonEmpty as NonEmpty
-import GHC.OverloadedLabels
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty(..))
 import Control.Lens
 import Lucid.Base
 import NeatInterpolation
 import qualified Data.Text.Lazy as Lazy
+import Chart.Data as CD
+import GHC.Generics
+import Data.Semigroup
+import Data.Maybe
+import Data.Foldable
 
+draw :: Chart Double -> Html ()
+draw (RectChart _ a) = sconcat $ svgRect_ <$> a
+draw (TextChart s a) = sconcat $ uncurry (svgText_ s) <$> a
+draw (LineChart _ as) = svgLine_ as
+draw (GlyphChart s a) = sconcat $ svgGlyph_ s <$> a
+draw (PathChart _ a) = svgPath_ (NonEmpty.toList $ fst <$> a) (NonEmpty.toList $ snd <$> a)
+draw (BlankChart _) = mempty
 
-draw_ :: Chart Double -> Html ()
-draw_ (RectChart _ a) = sconcat $ svgRect_ <$> a
-draw_ (TextChart s a) = sconcat $ uncurry (svgText_ s) <$> a
-draw_ (LineChart _ a) = svgLine_ (NumHask.Prelude.toList a)
-draw_ (GlyphChart s a) = sconcat $ svgGlyph_ s <$> a
-draw_ (PathChart _ a) = svgPath_ (NonEmpty.toList $ fst <$> a) (NonEmpty.toList $ snd <$> a)
-draw_ (BlankChart _) = mempty
-
-atts_ :: Chart a -> [Attribute]
-atts_ (RectChart s _) = attsRect s
-atts_ (TextChart s _) = attsText s
-atts_ (LineChart s _) = attsLine s
-atts_ (GlyphChart s _) = attsGlyph s
-atts_ (PathChart s _) = attsPath s
-atts_ (BlankChart _) = mempty
+atts :: Chart a -> [Attribute]
+atts (RectChart s _) = attsRect s
+atts (TextChart s _) = attsText s
+atts (LineChart s _) = attsLine s
+atts (GlyphChart s _) = attsGlyph s
+atts (PathChart s _) = attsPath s
+atts (BlankChart _) = mempty
 
 -- ** ChartSvg
 
@@ -104,7 +92,7 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
 
 -- | Low-level conversion of a Chart to svg
 svg :: Chart Double -> Lucid.Html ()
-svg c = term "g" (atts_ c) (draw_ c)
+svg c = term "g" (atts c) (draw c)
 
 cssText :: CssOptions -> Html ()
 cssText csso = style_ [] $
@@ -142,44 +130,12 @@ cssPreferColorScheme (_, bgdark) PreferDark =
   |] where c = hex bgdark
 cssPreferColorScheme _ PreferNormal = mempty
 
-{-
-makeCharts :: ChartAspect -> HudOptions -> [Chart a] -> [Chart a]
-makeCharts asp ho cs =
-  let (hs', hc') = makeHud (padBox $ dataBoxes cs) ho
-   in runHud (initialCanvas asp (cs <> hc')) hs' (cs <> hc')
--}
-
-renderToCRS :: SvgOptions -> [Chart Double] -> ([Chart Double], Rect Double, Point Double)
-renderToCRS so cs = (cs', rect', size')
-  where
-    rect' = sboxes cs' & maybe id padRect (so ^. #outerPad)
-    cs' =
-      cs
-        & runHud penult [chartAspectHud (so ^. #chartAspect)]
-        & maybe
-          id
-          (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
-          (so ^. #chartFrame)
-    Point w h = NH.width rect'
-    size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
-    penult = case so ^. #chartAspect of
-      FixedAspect _ -> sboxes cs
-      CanvasAspect _ -> boxes cs
-      ChartAspect -> sboxes cs
-      UnadjustedAspect -> boxes cs
-
-{-
--- | Consume the ChartSvg and produce the combined huds and charts as a chart list.
-renderToCharts :: ChartSvg -> [Chart a]
-renderToCharts cs = makeCharts (view (#svgOptions . #chartAspect) cs) (view #hudOptions cs) (view #chartList cs)
--}
-
 -- | render Charts with the supplied options.
 renderChartsWith :: SvgOptions -> [Chart Double] -> Text
 renderChartsWith so cs =
   Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs'')
   where
-    rect' = sboxes cs' & maybe id padRect (so ^. #outerPad)
+    rect' = styleBoxes cs' & maybe id padRect (so ^. #outerPad)
     cs' =
       cs
         & runHud penult [chartAspectHud (so ^. #chartAspect)]
@@ -189,12 +145,12 @@ renderChartsWith so cs =
           (so ^. #chartFrame)
     cs'' =
       foldMap (\c -> [RectChart (blob c) (rect' :| [])]) (so ^. #background) <> cs'
-    Point w h = NH.width rect'
+    Point w h = CD.width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
     penult = case so ^. #chartAspect of
-      FixedAspect _ -> sboxes cs
+      FixedAspect _ -> styleBoxes cs
       CanvasAspect _ -> boxes cs
-      ChartAspect -> sboxes cs
+      ChartAspect -> styleBoxes cs
       UnadjustedAspect -> boxes cs
 
 -- | render charts with the supplied svg options and huds
@@ -205,7 +161,7 @@ renderHudChart so hs cs = renderChartsWith so (runHud (initialCanvas (so ^. #cha
 initialCanvas :: ChartAspect -> [Chart Double] -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = aspect $ ratio $ sboxes cs
+initialCanvas ChartAspect cs = aspect $ ratio $ styleBoxes cs
 initialCanvas UnadjustedAspect cs = boxes cs
 
 -- | Render a chart using the supplied svg and hud config.
@@ -215,46 +171,12 @@ initialCanvas UnadjustedAspect cs = boxes cs
 chartSvg :: ChartSvg -> Text
 chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> hs') (cs <> cs')
   where
-    (hs', cs') = makeHud (padBox $ foldRectUnsafe $ box_ <$> cs) ho
-
--- | Render a chart using the default svg options and no hud.
---
--- >>> chartSvgDefault [] == chartSvg mempty
--- True
-chartSvgDefault :: [Chart Double] -> Text
-chartSvgDefault cs = chartSvg $ mempty & #chartTree .~ cs
-
--- | Render a chart using default svg and hud options.
---
--- >>> chartSvgHud [] == (chartSvg $ mempty & #hudOptions .~ defaultHudOptions)
--- True
-chartSvgHud :: [Chart Double] -> Text
-chartSvgHud cs =
-  chartSvg $
-    mempty
-      & #hudOptions .~ defaultHudOptions
-      & #chartTree .~ cs
+    (hs', cs') = makeHud (boxes cs) ho
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()
 writeChartSvg fp cs =
   writeFile fp (unpack $ chartSvg cs)
-
--- | Write a chart to a file with default svg options and no hud.
-writeChartSvgDefault :: FilePath -> [Chart Double] -> IO ()
-writeChartSvgDefault fp cs = writeChartSvg fp (mempty & #chartTree .~ cs)
-
--- | Write a chart to a file with default svg and hud options.
-writeChartSvgHud :: FilePath -> [Chart Double] -> IO ()
-writeChartSvgHud fp cs =
-  writeChartSvg
-    fp
-    ( mempty
-        & #chartTree .~ cs
-        & #hudOptions .~ defaultHudOptions
-    )
-
--- * Rendering
 
 -- | Make Lucid Html given term and attributes
 terms :: Text -> [Lucid.Attribute] -> Lucid.Html ()
@@ -284,9 +206,9 @@ svgText_ s t p@(Point x y) =
     (toHtmlRaw t)
 
 -- | line svg
-svgLine_ :: [Point Double] -> Lucid.Html ()
-svgLine_ [] = mempty
-svgLine_ xs = terms "polyline" [term "points" (toPointsText xs)]
+svgLine_ :: NonEmpty (NonEmpty (Point Double)) -> Lucid.Html ()
+svgLine_ xss = sconcat $
+  (\xs -> terms "polyline" [term "points" (toPointsText (toList xs))]) <$> xss
   where
     toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs'
 
@@ -302,7 +224,7 @@ svgShape_ CircleGlyph s (Point x y) =
 svgShape_ SquareGlyph s p =
   svgRect_ (move p ((s *) <$> one))
 svgShape_ (RectSharpGlyph x') s p =
-  svgRect_ (move p (NH.scale (Point s (x' * s)) one))
+  svgRect_ (move p (CD.scale (Point s (x' * s)) one))
 svgShape_ (RectRoundedGlyph x' rx ry) s p =
   terms
     "rect"
@@ -314,7 +236,7 @@ svgShape_ (RectRoundedGlyph x' rx ry) s p =
       term "ry" (pack $ show ry)
     ]
   where
-    (Rect x z y w) = move p (NH.scale (Point s (x' * s)) one)
+    (Rect x z y w) = move p (CD.scale (Point s (x' * s)) one)
 svgShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   terms
     "polygon"
@@ -329,11 +251,11 @@ svgShape_ (EllipseGlyph x') s (Point x y) =
       term "rx" ((pack . show) $ 0.5 * s),
       term "ry" ((pack . show) $ 0.5 * s * x')
     ]
-svgShape_ (VLineGlyph _) s (Point x y) =
+svgShape_ VLineGlyph s (Point x y) =
   terms "polyline" [term "points" (pack $ show x <> "," <> show (-(y - s / 2)) <> "\n" <> show x <> "," <> show (-(y + s / 2)))]
-svgShape_ (HLineGlyph _) s (Point x y) =
+svgShape_ HLineGlyph s (Point x y) =
   terms "polyline" [term "points" (pack $ show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]
-svgShape_ (PathGlyph path) s p =
+svgShape_ (PathGlyph path _) s p =
   terms "path" [term "d" path, term "transform" (toTranslateText p <> " " <> toScaleText s)]
 
 -- | GlyphStyle to svg Tree
@@ -347,7 +269,7 @@ svgPath_ :: [PathInfo Double] -> [Point Double] -> Lucid.Html ()
 svgPath_ _ [] = mempty
 svgPath_ _ [_] = mempty
 svgPath_ infos ps =
-  terms "path" [term "d" (toPathAbsolutes (NumHask.Prelude.zip infos ps))]
+  terms "path" [term "d" (toPathAbsolutes (NonEmpty.fromList $ zip infos ps))]
 
 -- | RectStyle to Attributes
 attsRect :: RectStyle -> [Lucid.Attribute]
@@ -378,13 +300,19 @@ attsText o =
 -- | GlyphStyle to Attributes
 attsGlyph :: GlyphStyle -> [Lucid.Attribute]
 attsGlyph o =
-  [ term "stroke-width" (pack $ show $ o ^. #borderSize),
+  [ term "stroke-width" (pack $ show sw),
     term "stroke" (toHex $ o ^. #borderColor),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
     term "fill" (toHex $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
     <> foldMap ((: []) . term "transform" . toTranslateText) (o ^. #translate)
+
+  where
+    sw = case o ^. #shape of
+      PathGlyph _ NoScaleBorder -> o ^. #borderSize
+      PathGlyph _ ScaleBorder -> min 0.2 (o ^. #borderSize / o ^. #size)
+      _ -> o ^. #borderSize
 
 -- | LineStyle to Attributes
 attsLine :: LineStyle -> [Lucid.Attribute]

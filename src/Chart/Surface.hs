@@ -1,7 +1,6 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Surface chart combinators.
@@ -25,19 +24,21 @@ module Chart.Surface
   )
 where
 
-import Chart.Chart
+import Chart.Primitive
 import Chart.Style
 import Chart.Hud
 import Control.Lens
 import Data.Bifunctor
 import Data.Colour
 import Data.FormatN
-import Data.Generics.Labels ()
 import Data.Text (Text)
 import GHC.Generics
-import GHC.OverloadedLabels
-import NumHask.Prelude
-import NumHask.Space hiding (singleton)
+import Prelude
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NonEmpty
+import Chart.Data
+import Data.Bool
+import Data.Foldable
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -63,7 +64,7 @@ defaultSurfaceOptions =
 -- ![surface example](other/surface.svg)
 data SurfaceStyle = SurfaceStyle
   { -- | list of colours to interpolate between.
-    surfaceColors :: [Colour],
+    surfaceColors :: NonEmpty Colour,
     surfaceRectStyle :: RectStyle
   }
   deriving (Show, Eq, Generic)
@@ -71,7 +72,7 @@ data SurfaceStyle = SurfaceStyle
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
 defaultSurfaceStyle =
-  SurfaceStyle (take 2 palette1_) (blob dark)
+  SurfaceStyle (NonEmpty.fromList $ take 2 (toList palette1_)) (blob dark)
 
 -- | Main surface data elements
 data SurfaceData = SurfaceData
@@ -88,7 +89,7 @@ surfaces rs ps =
   ( \(SurfaceData r c) ->
       RectChart
         (rs & #color .~ c)
-        (fromList [r])
+        [r]
   )
     <$> ps
 
@@ -114,7 +115,7 @@ surfacef f cfg =
       f
       (cfg ^. #soRange)
       (cfg ^. #soGrain)
-      (cfg ^. #soStyle . #surfaceColors)
+      (toList $ cfg ^. #soStyle . #surfaceColors)
 
 -- | Create a surface chart and accompanying legend from a function.
 surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart Double], [Hud Double])
@@ -142,7 +143,7 @@ surfaceAxisOptions c =
     Nothing
     ( Tick
         (TickRound (FormatPrec (Just 3)) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c & #shape .~ VLineGlyph 0.005, 0.01))
+        (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c & #shape .~ VLineGlyph, 0.01))
         (Just (defaultTextTick & #color .~ c, 0.03))
         Nothing
     )
@@ -179,30 +180,30 @@ surfaceLegendChart dataRange l =
           || l ^. #sloLegendOptions . #lplace == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
-    t = TextChart (l ^. #sloLegendOptions . #ltext & #anchor .~ AnchorStart) (fromList [(l ^. #sloTitle, zero)])
+    t = TextChart (l ^. #sloLegendOptions . #ltext & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
     hs = vert (l ^. #sloLegendOptions . #vgap) [a, [t]]
     vertGlyph :: [Chart Double]
     vertGlyph =
       zipWith
-        (\r c -> RectChart (blob c) (fromList [r]))
+        (\r c -> RectChart (blob c) [r])
         ( (\xr -> Ranges xr (Range 0 (l ^. #sloWidth)))
             <$> gridSpace
               dataRange
               (l ^. #sloResolution)
         )
-        ( (\x -> blends x (l ^. #sloStyle . #surfaceColors))
+        ( (\x -> blends x (toList $ l ^. #sloStyle . #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
     horiGlyph :: [Chart Double]
     horiGlyph =
       zipWith
-        (\r c -> RectChart (blob c) (fromList [r]))
+        (\r c -> RectChart (blob c) [r])
         ( (\yr -> Ranges (Range 0 (l ^. #sloWidth)) yr)
             <$> gridSpace
               dataRange
               (l ^. #sloResolution)
         )
-        ( (\x -> blends x (l ^. #sloStyle . #surfaceColors))
+        ( (\x -> blends x (toList $ l ^. #sloStyle . #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
 
@@ -214,7 +215,7 @@ isHori l =
 makeSurfaceTick :: SurfaceLegendOptions -> [Chart Double] -> [Chart Double]
 makeSurfaceTick l pchart = phud
   where
-    r = sboxes pchart
+    r = styleBoxes pchart
     r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions . #lsize)) (Rect 0 (l ^. #sloLegendOptions . #lsize) 0 (l ^. #sloWidth)) (isHori l)
     (hs, _) =
       makeHud

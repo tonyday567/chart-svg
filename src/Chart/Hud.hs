@@ -1,21 +1,9 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NegativeLiterals #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 -- | Chart API
 module Chart.Hud
@@ -57,18 +45,15 @@ module Chart.Hud
     tickStyleText,
     TickExtend (..),
     adjustTick,
-    makeTickDates,
-    makeTickDatesContinuous,
     Adjustments (..),
     defaultAdjustments,
     LegendOptions (..),
     defaultLegendOptions,
     legendHud,
-
   )
 where
 
-import Chart.Chart
+import Chart.Primitive
 import Chart.Style
 import Control.Lens
 import Control.Monad.State.Lazy
@@ -77,18 +62,14 @@ import Data.Bool
 import Data.Colour
 import Data.Foldable hiding (sum)
 import Data.FormatN
-import Data.Generics.Labels ()
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe
-import Data.String
 import Data.Text (Text)
-import Data.Time
 import GHC.Generics
-import GHC.OverloadedLabels
-import NumHask.Prelude
-import NumHask.Space as NH hiding (Element, singleton)
+import Prelude
 import Data.Path
+import Chart.Data
 
 -- * Hud
 -- | Dimensions that are tracked in the 'HudT':
@@ -132,11 +113,11 @@ chartAspectHud fa = Hud $ \cs -> do
   canvasd <- use #canvasDim
   chartd <- use #chartDim
   case fa of
-    FixedAspect a -> pure $ project_ (aspect a) cs
+    FixedAspect a -> pure $ projectCharts (aspect a) cs
     CanvasAspect a ->
       pure $
-        project_ (aspect (a * ratio canvasd / ratio chartd)) cs
-    ChartAspect -> pure $ project_ (aspect $ ratio chartd) cs
+        projectCharts (aspect (a * ratio canvasd / ratio chartd)) cs
+    ChartAspect -> pure $ projectCharts (aspect $ ratio chartd) cs
     UnadjustedAspect -> pure cs
 
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (and the use of a linear type is an open question).
@@ -157,8 +138,8 @@ runHudWith ca xs hs cs =
     (ChartDims ca' da' xs)
   where
     da' = boxes cs'
-    ca' = sboxes cs'
-    cs' = projectWith_ ca xs <$> cs
+    ca' = styleBoxes cs'
+    cs' = projectChartWith ca xs <$> cs
 
 -- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
 --
@@ -172,7 +153,7 @@ runHud ::
   [Chart Double] ->
   -- | integrated chart list
   [Chart Double]
-runHud ca hs cs = runHudWith ca (padBox $ boxes cs) hs cs
+runHud ca hs cs = runHudWith ca (padSingletons $ boxes cs) hs cs
 
 -- | Typical configurable hud elements. Anything else can be hand-coded as a 'HudT'.
 --
@@ -232,7 +213,7 @@ scaleOpacHudOptions ho o =
 
 -- | The official hud canvas
 defaultCanvas :: RectStyle
-defaultCanvas = blob (setOpac 0.05 dark)
+defaultCanvas = blob (setOpac 0.02 dark)
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -273,13 +254,15 @@ defaultAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments)
 data AxisBar = AxisBar
   { rstyle :: RectStyle,
     wid :: Double,
-    buff :: Double
+    buff :: Double,
+    -- ^ extension over the edges of the axis range
+    overhang :: Double
   }
   deriving (Show, Eq, Generic)
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (RectStyle 0 transparent (setOpac 0.4 dark)) 0.004 0.01
+defaultAxisBar = AxisBar (RectStyle 0 transparent (setOpac 0.4 dark)) 0.004 0.01 0.002
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
@@ -309,7 +292,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTick
--- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 2.0e-3, shape = VLineGlyph 5.0e-3, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
+-- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 2.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
 data Tick = Tick
   { tstyle :: TickStyle,
     gtick :: Maybe (GlyphStyle, Double),
@@ -322,8 +305,8 @@ data Tick = Tick
 defaultGlyphTick :: GlyphStyle
 defaultGlyphTick =
   defaultGlyphStyle
-    & #borderSize .~ 0.002
-    & #shape .~ VLineGlyph 0.005
+    & #borderSize .~ 0.004
+    & #shape .~ VLineGlyph
     & #color .~ setOpac 0.4 dark
     & #borderColor .~ setOpac 0.4 dark
 
@@ -344,7 +327,7 @@ defaultTick :: Tick
 defaultTick =
   Tick
     defaultTickStyle
-    (Just (defaultGlyphTick, 0.0125))
+    (Just (defaultGlyphTick, 0.017))
     (Just (defaultTextTick, 0.015))
     (Just (defaultLineTick, 0))
 
@@ -438,7 +421,7 @@ makeHud :: Rect Double -> HudOptions -> ([Hud Double], [Chart Double])
 makeHud xs cfg =
   ([axes] <> can <> titles <> l, xsext)
   where
-    xs' = padBox xs
+    xs' = padSingletons xs
     can = foldMap (\x -> [canvas x]) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
     ticks =
@@ -489,7 +472,7 @@ canvas :: (Monad m) => RectStyle -> HudT m Double
 canvas s = Hud $ \cs -> do
   a <- use #canvasDim
   let c = RectChart s (a:|[])
-  #canvasDim .= a <> sbox_ c
+  #canvasDim .= a <> sbox c
   pure $ c : cs
 
 axisBar_ :: Place -> AxisBar -> Rect Double -> Rect Double -> Chart Double
@@ -500,8 +483,8 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
         (rstyle b)
         (NonEmpty.fromList
         [ Rect
-            x
-            z
+            (x - b ^. #overhang)
+            (z + b ^. #overhang)
             (w' + b ^. #buff)
             (w' + b ^. #buff + b ^. #wid)
         ])
@@ -510,8 +493,8 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
         (rstyle b)
         (NonEmpty.fromList
         [ Rect
-            x
-            z
+            (x - b ^. #overhang)
+            (z + b ^. #overhang)
             (y' - b ^. #wid - b ^. #buff)
             (y' - b ^. #buff)
         ])
@@ -522,8 +505,8 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
         [ Rect
             (x' - b ^. #wid - b ^. #buff)
             (x' - b ^. #buff)
-            y
-            w
+            (y - b ^. #overhang)
+            (w + b ^. #overhang)
         ])
     PlaceRight ->
       RectChart
@@ -532,8 +515,8 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
         [ Rect
             (z' + (b ^. #buff))
             (z' + (b ^. #buff) + (b ^. #wid))
-            y
-            w
+            (y - b ^. #overhang)
+            (w + b ^. #overhang)
         ])
     PlaceAbsolute (Point x'' _) ->
       RectChart
@@ -542,31 +525,23 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
         [ Rect
             (x'' + (b ^. #buff))
             (x'' + (b ^. #buff) + (b ^. #wid))
-            y
-            w
+            (y - b ^. #overhang)
+            (w + b ^. #overhang)
         ])
-
-{-
-addChartBox :: Chart Double -> Rect Double -> Rect Double
-addChartBox c r = sconcat (r :| maybeToList (styleBox c))
-
-addChartBoxes :: [Chart Double] -> Rect Double -> Rect Double
-addChartBoxes c r = sconcat (r :| maybeToList (styleBoxes c))
--}
 
 makeAxisBar :: (Monad m) => Place -> AxisBar -> HudT m Double
 makeAxisBar pl b = Hud $ \cs -> do
   da <- use #chartDim
   ca <- use #canvasDim
   let c = axisBar_ pl b ca da
-  #chartDim .= da <> sbox_ c
+  #chartDim .= da <> sbox c
   pure $ c : cs
 
 title_ :: Title -> Rect Double -> Chart Double
 title_ t a =
   TextChart
     ( style'& #rotation .~ bool Nothing (Just rot) (rot == 0))
-    (NonEmpty.fromList [(t ^. #text, placePos' a + alignPos a)])
+    [(t ^. #text, addp (placePos' a) (alignPos a))]
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -594,7 +569,7 @@ title_ t a =
       PlaceAbsolute p -> p
     alignPos (Rect x z y w)
       | t ^. #anchor == AnchorStart
-          && t ^. #place `elem` [PlaceTop, PlaceBottom] =
+          && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
         Point ((x - z) / 2.0) 0.0
       | t ^. #anchor == AnchorStart
           && t ^. #place == PlaceLeft =
@@ -603,7 +578,7 @@ title_ t a =
           && t ^. #place == PlaceRight =
         Point 0.0 ((w - y) / 2.0)
       | t ^. #anchor == AnchorEnd
-          && t ^. #place `elem` [PlaceTop, PlaceBottom] =
+          && t ^. #place == PlaceTop || t ^. #place == PlaceBottom =
         Point ((-x + z) / 2.0) 0.0
       | t ^. #anchor == AnchorEnd
           && t ^. #place == PlaceLeft =
@@ -618,7 +593,7 @@ title :: (Monad m) => Title -> HudT m Double
 title t = Hud $ \cs -> do
   ca <- use #chartDim
   let c = title_ t ca
-  #chartDim .= ca <> sbox_ c
+  #chartDim .= ca <> sbox c
   pure $ c : cs
 
 placePos :: Place -> Double -> Rect Double -> Point Double
@@ -657,7 +632,7 @@ placeRange pl (Rect x z y w) = case pl of
 
 placeOrigin :: Place -> Double -> Point Double
 placeOrigin pl x
-  | pl `elem` [PlaceTop, PlaceBottom] = Point x 0
+  | pl == PlaceTop || pl == PlaceBottom = Point x 0
   | otherwise = Point 0 x
 
 placeTextAnchor :: Place -> (TextStyle -> TextStyle)
@@ -668,7 +643,7 @@ placeTextAnchor pl
 
 placeGridLines :: Place -> Rect Double -> Double -> Double -> NonEmpty (Point Double)
 placeGridLines pl (Rect x z y w) a b
-  | pl `elem` [PlaceTop, PlaceBottom] = NonEmpty.fromList [Point a (y - b), Point a (w + b)]
+  | pl == PlaceTop || pl == PlaceBottom = NonEmpty.fromList [Point a (y - b), Point a (w + b)]
   | otherwise = NonEmpty.fromList [Point (x - b) a, Point (z + b) a]
 
 -- | compute tick values and labels given options, ranges and formatting
@@ -732,7 +707,7 @@ tickGlyph_ pl (g, b) ts ca da xs =
   GlyphChart
     (g & #rotation .~ placeRot pl)
     (NonEmpty.fromList
-    ( (placePos pl b ca +) . placeOrigin pl
+    ( addp (placePos pl b ca) . placeOrigin pl
         <$> positions
           (ticksPlaced ts pl da xs)
     ))
@@ -749,7 +724,7 @@ tickGlyph pl (g, b) ts = Hud $ \cs -> do
   d <- use #canvasDim
   xs <- use #dataDim
   let c = tickGlyph_ pl (g, b) ts a d xs
-  #chartDim .= a <> sbox_ c
+  #chartDim .= a <> sbox c
   pure $ c : cs
 
 tickText_ ::
@@ -759,17 +734,17 @@ tickText_ ::
   Rect Double ->
   Rect Double ->
   Rect Double ->
-  [Chart Double]
+  Maybe (Chart Double)
 tickText_ pl (txts, b) ts ca da xs =
-  zipWith
-    ( \txt sp ->
-        TextChart (placeTextAnchor pl txts)
-          (NonEmpty.fromList [(txt, sp)])
-    )
-    (labels $ ticksPlaced ts pl da xs)
-    ( (placePos pl b ca + textPos pl txts b +) . placeOrigin pl
+  case l of
+    [] -> Nothing
+    _ -> Just $ TextChart (placeTextAnchor pl txts) $ NonEmpty.fromList l
+  where
+    l = zip
+      (labels $ ticksPlaced ts pl da xs)
+      ( addp (addp (placePos pl b ca) (textPos pl txts b)) . placeOrigin pl
         <$> positions (ticksPlaced ts pl da xs)
-    )
+      )
 
 -- | aka tick labels
 tickText ::
@@ -783,8 +758,8 @@ tickText pl (txts, b) ts = Hud $ \cs -> do
   da <- use #canvasDim
   xs <- use #dataDim
   let c = tickText_ pl (txts, b) ts ca da xs
-  #chartDim .= ca <> sboxes c
-  pure $ c <> cs
+  #chartDim .= maybe ca ((ca <>) . sbox) c
+  pure $ maybeToList c <> cs
 
 -- | aka grid lines
 tickLine ::
@@ -798,11 +773,11 @@ tickLine pl (ls, b) ts = Hud $ \cs -> do
   xs <- use #dataDim
   let c =
         LineChart ls
-        ( sconcat $ NonEmpty.fromList $
+        ( NonEmpty.fromList $
           (\x -> placeGridLines pl da x b) <$>
           positions (ticksPlaced ts pl da xs)
         )
-  #chartDim %= (<> sbox_ c)
+  #chartDim %= (<> sbox c)
   pure $ c:cs
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
@@ -870,7 +845,7 @@ adjustTick ::
   Tick ->
   Tick
 adjustTick (Adjustments mrx ma mry ad) vb cs pl t
-  | pl `elem` [PlaceBottom, PlaceTop] =
+  | pl == PlaceBottom || pl == PlaceTop =
     if ad
       then
         ( case adjustSizeX > 1 of
@@ -892,7 +867,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
     max' [] = 1
     max' xs = maximum xs
     ra (Rect x z y w)
-      | pl `elem` [PlaceTop, PlaceBottom] = Range x z
+      | pl == PlaceTop || pl == PlaceBottom = Range x z
       | otherwise = Range y w
     asp = ra vb
     r = ra cs
@@ -904,7 +879,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
         ( \tt ->
             max' $
               (\(Rect x z _ _) -> z - x)
-                . (\x -> styleBoxText_ (fst tt) x (Point 0 0))
+                . (\x -> styleBoxText (fst tt) x (Point 0 0))
                 <$> tickl
         )
         (t ^. #ttick)
@@ -914,14 +889,14 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
         ( \tt ->
             max' $
               (\(Rect _ _ y w) -> w - y)
-                . (\x -> styleBoxText_ (fst tt) x (Point 0 0))
+                . (\x -> styleBoxText (fst tt) x (Point 0 0))
                 <$> tickl
         )
         (t ^. #ttick)
     adjustSizeX :: Double
-    adjustSizeX = max' [(maxWidth / (upper asp - lower asp)) / mrx, 1]
-    adjustSizeY = max' [(maxHeight / (upper asp - lower asp)) / mry, 1]
-    adjustSizeA = max' [(maxHeight / (upper asp - lower asp)) / ma, 1]
+    adjustSizeX = max ((maxWidth / (upper asp - lower asp)) / mrx) 1
+    adjustSizeY = max ((maxHeight / (upper asp - lower asp)) / mry) 1
+    adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
 
 makeTick :: (Monad m) => AxisOptions -> HudT m Double
 makeTick c = Hud $ \cs -> do
@@ -934,32 +909,15 @@ makeTick c = Hud $ \cs -> do
           (c ^. #adjust)
   unhud (tick (c ^. #place) adjTick) cs
 
--- | Convert a UTCTime list into sensible ticks, placed exactly
-makeTickDates :: PosDiscontinuous -> Maybe Text -> Int -> [UTCTime] -> [(Int, Text)]
-makeTickDates pc fmt n dates =
-  lastOnes (\(_, x0) (_, x1) -> x0 == x1) . fst $ placedTimeLabelDiscontinuous pc fmt n dates
-  where
-    lastOnes :: (a -> a -> Bool) -> [a] -> [a]
-    lastOnes _ [] = []
-    lastOnes _ [x] = [x]
-    lastOnes f (x : xs) = (\(x0, x1) -> reverse $ x0 : x1) $ foldl' step (x, []) xs
-      where
-        step (a0, rs) a1 = if f a0 a1 then (a1, rs) else (a1, a0 : rs)
-
--- | Convert a UTCTime list into sensible ticks, placed on the (0,1) space
-makeTickDatesContinuous :: PosDiscontinuous -> Maybe Text -> Int -> [UTCTime] -> [(Double, Text)]
-makeTickDatesContinuous pc fmt n dates =
-  placedTimeLabelContinuous pc fmt n (space1 dates)
-
 -- | Make a legend hud element taking into account the chart.
 legendHud :: LegendOptions -> [Chart Double] -> Hud Double
 legendHud l lcs = Hud $ \cs -> do
   ca <- use #chartDim
-  let cs' = (place' ca . scale_ (l ^. #lscale) <$> lcs) <> cs
-  #chartDim .= sboxes cs'
+  let cs' = place' ca (scaleChart (l ^. #lscale) <$> lcs) <> cs
+  #chartDim .= styleBoxes cs'
   pure cs'
   where
-    place' ca x = move_ (placel (l ^. #lplace) ca (sbox_ x)) x
+    place' ca xs = moveChart (placel (l ^. #lplace) ca (styleBoxes xs)) <$> xs
     placel pl (Rect x z y w) (Rect x' z' y' w') =
       case pl of
         PlaceTop -> Point ((x + z) / 2.0) (w + (w' - y') / 2.0)
@@ -983,7 +941,7 @@ legendEntry l a t =
       TextA ts -> TextChart (ts & #size .~ (l ^. #lsize)) (("text",zero):|[])
       GlyphA gs -> GlyphChart (gs & #size .~ (l ^. #lsize)) (Point (0.5 * l ^. #lsize) (0.33 * l ^. #lsize):|[])
       LineA ls -> LineChart (ls & #width %~ (/ (l ^. #lscale)))
-          (NonEmpty.fromList [Point 0 (1 * l ^. #lsize), Point (2 * l ^. #lsize) (1 * l ^. #lsize)])
+          [[Point 0 (1 * l ^. #lsize), Point (2 * l ^. #lsize) (1 * l ^. #lsize)]]
       PathA ps ->
         ( let cs =
                 singletonCubic
@@ -993,7 +951,7 @@ legendEntry l a t =
                       (Point 0 (0.33 * l ^. #lsize))
                       (Point (0.33 * l ^. #lsize) 0)
                   )
-           in PathChart (ps & #borderSize .~ (l ^. #lsize)) (NonEmpty.fromList cs))
+           in PathChart (ps & #borderSize .~ (l ^. #lsize)) cs)
 
 legendChart :: [(Styles, Text)] -> LegendOptions -> [Chart Double]
 legendChart lrs l =
@@ -1004,5 +962,5 @@ legendChart lrs l =
       <$> es
   where
     es = reverse $ uncurry (legendEntry l) <$> lrs
-    twidth = (\(Rect _ z _ _) -> z) $ sboxes (snd <$> es)
-    gapwidth t = (\(Rect _ z _ _) -> z) (sbox_ t)
+    twidth = (\(Rect _ z _ _) -> z) $ styleBoxes (snd <$> es)
+    gapwidth t = (\(Rect _ z _ _) -> z) (sbox t)
