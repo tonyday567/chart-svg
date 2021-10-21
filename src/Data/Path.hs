@@ -10,12 +10,18 @@ module Data.Path
   ( -- * Path fundamental
     -- $path
     PathInfo (..),
+    PathData(..),
+    pointPathData,
     ArcInfo (..),
     ArcPosition (..),
     parsePath,
     toPathAbsolute,
-    toPathCommand,
     toPathAbsolutes,
+    toPathAbsolute_,
+    toPathAbsolutes_,
+    toPathDatas,
+    toInfo_,
+    stateCur0,
     toPathXYs,
     ArcCentroid (..),
     arcCentroid,
@@ -41,20 +47,20 @@ module Data.Path
     singletonQuad,
     singletonArc,
     singletonPie,
-    singletonPie',
-    toSingletonArc,
     pathBoxes,
     pathBox,
-    pathBoxes',
-    projectArcPosition',
+    pathBoxes_,
+    pathBox_,
+    projectArcPosition,
     projectControls',
+    projectControls_,
     pointToSvgCoords,
     pathInfoToSvgCoords,
   )
 where
 
 import qualified Control.Foldl as L
-import Control.Lens hiding ((...))
+import Control.Lens hiding ((...), (<|))
 import qualified Data.Attoparsec.Text as A
 import Data.Bifunctor
 import Data.Either
@@ -64,26 +70,22 @@ import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics
 import qualified Geom2D.CubicBezier as B
-import NumHask.Prelude
+import NumHask.Prelude hiding (head, last, tail)
 import Chart.Data as CD
 import Data.Functor
 import Control.Applicative
 import Data.Scientific (toRealFloat)
-import Data.List.NonEmpty (NonEmpty (..))
-import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty (..), last, head, tail, (<|))
+-- import qualified Data.List.NonEmpty as NonEmpty
 import GHC.OverloadedLabels
+import Control.Monad.State.Lazy
 
 -- $setup
--- FIXME:
 -- :set -XRebindableSyntax gets timed out by cabal-docspec here, but NoImplicitPrelude works.
 -- >>> :set -XNoImplicitPrelude
 -- >>> :set -XNegativeLiterals
 -- >>> import Chart
 -- >>> import NumHask.Prelude
-
--- FIXME:
--- >>> fmap (toPathAbsolutes . fromList) $ fmap (projectControls' (fmap (30*) one) one) $ fmap (fmap pathInfoToSvgCoords . toPathXYs) $ parsePath "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z"
--- Right "M 1.5,-1.0981 A 3.0 3.0 -0.0 0 1 0,1.5 A 3.0 3.0 -0.0 0 1 -1.5,-1.0981 A 3.0 3.0 -0.0 0 1 1.5,-1.0981 L 1.5,-1.0981"
 
 -- $path
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -102,11 +104,7 @@ import GHC.OverloadedLabels
 --
 -- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 parsePath :: Text -> Either String (NonEmpty PathCommand)
-parsePath t =
-  either
-  Left
-  (\xs -> bool (Right $ NonEmpty.fromList xs) (Left "empty path") (null xs)) $
-  A.parseOnly pathParser t
+parsePath t = A.parseOnly pathParser t
 
 commaWsp :: A.Parser ()
 commaWsp = A.skipSpace *> A.option () (A.string "," $> ()) <* A.skipSpace
@@ -114,8 +112,19 @@ commaWsp = A.skipSpace *> A.option () (A.string "," $> ()) <* A.skipSpace
 point :: A.Parser (Point Double)
 point = Point <$> num <* commaWsp <*> num
 
-pathParser :: A.Parser [PathCommand]
-pathParser = A.skipSpace *> A.many1 command
+points :: A.Parser (NonEmpty (Point Double))
+points = fromList <$> point `A.sepBy1` commaWsp
+
+pointPair :: A.Parser (Point Double, Point Double)
+pointPair = (,) <$> point <* commaWsp <*> point
+
+pointPairs :: A.Parser (NonEmpty (Point Double, Point Double))
+pointPairs = fromList <$> pointPair `A.sepBy1` commaWsp
+
+
+
+pathParser :: A.Parser (NonEmpty PathCommand)
+pathParser = fromList <$> (A.skipSpace *> A.many1 command)
 
 num :: A.Parser Double
 num = realToFrac <$> (A.skipSpace *> plusMinus <* A.skipSpace)
@@ -129,38 +138,37 @@ num = realToFrac <$> (A.skipSpace *> plusMinus <* A.skipSpace)
         shorthand = process' <$> (A.string "." *> A.many1 A.digit)
         process' = fromRight 0 . A.parseOnly doubleNumber . pack . (++) "0."
 
+nums :: A.Parser (NonEmpty Double)
+nums = fromList <$> num `A.sepBy1` commaWsp
+
 flag :: A.Parser Bool
 flag = fmap (/='0') A.digit
 
 command :: A.Parser PathCommand
-command =  (MoveTo OriginAbsolute <$ A.string "M" <*> fmap fromList pointList)
-       <|> (MoveTo OriginRelative <$ A.string "m" <*> fmap fromList pointList)
-       <|> (LineTo OriginAbsolute <$ A.string "L" <*> fmap fromList pointList)
-       <|> (LineTo OriginRelative <$ A.string "l" <*> fmap fromList pointList)
-       <|> (HorizontalTo OriginAbsolute <$ A.string "H" <*> fmap fromList coordList)
-       <|> (HorizontalTo OriginRelative <$ A.string "h" <*> fmap fromList coordList)
-       <|> (VerticalTo OriginAbsolute <$ A.string "V" <*> fmap fromList coordList)
-       <|> (VerticalTo OriginRelative <$ A.string "v" <*> fmap fromList coordList)
+command =  (MoveTo OriginAbsolute <$ A.string "M" <*> points)
+       <|> (MoveTo OriginRelative <$ A.string "m" <*> points)
+       <|> (LineTo OriginAbsolute <$ A.string "L" <*> points)
+       <|> (LineTo OriginRelative <$ A.string "l" <*> points)
+       <|> (HorizontalTo OriginAbsolute <$ A.string "H" <*> nums)
+       <|> (HorizontalTo OriginRelative <$ A.string "h" <*> nums)
+       <|> (VerticalTo OriginAbsolute <$ A.string "V" <*> nums)
+       <|> (VerticalTo OriginRelative <$ A.string "v" <*> nums)
        <|> (CurveTo OriginAbsolute <$ A.string "C" <*> fmap fromList (manyComma curveToArgs))
        <|> (CurveTo OriginRelative <$ A.string "c" <*> fmap fromList (manyComma curveToArgs))
-       <|> (SmoothCurveTo OriginAbsolute <$ A.string "S" <*> fmap fromList pointPairList)
-       <|> (SmoothCurveTo OriginRelative <$ A.string "s" <*> fmap fromList pointPairList)
-       <|> (QuadraticBezier OriginAbsolute <$ A.string "Q" <*> fmap fromList pointPairList)
-       <|> (QuadraticBezier OriginRelative <$ A.string "q" <*> fmap fromList pointPairList)
-       <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ A.string "T" <*> fmap fromList pointList)
-       <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ A.string "t" <*> fmap fromList pointList)
-       <|> (EllipticalArc OriginAbsolute <$ A.string "A" <*> fmap fromList (manyComma ellipticalArgs))
-       <|> (EllipticalArc OriginRelative <$ A.string "a" <*> fmap fromList (manyComma ellipticalArgs))
+       <|> (SmoothCurveTo OriginAbsolute <$ A.string "S" <*> pointPairs)
+       <|> (SmoothCurveTo OriginRelative <$ A.string "s" <*> pointPairs)
+       <|> (QuadraticBezier OriginAbsolute <$ A.string "Q" <*> pointPairs)
+       <|> (QuadraticBezier OriginRelative <$ A.string "q" <*> pointPairs)
+       <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ A.string "T" <*> points)
+       <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ A.string "t" <*> points)
+       <|> (EllipticalArc OriginAbsolute <$ A.string "A" <*> manyComma ellipticalArgs)
+       <|> (EllipticalArc OriginRelative <$ A.string "a" <*> manyComma ellipticalArgs)
        <|> (EndPath <$ A.string "Z" <* commaWsp)
        <|> (EndPath <$ A.string "z" <* commaWsp)
-    where pointList = point `A.sepBy1` commaWsp
-          pointPair = (,) <$> point <* commaWsp <*> point
-          pointPairList = pointPair `A.sepBy1` commaWsp
-          coordList = num `A.sepBy1` commaWsp
-          curveToArgs = (,,) <$> (point <* commaWsp)
+    where curveToArgs = (,,) <$> (point <* commaWsp)
                              <*> (point <* commaWsp)
                              <*> point
-          manyComma a = a `A.sepBy1` commaWsp
+          manyComma a = fromList <$> a `A.sepBy1` commaWsp
 
           numComma = num <* commaWsp
           flagComma = flag <* commaWsp
@@ -281,7 +289,62 @@ toPathAbsolute (ArcI (ArcInfo (Point x y) phi' l sw), x2) =
     <> " "
     <> pp x2
 
--- | render a point (including a flip of the y dimension).
+-- | convert from a path info, start point, end point triple to a path text clause.
+--
+-- Note that morally,
+--
+-- > toPathsAbsolute . toInfos . parsePath == id
+--
+-- but the round trip destroys much information, including:
+--
+-- - path text spacing
+--
+-- - "Z", which is replaced by a LineI instruction from the end point back to the original start of the path.
+--
+-- - Sequences of the same instruction type are uncompressed
+--
+-- - As the name suggests, relative paths are translated to absolute ones.
+--
+-- - implicit L's in multiple M instructions are separated.
+--
+-- In converting between chart-svg and SVG there are two changes in reference:
+--
+-- - arc rotation is expressed as positive degrees for a clockwise rotation in SVG, and counter-clockwise in radians for chart-svg
+--
+-- - A positive y-direction is down for SVG and up for chart-svg
+toPathAbsolute_ ::
+  PathData Double ->
+  -- | path text
+  Text
+toPathAbsolute_ (StartP p) = "M " <> pp p
+toPathAbsolute_ (LineP p) = "L " <> pp p
+toPathAbsolute_ (CubicP c1 c2 p) =
+  "C "
+    <> pp c1
+    <> " "
+    <> pp c2
+    <> " "
+    <> pp p
+toPathAbsolute_ (QuadP control p) =
+  "Q "
+    <> pp control
+    <> " "
+    <> pp p
+toPathAbsolute_ (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
+  "A "
+    <> (pack . show) x
+    <> " "
+    <> (pack . show) y
+    <> " "
+    <> (pack . show) (-phi' * 180 / pi)
+    <> " "
+    <> bool "0" "1" l
+    <> " "
+    <> bool "0" "1" sw
+    <> " "
+    <> pp x2
+
+-- | Render a point (including conversion to SVG Coordinates).
 pp :: Point Double -> Text
 pp (Point x y) =
   showOr (FormatFixed (Just 4)) x <> ","
@@ -289,9 +352,6 @@ pp (Point x y) =
 
 -- | convert an (info, point) list to an svg d path text.
 --
--- FIXME:
--- >>> fmap (toPathAbsolutes . fromList) $ fmap (projectControls' (fmap (30*) one) one) $ fmap toPathXYs $ parsePath "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z"
--- Right "M 1.5,1.0981 A 3.0 3.0 -0.0 0 1 0,-1.5 A 3.0 3.0 -0.0 0 1 -1.5,1.0981 A 3.0 3.0 -0.0 0 1 1.5,1.0981 L 1.5,1.0981"
 toPathAbsolutes :: NonEmpty (PathInfo Double, Point Double) -> Text
 toPathAbsolutes = L.fold (L.Fold step begin done)
   where
@@ -299,17 +359,10 @@ toPathAbsolutes = L.fold (L.Fold step begin done)
     begin = []
     step ts (info, next) = toPathAbsolute (info, next) : ts
 
--- | Convert from PathInfo to PathCommand
-toPathCommand ::
-  (PathInfo Double, Point Double) ->
-  -- | path text
-  PathCommand
-toPathCommand (StartI, p) = MoveTo OriginAbsolute [p]
-toPathCommand (LineI, p) = LineTo OriginAbsolute [p]
-toPathCommand (CubicI c1 c2, p) = CurveTo OriginAbsolute [(c1, c2, p)]
-toPathCommand (QuadI c, p) = QuadraticBezier OriginAbsolute [(c, p)]
-toPathCommand (ArcI (ArcInfo (Point rx ry) phi' l sw), p) =
-  EllipticalArc OriginAbsolute [(rx, ry, phi', l, sw, p)]
+-- | convert [PathData] to an svg d path text.
+--
+toPathAbsolutes_ :: NonEmpty (PathData Double) -> Text
+toPathAbsolutes_ xs = Text.intercalate " " $ toList $ fmap toPathAbsolute_ xs
 
 data StateInfo = StateInfo
   { -- | previous position
@@ -324,11 +377,177 @@ data StateInfo = StateInfo
 stateInfo0 :: StateInfo
 stateInfo0 = StateInfo zero zero zero
 
--- | Convert a path command fragment to an instruction + point.
+data PathCursor = PathCursor
+  { -- | previous position
+    curPrevious :: Point Double,
+    -- | start point (to close out the path)
+    curStart :: Point Double,
+    -- | last control point
+    curControl :: Maybe (Point Double)
+  }
+  deriving (Eq, Show, Generic)
+
+stateCur0 :: PathCursor
+stateCur0 = PathCursor zero zero Nothing
+
+-- | The minimum data interpreting a single SVG path data point
+data PathData a
+  -- | Starting position
+  = StartP (Point a)
+  -- | line (from previous position)
+  | LineP (Point a)
+  -- | cubic bezier curve
+  | CubicP (Point a) (Point a) (Point a)
+  -- | quad bezier curve
+  | QuadP (Point a) (Point a)
+  -- arc
+  | ArcP (ArcInfo a) (Point a)
+  deriving (Show, Eq, Generic)
+
+pointPathData :: PathData a -> Point a
+pointPathData (StartP p) = p
+pointPathData (LineP p) = p
+pointPathData (CubicP _ _ p) = p
+pointPathData (QuadP _ p) = p
+pointPathData (ArcP _ p) = p
+
+-- | Convert from a path command list to a PathA specification
+toPathDatas :: Traversable t => t PathCommand -> t (NonEmpty (PathData Double))
+toPathDatas xs = flip evalState stateCur0 $ sequence $ toInfo_ <$> xs
+
+-- | Convert relative points to absolute points
+relToAbs :: (Additive a) => a -> NonEmpty a -> NonEmpty a
+relToAbs p (x:|xs) = fmap (p+) $ foldr (\a ps -> a+head ps<|ps) [x] xs
+
+moveTo :: NonEmpty (Point Double) -> State PathCursor (NonEmpty (PathData Double))
+moveTo xs = do
+  put (PathCursor (last xs) (head xs) Nothing)
+  pure (StartP (head xs) :| (LineP <$> tail xs))
+
+lineTo :: NonEmpty (Point Double) -> State PathCursor (NonEmpty (PathData Double))
+lineTo xs = do
+  modify ((#curPrevious .~ last xs) . (#curControl .~ Nothing))
+  pure $ LineP <$> xs
+
+horTo :: NonEmpty Double -> State PathCursor (NonEmpty (PathData Double))
+horTo xs = do
+  (PathCursor (Point _ y) _ _) <- get
+  lineTo (fmap (\x -> Point x y) xs)
+
+verTo :: NonEmpty Double -> State PathCursor (NonEmpty (PathData Double))
+verTo ys = do
+  (PathCursor (Point x _) _ _) <- get
+  lineTo (fmap (\y -> Point x y) ys)
+
+curveTo :: NonEmpty (Point Double, Point Double, Point Double) -> State PathCursor (NonEmpty (PathData Double))
+curveTo xs = do
+  modify ((#curPrevious .~ (\(_,_,p) -> p) (last xs)) .
+          (#curControl .~ Just ((\(_,c2,_) -> c2) (last xs))))
+  pure $ (\(c1, c2, x2) -> CubicP c1 c2 x2) <$> xs
+
+-- | Convert relative points to absolute points
+relToAbs3 :: Additive a => a -> NonEmpty (a,a,a) -> NonEmpty (a,a,a)
+relToAbs3 p (x:|xs) = fmap (\(y,z,w) -> (p+y,p+z,p+w)) $ foldr (\(a,a',a'') ps -> (\(q,q',q'') -> (q+a,q'+a',q''+a'')) (head ps)<|ps) [x] xs
+
+reflControlPoint :: State PathCursor (Point Double)
+reflControlPoint = do
+  (PathCursor p _ c) <- get
+  case c of
+    Nothing -> pure p
+    Just c' -> pure (p - (c' - p))
+
+smoothCurveToStep :: (Point Double, Point Double) -> State PathCursor (PathData Double)
+smoothCurveToStep (c2, x2) = do
+  c1 <- reflControlPoint
+  modify ((#curControl .~ Just c2) . (#curPrevious .~ x2))
+  pure (CubicP c1 c2 x2)
+
+smoothCurveTo :: NonEmpty (Point Double, Point Double) -> State PathCursor (NonEmpty (PathData Double))
+smoothCurveTo xs = do
+  sequence (smoothCurveToStep <$> xs)
+
+-- | Convert relative points to absolute points
+relToAbs2 :: Additive a => a -> NonEmpty (a,a) -> NonEmpty (a,a)
+relToAbs2 p (x:|xs) = fmap (\(y,z) -> (p+y,p+z)) $ foldr (\(a,a') ps -> (\(q,q') -> (q+a,q'+a')) (head ps)<|ps) [x] xs
+
+quad :: NonEmpty (Point Double, Point Double) -> State PathCursor (NonEmpty (PathData Double))
+quad xs = do
+  modify ((#curPrevious .~ (\(_,p) -> p) (last xs)) .
+          (#curControl .~ Just ((\(c1,_) -> c1) (last xs))))
+  pure $ (\(c1, x2) -> QuadP c1 x2) <$> xs
+
+smoothQuadStep :: Point Double -> State PathCursor (PathData Double)
+smoothQuadStep x2 = do
+  c1 <- reflControlPoint
+  modify ((#curControl .~ Just c1) . (#curPrevious .~ x2))
+  pure (QuadP c1 x2)
+
+smoothQuad :: NonEmpty (Point Double) -> State PathCursor (NonEmpty (PathData Double))
+smoothQuad xs = do
+  sequence (smoothQuadStep <$> xs)
+
+arcTo :: NonEmpty (Double, Double, Double, Bool, Bool, Point Double) -> State PathCursor (NonEmpty (PathData Double))
+arcTo xs = do
+  modify ((#curPrevious .~ (\(_,_,_,_,_,p) -> p) (last xs)) . (#curControl .~ Nothing))
+  pure $ fromPathEllipticalArc <$> xs
+
+fromPathEllipticalArc :: (a, a, a, Bool, Bool, Point a) -> PathData a
+fromPathEllipticalArc (x, y, r, l, s, p) = ArcP (ArcInfo (Point x y) r l s) p
+
+-- | Convert relative points to absolute points
+relToAbsArc :: Additive a => Point a -> NonEmpty (a,a,a,Bool,Bool,Point a) -> NonEmpty (a,a,a,Bool,Bool,Point a)
+relToAbsArc p (x:|xs) =
+  fmap (\(y0,y1,y2,y3,y4,y5) -> (y0,y1,y2,y3,y4,p+y5)) $
+  foldr (\(_,_,_,_,_,a) ps -> (\(y0,y1,y2,y3,y4,y5) -> (y0,y1,y2,y3,y4,y5+a)) (head ps)<|ps) [x] xs
+
+-- | Convert a path command fragment to PathData
 --
 -- flips the y-dimension of points.
 --
--- FIXME: non-exhaustive
+toInfo_ :: PathCommand -> State PathCursor (NonEmpty (PathData Double))
+toInfo_ (MoveTo OriginAbsolute xs) = moveTo xs
+toInfo_ (MoveTo OriginRelative xs) = do
+  (PathCursor p _ _) <- get
+  moveTo (relToAbs p xs)
+toInfo_ EndPath = do
+  (PathCursor _ s _) <- get
+  pure [LineP s]
+toInfo_ (LineTo OriginAbsolute xs) = lineTo xs
+toInfo_ (LineTo OriginRelative xs) = do
+  (PathCursor p _ _) <- get
+  lineTo (relToAbs p xs)
+toInfo_ (HorizontalTo OriginAbsolute xs) = horTo xs
+toInfo_ (HorizontalTo OriginRelative xs) = do
+  (PathCursor (Point x _) _ _) <- get
+  horTo (relToAbs x xs)
+toInfo_ (VerticalTo OriginAbsolute xs) = verTo xs
+toInfo_ (VerticalTo OriginRelative ys) = do
+  (PathCursor (Point _ y) _ _) <- get
+  verTo (relToAbs y ys)
+toInfo_ (CurveTo OriginAbsolute xs) = curveTo xs
+toInfo_ (CurveTo OriginRelative xs) = do
+  (PathCursor p _ _) <- get
+  curveTo (relToAbs3 p xs)
+toInfo_ (SmoothCurveTo OriginAbsolute xs) = smoothCurveTo xs
+toInfo_ (SmoothCurveTo OriginRelative xs) = do
+  (PathCursor p _ _) <- get
+  smoothCurveTo (relToAbs2 p xs)
+toInfo_ (QuadraticBezier OriginAbsolute xs) = quad xs
+toInfo_ (QuadraticBezier OriginRelative xs) = do
+  (PathCursor p _ _) <- get
+  quad (relToAbs2 p xs)
+toInfo_ (SmoothQuadraticBezierCurveTo OriginAbsolute xs) = smoothQuad xs
+toInfo_ (SmoothQuadraticBezierCurveTo OriginRelative xs) = do
+  (PathCursor p _ _) <- get
+  smoothQuad (relToAbs p xs)
+toInfo_ (EllipticalArc OriginAbsolute xs) = arcTo xs
+toInfo_ (EllipticalArc OriginRelative xs) = do
+  (PathCursor p _ _) <- get
+  arcTo (relToAbsArc p xs)
+
+-- | Convert a path command fragment to an instruction + point.
+--
+-- flips the y-dimension of points.
 --
 toInfo :: StateInfo -> PathCommand -> (StateInfo, NonEmpty (PathInfo Double, Point Double))
 toInfo _ (MoveTo OriginAbsolute (x:|xs)) = L.fold (L.Fold step begin (second (fromList . reverse))) xs
@@ -424,49 +643,37 @@ toInfo s (EllipticalArc OriginAbsolute xs) =
   L.fold (L.Fold step (s, []) (second (fromList . reverse))) xs
   where
     step (s', p) a@(_, _, _, _, _, x2) =
-      (s' & #cur .~ x2, (fromPathEllipticalArc (s' ^. #cur) a, x2) : p)
+      (s' & #cur .~ x2, (fromPathEllipticalArc' (s' ^. #cur) a, x2) : p)
 toInfo s (EllipticalArc OriginRelative xs) =
   L.fold (L.Fold step (s, []) (second (fromList . reverse))) xs
   where
     step (s', p) a@(_, _, _, _, _, x2) =
       let x2' = x2 + s' ^. #cur
-       in (s' & #cur .~ x2', (fromPathEllipticalArc (s' ^. #cur) a, x2') : p)
+       in (s' & #cur .~ x2', (fromPathEllipticalArc' (s' ^. #cur) a, x2') : p)
 
-fromPathEllipticalArc :: Point a -> (a, a, a, Bool, Bool, Point a) -> PathInfo a
-fromPathEllipticalArc _ (x, y, r, l, s, _) = ArcI (ArcInfo (Point x y) r l s)
+fromPathEllipticalArc' :: Point a -> (a, a, a, Bool, Bool, Point a) -> PathInfo a
+fromPathEllipticalArc' _ (x, y, r, l, s, _) = ArcI (ArcInfo (Point x y) r l s)
 
 -- | Convert from a path command list to a PathA specification
 toPathXYs :: NonEmpty PathCommand -> NonEmpty (PathInfo Double, Point Double)
 toPathXYs (x:|xs) =
   snd (foldl' (\(x', l) a -> second (l <>) $ toInfo x' a) (toInfo stateInfo0 x) xs)
 
--- | convert cubic position to path info.
-singletonCubic :: CubicPosition Double -> NonEmpty (PathInfo Double, Point Double)
-singletonCubic (CubicPosition s e c1 c2) = [(StartI, s), (CubicI c1 c2, e)]
+-- | convert cubic position to path data.
+singletonCubic :: CubicPosition Double -> NonEmpty (PathData Double)
+singletonCubic (CubicPosition s e c1 c2) = [StartP s, CubicP c1 c2 e]
 
--- | convert quad position to path info.
-singletonQuad :: QuadPosition Double -> NonEmpty (PathInfo Double, Point Double)
-singletonQuad (QuadPosition s e c) = [(StartI, s), (QuadI c, e)]
+-- | convert quad position to path data.
+singletonQuad :: QuadPosition Double -> NonEmpty (PathData Double)
+singletonQuad (QuadPosition s e c) = [StartP s, QuadP c e]
 
--- | convert arc position to path info.
-singletonArc :: ArcPosition Double -> NonEmpty (PathInfo Double, Point Double)
-singletonArc (ArcPosition s e i) = [(StartI, s), (ArcI i, e)]
-
--- | convert arc position to a pie slice.
-singletonPie :: ArcPosition Double -> NonEmpty (PathInfo Double, Point Double)
-singletonPie p@(ArcPosition s e i) = [(StartI, c), (LineI, s), (ArcI i, e), (LineI, c)]
-  where
-    ac = arcCentroid p
-    c = ac ^. #centroid
+-- | convert arc position to path data.
+singletonArc :: ArcPosition Double -> NonEmpty (PathData Double)
+singletonArc (ArcPosition s e i) = [StartP s, ArcP i e]
 
 -- | convert arc position to a pie slice, with a specific center.
-singletonPie' :: Point Double -> ArcPosition Double -> NonEmpty (PathInfo Double, Point Double)
-singletonPie' c (ArcPosition s e i) = [(StartI, c), (LineI, s), (ArcI i, e), (LineI, c)]
-
--- | convert path info to an ArcPosition.
-toSingletonArc :: NonEmpty (PathInfo Double, Point Double) -> Maybe (ArcPosition Double)
-toSingletonArc ((StartI, s) :| (ArcI i, e) : _) = Just $ ArcPosition s e i
-toSingletonArc _ = Nothing
+singletonPie :: Point Double -> ArcPosition Double -> NonEmpty (PathData Double)
+singletonPie c (ArcPosition s e i) = [StartP c, LineP s, ArcP i e, LineP c]
 
 -- * Arc types
 
@@ -803,19 +1010,6 @@ pathBoxes (x :| xs) =
       (Point Double, Rect Double)
     step (start', r) a = (snd a, pathBox start' a <> r)
 
--- | Bounding box for a list of path XYs.
-pathBoxes' :: NonEmpty (PathInfo Double, Point Double) -> Rect Double
-pathBoxes' (x :| xs) =
-  L.fold (L.Fold step begin snd) xs
-  where
-    begin :: (Point Double, Rect Double)
-    begin = (snd x, singleton (snd x))
-    step ::
-      (Point Double, Rect Double) ->
-      (PathInfo Double, Point Double) ->
-      (Point Double, Rect Double)
-    step (start', r) a = (snd a, pathBox start' a <> r)
-
 -- | Bounding box for a path info, start and end Points.
 pathBox :: Point Double -> (PathInfo Double, Point Double) -> Rect Double
 pathBox start' (info, end) =
@@ -826,6 +1020,25 @@ pathBox start' (info, end) =
     QuadI c -> quadBox (QuadPosition start' end c)
     ArcI i -> arcBox (ArcPosition start' end i)
 
+-- | Bounding box for a list of path XYs.
+pathBoxes_ :: NonEmpty (PathData Double) -> Rect Double
+pathBoxes_ (x :| xs) =
+  L.fold (L.Fold step begin snd) xs
+  where
+    begin :: (Point Double, Rect Double)
+    begin = (pointPathData x, singleton (pointPathData x))
+    step (start', r) a = (pointPathData a, pathBox_ start' a <> r)
+
+-- | Bounding box for a path info, start and end Points.
+pathBox_ :: Point Double -> PathData Double -> Rect Double
+pathBox_ start' info =
+  case info of
+    StartP p -> singleton p
+    LineP p -> space1 ([start', p] :: NonEmpty (Point Double))
+    CubicP c1 c2 p -> cubicBox (CubicPosition start' p c1 c2)
+    QuadP c p -> quadBox (QuadPosition start' p c)
+    ArcP i p -> arcBox (ArcPosition start' p i)
+
 -- | project an ArcPosition given new and old Rects
 --
 -- The radii of the ellipse can be represented as:
@@ -833,8 +1046,8 @@ pathBox start' (info, end) =
 -- Point rx 0 & Point 0 ry
 --
 -- These two points are firstly rotated by p and then undergo scaling...
-projectArcPosition' :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInfo Double
-projectArcPosition' new old (ArcPosition _ _ (ArcInfo (Point rx ry) phi' l cl)) = ArcInfo (Point rx'' ry'') phi' l cl
+projectArcPosition :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInfo Double
+projectArcPosition new old (ArcPosition _ _ (ArcInfo (Point rx ry) phi' l cl)) = ArcInfo (Point rx'' ry'') phi' l cl
   where
     rx' = rotateP phi' (Point rx zero)
     rx'' = norm $ rx' * CD.width new / CD.width old
@@ -848,6 +1061,30 @@ projectControls' :: Foldable t =>
   -> [(PathInfo Double, Point Double)]
 projectControls' new old ps = (reverse . snd) (foldl' (\(prevp, l) (i, xy) -> (xy, projectControl new old prevp xy i : l)) (zero, []) ps)
 
+projectControls_ :: Foldable t =>
+  Rect Double
+  -> Rect Double
+  -> t (PathData Double)
+  -> [PathData Double]
+projectControls_ new old ps =
+  (reverse . snd)
+  (foldl' (\(prevp, l) i -> let d = projectControl_ new old prevp i in (pointPathData d, d:l))
+   (zero, []) ps)
+
+projectControl_
+  :: Rect Double
+  -> Rect Double
+  -> Point Double
+  -> PathData Double
+  -> PathData Double
+projectControl_ new old _ (CubicP c1 c2 p) =
+      CubicP (projectOnP new old c1) (projectOnP new old c2) (projectOnP new old p)
+projectControl_ new old _ (QuadP c p) =
+      QuadP (projectOnP new old c) (projectOnP new old p)
+projectControl_ new old p1 (ArcP ai p2) = ArcP (projectArcPosition new old (ArcPosition p1 p2 ai)) (projectOnP new old p2)
+projectControl_ new old _ (LineP p) = LineP (projectOnP new old p)
+projectControl_ new old _ (StartP p) = StartP (projectOnP new old p)
+
 projectControl
   :: Rect Double
   -> Rect Double
@@ -859,6 +1096,6 @@ projectControl new old _ p (CubicI c1 c2) =
       (CubicI (projectOnP new old c1) (projectOnP new old c2), projectOnP new old p)
 projectControl new old _ p (QuadI c) =
       (QuadI (projectOnP new old c), projectOnP new old p)
-projectControl new old p1 p2 (ArcI ai) = (ArcI $ projectArcPosition' new old (ArcPosition p1 p2 ai), projectOnP new old p2)
+projectControl new old p1 p2 (ArcI ai) = (ArcI $ projectArcPosition new old (ArcPosition p1 p2 ai), projectOnP new old p2)
 projectControl new old _ p LineI = (LineI, projectOnP new old p)
 projectControl new old _ p StartI = (StartI, projectOnP new old p)

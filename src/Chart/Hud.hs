@@ -541,7 +541,7 @@ title_ :: Title -> Rect Double -> Chart Double
 title_ t a =
   TextChart
     ( style' & #rotation .~ bool (Just rot) Nothing (rot == 0))
-    [(t ^. #text, addp (placePos' a) (alignPos a))]
+    [(t ^. #text, addp (placePosTitle t a) (alignPosTitle t a))]
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -552,9 +552,11 @@ title_ t a =
     rot' = fromMaybe 0 (t ^. #style . #rotation)
     rot
       | t ^. #place == PlaceRight = pi / 2 + rot'
-      | t ^. #place == PlaceLeft = -pi / 2 + rot'
+      | t ^. #place == PlaceLeft = pi / 2 + rot'
       | otherwise = rot'
-    placePos' (Rect x z y w) = case t ^. #place of
+
+placePosTitle :: Title -> Rect Double -> Point Double
+placePosTitle t (Rect x z y w) = case t ^. #place of
       PlaceTop -> Point ((x + z) / 2.0) (w + (t ^. #buff))
       PlaceBottom ->
         Point
@@ -567,7 +569,9 @@ title_ t a =
       PlaceLeft -> Point (x - (t ^. #buff)) ((y + w) / 2.0)
       PlaceRight -> Point (z + (t ^. #buff)) ((y + w) / 2.0)
       PlaceAbsolute p -> p
-    alignPos (Rect x z y w)
+
+alignPosTitle :: Title -> Rect Double -> Point Double
+alignPosTitle t (Rect x z y w)
       | t ^. #anchor == AnchorStart
           && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
         Point ((x - z) / 2.0) 0.0
@@ -578,7 +582,7 @@ title_ t a =
           && t ^. #place == PlaceRight =
         Point 0.0 ((w - y) / 2.0)
       | t ^. #anchor == AnchorEnd
-          && t ^. #place == PlaceTop || t ^. #place == PlaceBottom =
+          && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
         Point ((-x + z) / 2.0) 0.0
       | t ^. #anchor == AnchorEnd
           && t ^. #place == PlaceLeft =

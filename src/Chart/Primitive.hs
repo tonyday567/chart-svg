@@ -63,7 +63,7 @@ data Chart a =
   LineChart LineStyle (NonEmpty (NonEmpty (Point a))) |
   GlyphChart GlyphStyle (NonEmpty (Point a)) |
   TextChart TextStyle (NonEmpty (Text, Point a)) |
-  PathChart PathStyle (NonEmpty (PathInfo a, Point a)) |
+  PathChart PathStyle (NonEmpty (PathData a)) |
   BlankChart (NonEmpty (Rect a)) deriving (Eq, Show)
 
 -- | Library functionality (rescaling, combining charts, working out axes and generally putting charts together) is driven by a box model.
@@ -76,7 +76,7 @@ box (RectChart _ a) = foldRectUnsafe a
 box (TextChart _ a) = space1 $ snd <$> a
 box (LineChart _ a) = space1 $ sconcat a
 box (GlyphChart _ a) = space1 a
-box (PathChart _ a) = pathBoxes' a
+box (PathChart _ a) = pathBoxes a
 box (BlankChart a) = foldRectUnsafe a
 
 -- | the bonding box for a chart including both data and style elements.
@@ -91,7 +91,7 @@ sbox (RectChart s a) = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
 sbox (TextChart s a) = foldRectUnsafe $ uncurry (styleBoxText s) <$> a
 sbox (LineChart s a) = padRect (0.5 * Chart.Style.width s) $ space1 $ sconcat a
 sbox (GlyphChart s a) = foldRectUnsafe $ (\p -> addPoint p (styleBoxGlyph s)) <$> a
-sbox (PathChart s a) = padRect (0.5 * view #borderSize s) (pathBoxes' a)
+sbox (PathChart s a) = padRect (0.5 * view #borderSize s) (pathBoxes a)
 sbox (BlankChart a) = foldRectUnsafe a
 
 -- | projects a Chart to a new rectangular space from an old rectangular space, preserving linear metric structure.

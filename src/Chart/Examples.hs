@@ -378,7 +378,6 @@ waveExample = mempty & #chartTree .~ [GlyphChart defaultGlyphStyle $ NonEmpty.fr
 vennExample :: ChartSvg
 vennExample =
   mempty
-  -- FIXME: parsePath mess
     & #chartTree .~ zipWith (\c x -> PathChart (defaultPathStyle & #color .~ setOpac 0.2 c) x) (toList palette1_) (fmap pathInfoToSvgCoords . toPathXYs . either error id . parsePath <$> vennSegs)
     & #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1)
     & #hudOptions .~ defaultHudOptions
@@ -525,7 +524,7 @@ checkFlags large' sweep co =
   where
     c = Point 1.0 1.0
     p1 = ArcPosition (Point 0.0 1.0) (Point 1.0 0.0) (ArcInfo (Point 1.0 1.0) 0 large' sweep)
-    ps1 = singletonPie' c p1
+    ps1 = singletonPie c p1
     (ArcCentroid c' r phi' ang0' angd) = arcCentroid p1
     arc1 = PathChart (defaultPathStyle & #color .~ co & #borderColor .~ setOpac 0.5 dark) ps1
     c1 = LineChart (defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) [ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
