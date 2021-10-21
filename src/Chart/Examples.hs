@@ -378,7 +378,7 @@ waveExample = mempty & #chartTree .~ [GlyphChart defaultGlyphStyle $ NonEmpty.fr
 vennExample :: ChartSvg
 vennExample =
   mempty
-    & #chartTree .~ zipWith (\c x -> PathChart (defaultPathStyle & #color .~ setOpac 0.2 c) x) (toList palette1_) (fmap pathInfoToSvgCoords . toPathXYs . either error id . parsePath <$> vennSegs)
+    & #chartTree .~ zipWith (\c x -> PathChart (defaultPathStyle & #color .~ setOpac 0.2 c) x) (toList palette1_) (svgToPathData <$> vennSegs)
     & #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1)
     & #hudOptions .~ defaultHudOptions
 
@@ -419,14 +419,14 @@ pathExample =
        )
   where
     ps =
-      [ (StartI, Point 0 0),
-        (LineI, Point 1 0),
-        (CubicI (Point 0.2 0) (Point 0.25 1), Point 1 1),
-        (QuadI (Point (-1) 2), Point 0 1),
-        (ArcI (ArcInfo (Point 1 1) (-pi / 6) False False), Point 0 0)
+      [ StartP (Point 0 0),
+        LineP (Point 1 0),
+        CubicP (Point 0.2 0) (Point 0.25 1) (Point 1 1),
+        QuadP (Point (-1) 2) (Point 0 1),
+        ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)
       ]
     path' = PathChart (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) ps
-    c0 = GlyphChart defaultGlyphStyle (snd <$> ps)
+    c0 = GlyphChart defaultGlyphStyle (pointPath <$> ps)
 
 -- | ellipse example
 --

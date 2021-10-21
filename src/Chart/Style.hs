@@ -308,7 +308,7 @@ styleBoxGlyph s = move p' $
     VLineGlyph -> CD.scale (Point ((s ^. #borderSize) * sz) sz) one
     HLineGlyph -> CD.scale (Point sz ((s ^. #borderSize) * sz)) one
     TriangleGlyph a b c -> (sz *) <$> space1 [a,b,c]
-    PathGlyph path' _ -> (sz *) <$> (pathBoxes . fmap pathInfoToSvgCoords . toPathXYs . either error id . parsePath $ path')
+    PathGlyph path' _ -> (sz *) <$> (pathBoxes . svgToPathData $ path')
   where
     sh = s ^. #shape
     sz = s ^. #size

@@ -104,7 +104,7 @@ projectChartWith new old (TextChart s a) = TextChart s (second (projectOnP new o
 projectChartWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$> a)
 projectChartWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
 projectChartWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
-projectChartWith new old (PathChart s a) = PathChart s (NonEmpty.fromList $ projectControls' new old a)
+projectChartWith new old (PathChart s a) = PathChart s (NonEmpty.fromList $ projectPaths new old a)
 
 -- | move a chart
 moveChart :: Point Double -> Chart Double -> Chart Double
@@ -112,7 +112,7 @@ moveChart p (RectChart s a) = RectChart s (addPoint p <$> a)
 moveChart p (TextChart s a) = TextChart s (second (addp p) <$> a)
 moveChart p (LineChart s a) = LineChart s (fmap (addp p) <$> a)
 moveChart p (GlyphChart s a) = GlyphChart s (addp p <$> a)
-moveChart p (PathChart s a) = PathChart s (second (addp p) <$> a)
+moveChart p (PathChart s a) = PathChart s (movePath p <$> a)
 moveChart p (BlankChart a) = BlankChart (addPoint p <$> a)
 
 -- | Scale a chart (effecting both the chart data and the style)
@@ -127,7 +127,7 @@ scaleChart p (TextChart s a) =
 scaleChart p (GlyphChart s a) =
   GlyphChart (s & #size %~ (* p)) (fmap (fmap (*p)) a)
 scaleChart p (PathChart s a) =
-  PathChart (s & #borderSize %~ (* p)) (fmap (second (fmap (*p))) a)
+  PathChart (s & #borderSize %~ (* p)) (scalePath p <$> a)
 scaleChart p (BlankChart a) =
   BlankChart (fmap (fmap (*p)) a)
 

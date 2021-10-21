@@ -21,7 +21,6 @@ import Data.Text (Text, pack, unpack)
 import qualified Data.Text as Text
 import Prelude
 import Lucid
-import qualified Data.List.NonEmpty as NonEmpty
 import Data.List.NonEmpty (NonEmpty(..))
 import Control.Lens
 import Lucid.Base
@@ -38,7 +37,7 @@ draw (RectChart _ a) = sconcat $ svgRect_ <$> a
 draw (TextChart s a) = sconcat $ uncurry (svgText_ s) <$> a
 draw (LineChart _ as) = svgLine_ as
 draw (GlyphChart s a) = sconcat $ svgGlyph_ s <$> a
-draw (PathChart _ a) = svgPath_ (NonEmpty.toList $ fst <$> a) (NonEmpty.toList $ snd <$> a)
+draw (PathChart _ a) = svgPath_ a
 draw (BlankChart _) = mempty
 
 atts :: Chart a -> [Attribute]
@@ -265,11 +264,9 @@ svgGlyph_ s p =
     & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
 
 -- | Path svg
-svgPath_ :: [PathInfo Double] -> [Point Double] -> Lucid.Html ()
-svgPath_ _ [] = mempty
-svgPath_ _ [_] = mempty
-svgPath_ infos ps =
-  terms "path" [term "d" (toPathAbsolutes (NonEmpty.fromList $ zip infos ps))]
+svgPath_ :: NonEmpty (PathData Double) -> Lucid.Html ()
+svgPath_ ps =
+  terms "path" [term "d" (toPathAbsolutes ps)]
 
 -- | RectStyle to Attributes
 attsRect :: RectStyle -> [Lucid.Attribute]
