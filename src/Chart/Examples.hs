@@ -32,6 +32,19 @@ module Chart.Examples
     vennExample,
     arrowExample,
     dateExample,
+
+    -- * sub-chart patterns
+    xify,
+    yify,
+    addLineX,
+    addLineY,
+    lineLegend,
+    titlesHud,
+    blendMidLineStyles,
+
+    subChartExample,
+    blendExample,
+
     writeAllExamples,
     writeAllExamplesDark,
   )
@@ -41,11 +54,11 @@ import Chart
 import Control.Lens
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty (NonEmpty, fromList)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Time
 import Data.Bool
-import Data.Foldable
+import Prelude hiding (abs)
 
 -- $setup
 -- >>> import Chart
@@ -100,7 +113,7 @@ rectExample =
     & #chartTree .~ zipWith RectChart ropts rss
 
 rss :: [NonEmpty (Rect Double)]
-rss = fmap NonEmpty.fromList
+rss = fmap fromList
   [ gridR (\x -> exp (-(x ** 2) / 2)) (Range (-5) 5) 50,
     gridR (\x -> 0.5 * exp (-(x ** 2) / 8)) (Range (-5) 5) 50
   ]
@@ -125,9 +138,9 @@ ropts =
 -- >>> xs
 -- [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0],[Point 0.0 0.0,Point 3.2 3.0],[Point 0.5 4.0,Point 0.5 0.0]]
 --
--- >>> let anns = zipWith (\w c -> LineA (defaultLineStyle & #width .~ w & #color .~ c)) [0.015, 0.03, 0.01] palette1_
+-- >>> let anns = zipWith (\w c -> LineA (defaultLineStyle & #size .~ w & #color .~ palette1 c)) [0.015, 0.03, 0.01] [0..2]
 -- >>> anns
--- [LineA (LineStyle {width = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {width = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {width = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing})]
+-- [LineA (LineStyle {size = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {size = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing})]
 --
 -- >>> let lineExample = mempty & (#chartTree .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
 -- >>> :t lineExample
@@ -159,9 +172,9 @@ ls =
 
 lopts :: [LineStyle]
 lopts =
-  [ defaultLineStyle & #color .~ palette1 0 & #width .~ 0.015,
-    defaultLineStyle & #color .~ palette1 1 & #width .~ 0.03,
-    defaultLineStyle & #color .~ palette1 2 & #width .~ 0.01
+  [ defaultLineStyle & #color .~ palette1 0 & #size .~ 0.015,
+    defaultLineStyle & #color .~ palette1 1 & #size .~ 0.03,
+    defaultLineStyle & #color .~ palette1 2 & #size .~ 0.01
   ]
 
 exampleLineHudOptions :: Text -> Maybe Text -> Maybe (LegendOptions, [(Styles, Text)]) -> HudOptions
@@ -277,14 +290,14 @@ gopts3 :: [GlyphStyle]
 gopts3 =
   zipWith
     ( \x y ->
-        (#color .~ x)
-          . (#borderColor .~ x)
+        (#color .~ palette1 x)
+          . (#borderColor .~ palette1 x)
           . (#borderSize .~ 0.005)
           . (#shape .~ y)
           . (#size .~ 0.08)
           $ defaultGlyphStyle
     )
-    (toList palette1_)
+    [0..2]
     [EllipseGlyph 1.5, SquareGlyph, CircleGlyph]
 
 -- | Glyph + Lines
@@ -370,7 +383,7 @@ legendExample =
 --
 -- ![wave example](other/wave.svg)
 waveExample :: ChartSvg
-waveExample = mempty & #chartTree .~ [GlyphChart defaultGlyphStyle $ NonEmpty.fromList $ gridP sin (Range 0 (2 * pi)) 30]
+waveExample = mempty & #chartTree .~ [GlyphChart defaultGlyphStyle $ fromList $ gridP sin (Range 0 (2 * pi)) 30]
 
 -- | venn diagram
 --
@@ -378,7 +391,7 @@ waveExample = mempty & #chartTree .~ [GlyphChart defaultGlyphStyle $ NonEmpty.fr
 vennExample :: ChartSvg
 vennExample =
   mempty
-    & #chartTree .~ zipWith (\c x -> PathChart (defaultPathStyle & #color .~ setOpac 0.2 c) x) (toList palette1_) (svgToPathData <$> vennSegs)
+    & #chartTree .~ zipWith (\c x -> PathChart (defaultPathStyle & #color .~ setOpac 0.2 (palette1 c)) x) [0..] (svgToPathData <$> vennSegs)
     & #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1)
     & #hudOptions .~ defaultHudOptions
 
@@ -442,12 +455,12 @@ ellipseExample =
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
-    ellFull = LineChart (defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100]]
-    ell = LineChart (defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
+    ellFull = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100]]
+    ell = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
     c0 = GlyphChart defaultGlyphStyle [c, p1, p2]
     bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [arcBox p]
-    xradii = LineChart (defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) [[ellipse c r phi' 0, ellipse c r phi' pi]]
-    yradii = LineChart (defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #width .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) [[ellipse c r phi' (pi / 2), ellipse c r phi' (3 / 2 * pi)]]
+    xradii = LineChart (defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) [[ellipse c r phi' 0, ellipse c r phi' pi]]
+    yradii = LineChart (defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) [[ellipse c r phi' (pi / 2), ellipse c r phi' (3 / 2 * pi)]]
 
 -- | arc example
 --
@@ -463,7 +476,7 @@ arcExample =
     ps = singletonArc p1
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p1
     arc = PathChart (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) ps
-    ell = LineChart (defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
+    ell = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
     c0 = GlyphChart defaultGlyphStyle [c]
     bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [arcBox p1]
 
@@ -527,9 +540,9 @@ checkFlags large' sweep co =
     ps1 = singletonPie c p1
     (ArcCentroid c' r phi' ang0' angd) = arcCentroid p1
     arc1 = PathChart (defaultPathStyle & #color .~ co & #borderColor .~ setOpac 0.5 dark) ps1
-    c1 = LineChart (defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) [ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
-    c2 = LineChart (defaultLineStyle & #width .~ 0.02 & #color .~ setOpac 0.2 dark) [ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
-    ell = LineChart (defaultLineStyle & #width .~ 0.05 & #color .~ setOpac 0.5 co) [ellipse c' r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
+    c1 = LineChart (defaultLineStyle & #size .~ 0.02 & #color .~ setOpac 0.2 dark) [ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
+    c2 = LineChart (defaultLineStyle & #size .~ 0.02 & #color .~ setOpac 0.2 dark) [ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
+    ell = LineChart (defaultLineStyle & #size .~ 0.05 & #color .~ setOpac 0.5 co) [ellipse c' r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
 
 -- | quad example
 --
@@ -544,7 +557,7 @@ quadExample =
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))
     ps = singletonQuad p
     path' = PathChart (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) ps
-    curve = LineChart (defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) [quadBezier p . (/ 100.0) <$> [0 .. 100]]
+    curve = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [quadBezier p . (/ 100.0) <$> [0 .. 100]]
     c0 = GlyphChart defaultGlyphStyle [start, end, control]
     bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [quadBox p]
 
@@ -561,7 +574,7 @@ cubicExample =
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
     ps = singletonCubic p
     path' = PathChart (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) ps
-    curve = LineChart (defaultLineStyle & #width .~ 0.002 & #color .~ palette1 1) [cubicBezier p . (/ 100.0) <$> [0 .. 100]]
+    curve = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [cubicBezier p . (/ 100.0) <$> [0 .. 100]]
     c0 = GlyphChart defaultGlyphStyle [start, end, control1, control2, cubicBezier p 0.8]
     bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [cubicBox p]
 
@@ -648,6 +661,97 @@ dateExample = mempty &
   where
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
     tsDate = placedTimeLabelContinuous PosIncludeBoundaries (Just (pack "%d %b")) 2 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2022 3 13) (toDiffTime 0)))
+
+
+-- | convert from [a] to [Point a], by adding the index as the x axis
+--
+-- ![xify example](other/xify.svg)
+xify :: NonEmpty Double -> NonEmpty (Point Double)
+xify ys =
+  NonEmpty.zipWith Point [0 ..] ys
+
+-- | convert from [a] to [Point a], by adding the index as the y axis
+yify :: NonEmpty Double -> NonEmpty (Point Double)
+yify xs =
+  NonEmpty.zipWith Point xs [0 ..]
+
+-- | add a horizontal line at y
+addLineX :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
+addLineX y ls' cs = cs <> [l]
+  where
+    l = LineChart ls' [[Point lx y, Point ux y]]
+    (Rect lx ux _ _) = styleBoxes cs
+
+-- | add a verticle line at x
+addLineY :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
+addLineY x ls' cs = cs <> [zeroLine]
+  where
+    zeroLine = LineChart ls' [[Point x ly, Point x uy]]
+    (Rect _ _ ly uy) = styleBoxes cs
+
+-- | Legend template for a line chart.
+lineLegend :: Double -> [Text] -> [Colour] -> (LegendOptions, [(Styles, Text)])
+lineLegend w rs cs =
+  ( defaultLegendOptions
+      & #ltext . #size .~ 0.3
+      & #lplace .~ PlaceRight
+      & #legendFrame .~ Just (RectStyle 0.02 (palette1 5) (palette1 4)),
+    zipWith
+      (\a r -> (LineA a, r))
+      ((\c -> defaultLineStyle & #color .~ c & #size .~ w) <$> cs)
+      rs
+  )
+
+-- | common pattern of chart title, x-axis title and y-axis title
+titlesHud :: Text -> Text -> Text -> HudOptions
+titlesHud t x y =
+  defaultHudOptions
+    & #hudTitles
+    .~ [ defaultTitle t,
+         defaultTitle x & #place .~ PlaceBottom & #style . #size .~ 0.08,
+         defaultTitle y & #place .~ PlaceLeft & #style . #size .~ 0.08
+       ]
+
+subChartExample :: ChartSvg
+subChartExample =
+  mempty &
+  #hudOptions .~ defaultHudOptions &
+  #chartTree .~
+    (addLineY 0 defaultLineStyle $
+     addLineX 5 defaultLineStyle $
+     [ LineChart defaultLineStyle
+       [xify [0..9],
+        yify $ negate <$> [0..9]]]) &
+  #hudOptions %~ (<> titlesHud "Various" "X-Axis" "Y-Axis") &
+  #hudOptions . #hudLegend .~
+    Just (lineLegend 0.006
+          ["xify", "yify", "addLineX", "addLineY"]
+          (palette1 <$> [1..4]))
+
+-- | /blendMidLineStyle n w/ produces n lines of size w interpolated between two colors.
+blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
+blendMidLineStyles l w (c1, c2) = lo
+  where
+    m = (fromIntegral l - 1) / 2 :: Double
+    cs = (\x -> 1 - abs (fromIntegral x - m) / m) <$> [0 .. (l - 1)]
+    bs = (\x -> blend x c1 c2) <$> cs
+    lo = (\c -> defaultLineStyle & #size .~ w & #color .~ c) <$> bs
+
+-- writeChartSvg "other/blend.svg" $ mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ blendExample 8 5 100 0.005 (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 0)
+blendExample :: Int -> Int -> Int -> Double -> Range Double -> Range Double -> Range Double -> Range Double -> [Chart Double]
+blendExample cl c2 n s gx' gy' hx' hy' = l
+  where
+    gx = grid OuterPos gx' n
+    gy = grid OuterPos gy' n
+    h0 = reverse $ grid OuterPos hx' n
+    h1 = reverse $ grid OuterPos hy' n
+    g = zipWith Point gx gy
+    h = zipWith Point h0 h1
+    gh = zipWith (\p p' -> fromList [fromList [p,p']]) g h
+    c = blendMidLineStyles n s (palette1 cl, palette1 c2)
+    l = zipWith LineChart c gh
+
+
 
 pathChartSvg :: Colour -> [(FilePath, ChartSvg)]
 pathChartSvg c =

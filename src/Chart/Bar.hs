@@ -29,7 +29,7 @@ import Data.Colour
 import Data.FormatN
 import Data.List (scanl', transpose)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.List.NonEmpty (NonEmpty(..))
+import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Data.Maybe
 import Data.Text (Text, pack)
 import GHC.Generics
@@ -102,8 +102,8 @@ defaultBarOptions =
              )
     )
   where
-    gs = (\x -> RectStyle 0.002 x x) <$> palette1_
-    ts = (\x -> defaultTextStyle & #color .~ x & #size .~ 0.04) <$> palette1_
+    gs = (\x -> RectStyle 0.002 (palette1 x) (palette1 x)) <$> [0..9]
+    ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.04) <$> [0..9]
 
 -- | imagine a dataframe you get in other languages:
 --
@@ -182,16 +182,15 @@ bars bo bd =
     (Rect x z y w) = foldRectUnsafe $ foldRectUnsafe <$> barRects bo (bd ^. #barData)
 
 maxRows :: NonEmpty (NonEmpty Double) -> Int
-maxRows [] = 0
 maxRows xs = maximum $ length <$> xs
 
 appendZero :: NonEmpty (NonEmpty Double) -> NonEmpty (NonEmpty Double)
 appendZero xs =
-  (\x -> NonEmpty.fromList $ NonEmpty.take (maxRows xs)
+  (\x -> fromList $ NonEmpty.take (maxRows xs)
     (x <> NonEmpty.repeat 0)) <$> xs
 
 accRows :: NonEmpty (NonEmpty Double) -> NonEmpty (NonEmpty Double)
-accRows xs = fmap NonEmpty.fromList $ NonEmpty.fromList $ transpose $ drop 1 . scanl' (+) 0 <$> transpose (fmap toList $ toList xs)
+accRows xs = fmap fromList $ fromList $ transpose $ drop 1 . scanl' (+) 0 <$> transpose (fmap toList $ toList xs)
 
 -- | sensible ticks
 barTicks :: BarData -> TickStyle

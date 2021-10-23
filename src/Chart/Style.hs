@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -24,6 +25,7 @@ module Chart.Style
     GlyphStyle (..),
     defaultGlyphStyle,
     styleBoxGlyph,
+    gpalette1,
     ScaleBorder(..),
     GlyphShape (..),
     glyphText,
@@ -72,6 +74,10 @@ import Control.Lens
 import Text.HTML.TagSoup (maybeTagText, parseTags)
 import Data.Path
 import Chart.Data as CD
+import Data.Path.Parser
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List as List
+import Data.Foldable
 
 -- $setup
 --
@@ -91,7 +97,7 @@ data Styles
 
 -- | Generically scale an Annotation.
 scaleStyle_ :: Double -> Styles -> Styles
-scaleStyle_ x (LineA a) = LineA $ a & #width %~ (* x)
+scaleStyle_ x (LineA a) = LineA $ a & #size %~ (* x)
 scaleStyle_ x (RectA a) = RectA $ a & #borderSize %~ (* x)
 scaleStyle_ x (TextA a) = TextA (a & #size %~ (* x))
 scaleStyle_ x (GlyphA a) = GlyphA (a & #size %~ (* x))
@@ -307,13 +313,34 @@ styleBoxGlyph s = move p' $
     RectRoundedGlyph a _ _ -> CD.scale (Point sz (a * sz)) one
     VLineGlyph -> CD.scale (Point ((s ^. #borderSize) * sz) sz) one
     HLineGlyph -> CD.scale (Point sz ((s ^. #borderSize) * sz)) one
-    TriangleGlyph a b c -> (sz *) <$> space1 [a,b,c]
+    TriangleGlyph a b c -> (sz *) <$> space1 ([a,b,c] :: NonEmpty (Point Double))
     PathGlyph path' _ -> (sz *) <$> (pathBoxes . svgToPathData $ path')
   where
     sh = s ^. #shape
     sz = s ^. #size
     sw = padRect (0.5 * s ^. #borderSize)
     p' = fromMaybe (Point 0.0 0.0) (s ^. #translate)
+
+-- | Infinite list of glyph shapes
+--
+-- >>> gpalette1 0
+-- CircleGlyph
+gpalette1 :: Int -> GlyphShape
+gpalette1 x = cycle (toList gpalette1_) List.!! x
+
+-- | finite list of glyphs
+gpalette1_ :: NonEmpty GlyphShape
+gpalette1_ =
+  [ CircleGlyph,
+    SquareGlyph,
+    RectSharpGlyph 0.75,
+    RectRoundedGlyph 0.75 0.01 0.01,
+    EllipseGlyph 0.75,
+    VLineGlyph,
+    HLineGlyph,
+    TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0),
+    PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z" ScaleBorder
+  ]
 
 -- | line cap style
 data LineCap = LineCapButt | LineCapRound | LineCapSquare deriving (Eq, Show, Generic)
@@ -354,13 +381,13 @@ fromDashArray xs = Text.intercalate " " $ pack . show <$> xs
 -- | line style
 --
 -- >>> defaultLineStyle
--- LineStyle {width = 1.2e-2, color = Colour 0.05 0.05 0.05 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}
+-- LineStyle {size = 1.2e-2, color = Colour 0.05 0.05 0.05 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}
 --
 -- ![line example](other/line.svg)
 --
 -- See also <https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute>
 data LineStyle = LineStyle
-  { width :: Double,
+  { size :: Double,
     color :: Colour,
     linecap :: Maybe LineCap,
     linejoin :: Maybe LineJoin,

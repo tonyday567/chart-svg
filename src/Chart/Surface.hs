@@ -35,7 +35,6 @@ import Data.Text (Text)
 import GHC.Generics
 import Prelude
 import Data.List.NonEmpty (NonEmpty(..))
-import qualified Data.List.NonEmpty as NonEmpty
 import Chart.Data
 import Data.Bool
 import Data.Foldable
@@ -72,7 +71,7 @@ data SurfaceStyle = SurfaceStyle
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
 defaultSurfaceStyle =
-  SurfaceStyle (NonEmpty.fromList $ take 2 (toList palette1_)) (blob dark)
+  SurfaceStyle (palette1 <$> [0..1]) (blob dark)
 
 -- | Main surface data elements
 data SurfaceData = SurfaceData

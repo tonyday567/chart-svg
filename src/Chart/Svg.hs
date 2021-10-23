@@ -31,6 +31,7 @@ import GHC.Generics
 import Data.Semigroup
 import Data.Maybe
 import Data.Foldable
+import Data.Path.Parser
 
 draw :: Chart Double -> Html ()
 draw (RectChart _ a) = sconcat $ svgRect_ <$> a
@@ -266,7 +267,7 @@ svgGlyph_ s p =
 -- | Path svg
 svgPath_ :: NonEmpty (PathData Double) -> Lucid.Html ()
 svgPath_ ps =
-  terms "path" [term "d" (toPathAbsolutes ps)]
+  terms "path" [term "d" (pathDataToSvg ps)]
 
 -- | RectStyle to Attributes
 attsRect :: RectStyle -> [Lucid.Attribute]
@@ -314,7 +315,7 @@ attsGlyph o =
 -- | LineStyle to Attributes
 attsLine :: LineStyle -> [Lucid.Attribute]
 attsLine o =
-  [ term "stroke-width" (pack $ show $ o ^. #width),
+  [ term "stroke-size" (pack $ show $ o ^. #size),
     term "stroke" (toHex $ o ^. #color),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #color),
     term "fill" "none"

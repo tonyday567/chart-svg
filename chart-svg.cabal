@@ -10,7 +10,7 @@ description:
   >>> import Chart
   >>> :set -XOverloadedLabels
   >>>let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
-  >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1_
+  >>> let anns = zipWith (\w c -> LineA (LineStyle w (palette1 c) Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] [0..2]
   >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
   .
   > writeChartSvg "other/line.svg" lineExample
@@ -49,10 +49,10 @@ library
     Chart.Bar
     Chart.Examples
     Chart.Surface
-    Chart.Various
     Data.Colour
     Data.FormatN
     Data.Path
+    Data.Path.Parser
 
   hs-source-dirs:     src
   build-depends:

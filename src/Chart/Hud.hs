@@ -63,7 +63,7 @@ import Data.Colour
 import Data.Foldable hiding (sum)
 import Data.FormatN
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.List.NonEmpty (NonEmpty(..))
+import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Data.Maybe
 import Data.Text (Text)
 import GHC.Generics
@@ -292,7 +292,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTick
--- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 2.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing},1.5e-2), ltick = Just (LineStyle {width = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
+-- Tick {tstyle = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 2.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing},1.5e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
 data Tick = Tick
   { tstyle :: TickStyle,
     gtick :: Maybe (GlyphStyle, Double),
@@ -319,7 +319,7 @@ defaultTextTick =
 defaultLineTick :: LineStyle
 defaultLineTick =
   defaultLineStyle
-    & #width .~ 5.0e-3
+    & #size .~ 5.0e-3
     & #color %~ setOpac 0.05
 
 -- | The official tick
@@ -481,53 +481,48 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     PlaceTop ->
       RectChart
         (rstyle b)
-        (NonEmpty.fromList
         [ Rect
             (x - b ^. #overhang)
             (z + b ^. #overhang)
             (w' + b ^. #buff)
             (w' + b ^. #buff + b ^. #wid)
-        ])
+        ]
     PlaceBottom ->
       RectChart
         (rstyle b)
-        (NonEmpty.fromList
         [ Rect
             (x - b ^. #overhang)
             (z + b ^. #overhang)
             (y' - b ^. #wid - b ^. #buff)
             (y' - b ^. #buff)
-        ])
+        ]
     PlaceLeft ->
       RectChart
         (rstyle b)
-        (NonEmpty.fromList
         [ Rect
             (x' - b ^. #wid - b ^. #buff)
             (x' - b ^. #buff)
             (y - b ^. #overhang)
             (w + b ^. #overhang)
-        ])
+        ]
     PlaceRight ->
       RectChart
         (rstyle b)
-        (NonEmpty.fromList
         [ Rect
             (z' + (b ^. #buff))
             (z' + (b ^. #buff) + (b ^. #wid))
             (y - b ^. #overhang)
             (w + b ^. #overhang)
-        ])
+        ]
     PlaceAbsolute (Point x'' _) ->
       RectChart
         (rstyle b)
-        (NonEmpty.fromList
         [ Rect
             (x'' + (b ^. #buff))
             (x'' + (b ^. #buff) + (b ^. #wid))
             (y - b ^. #overhang)
             (w + b ^. #overhang)
-        ])
+        ]
 
 makeAxisBar :: (Monad m) => Place -> AxisBar -> HudT m Double
 makeAxisBar pl b = Hud $ \cs -> do
@@ -647,8 +642,8 @@ placeTextAnchor pl
 
 placeGridLines :: Place -> Rect Double -> Double -> Double -> NonEmpty (Point Double)
 placeGridLines pl (Rect x z y w) a b
-  | pl == PlaceTop || pl == PlaceBottom = NonEmpty.fromList [Point a (y - b), Point a (w + b)]
-  | otherwise = NonEmpty.fromList [Point (x - b) a, Point (z + b) a]
+  | pl == PlaceTop || pl == PlaceBottom = [Point a (y - b), Point a (w + b)]
+  | otherwise = [Point (x - b) a, Point (z + b) a]
 
 -- | compute tick values and labels given options, ranges and formatting
 ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
@@ -706,15 +701,15 @@ ticksPlaced ts pl d xs = TickComponents (project (placeRange pl xs) (placeRange 
   where
     (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)
 
-tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> Rect Double -> Rect Double -> Rect Double -> Chart Double
+tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> Rect Double -> Rect Double -> Rect Double -> Maybe (Chart Double)
 tickGlyph_ pl (g, b) ts ca da xs =
-  GlyphChart
-    (g & #rotation .~ placeRot pl)
-    (NonEmpty.fromList
-    ( addp (placePos pl b ca) . placeOrigin pl
+  case l of
+    [] -> Nothing
+    l' -> Just $ GlyphChart (g & #rotation .~ placeRot pl) $ fromList l'
+    where
+      l = addp (placePos pl b ca) . placeOrigin pl
         <$> positions
           (ticksPlaced ts pl da xs)
-    ))
 
 -- | aka marks
 tickGlyph ::
@@ -724,12 +719,12 @@ tickGlyph ::
   TickStyle ->
   HudT m Double
 tickGlyph pl (g, b) ts = Hud $ \cs -> do
-  a <- use #chartDim
+  ca <- use #chartDim
   d <- use #canvasDim
   xs <- use #dataDim
-  let c = tickGlyph_ pl (g, b) ts a d xs
-  #chartDim .= a <> sbox c
-  pure $ c : cs
+  let c = tickGlyph_ pl (g, b) ts ca d xs
+  #chartDim .= maybe ca ((ca <>) . sbox) c
+  pure $ maybeToList c <> cs
 
 tickText_ ::
   Place ->
@@ -742,7 +737,7 @@ tickText_ ::
 tickText_ pl (txts, b) ts ca da xs =
   case l of
     [] -> Nothing
-    _ -> Just $ TextChart (placeTextAnchor pl txts) $ NonEmpty.fromList l
+    _ -> Just $ TextChart (placeTextAnchor pl txts) $ fromList l
   where
     l = zip
       (labels $ ticksPlaced ts pl da xs)
@@ -775,14 +770,13 @@ tickLine ::
 tickLine pl (ls, b) ts = Hud $ \cs -> do
   da <- use #canvasDim
   xs <- use #dataDim
-  let c =
-        LineChart ls
-        ( NonEmpty.fromList $
-          (\x -> placeGridLines pl da x b) <$>
-          positions (ticksPlaced ts pl da xs)
-        )
-  #chartDim %= (<> sbox c)
-  pure $ c:cs
+  ca <- use #chartDim
+  let l = (\x -> placeGridLines pl da x b) <$> positions (ticksPlaced ts pl da xs)
+  let c = case l of
+        [] -> Nothing
+        l' -> Just $ LineChart ls $ fromList l'
+  #chartDim .= maybe ca ((ca <>) . sbox) c
+  pure $ maybeToList c <> cs
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
 tick ::
@@ -944,7 +938,7 @@ legendEntry l a t =
       RectA rs -> RectChart rs (Rect 0 (l ^. #lsize) 0 (l ^. #lsize):|[])
       TextA ts -> TextChart (ts & #size .~ (l ^. #lsize)) (("text",zero):|[])
       GlyphA gs -> GlyphChart (gs & #size .~ (l ^. #lsize)) (Point (0.5 * l ^. #lsize) (0.33 * l ^. #lsize):|[])
-      LineA ls -> LineChart (ls & #width %~ (/ (l ^. #lscale)))
+      LineA ls -> LineChart (ls & #size %~ (/ (l ^. #lscale)))
           [[Point 0 (1 * l ^. #lsize), Point (2 * l ^. #lsize) (1 * l ^. #lsize)]]
       PathA ps ->
         ( let cs =

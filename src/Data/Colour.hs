@@ -19,7 +19,6 @@ module Data.Colour
     fromHex,
     unsafeFromHex,
     palette1,
-    palette1_,
     transparent,
     black,
     white,

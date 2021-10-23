@@ -26,7 +26,6 @@ import Data.Bifunctor
 import Data.Path
 import Data.Text (Text)
 import Prelude
-import qualified Data.List.NonEmpty as NonEmpty
 import Data.List.NonEmpty (NonEmpty(..))
 import Control.Lens
 import Chart.Data
@@ -89,7 +88,7 @@ box (BlankChart a) = foldRectUnsafe a
 sbox :: Chart Double -> Rect Double
 sbox (RectChart s a) = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
 sbox (TextChart s a) = foldRectUnsafe $ uncurry (styleBoxText s) <$> a
-sbox (LineChart s a) = padRect (0.5 * Chart.Style.width s) $ space1 $ sconcat a
+sbox (LineChart s a) = padRect (0.5 * s ^. #size) $ space1 $ sconcat a
 sbox (GlyphChart s a) = foldRectUnsafe $ (\p -> addPoint p (styleBoxGlyph s)) <$> a
 sbox (PathChart s a) = padRect (0.5 * view #borderSize s) (pathBoxes a)
 sbox (BlankChart a) = foldRectUnsafe a
@@ -104,7 +103,7 @@ projectChartWith new old (TextChart s a) = TextChart s (second (projectOnP new o
 projectChartWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$> a)
 projectChartWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
 projectChartWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
-projectChartWith new old (PathChart s a) = PathChart s (NonEmpty.fromList $ projectPaths new old a)
+projectChartWith new old (PathChart s a) = PathChart s (projectPaths new old a)
 
 -- | move a chart
 moveChart :: Point Double -> Chart Double -> Chart Double
@@ -121,7 +120,7 @@ scaleChart :: Double -> Chart Double -> Chart Double
 scaleChart p (RectChart s a) =
   RectChart (s & #borderSize %~ (* p)) (fmap (fmap (*p)) a)
 scaleChart p (LineChart s a) =
-  LineChart (s & #width %~ (* p)) (fmap (fmap (fmap (*p))) a)
+  LineChart (s & #size %~ (* p)) (fmap (fmap (fmap (*p))) a)
 scaleChart p (TextChart s a) =
   TextChart (s & #size %~ (* p)) (fmap (second (fmap (*p))) a)
 scaleChart p (GlyphChart s a) =

@@ -1,4 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | A haskell Charting library targetting SVGs
@@ -24,6 +23,7 @@ module Chart
     module Data.Colour,
     module Data.FormatN,
     module Data.Path,
+    module Data.Path.Parser,
     module NumHask.Space,
   )
 where
@@ -40,6 +40,7 @@ import Data.FormatN
 import Data.Path
 import NumHask.Space hiding (singleton)
 import Chart.Data
+import Data.Path.Parser
 
 -- $setup
 --
@@ -76,7 +77,7 @@ import Chart.Data
 --
 -- and an Annotation to describe representation of this data; three line styles with different colors and widths:
 --
--- >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1_
+-- >>> let anns = zipWith (\w (palette1 c) -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] [0..2]
 --
 -- and this is enough to create a Chart.
 --
