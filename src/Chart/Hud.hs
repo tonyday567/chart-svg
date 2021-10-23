@@ -162,7 +162,7 @@ data HudOptions = HudOptions
   { hudCanvas :: Maybe RectStyle,
     hudTitles :: [Title],
     hudAxes :: [AxisOptions],
-    hudLegend :: Maybe (LegendOptions, [(Styles, Text)])
+    hudLegend :: Maybe (LegendOptions, [(Chart Double, Text)])
   }
   deriving (Eq, Show, Generic)
 
@@ -209,7 +209,7 @@ scaleOpacHudOptions ho o =
     & #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ scaleOpac o)))
     & #hudLegend %~ fmap (first (#ltext %~ (#color %~ scaleOpac o)))
     & #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o))))
-    & #hudLegend %~ fmap (second (fmap (first (scaleOpacStyle_ o))))
+    & #hudLegend %~ fmap (second (fmap (first (scaleOpacStyle o))))
 
 -- | The official hud canvas
 defaultCanvas :: RectStyle
@@ -924,34 +924,7 @@ legendHud l lcs = Hud $ \cs -> do
         PlaceRight -> Point (z + (z' - x') / 2.0) ((y + w) / 2.0)
         PlaceAbsolute p -> p
 
-legendEntry ::
-  LegendOptions ->
-  Styles ->
-  Text ->
-  (Chart Double, Chart Double)
-legendEntry l a t =
-  ( chart1,
-    TextChart (l ^. #ltext & #anchor .~ AnchorStart) ((t, zero):|[])
-  )
-  where
-    chart1 = case a of
-      RectA rs -> RectChart rs (Rect 0 (l ^. #lsize) 0 (l ^. #lsize):|[])
-      TextA ts -> TextChart (ts & #size .~ (l ^. #lsize)) (("text",zero):|[])
-      GlyphA gs -> GlyphChart (gs & #size .~ (l ^. #lsize)) (Point (0.5 * l ^. #lsize) (0.33 * l ^. #lsize):|[])
-      LineA ls -> LineChart (ls & #size %~ (/ (l ^. #lscale)))
-          [[Point 0 (1 * l ^. #lsize), Point (2 * l ^. #lsize) (1 * l ^. #lsize)]]
-      PathA ps ->
-        ( let cs =
-                singletonCubic
-                  ( CubicPosition
-                      (Point 0 0)
-                      (Point (0.33 * l ^. #lsize) (0.33 * l ^. #lsize))
-                      (Point 0 (0.33 * l ^. #lsize))
-                      (Point (0.33 * l ^. #lsize) 0)
-                  )
-           in PathChart (ps & #borderSize .~ (l ^. #lsize)) cs)
-
-legendChart :: [(Styles, Text)] -> LegendOptions -> [Chart Double]
+legendChart :: [(Chart Double, Text)] -> LegendOptions -> [Chart Double]
 legendChart lrs l =
   padChart (l ^. #outerPad)
     . maybe id (\x -> frameChart x (l ^. #innerPad)) (l ^. #legendFrame)
@@ -962,3 +935,43 @@ legendChart lrs l =
     es = reverse $ uncurry (legendEntry l) <$> lrs
     twidth = (\(Rect _ z _ _) -> z) $ styleBoxes (snd <$> es)
     gapwidth t = (\(Rect _ z _ _) -> z) (sbox t)
+
+legendText ::
+  LegendOptions ->
+  Text ->
+  Chart Double
+legendText l t =
+    TextChart (l ^. #ltext & #anchor .~ AnchorStart) ((t, zero):|[])
+
+legendizeChart ::
+  LegendOptions ->
+  Chart Double ->
+  Chart Double
+legendizeChart l c =
+  case c of
+    (RectChart rs _) -> RectChart rs (Rect 0 (l ^. #lsize) 0 (l ^. #lsize):|[])
+    (TextChart ts _) -> TextChart (ts & #size .~ (l ^. #lsize)) (("text",zero):|[])
+    (GlyphChart gs _) -> GlyphChart (gs & #size .~ (l ^. #lsize)) (Point (0.5 * l ^. #lsize) (0.33 * l ^. #lsize):|[])
+    (LineChart ls _) -> LineChart (ls & #size %~ (/ (l ^. #lscale)))
+          [[Point 0 (1 * l ^. #lsize), Point (2 * l ^. #lsize) (1 * l ^. #lsize)]]
+    (PathChart ps _) ->
+        ( let cs =
+                singletonCubic
+                  ( CubicPosition
+                      (Point 0 0)
+                      (Point (0.33 * l ^. #lsize) (0.33 * l ^. #lsize))
+                      (Point 0 (0.33 * l ^. #lsize))
+                      (Point (0.33 * l ^. #lsize) 0)
+                  )
+           in PathChart (ps & #borderSize .~ (l ^. #lsize)) cs)
+    (BlankChart _) -> BlankChart (Rect 0 (l ^. #lsize) 0 (l ^. #lsize):|[])
+
+legendEntry ::
+  LegendOptions ->
+  Chart Double ->
+  Text ->
+  (Chart Double, Chart Double)
+legendEntry l c t =
+  ( legendizeChart l c,
+    legendText l t
+  )

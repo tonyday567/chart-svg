@@ -208,11 +208,14 @@ tickFirstAxis _ [] = []
 tickFirstAxis bd (x : xs) = (x & #axisTick . #tstyle .~ barTicks bd) : xs
 
 -- | bar legend
-barLegend :: BarData -> BarOptions -> [(Styles, Text)]
+barLegend :: BarData -> BarOptions -> [(Chart Double, Text)]
 barLegend bd bo
   | null (bd ^. #barData) = []
   | isNothing (bd ^. #barColumnLabels) = []
-  | otherwise = zip (RectA <$> toList (bo ^. #barRectStyles)) $ take (length (bd ^. #barData)) $ foldMap toList (bd ^. #barColumnLabels) <> repeat ""
+  | otherwise =
+    zip ((\s -> RectChart s [one]) <$> toList (bo ^. #barRectStyles)) $
+    take (length (bd ^. #barData)) $
+    foldMap toList (bd ^. #barColumnLabels) <> repeat ""
 
 -- | A bar chart.
 --

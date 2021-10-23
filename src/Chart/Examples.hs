@@ -159,9 +159,11 @@ lineExample =
     .~ exampleLineHudOptions
       "Line Chart"
       (Just "An example from chart-svg")
-      (Just (defaultLegendOptions, zip (LineA <$> lopts) ["hockey", "line", "vertical"]))
+      (Just (defaultLegendOptions, zip cs ["hockey", "line", "vertical"]))
     & #chartTree
-    .~ zipWith (\s l -> LineChart s [l]) lopts ls
+    .~ cs
+  where
+    cs = zipWith (\s l -> LineChart s [l]) lopts ls
 
 ls :: [NonEmpty (Point Double)]
 ls =
@@ -178,7 +180,7 @@ lopts =
     defaultLineStyle & #color .~ palette1 2 & #size .~ 0.01
   ]
 
-exampleLineHudOptions :: Text -> Maybe Text -> Maybe (LegendOptions, [(Styles, Text)]) -> HudOptions
+exampleLineHudOptions :: Text -> Maybe Text -> Maybe (LegendOptions, [(Chart Double, Text)]) -> HudOptions
 exampleLineHudOptions t1 t2 legends' =
   defaultHudOptions
     & #hudTitles
@@ -373,11 +375,11 @@ legendExample =
        )
   where
     l1 =
-      [ (GlyphA defaultGlyphStyle, "glyph"),
-        (RectA defaultRectStyle, "rect"),
-        (TextA (defaultTextStyle & #anchor .~ AnchorStart), "text"),
-        (LineA defaultLineStyle, "line"),
-        (GlyphA defaultGlyphStyle, "abcdefghijklmnopqrst")
+      [ (GlyphChart defaultGlyphStyle [zero], "glyph"),
+        (RectChart defaultRectStyle [one], "rect"),
+        (TextChart (defaultTextStyle & #anchor .~ AnchorStart) [("text", zero)], "text"),
+        (LineChart defaultLineStyle [[zero]], "line"),
+        (GlyphChart defaultGlyphStyle [one], "abcdefghijklmnopqrst")
       ]
 
 -- | wave example
@@ -802,14 +804,14 @@ addLineY x ls' cs = cs <> [zeroLine]
     (Rect _ _ ly uy) = styleBoxes cs
 
 -- | Legend template for a line chart.
-lineLegend :: Double -> [Text] -> [(Colour, Maybe [Double])]-> (LegendOptions, [(Styles, Text)])
+lineLegend :: Double -> [Text] -> [(Colour, Maybe [Double])]-> (LegendOptions, [(Chart Double, Text)])
 lineLegend w rs cs =
   ( defaultLegendOptions
       & #ltext . #size .~ 0.1
       & #lplace .~ PlaceRight
       & #legendFrame .~ Just (RectStyle 0.02 (palette1 5) (setOpac 0.05 $ palette1 4)),
     zipWith
-      (\a r -> (LineA a, r))
+      (\a r -> (LineChart a [[zero]], r))
       ((\c -> defaultLineStyle & #color .~ fst c & #size .~ w & #dasharray .~ snd c) <$> cs)
       rs
   )

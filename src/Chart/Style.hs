@@ -8,12 +8,6 @@
 -- | Stylistic elements
 module Chart.Style
   ( -- * Styles
-    Styles(..),
-    scaleStyle_,
-    scaleOpacStyle_,
-    colourStyle_,
-
-    -- * Specific Styles
     RectStyle (..),
     defaultRectStyle,
     blob,
@@ -86,58 +80,6 @@ import Data.Foldable
 -- >>> import Chart
 -- >>> import Chart.Render
 -- >>> import Data.Colour
-
-data Styles
-  = RectA RectStyle
-  | TextA TextStyle
-  | GlyphA GlyphStyle
-  | LineA LineStyle
-  | PathA PathStyle
-  deriving (Eq, Show, Generic)
-
--- | Generically scale an Annotation.
-scaleStyle_ :: Double -> Styles -> Styles
-scaleStyle_ x (LineA a) = LineA $ a & #size %~ (* x)
-scaleStyle_ x (RectA a) = RectA $ a & #borderSize %~ (* x)
-scaleStyle_ x (TextA a) = TextA (a & #size %~ (* x))
-scaleStyle_ x (GlyphA a) = GlyphA (a & #size %~ (* x))
-scaleStyle_ x (PathA a) = PathA (a & #borderSize %~ (* x))
-
--- | dim (or brighten) the opacity of an Annotation by a scale
-scaleOpacStyle_ :: Double -> Styles -> Styles
-scaleOpacStyle_ x (RectA s) = RectA s'
-  where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacStyle_ x (TextA s) = TextA s'
-  where
-    s' = s & #color %~ scaleOpac x
-scaleOpacStyle_ x (LineA s) = LineA s'
-  where
-    s' = s & #color %~ scaleOpac x
-scaleOpacStyle_ x (GlyphA s) = GlyphA s'
-  where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacStyle_ x (PathA s) = PathA s'
-  where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-
--- | select a main colour
-colourStyle_ :: Colour -> Styles -> Styles
-colourStyle_ c (RectA s) = RectA s'
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
-colourStyle_ c (TextA s) = TextA s'
-  where
-    s' = s & #color %~ mix c
-colourStyle_ c (LineA s) = LineA s'
-  where
-    s' = s & #color %~ mix c
-colourStyle_ c (GlyphA s) = GlyphA s'
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
-colourStyle_ c (PathA s) = PathA s'
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
 
 -- | Rectangle styling
 --
