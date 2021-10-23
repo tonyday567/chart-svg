@@ -315,7 +315,7 @@ attsGlyph o =
 -- | LineStyle to Attributes
 attsLine :: LineStyle -> [Lucid.Attribute]
 attsLine o =
-  [ term "stroke-size" (pack $ show $ o ^. #size),
+  [ term "stroke-width" (pack $ show $ o ^. #size),
     term "stroke" (toHex $ o ^. #color),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #color),
     term "fill" "none"

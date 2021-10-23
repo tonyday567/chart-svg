@@ -34,6 +34,8 @@ module Chart.Examples
     dateExample,
 
     -- * sub-chart patterns
+    -- $subcharts
+    subChartExample,
     xify,
     yify,
     addLineX,
@@ -41,8 +43,6 @@ module Chart.Examples
     lineLegend,
     titlesHud,
     blendMidLineStyles,
-
-    subChartExample,
     blendExample,
 
     writeAllExamples,
@@ -59,6 +59,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Time
 import Data.Bool
 import Prelude hiding (abs)
+import Data.Bifunctor
 
 -- $setup
 -- >>> import Chart
@@ -662,10 +663,121 @@ dateExample = mempty &
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
     tsDate = placedTimeLabelContinuous PosIncludeBoundaries (Just (pack "%d %b")) 2 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2022 3 13) (toDiffTime 0)))
 
+-- | subchart example
+--
+-- chart-svg is (hopefully) ergonomic when putting together compound, complex charts by combining lots of subchart components.
+--
+-- The code in subChartExample is an (&) (left-to-right composition), non-operator lensy example:
+--
+-- >   mempty &
+-- Using mempty :: ChartSvg as a baseline to begin composing charts, which can be visualised at any time with writeChartSvg "example.svg" $ mempty & ...
+--
+-- >   over #chartTree
+-- >     (LineChart (defaultLineStyle & set #color (palette1 8)) [xify [1,2,7,3,13,14]]:) &
+--
+-- Convert a one-dimensional list of numbers to points using 'xify', and make it an orange line. A classical line with a data point for every x.
+--
+-- >   over #chartTree
+-- >     (LineChart (defaultLineStyle & set #color (palette1 5)) [yify [1,2,7,3,13,14]]:) &
+--
+-- Convert the same numbers to points using 'yify', and make it a green line. Not so classic line of a chart with a data point for every y.
+--
+-- >   over #chartTree
+-- >     (addLineX 3
+-- >     (defaultLineStyle &
+-- >      set #color (setOpac 0.3 (palette1 5)) &
+-- >      set #dasharray (Just [0.04, 0.01]))) &
+--
+-- Add a vertical, long-dash line at y=3.
+--
+-- >   over #chartTree
+-- >     (addLineY 5
+-- >     (defaultLineStyle &
+-- >      set #color (setOpac 0.3 (palette1 8)) &
+-- >      set #dasharray (Just [0.01]))) &
+--
+-- Add a horizontal, short-dash line at x=5.
+--
+-- >   over #hudOptions
+-- >     (<> titlesHud "subchart example" "x axis title" "y axis title") &
+--
+-- Add some titles.
+--
+-- >   set (#hudOptions . #hudLegend)
+-- >     (Just (lineLegend 0.01
+-- >      ["xify", "yify", "addLineX", "addLineY"]
+-- >      [ (palette1 8, Nothing),
+-- >        (palette1 5, Nothing),
+-- >        (setOpac 0.3 $ palette1 8, Just [0.01]),
+-- >        (setOpac 0.3 $ palette1 5, Just [0.04, 0.01])])) &
+--
+-- Add a legend, reusing the chosen line styles.
+--
+-- >   over (#hudOptions . #hudLegend)
+-- >     (fmap (first
+-- >       ( set #lscale 0.4 .
+-- >         set #vgap 0.3 .
+-- >         set #lplace (PlaceAbsolute (Point 0.1 0.1)) .
+-- >         over #legendFrame
+-- >           (fmap
+-- >            (set #color (Colour 1 1 1 1) .
+-- >             set #borderColor (setOpac 0.1 dark)))))) &
+--
+-- Fix up the legend a bit.
+--
+-- >   over (#hudOptions . #hudAxes)
+-- >     (fmap
+-- >       (set (#axisTick . #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))) &
+--
+-- Stop the axes from extending past the data ranges.
+--
+-- >   set (#svgOptions . #chartAspect) (CanvasAspect 1.5)
+--
+-- Rescale the chart so that the canvas element is a pleasant ratio.
+--
+-- ![subchart example](other/subchart.svg)
+subChartExample :: ChartSvg
+subChartExample =
+  mempty &
+  over #chartTree
+    (LineChart (defaultLineStyle & set #color (palette1 8)) [xify [1,2,7,3,13,14]]:) &
+  over #chartTree
+    (LineChart (defaultLineStyle & set #color (palette1 5)) [yify [1,2,7,3,13,14]]:) &
+  over #chartTree
+    (addLineX 3
+    (defaultLineStyle &
+     set #color (setOpac 0.3 (palette1 5)) &
+     set #dasharray (Just [0.04, 0.01]))) &
+  over #chartTree
+    (addLineY 5
+    (defaultLineStyle &
+     set #color (setOpac 0.3 (palette1 8)) &
+     set #dasharray (Just [0.01]))) &
+  over #hudOptions
+    (<> titlesHud "subchart example" "x axis title" "y axis title") &
+  set (#hudOptions . #hudLegend)
+    (Just (lineLegend 0.01
+     ["xify", "yify", "addLineX", "addLineY"]
+     [ (palette1 8, Nothing),
+       (palette1 5, Nothing),
+       (setOpac 0.3 $ palette1 8, Just [0.01]),
+       (setOpac 0.3 $ palette1 5, Just [0.04, 0.01])])) &
+  over (#hudOptions . #hudLegend)
+    (fmap (first
+      ( set #lscale 0.4 .
+        set #vgap 0.3 .
+        set #lplace (PlaceAbsolute (Point 0.1 0.1)) .
+        over #legendFrame
+          (fmap
+           (set #color (Colour 1 1 1 1) .
+            set #borderColor (setOpac 0.1 dark)))))) &
+  over (#hudOptions . #hudAxes)
+    (fmap
+      (set (#axisTick . #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))) &
+  set (#svgOptions . #chartAspect) (CanvasAspect 1.5)
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 --
--- ![xify example](other/xify.svg)
 xify :: NonEmpty Double -> NonEmpty (Point Double)
 xify ys =
   NonEmpty.zipWith Point [0 ..] ys
@@ -690,15 +802,15 @@ addLineY x ls' cs = cs <> [zeroLine]
     (Rect _ _ ly uy) = styleBoxes cs
 
 -- | Legend template for a line chart.
-lineLegend :: Double -> [Text] -> [Colour] -> (LegendOptions, [(Styles, Text)])
+lineLegend :: Double -> [Text] -> [(Colour, Maybe [Double])]-> (LegendOptions, [(Styles, Text)])
 lineLegend w rs cs =
   ( defaultLegendOptions
-      & #ltext . #size .~ 0.3
+      & #ltext . #size .~ 0.1
       & #lplace .~ PlaceRight
-      & #legendFrame .~ Just (RectStyle 0.02 (palette1 5) (palette1 4)),
+      & #legendFrame .~ Just (RectStyle 0.02 (palette1 5) (setOpac 0.05 $ palette1 4)),
     zipWith
       (\a r -> (LineA a, r))
-      ((\c -> defaultLineStyle & #color .~ c & #size .~ w) <$> cs)
+      ((\c -> defaultLineStyle & #color .~ fst c & #size .~ w & #dasharray .~ snd c) <$> cs)
       rs
   )
 
@@ -707,26 +819,10 @@ titlesHud :: Text -> Text -> Text -> HudOptions
 titlesHud t x y =
   defaultHudOptions
     & #hudTitles
-    .~ [ defaultTitle t,
-         defaultTitle x & #place .~ PlaceBottom & #style . #size .~ 0.08,
-         defaultTitle y & #place .~ PlaceLeft & #style . #size .~ 0.08
+    .~ [ defaultTitle t & #style . #size .~ 0.08,
+         defaultTitle x & #place .~ PlaceBottom & #style . #size .~ 0.06,
+         defaultTitle y & #place .~ PlaceLeft & #style . #size .~ 0.06
        ]
-
-subChartExample :: ChartSvg
-subChartExample =
-  mempty &
-  #hudOptions .~ defaultHudOptions &
-  #chartTree .~
-    (addLineY 0 defaultLineStyle $
-     addLineX 5 defaultLineStyle $
-     [ LineChart defaultLineStyle
-       [xify [0..9],
-        yify $ negate <$> [0..9]]]) &
-  #hudOptions %~ (<> titlesHud "Various" "X-Axis" "Y-Axis") &
-  #hudOptions . #hudLegend .~
-    Just (lineLegend 0.006
-          ["xify", "yify", "addLineX", "addLineY"]
-          (palette1 <$> [1..4]))
 
 -- | /blendMidLineStyle n w/ produces n lines of size w interpolated between two colors.
 blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
@@ -737,9 +833,16 @@ blendMidLineStyles l w (c1, c2) = lo
     bs = (\x -> blend x c1 c2) <$> cs
     lo = (\c -> defaultLineStyle & #size .~ w & #color .~ c) <$> bs
 
--- writeChartSvg "other/blend.svg" $ mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ blendExample 8 5 100 0.005 (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 0)
-blendExample :: Int -> Int -> Int -> Double -> Range Double -> Range Double -> Range Double -> Range Double -> [Chart Double]
-blendExample cl c2 n s gx' gy' hx' hy' = l
+-- | blend example
+--
+-- Interpolation of colours and points.
+--
+-- ![blend example](other/blend.svg)
+blendExample :: ChartSvg
+blendExample = mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ blendExampleChart 8 5 100 0.005 (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 0)
+
+blendExampleChart :: Int -> Int -> Int -> Double -> Range Double -> Range Double -> Range Double -> Range Double -> [Chart Double]
+blendExampleChart cl c2 n s gx' gy' hx' hy' = l
   where
     gx = grid OuterPos gx' n
     gy = grid OuterPos gy' n
@@ -750,8 +853,6 @@ blendExample cl c2 n s gx' gy' hx' hy' = l
     gh = zipWith (\p p' -> fromList [fromList [p,p']]) g h
     c = blendMidLineStyles n s (palette1 cl, palette1 c2)
     l = zipWith LineChart c gh
-
-
 
 pathChartSvg :: Colour -> [(FilePath, ChartSvg)]
 pathChartSvg c =
@@ -784,7 +885,9 @@ pathChartSvg c =
     ("other/quad.svg",quadExample),
     ("other/cubic.svg",cubicExample),
     ("other/arrow.svg",arrowExample c),
-    ("other/date.svg",dateExample)
+    ("other/date.svg",dateExample),
+    ("other/subchart.svg",subChartExample),
+    ("other/blend.svg",blendExample)
   ]
 
 -- | Run this to refresh haddock example SVGs.
