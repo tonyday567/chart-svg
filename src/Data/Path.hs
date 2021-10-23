@@ -53,7 +53,7 @@ import Data.Generics.Labels ()
 import GHC.Generics
 import qualified Geom2D.CubicBezier as B
 import NumHask.Prelude hiding (head, last, tail)
-import Chart.Data as CD
+import Chart.Data
 import Data.List.NonEmpty (NonEmpty (..))
 import Control.Monad.State.Lazy
 
@@ -496,6 +496,6 @@ projectArcPosition :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInf
 projectArcPosition new old (ArcPosition _ _ (ArcInfo (Point rx ry) phi' l cl)) = ArcInfo (Point rx'' ry'') phi' l cl
   where
     rx' = rotateP phi' (Point rx zero)
-    rx'' = norm $ rx' * CD.width new / CD.width old
+    rx'' = norm $ rx' * width new / width old
     ry' = rotateP phi' (Point zero ry)
-    ry'' = norm $ ry' * CD.width new / CD.width old
+    ry'' = norm $ ry' * width new / width old

@@ -25,7 +25,7 @@ import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics
 import NumHask.Prelude hiding (head, last, tail)
-import Chart.Data as CD
+import Chart.Data
 import Data.Functor
 import Control.Applicative
 import Data.Scientific (toRealFloat)
@@ -318,13 +318,13 @@ smoothCurveTo xs = do
 
 -- | Convert relative points to absolute points
 relToAbs2 :: Additive a => a -> NonEmpty (a,a) -> NonEmpty (a,a)
-relToAbs2 p (x:|xs) = fmap (\(y,z) -> (p+y,p+z)) $ foldr (\(a,a') ps -> (\(q,q') -> (q+a,q'+a')) (head ps)<|ps) [x] xs
+relToAbs2 p (x:|xs) = fmap (bimap (p +) (p +)) $ foldr (\(a,a') ps -> (\(q,q') -> (q+a,q'+a')) (head ps)<|ps) [x] xs
 
 quad :: NonEmpty (Point Double, Point Double) -> State PathCursor (NonEmpty (PathData Double))
 quad xs = do
-  modify ((#curPrevious .~ (\(_,p) -> p) (last xs)) .
-          (#curControl .~ Just ((\(c1,_) -> c1) (last xs))))
-  pure $ (\(c1, x2) -> QuadP c1 x2) <$> xs
+  modify ((#curPrevious .~ snd (last xs)) .
+          (#curControl .~ Just (fst (last xs))))
+  pure $ uncurry QuadP <$> xs
 
 smoothQuadStep :: Point Double -> State PathCursor (PathData Double)
 smoothQuadStep x2 = do

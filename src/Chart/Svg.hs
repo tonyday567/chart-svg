@@ -26,7 +26,7 @@ import Control.Lens
 import Lucid.Base
 import NeatInterpolation
 import qualified Data.Text.Lazy as Lazy
-import Chart.Data as CD
+import Chart.Data
 import GHC.Generics
 import Data.Semigroup
 import Data.Maybe
@@ -145,7 +145,7 @@ renderChartsWith so cs =
           (so ^. #chartFrame)
     cs'' =
       foldMap (\c -> [RectChart (blob c) (rect' :| [])]) (so ^. #background) <> cs'
-    Point w h = CD.width rect'
+    Point w h = width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
     penult = case so ^. #chartAspect of
       FixedAspect _ -> styleBoxes cs
@@ -224,7 +224,7 @@ svgShape_ CircleGlyph s (Point x y) =
 svgShape_ SquareGlyph s p =
   svgRect_ (move p ((s *) <$> one))
 svgShape_ (RectSharpGlyph x') s p =
-  svgRect_ (move p (CD.scale (Point s (x' * s)) one))
+  svgRect_ (move p (scale (Point s (x' * s)) one))
 svgShape_ (RectRoundedGlyph x' rx ry) s p =
   terms
     "rect"
@@ -236,7 +236,7 @@ svgShape_ (RectRoundedGlyph x' rx ry) s p =
       term "ry" (pack $ show ry)
     ]
   where
-    (Rect x z y w) = move p (CD.scale (Point s (x' * s)) one)
+    (Rect x z y w) = move p (scale (Point s (x' * s)) one)
 svgShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   terms
     "polygon"

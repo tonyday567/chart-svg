@@ -73,7 +73,7 @@ import Prelude
 import Control.Lens
 import Text.HTML.TagSoup (maybeTagText, parseTags)
 import Data.Path
-import Chart.Data as CD
+import Chart.Data
 import Data.Path.Parser
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List as List
@@ -308,11 +308,11 @@ styleBoxGlyph s = move p' $
   sw $ case sh of
     CircleGlyph -> (sz *) <$> one
     SquareGlyph -> (sz *) <$> one
-    EllipseGlyph a -> CD.scale (Point sz (a * sz)) one
-    RectSharpGlyph a -> CD.scale (Point sz (a * sz)) one
-    RectRoundedGlyph a _ _ -> CD.scale (Point sz (a * sz)) one
-    VLineGlyph -> CD.scale (Point ((s ^. #borderSize) * sz) sz) one
-    HLineGlyph -> CD.scale (Point sz ((s ^. #borderSize) * sz)) one
+    EllipseGlyph a -> scale (Point sz (a * sz)) one
+    RectSharpGlyph a -> scale (Point sz (a * sz)) one
+    RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
+    VLineGlyph -> scale (Point ((s ^. #borderSize) * sz) sz) one
+    HLineGlyph -> scale (Point sz ((s ^. #borderSize) * sz)) one
     TriangleGlyph a b c -> (sz *) <$> space1 ([a,b,c] :: NonEmpty (Point Double))
     PathGlyph path' _ -> (sz *) <$> (pathBoxes . svgToPathData $ path')
   where
