@@ -22,7 +22,7 @@ import Chart.Svg
 import Chart.Primitive
 import Chart.Style
 import Chart.Hud
-import Control.Lens
+import Optics.Core
 import Data.Bifunctor
 import Data.Bool
 import Data.Colour
@@ -40,11 +40,6 @@ import Data.Foldable
 
 -- $setup
 --
--- >>> :set -XOverloadedLabels
--- >>> :set -XOverloadedStrings
--- >>> import Chart
--- >>> import Control.Lens
--- >>> import Data.Text (pack)
 
 -- | Typical bar chart options.
 --
@@ -86,7 +81,7 @@ defaultBarOptions =
     ( defaultHudOptions
         & #hudAxes
           .~ [ defaultAxisOptions
-                 & #axisTick . #ltick .~ Nothing,
+                 & #axisTick % #ltick .~ Nothing,
                defaultAxisOptions & #place .~ PlaceLeft
              ]
         & #hudTitles .~ []
@@ -96,7 +91,7 @@ defaultBarOptions =
                  & #lsize .~ 0.12
                  & #vgap .~ 0.4
                  & #hgap .~ 0.14
-                 & #ltext . #size .~ 0.12
+                 & #ltext % #size .~ 0.12
                  & #lscale .~ 0.4,
                []
              )
@@ -205,7 +200,7 @@ barTicks bd
 
 tickFirstAxis :: BarData -> [AxisOptions] -> [AxisOptions]
 tickFirstAxis _ [] = []
-tickFirstAxis bd (x : xs) = (x & #axisTick . #tstyle .~ barTicks bd) : xs
+tickFirstAxis bd (x : xs) = (x & #axisTick % #tstyle .~ barTicks bd) : xs
 
 -- | bar legend
 barLegend :: BarData -> BarOptions -> [(Chart Double, Text)]
@@ -224,8 +219,8 @@ barChart :: BarOptions -> BarData -> ChartSvg
 barChart bo bd =
   mempty
     & #hudOptions .~ bo ^. #barHudOptions
-    & #hudOptions . #hudLegend %~ fmap (second (const (barLegend bd bo)))
-    & #hudOptions . #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo)
+    & #hudOptions % #hudLegend %~ fmap (second (const (barLegend bd bo)))
+    & #hudOptions % #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo)
     & #chartTree .~ toList (bars bo bd) <> bool [] (toList $ barTextCharts bo bd) (bo ^. #displayValues)
 
 flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]

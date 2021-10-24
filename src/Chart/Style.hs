@@ -64,7 +64,7 @@ import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics
 import Prelude
-import Control.Lens
+import Optics.Core
 import Text.HTML.TagSoup (maybeTagText, parseTags)
 import Data.Path
 import Chart.Data
@@ -75,11 +75,6 @@ import Data.Foldable
 
 -- $setup
 --
--- >>> :set -XOverloadedLabels
--- >>> import Control.Lens
--- >>> import Chart
--- >>> import Chart.Render
--- >>> import Data.Colour
 
 -- | Rectangle styling
 --

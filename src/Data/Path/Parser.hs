@@ -16,7 +16,7 @@ module Data.Path.Parser
 where
 
 import Data.Path
-import Control.Lens hiding ((...), (<|))
+import Optics.Core hiding ((<|))
 import qualified Data.Attoparsec.Text as A
 import Data.Either
 import Data.FormatN
@@ -32,6 +32,7 @@ import Data.Scientific (toRealFloat)
 import Data.List.NonEmpty (NonEmpty (..), last, head, tail, (<|))
 import GHC.OverloadedLabels
 import Control.Monad.State.Lazy
+import Data.Bifunctor
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.

@@ -53,9 +53,9 @@ module Chart.Hud
   )
 where
 
+import Optics.Core
 import Chart.Primitive
 import Chart.Style
-import Control.Lens
 import Control.Monad.State.Lazy
 import Data.Bifunctor
 import Data.Bool
@@ -70,6 +70,7 @@ import GHC.Generics
 import Prelude
 import Data.Path
 import Chart.Data
+import Data.Functor.Identity
 
 -- * Hud
 -- | Dimensions that are tracked in the 'HudT':
@@ -110,8 +111,8 @@ simulHud (Hud fa) (Hud fb) = Hud $ \cs -> do
 -- | Project the chart data given the ChartAspect
 chartAspectHud :: (Monad m) => ChartAspect -> HudT m Double
 chartAspectHud fa = Hud $ \cs -> do
-  canvasd <- use #canvasDim
-  chartd <- use #chartDim
+  canvasd <- gets (view #canvasDim)
+  chartd <- gets (view #chartDim)
   case fa of
     FixedAspect a -> pure $ projectCharts (aspect a) cs
     CanvasAspect a ->
@@ -189,11 +190,11 @@ colourHudOptions :: Colour -> HudOptions -> HudOptions
 colourHudOptions c ho =
   ho
     & #hudCanvas %~ fmap (#color %~ mix c)
-    & #hudTitles %~ fmap (#style . #color %~ mix c)
-    & #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ mix c))
-    & #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ mix c) . (#borderColor %~ mix c))))
-    & #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ mix c)))
-    & #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ mix c)))
+    & #hudTitles %~ fmap (#style % #color %~ mix c)
+    & #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle % #color %~ mix c))
+    & #hudAxes %~ fmap (#axisTick % #gtick %~ fmap (first ((#color %~ mix c) . (#borderColor %~ mix c))))
+    & #hudAxes %~ fmap (#axisTick % #ttick %~ fmap (first (#color %~ mix c)))
+    & #hudAxes %~ fmap (#axisTick % #ltick %~ fmap (first (#color %~ mix c)))
     & #hudLegend %~ fmap (first (#ltext %~ (#color %~ mix c)))
     & #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ mix c) . (#borderColor %~ mix c))))
 
@@ -202,11 +203,11 @@ scaleOpacHudOptions :: HudOptions -> Double -> HudOptions
 scaleOpacHudOptions ho o =
   ho
     & #hudCanvas %~ fmap (#color %~ scaleOpac o)
-    & #hudTitles %~ fmap (#style . #color %~ scaleOpac o)
-    & #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle . #color %~ scaleOpac o))
-    & #hudAxes %~ fmap (#axisTick . #gtick %~ fmap (first ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o))))
-    & #hudAxes %~ fmap (#axisTick . #ttick %~ fmap (first (#color %~ scaleOpac o)))
-    & #hudAxes %~ fmap (#axisTick . #ltick %~ fmap (first (#color %~ scaleOpac o)))
+    & #hudTitles %~ fmap (#style % #color %~ scaleOpac o)
+    & #hudAxes %~ fmap (#axisBar %~ fmap (#rstyle % #color %~ scaleOpac o))
+    & #hudAxes %~ fmap (#axisTick % #gtick %~ fmap (first ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o))))
+    & #hudAxes %~ fmap (#axisTick % #ttick %~ fmap (first (#color %~ scaleOpac o)))
+    & #hudAxes %~ fmap (#axisTick % #ltick %~ fmap (first (#color %~ scaleOpac o)))
     & #hudLegend %~ fmap (first (#ltext %~ (#color %~ scaleOpac o)))
     & #hudLegend %~ fmap (first (#legendFrame %~ fmap ((#color %~ scaleOpac o) . (#borderColor %~ scaleOpac o))))
     & #hudLegend %~ fmap (second (fmap (first (scaleOpacStyle o))))
@@ -425,11 +426,11 @@ makeHud xs cfg =
     can = foldMap (\x -> [canvas x]) (cfg ^. #hudCanvas)
     titles = title <$> (cfg ^. #hudTitles)
     ticks =
-      (\a -> freezeTicks (a ^. #place) xs' (a ^. #axisTick . #tstyle))
+      (\a -> freezeTicks (a ^. #place) xs' (a ^. #axisTick % #tstyle))
         <$> (cfg ^. #hudAxes)
     hudaxes =
       zipWith
-        (\c t -> c & #axisTick . #tstyle .~ fst t)
+        (\c t -> c & #axisTick % #tstyle .~ fst t)
         (cfg ^. #hudAxes)
         ticks
     tickRects = catMaybes (snd <$> ticks)
@@ -470,9 +471,9 @@ flipAxis ac = case ac ^. #place of
 -- | Make a canvas hud element.
 canvas :: (Monad m) => RectStyle -> HudT m Double
 canvas s = Hud $ \cs -> do
-  a <- use #canvasDim
+  a <- gets (view #canvasDim)
   let c = RectChart s (a:|[])
-  #canvasDim .= a <> sbox c
+  modify (set #canvasDim (a <> sbox c))
   pure $ c : cs
 
 axisBar_ :: Place -> AxisBar -> Rect Double -> Rect Double -> Chart Double
@@ -526,10 +527,10 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
 
 makeAxisBar :: (Monad m) => Place -> AxisBar -> HudT m Double
 makeAxisBar pl b = Hud $ \cs -> do
-  da <- use #chartDim
-  ca <- use #canvasDim
+  da <- gets (view #chartDim)
+  ca <- gets (view #canvasDim)
   let c = axisBar_ pl b ca da
-  #chartDim .= da <> sbox c
+  modify (set #chartDim (da <> sbox c))
   pure $ c : cs
 
 title_ :: Title -> Rect Double -> Chart Double
@@ -544,7 +545,7 @@ title_ t a =
       | t ^. #anchor == AnchorEnd =
         #anchor .~ AnchorEnd $ t ^. #style
       | otherwise = t ^. #style
-    rot' = fromMaybe 0 (t ^. #style . #rotation)
+    rot' = fromMaybe 0 (t ^. #style % #rotation)
     rot
       | t ^. #place == PlaceRight = pi / 2 + rot'
       | t ^. #place == PlaceLeft = pi / 2 + rot'
@@ -558,8 +559,8 @@ placePosTitle t (Rect x z y w) = case t ^. #place of
           ((x + z) / 2.0)
           ( y - (t ^. #buff)
               - 0.5
-              * (t ^. #style . #vsize)
-              * (t ^. #style . #size)
+              * (t ^. #style % #vsize)
+              * (t ^. #style % #size)
           )
       PlaceLeft -> Point (x - (t ^. #buff)) ((y + w) / 2.0)
       PlaceRight -> Point (z + (t ^. #buff)) ((y + w) / 2.0)
@@ -590,9 +591,9 @@ alignPosTitle t (Rect x z y w)
 -- | Add a title to a chart.
 title :: (Monad m) => Title -> HudT m Double
 title t = Hud $ \cs -> do
-  ca <- use #chartDim
+  ca <- gets (view #chartDim)
   let c = title_ t ca
-  #chartDim .= ca <> sbox c
+  modify (set #chartDim (ca <> sbox c))
   pure $ c : cs
 
 placePos :: Place -> Double -> Rect Double -> Point Double
@@ -719,11 +720,11 @@ tickGlyph ::
   TickStyle ->
   HudT m Double
 tickGlyph pl (g, b) ts = Hud $ \cs -> do
-  ca <- use #chartDim
-  d <- use #canvasDim
-  xs <- use #dataDim
+  ca <- gets (view #chartDim)
+  d <- gets (view #canvasDim)
+  xs <- gets (view #dataDim)
   let c = tickGlyph_ pl (g, b) ts ca d xs
-  #chartDim .= maybe ca ((ca <>) . sbox) c
+  modify (set #chartDim (maybe ca ((ca <>) . sbox) c))
   pure $ maybeToList c <> cs
 
 tickText_ ::
@@ -753,11 +754,11 @@ tickText ::
   TickStyle ->
   HudT m Double
 tickText pl (txts, b) ts = Hud $ \cs -> do
-  ca <- use #chartDim
-  da <- use #canvasDim
-  xs <- use #dataDim
+  ca <- gets (view #chartDim)
+  da <- gets (view #canvasDim)
+  xs <- gets (view #dataDim)
   let c = tickText_ pl (txts, b) ts ca da xs
-  #chartDim .= maybe ca ((ca <>) . sbox) c
+  modify (set #chartDim (maybe ca ((ca <>) . sbox) c))
   pure $ maybeToList c <> cs
 
 -- | aka grid lines
@@ -768,14 +769,14 @@ tickLine ::
   TickStyle ->
   HudT m Double
 tickLine pl (ls, b) ts = Hud $ \cs -> do
-  da <- use #canvasDim
-  xs <- use #dataDim
-  ca <- use #chartDim
+  da <- gets (view #canvasDim)
+  xs <- gets (view #dataDim)
+  ca <- gets (view #chartDim)
   let l = (\x -> placeGridLines pl da x b) <$> positions (ticksPlaced ts pl da xs)
   let c = case l of
         [] -> Nothing
         l' -> Just $ LineChart ls $ fromList l'
-  #chartDim .= maybe ca ((ca <>) . sbox) c
+  modify (set #chartDim (maybe ca ((ca <>) . sbox) c))
   pure $ maybeToList c <> cs
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
@@ -831,7 +832,7 @@ tickExtended pl t xs =
 
 extendData :: (Monad m) => Place -> Tick -> HudT m Double
 extendData pl t = Hud $ \cs -> do
-  #dataDim %= tickExtended pl t
+  modify (over #dataDim (tickExtended pl t))
   pure cs
 
 -- | adjust Tick for sane font sizes etc
@@ -849,18 +850,18 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
         ( case adjustSizeX > 1 of
             True ->
               ( case pl of
-                  PlaceBottom -> #ttick . _Just . _1 . #anchor .~ AnchorEnd
-                  PlaceTop -> #ttick . _Just . _1 . #anchor .~ AnchorStart
-                  _ -> #ttick . _Just . _1 . #anchor .~ AnchorEnd
+                  PlaceBottom -> #ttick % _Just % _1 % #anchor .~ AnchorEnd
+                  PlaceTop -> #ttick % _Just % _1 % #anchor .~ AnchorStart
+                  _ -> #ttick % _Just % _1 % #anchor .~ AnchorEnd
               )
-                . (#ttick . _Just . _1 . #size %~ (/ adjustSizeA))
-                $ (#ttick . _Just . _1 . #rotation ?~ pi / 4) t
-            False -> (#ttick . _Just . _1 . #size %~ (/ adjustSizeA)) t
+                . (#ttick % _Just % _1 % #size %~ (/ adjustSizeA))
+                $ (#ttick % _Just % _1 % #rotation ?~ pi / 4) t
+            False -> (#ttick % _Just % _1 % #size %~ (/ adjustSizeA)) t
         )
-      else t & #ttick . _Just . _1 . #size %~ (/ adjustSizeX)
+      else t & #ttick % _Just % _1 % #size %~ (/ adjustSizeX)
   | otherwise -- pl `elem` [PlaceLeft, PlaceRight]
     =
-    (#ttick . _Just . _1 . #size %~ (/ adjustSizeY)) t
+    (#ttick % _Just % _1 % #size %~ (/ adjustSizeY)) t
   where
     max' [] = 1
     max' xs = maximum xs
@@ -898,8 +899,8 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
 
 makeTick :: (Monad m) => AxisOptions -> HudT m Double
 makeTick c = Hud $ \cs -> do
-  vb <- use #chartDim
-  xs <- use #dataDim
+  vb <- gets (view #chartDim)
+  xs <- gets (view #dataDim)
   let adjTick =
         maybe
           (c ^. #axisTick)
@@ -910,9 +911,9 @@ makeTick c = Hud $ \cs -> do
 -- | Make a legend hud element taking into account the chart.
 legendHud :: LegendOptions -> [Chart Double] -> Hud Double
 legendHud l lcs = Hud $ \cs -> do
-  ca <- use #chartDim
+  ca <- gets (view #chartDim)
   let cs' = place' ca (scaleChart (l ^. #lscale) <$> lcs) <> cs
-  #chartDim .= styleBoxes cs'
+  modify (set #chartDim (styleBoxes cs'))
   pure cs'
   where
     place' ca xs = moveChart (placel (l ^. #lplace) ca (styleBoxes xs)) <$> xs

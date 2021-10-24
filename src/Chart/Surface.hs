@@ -27,7 +27,7 @@ where
 import Chart.Primitive
 import Chart.Style
 import Chart.Hud
-import Control.Lens
+import Optics.Core
 import Data.Bifunctor
 import Data.Colour
 import Data.FormatN
@@ -109,12 +109,12 @@ mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (blends y cs)) <$> ps', spac
 -- | create a surface chart from a function.
 surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart Double], Range Double)
 surfacef f cfg =
-  first (surfaces (cfg ^. #soStyle . #surfaceRectStyle)) $
+  first (surfaces (cfg ^. #soStyle % #surfaceRectStyle)) $
     mkSurfaceData
       f
       (cfg ^. #soRange)
       (cfg ^. #soGrain)
-      (toList $ cfg ^. #soStyle . #surfaceColors)
+      (toList $ cfg ^. #soStyle % #surfaceColors)
 
 -- | Create a surface chart and accompanying legend from a function.
 surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart Double], [Hud Double])
@@ -163,24 +163,24 @@ surfaceLegendOptions =
     & #hgap .~ 0.01
     & #innerPad .~ 0.05
     & #outerPad .~ 0.02
-    & #ltext . #hsize .~ 0.5
+    & #ltext % #hsize .~ 0.5
     & #legendFrame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
 surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> [Chart Double]
 surfaceLegendChart dataRange l =
-  padChart (l ^. #sloLegendOptions . #outerPad)
-    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions . #innerPad)) (l ^. #sloLegendOptions . #legendFrame)
+  padChart (l ^. #sloLegendOptions % #outerPad)
+    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #legendFrame)
     $ hs
   where
     a = makeSurfaceTick l pchart
     pchart
-      | l ^. #sloLegendOptions . #lplace == PlaceBottom
-          || l ^. #sloLegendOptions . #lplace == PlaceTop =
+      | l ^. #sloLegendOptions % #lplace == PlaceBottom
+          || l ^. #sloLegendOptions % #lplace == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
-    t = TextChart (l ^. #sloLegendOptions . #ltext & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
-    hs = vert (l ^. #sloLegendOptions . #vgap) [a, [t]]
+    t = TextChart (l ^. #sloLegendOptions % #ltext & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
+    hs = vert (l ^. #sloLegendOptions % #vgap) [a, [t]]
     vertGlyph :: [Chart Double]
     vertGlyph =
       zipWith
@@ -190,7 +190,7 @@ surfaceLegendChart dataRange l =
               dataRange
               (l ^. #sloResolution)
         )
-        ( (\x -> blends x (toList $ l ^. #sloStyle . #surfaceColors))
+        ( (\x -> blends x (toList $ l ^. #sloStyle % #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
     horiGlyph :: [Chart Double]
@@ -202,20 +202,20 @@ surfaceLegendChart dataRange l =
               dataRange
               (l ^. #sloResolution)
         )
-        ( (\x -> blends x (toList $ l ^. #sloStyle . #surfaceColors))
+        ( (\x -> blends x (toList $ l ^. #sloStyle % #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
 
 isHori :: SurfaceLegendOptions -> Bool
 isHori l =
-  l ^. #sloLegendOptions . #lplace == PlaceBottom
-    || l ^. #sloLegendOptions . #lplace == PlaceTop
+  l ^. #sloLegendOptions % #lplace == PlaceBottom
+    || l ^. #sloLegendOptions % #lplace == PlaceTop
 
 makeSurfaceTick :: SurfaceLegendOptions -> [Chart Double] -> [Chart Double]
 makeSurfaceTick l pchart = phud
   where
     r = styleBoxes pchart
-    r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions . #lsize)) (Rect 0 (l ^. #sloLegendOptions . #lsize) 0 (l ^. #sloWidth)) (isHori l)
+    r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #lsize)) (Rect 0 (l ^. #sloLegendOptions % #lsize) 0 (l ^. #sloWidth)) (isHori l)
     (hs, _) =
       makeHud
         r

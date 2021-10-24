@@ -22,7 +22,7 @@ import qualified Data.Text as Text
 import Prelude
 import Lucid
 import Data.List.NonEmpty (NonEmpty(..))
-import Control.Lens
+import Optics.Core
 import Lucid.Base
 import NeatInterpolation
 import qualified Data.Text.Lazy as Lazy

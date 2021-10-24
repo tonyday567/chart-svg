@@ -30,7 +30,7 @@ import Data.Path
 import Data.Text (Text)
 import Prelude
 import Data.List.NonEmpty (NonEmpty(..))
-import Control.Lens
+import Optics.Core
 import Chart.Data
 import Data.Foldable
 import Data.Semigroup

@@ -51,7 +51,6 @@ module Chart.Examples
 where
 
 import Chart
-import Control.Lens
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import Data.List.NonEmpty (NonEmpty, fromList)
@@ -60,10 +59,12 @@ import Data.Time
 import Data.Bool
 import Prelude hiding (abs)
 import Data.Bifunctor
+import Data.Function
+import Optics.Core
 
 -- $setup
 -- >>> import Chart
--- >>> import Control.Lens
+-- >>> import Optics.Core
 --
 
 -- | unit example
@@ -80,7 +81,7 @@ hudOptionsExample =
   mempty
     & #hudOptions .~ colourHudOptions dark defaultHudOptions
     & #chartTree .~ [BlankChart [one]]
-    & #svgOptions . #cssOptions . #preferColorScheme .~ PreferLight
+    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferLight
 
 -- | 'HudOptions' PreferDark example
 --
@@ -90,8 +91,8 @@ hudOptionsDarkExample =
   mempty
     & #hudOptions .~ colourHudOptions light defaultHudOptions
     & #chartTree .~ [BlankChart [one]]
-    & #svgOptions . #cssOptions . #preferColorScheme .~ PreferDark
-    & #svgOptions . #background .~ Just dark
+    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
+    & #svgOptions % #background .~ Just dark
 
 -- | 'SvgOptions' example.
 --
@@ -109,7 +110,7 @@ rectExample :: ChartSvg
 rectExample =
   mempty
     & #hudOptions .~ (defaultHudOptions &
-                      #hudAxes .~ [defaultAxisOptions & #axisTick . #ltick .~ Nothing] &
+                      #hudAxes .~ [defaultAxisOptions & #axisTick % #ltick .~ Nothing] &
                       #hudCanvas .~ Nothing)
     & #chartTree .~ zipWith RectChart ropts rss
 
@@ -139,7 +140,7 @@ ropts =
 -- >>> xs
 -- [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0],[Point 0.0 0.0,Point 3.2 3.0],[Point 0.5 4.0,Point 0.5 0.0]]
 --
--- >>> let anns = zipWith (\w c -> LineA (defaultLineStyle & #size .~ w & #color .~ palette1 c)) [0.015, 0.03, 0.01] [0..2]
+-- >>> let anns = zipWith (\w c -> LineA (defaultLineStyle & #size .~ w % #color .~ palette1 c)) [0.015, 0.03, 0.01] [0..2]
 -- >>> anns
 -- [LineA (LineStyle {size = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {size = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing})]
 --
@@ -153,7 +154,7 @@ ropts =
 lineExample :: ChartSvg
 lineExample =
   mempty
-    & #svgOptions . #chartAspect
+    & #svgOptions % #chartAspect
     .~ CanvasAspect 1.5
     & #hudOptions
     .~ exampleLineHudOptions
@@ -185,12 +186,12 @@ exampleLineHudOptions t1 t2 legends' =
   defaultHudOptions
     & #hudTitles
       .~ ( [ defaultTitle t1
-               & #style . #size .~ 0.08
+               & #style % #size .~ 0.08
            ]
              <> foldMap
                ( \x ->
                    [ defaultTitle x
-                       & #style . #size .~ 0.05
+                       & #style % #size .~ 0.05
                        & #place .~ PlaceBottom
                        & #anchor .~ AnchorEnd
                    ]
@@ -198,7 +199,7 @@ exampleLineHudOptions t1 t2 legends' =
                t2
          )
     & #hudLegend .~ legends'
-    & #hudAxes %~ fmap (#axisTick . #tstyle .~ TickRound (FormatFixed (Just 1)) 8 TickExtend)
+    & #hudAxes %~ fmap (#axisTick % #tstyle .~ TickRound (FormatFixed (Just 1)) 8 TickExtend)
 
 -- | text example
 --
@@ -211,8 +212,8 @@ textExample textColour =
        (defaultTextStyle & (#color .~ textColour) & (#size .~ (0.05 :: Double)))
        ts] &
     #hudOptions .~ colourHudOptions (bool dark light (textColour==light)) defaultHudOptions &
-    #svgOptions . #cssOptions . #preferColorScheme .~ bool PreferLight PreferDark (textColour==light) &
-    #svgOptions . #background .~ Just (bool light dark (textColour==light))
+    #svgOptions % #cssOptions % #preferColorScheme .~ bool PreferLight PreferDark (textColour==light) &
+    #svgOptions % #background .~ Just (bool light dark (textColour==light))
   where
     ts :: NonEmpty (Text, Point Double)
     ts =
@@ -226,7 +227,7 @@ textExample textColour =
 glyphsExample :: ChartSvg
 glyphsExample =
   mempty
-    & #svgOptions . #svgHeight
+    & #svgOptions % #svgHeight
     .~ 50
       & #chartTree
     .~ zipWith
@@ -369,7 +370,7 @@ legendExample =
                   & #lscale .~ 0.3
                   & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
                   & #lsize .~ 0.12
-                  & #ltext . #size .~ 0.16,
+                  & #ltext % #size .~ 0.16,
                 l1
               )
        )
@@ -535,7 +536,7 @@ checkFlags :: Bool -> Bool -> Colour -> ChartSvg
 checkFlags large' sweep co =
   mempty
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions . #chartAspect .~ UnadjustedAspect
+    & #svgOptions % #chartAspect .~ UnadjustedAspect
     & #chartTree .~ [c1, c2, ell, arc1]
   where
     c = Point 1.0 1.0
@@ -589,7 +590,7 @@ surfaceExample c =
   mempty
     & #hudList .~ hs
     & #chartTree .~ cs
-    & #svgOptions .~ (defaultSvgOptions & #cssOptions . #shapeRendering .~ UseCssCrisp)
+    & #svgOptions .~ (defaultSvgOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
   where
     t = "rosenbrock"
     grain = Point 20 20
@@ -601,13 +602,13 @@ surfaceExample c =
         ( defaultSurfaceOptions
             & #soGrain .~ grain
             & #soRange .~ r
-            & #soStyle . #surfaceColors .~ (palette1 <$> [0 .. 5])
+            & #soStyle % #surfaceColors .~ (palette1 <$> [0 .. 5])
         )
         ( defaultSurfaceLegendOptions c t
-            & #sloStyle . #surfaceColors .~ (palette1 <$> [0 .. 5])
-            & #sloLegendOptions . #ltext . #color .~ c
+            & #sloStyle % #surfaceColors .~ (palette1 <$> [0 .. 5])
+            & #sloLegendOptions % #ltext % #color .~ c
             & #sloAxisOptions .~ surfaceAxisOptions c
-            & #sloLegendOptions . #legendFrame %~ fmap (#borderColor .~ c)
+            & #sloLegendOptions % #legendFrame %~ fmap (#borderColor .~ c)
         )
 
 -- | arrow example
@@ -618,7 +619,7 @@ surfaceExample c =
 arrowExample :: Colour -> ChartSvg
 arrowExample arrowColour =
   mempty
-    & #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#axisTick . #ltick .~ Nothing))
+    & #hudOptions .~ (defaultHudOptions & #hudAxes %~ fmap (#axisTick % #ltick .~ Nothing))
     & #chartTree .~ ((\p -> chart (tail' . f $ p) (angle . f $ p) p) <$> ps)
     & #svgOptions .~ defaultSvgOptions
   where
@@ -657,9 +658,9 @@ rosenbrock a b (Point x y) = (a ** 2 - 2 * a * x + x ** 2 + b * y ** 2 - b * 2 *
 dateExample :: ChartSvg
 dateExample = mempty &
   #chartTree .~ [BlankChart [Rect 0 1 0 1]] &
-  #hudOptions . #hudAxes .~
-  [ defaultAxisOptions & #place .~ PlaceLeft & #axisTick . #tstyle .~ TickPlaced tsTime,
-    defaultAxisOptions & #axisTick . #tstyle .~ TickPlaced tsDate
+  #hudOptions % #hudAxes .~
+  [ defaultAxisOptions & #place .~ PlaceLeft & #axisTick % #tstyle .~ TickPlaced tsTime,
+    defaultAxisOptions & #axisTick % #tstyle .~ TickPlaced tsDate
   ]
   where
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
@@ -705,7 +706,7 @@ dateExample = mempty &
 --
 -- Add some titles.
 --
--- >   set (#hudOptions . #hudLegend)
+-- >   set (#hudOptions % #hudLegend)
 -- >     (Just (lineLegend 0.01
 -- >      ["xify", "yify", "addLineX", "addLineY"]
 -- >      [ (palette1 8, Nothing),
@@ -715,7 +716,7 @@ dateExample = mempty &
 --
 -- Add a legend, reusing the chosen line styles.
 --
--- >   over (#hudOptions . #hudLegend)
+-- >   over (#hudOptions % #hudLegend)
 -- >     (fmap (first
 -- >       ( set #lscale 0.4 .
 -- >         set #vgap 0.3 .
@@ -727,13 +728,13 @@ dateExample = mempty &
 --
 -- Fix up the legend a bit.
 --
--- >   over (#hudOptions . #hudAxes)
+-- >   over (#hudOptions % #hudAxes)
 -- >     (fmap
--- >       (set (#axisTick . #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))) &
+-- >       (set (#axisTick % #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))) &
 --
 -- Stop the axes from extending past the data ranges.
 --
--- >   set (#svgOptions . #chartAspect) (CanvasAspect 1.5)
+-- >   set (#svgOptions % #chartAspect) (CanvasAspect 1.5)
 --
 -- Rescale the chart so that the canvas element is a pleasant ratio.
 --
@@ -757,14 +758,14 @@ subChartExample =
      set #dasharray (Just [0.01]))) &
   over #hudOptions
     (<> titlesHud "subchart example" "x axis title" "y axis title") &
-  set (#hudOptions . #hudLegend)
+  set (#hudOptions % #hudLegend)
     (Just (lineLegend 0.01
      ["xify", "yify", "addLineX", "addLineY"]
      [ (palette1 8, Nothing),
        (palette1 5, Nothing),
        (setOpac 0.3 $ palette1 8, Just [0.01]),
        (setOpac 0.3 $ palette1 5, Just [0.04, 0.01])])) &
-  over (#hudOptions . #hudLegend)
+  over (#hudOptions % #hudLegend)
     (fmap (first
       ( set #lscale 0.4 .
         set #vgap 0.3 .
@@ -773,10 +774,10 @@ subChartExample =
           (fmap
            (set #color (Colour 1 1 1 1) .
             set #borderColor (setOpac 0.1 dark)))))) &
-  over (#hudOptions . #hudAxes)
+  over (#hudOptions % #hudAxes)
     (fmap
-      (set (#axisTick . #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))) &
-  set (#svgOptions . #chartAspect) (CanvasAspect 1.5)
+      (set (#axisTick % #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))) &
+  set (#svgOptions % #chartAspect) (CanvasAspect 1.5)
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 --
@@ -807,7 +808,7 @@ addLineY x ls' cs = cs <> [zeroLine]
 lineLegend :: Double -> [Text] -> [(Colour, Maybe [Double])]-> (LegendOptions, [(Chart Double, Text)])
 lineLegend w rs cs =
   ( defaultLegendOptions
-      & #ltext . #size .~ 0.1
+      & #ltext % #size .~ 0.1
       & #lplace .~ PlaceRight
       & #legendFrame .~ Just (RectStyle 0.02 (palette1 5) (setOpac 0.05 $ palette1 4)),
     zipWith
@@ -821,9 +822,9 @@ titlesHud :: Text -> Text -> Text -> HudOptions
 titlesHud t x y =
   defaultHudOptions
     & #hudTitles
-    .~ [ defaultTitle t & #style . #size .~ 0.08,
-         defaultTitle x & #place .~ PlaceBottom & #style . #size .~ 0.06,
-         defaultTitle y & #place .~ PlaceLeft & #style . #size .~ 0.06
+    .~ [ defaultTitle t & #style % #size .~ 0.08,
+         defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.06,
+         defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.06
        ]
 
 -- | /blendMidLineStyle n w/ produces n lines of size w interpolated between two colors.
@@ -908,7 +909,7 @@ writeAllExamplesDark = do
     (\x ->
        x &
        #hudOptions %~ colourHudOptions light &
-       #svgOptions . #cssOptions . #preferColorScheme .~ PreferDark
+       #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
     ) <$>
     pathChartSvg light
   putStrLn "dark version, ok"

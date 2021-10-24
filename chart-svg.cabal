@@ -57,14 +57,14 @@ library
   hs-source-dirs:     src
   build-depends:
     , attoparsec            >=0.13.2 && < 0.15
-    , base                  >=4.7     && <5
+    , base                  >=4.7 && <5
     , Color                 ^>=0.3
     , containers            ^>=0.6
     , cubicbezier           ^>=0.6
     , foldl                 ^>=1.4
-    , generic-lens          >=1.2     && <3.0
+    , generic-lens          >=1.2 && <3.0
     , neat-interpolation    ^>= 0.5.1
-    , lens                  >=5 && < 5.2
+    , optics-core           ^>=0.4
     , lucid                 ^>=2.9
     , mtl                   ^>=2.2.2
     , numhask               ^>=0.8
