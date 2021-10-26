@@ -6,3 +6,6 @@
 :set -XOverloadedLabels
 :set prompt |
 :set -Wno-type-defaults
+import Optics.Core
+import Data.Function (&)
+:set -XOverloadedLists

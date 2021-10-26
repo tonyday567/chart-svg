@@ -23,7 +23,6 @@ import Chart.Primitive
 import Chart.Style
 import Chart.Hud
 import Optics.Core
-import Data.Bifunctor
 import Data.Bool
 import Data.Colour
 import Data.FormatN
@@ -50,8 +49,8 @@ import Data.Foldable
 --
 -- ![bar chart example](other/bar.svg)
 data BarOptions = BarOptions
-  { barRectStyles :: NonEmpty RectStyle,
-    barTextStyles :: NonEmpty TextStyle,
+  { barRectStyles :: [RectStyle],
+    barTextStyles :: [TextStyle],
     outerGap :: Double,
     innerGap :: Double,
     textGap :: Double,
@@ -60,9 +59,33 @@ data BarOptions = BarOptions
     valueFormatN :: FormatN,
     accumulateValues :: Bool,
     barOrientation :: Orientation,
-    barHudOptions :: HudOptions
+    barLegendOptions :: LegendOptions
   }
   deriving (Show, Eq, Generic)
+
+-- | A bar chart.
+--
+barChart :: BarOptions -> BarData -> ChartSvg
+barChart bo bd =
+  mempty
+    & set #hudOptions (barHudOptions bo bd)
+    & set #chartTree (toList (bars bo bd) <>
+                      bool [] (toList $ barTextCharts bo bd) (view #displayValues bo))
+
+barHudOptions :: BarOptions -> BarData -> HudOptions
+barHudOptions bo bd =
+    mempty &
+    #axes .~
+      [ (1, axis1),
+        (1, axis2)
+      ] &
+    #legends .~
+      [ (10, o & #content .~ barLegendContent bo bd)
+      ]
+      where
+        o = view #barLegendOptions bo
+        axis1 = bool id flipAxis (barOrientation bo == Vert) (defaultAxisOptions & #axisTick % #ltick .~ Nothing & #axisTick % #tstyle .~ barTicks bd)
+        axis2 = bool id flipAxis (barOrientation bo == Hori) defaultAxisOptions
 
 -- | The official bar options.
 defaultBarOptions :: BarOptions
@@ -78,24 +101,13 @@ defaultBarOptions =
     (FormatComma (Just 2))
     False
     Hori
-    ( defaultHudOptions
-        & #hudAxes
-          .~ [ defaultAxisOptions
-                 & #axisTick % #ltick .~ Nothing,
-               defaultAxisOptions & #place .~ PlaceLeft
-             ]
-        & #hudTitles .~ []
-        & #hudLegend
-          ?~ ( defaultLegendOptions
+    (defaultLegendOptions
                  & #lplace .~ PlaceRight
                  & #lsize .~ 0.12
                  & #vgap .~ 0.4
                  & #hgap .~ 0.14
                  & #ltext % #size .~ 0.12
-                 & #lscale .~ 0.4,
-               []
-             )
-    )
+                 & #lscale .~ 0.4)
   where
     gs = (\x -> RectStyle 0.002 (palette1 x) (palette1 x)) <$> [0..9]
     ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.04) <$> [0..9]
@@ -109,8 +121,8 @@ defaultBarOptions =
 -- - maybe some column names
 data BarData = BarData
   { barData :: NonEmpty (NonEmpty Double),
-    barRowLabels :: Maybe (NonEmpty Text),
-    barColumnLabels :: Maybe (NonEmpty Text)
+    barRowLabels :: [Text],
+    barColumnLabels :: [Text]
   }
   deriving (Show, Eq, Generic)
 
@@ -172,7 +184,7 @@ barRange ys'@(y :| ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0
 -- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.69 0.35 0.16 1.00, color = Colour 0.69 0.35 0.16 1.00}), xys = [R 5.0e-2 0.45 0.0 1.0,R 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.65 0.81 0.89 1.00}), xys = [R 0.45 0.8500000000000001 0.0 2.0,R 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, xys = [R -5.0e-2 1.9500000000000002 0.0 3.0]}]
 bars :: BarOptions -> BarData -> NonEmpty (Chart Double)
 bars bo bd =
-  NonEmpty.zipWith (\o d -> RectChart o d) (bo ^. #barRectStyles) (barRects bo (bd ^. #barData)) <> [BlankChart [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]
+  NonEmpty.zipWith (\o d -> RectChart o d) (fromList (bo ^. #barRectStyles <> repeat defaultRectStyle)) (barRects bo (bd ^. #barData)) <> [BlankChart [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]
   where
     (Rect x z y w) = foldRectUnsafe $ foldRectUnsafe <$> barRects bo (bd ^. #barData)
 
@@ -191,40 +203,22 @@ accRows xs = fmap fromList $ fromList $ transpose $ drop 1 . scanl' (+) 0 <$> tr
 barTicks :: BarData -> TickStyle
 barTicks bd
   | null (bd ^. #barData) = TickNone
-  | isNothing (bd ^. #barRowLabels) =
+  | null (bd ^. #barRowLabels) =
     TickLabels $ pack . show <$> [0 .. (maxRows (bd ^. #barData) - 1)]
   | otherwise =
     TickLabels $
       take (maxRows (bd ^. #barData)) $
-        foldMap toList (bd ^. #barRowLabels) <> repeat ""
-
-tickFirstAxis :: BarData -> [AxisOptions] -> [AxisOptions]
-tickFirstAxis _ [] = []
-tickFirstAxis bd (x : xs) = (x & #axisTick % #tstyle .~ barTicks bd) : xs
+        (bd ^. #barRowLabels) <> repeat ""
 
 -- | bar legend
-barLegend :: BarData -> BarOptions -> [(Chart Double, Text)]
-barLegend bd bo
+barLegendContent :: BarOptions -> BarData -> [(Text, Chart Double)]
+barLegendContent bo bd
   | null (bd ^. #barData) = []
-  | isNothing (bd ^. #barColumnLabels) = []
+  | null (bd ^. #barColumnLabels) = []
   | otherwise =
-    zip ((\s -> RectChart s [one]) <$> toList (bo ^. #barRectStyles)) $
-    take (length (bd ^. #barData)) $
-    foldMap toList (bd ^. #barColumnLabels) <> repeat ""
-
--- | A bar chart.
---
--- By convention only, the first axis (if any) is the bar axis.
-barChart :: BarOptions -> BarData -> ChartSvg
-barChart bo bd =
-  mempty
-    & #hudOptions .~ bo ^. #barHudOptions
-    & #hudOptions % #hudLegend %~ fmap (second (const (barLegend bd bo)))
-    & #hudOptions % #hudAxes %~ tickFirstAxis bd . flipAllAxes (barOrientation bo)
-    & #chartTree .~ toList (bars bo bd) <> bool [] (toList $ barTextCharts bo bd) (bo ^. #displayValues)
-
-flipAllAxes :: Orientation -> [AxisOptions] -> [AxisOptions]
-flipAllAxes o = fmap (bool id flipAxis (o == Vert))
+    zip
+    (view #barColumnLabels bd <> repeat "")
+    ((\s -> RectChart s [one]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
 
 barDataTP :: Bool -> FormatN -> Double -> Double -> NonEmpty (NonEmpty Double) -> NonEmpty (NonEmpty (Text, Double))
 barDataTP add fn d negd bs =
@@ -261,4 +255,4 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = NonEmpty
 -- | text, hold the bars
 barTextCharts :: BarOptions -> BarData -> NonEmpty (Chart Double)
 barTextCharts bo bd =
-  NonEmpty.zipWith TextChart (bo ^. #barTextStyles) (barTexts bo (bd ^. #barData))
+  NonEmpty.zipWith TextChart (fromList $ bo ^. #barTextStyles <> repeat defaultTextStyle) (barTexts bo (bd ^. #barData))

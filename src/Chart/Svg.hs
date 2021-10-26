@@ -55,7 +55,7 @@ atts (BlankChart _) = mempty
 data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
     hudOptions :: HudOptions,
-    hudList :: [Hud Double],
+    extraHuds :: Huds,
     chartTree :: [Chart Double]
   }
   deriving (Generic)
@@ -64,7 +64,7 @@ instance Semigroup ChartSvg where
     ChartSvg s' (o <> o') (h <> h') (c <> c')
 
 instance Monoid ChartSvg where
-  mempty = ChartSvg defaultSvgOptions mempty [] []
+  mempty = ChartSvg defaultSvgOptions mempty mempty []
 
 -- * rendering
 
@@ -133,29 +133,24 @@ cssPreferColorScheme _ PreferNormal = mempty
 -- | render Charts with the supplied options.
 renderChartsWith :: SvgOptions -> [Chart Double] -> Text
 renderChartsWith so cs =
-  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs'')
+  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs')
   where
     rect' = styleBoxes cs' & maybe id padRect (so ^. #outerPad)
     cs' =
       cs
-        & runHud penult [chartAspectHud (so ^. #chartAspect)]
         & maybe
           id
           (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
           (so ^. #chartFrame)
-    cs'' =
-      foldMap (\c -> [RectChart (blob c) (rect' :| [])]) (so ^. #background) <> cs'
     Point w h = width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
-    penult = case so ^. #chartAspect of
-      FixedAspect _ -> styleBoxes cs
-      CanvasAspect _ -> boxes cs
-      ChartAspect -> styleBoxes cs
-      UnadjustedAspect -> boxes cs
 
--- | render charts with the supplied svg options and huds
-renderHudChart :: SvgOptions -> [Hud Double] -> [Chart Double] -> Text
-renderHudChart so hs cs = renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect) cs) hs cs)
+-- | render charts with the supplied svg options and hud
+renderHudChart :: SvgOptions -> Huds -> [Chart Double] -> Text
+renderHudChart so hs cs =
+  renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect) cs) hs' cs)
+  where
+    hs' = hs <> Huds [chartAspectHud maxBound (so ^. #chartAspect)]
 
 -- | calculation of the canvas given the 'ChartAspect'
 initialCanvas :: ChartAspect -> [Chart Double] -> Rect Double
@@ -169,9 +164,7 @@ initialCanvas UnadjustedAspect cs = boxes cs
 -- >>> chartSvg mempty
 -- "<svg height=\"300.0\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-0.52 -0.52 1.04 1.04\"></svg>"
 chartSvg :: ChartSvg -> Text
-chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> hs') (cs <> cs')
-  where
-    (hs', cs') = makeHud (boxes cs) ho
+chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> fromHudOptions ho) cs
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()

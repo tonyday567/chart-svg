@@ -421,14 +421,13 @@ data SvgOptions = SvgOptions
     innerPad :: Maybe Double,
     chartFrame :: Maybe RectStyle,
     cssOptions :: CssOptions,
-    chartAspect :: ChartAspect,
-    background :: Maybe Colour
+    chartAspect :: ChartAspect
   }
   deriving (Eq, Show, Generic)
 
 -- | The official svg options
 defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing defaultCssOptions (FixedAspect 1.5) Nothing
+defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing defaultCssOptions (FixedAspect 1.5)
 
 -- | frame style
 defaultSvgFrame :: RectStyle

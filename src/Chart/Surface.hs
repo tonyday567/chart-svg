@@ -117,8 +117,10 @@ surfacef f cfg =
       (toList $ cfg ^. #soStyle % #surfaceColors)
 
 -- | Create a surface chart and accompanying legend from a function.
-surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart Double], [Hud Double])
-surfacefl f po slo = (cs, [legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo)])
+surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart Double], Huds)
+surfacefl f po slo =
+  (cs,
+   Huds [Hud 10 (legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo))])
   where
     (cs, dr) = surfacef f po
 
@@ -216,12 +218,5 @@ makeSurfaceTick l pchart = phud
   where
     r = styleBoxes pchart
     r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #lsize)) (Rect 0 (l ^. #sloLegendOptions % #lsize) 0 (l ^. #sloWidth)) (isHori l)
-    (hs, _) =
-      makeHud
-        r
-        ( mempty & #hudAxes
-            .~ [ l ^. #sloAxisOptions
-                   & #place .~ bool PlaceRight PlaceBottom (isHori l)
-               ]
-        )
-    phud = runHudWith r' r hs pchart
+    h = fromHudOptions (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))])
+    phud = runHudWith r' r h pchart

@@ -101,7 +101,7 @@ import Data.Path.Parser
 --
 -- - measure the range of the data values
 --
--- - begin a process of folding a [Hud Double] in with the charts, supplying the the data values to the hud elements if needed, and keeping track of the overall page size of the chart.
+-- - begin a process of folding a [Hud ()] in with the charts, supplying the the data values to the hud elements if needed, and keeping track of the overall page size of the chart.
 --
 -- This process is encapsulated in 'runHud'.
 --
