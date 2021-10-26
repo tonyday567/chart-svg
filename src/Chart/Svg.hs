@@ -33,7 +33,7 @@ import Data.Maybe
 import Data.Foldable
 import Data.Path.Parser
 
-draw :: Chart Double -> Html ()
+draw :: Chart -> Html ()
 draw (RectChart _ a) = sconcat $ svgRect_ <$> a
 draw (TextChart s a) = sconcat $ uncurry (svgText_ s) <$> a
 draw (LineChart _ as) = svgLine_ as
@@ -41,7 +41,7 @@ draw (GlyphChart s a) = sconcat $ svgGlyph_ s <$> a
 draw (PathChart _ a) = svgPath_ a
 draw (BlankChart _) = mempty
 
-atts :: Chart a -> [Attribute]
+atts :: Chart -> [Attribute]
 atts (RectChart s _) = attsRect s
 atts (TextChart s _) = attsText s
 atts (LineChart s _) = attsLine s
@@ -56,7 +56,7 @@ data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
     hudOptions :: HudOptions,
     extraHuds :: Huds,
-    chartTree :: [Chart Double]
+    chartTree :: [Chart]
   }
   deriving (Generic)
 instance Semigroup ChartSvg where
@@ -77,7 +77,7 @@ svg2Tag m =
     ]
     m
 
-renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart Double] -> Html ()
+renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart] -> Html ()
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
   with
     ( svg2Tag
@@ -91,7 +91,7 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
     ]
 
 -- | Low-level conversion of a Chart to svg
-svg :: Chart Double -> Lucid.Html ()
+svg :: Chart -> Lucid.Html ()
 svg (BlankChart _) = mempty
 svg c = term "g" (atts c) (draw c)
 
@@ -132,7 +132,7 @@ cssPreferColorScheme (_, bgdark) PreferDark =
 cssPreferColorScheme _ PreferNormal = mempty
 
 -- | render Charts with the supplied options.
-renderChartsWith :: SvgOptions -> [Chart Double] -> Text
+renderChartsWith :: SvgOptions -> [Chart] -> Text
 renderChartsWith so cs =
   Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs')
   where
@@ -147,14 +147,14 @@ renderChartsWith so cs =
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
 
 -- | render charts with the supplied svg options and hud
-renderHudChart :: SvgOptions -> Huds -> [Chart Double] -> Text
+renderHudChart :: SvgOptions -> Huds -> [Chart] -> Text
 renderHudChart so hs cs =
   renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect) cs) hs' cs)
   where
     hs' = hs <> Huds [chartAspectHud maxBound (so ^. #chartAspect)]
 
 -- | calculation of the canvas given the 'ChartAspect'
-initialCanvas :: ChartAspect -> [Chart Double] -> Rect Double
+initialCanvas :: ChartAspect -> [Chart] -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
 initialCanvas ChartAspect cs = aspect $ ratio $ styleBoxes cs

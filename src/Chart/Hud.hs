@@ -82,11 +82,11 @@ import qualified Data.List as List
 -- - canvasDim: the rectangular dimension of the canvas on which data will be represented. At times appending a hud element will cause the canvas dimension to shift.
 --
 -- - dataDim: the rectangular dimension of the data being represented. Adding hud elements can cause this to change.
-data HudState a = HudState
-  { hudCharts :: [Chart a],
-    chartDim :: Rect a,
-    canvasDim :: Rect a,
-    dataDim :: Rect a
+data HudState = HudState
+  { hudCharts :: [Chart],
+    chartDim :: Rect Double,
+    canvasDim :: Rect Double,
+    dataDim :: Rect Double
   }
   deriving (Eq, Show, Generic)
 
@@ -99,7 +99,7 @@ data Hud a =
     -- | priority for ordering of transformations
     priority :: Priority,
     -- | state transformation of charts
-    hud :: State (HudState Double) a
+    hud :: State HudState a
   } deriving (Functor, Generic)
 
 -- | Heads-up-display additions to charts
@@ -113,7 +113,6 @@ instance Semigroup Huds where
 
 instance Monoid Huds where
   mempty = Huds []
-
 
 {-
 instance Applicative Huds where
@@ -132,7 +131,7 @@ instance (Monoid a) => Monoid (Hud a) where
 -}
 
 -- | run two transformations simultaneously (process using the initial dimensions).
-simAppend :: (Semigroup a) => State (HudState Double) a -> State (HudState Double) a -> State (HudState Double) a
+simAppend :: (Semigroup a) => State HudState a -> State HudState a -> State HudState a
 simAppend fa fb = do
   s <- get
   let (a, HudState cs ch ca d) = runState fa s
@@ -140,7 +139,7 @@ simAppend fa fb = do
   put (HudState cs' (ch <> ch') (ca <> ca') (d <> d'))
   pure $ a <> a'
 
-simConcat :: (Semigroup a, Foldable f) => f (State (HudState Double) a) -> State (HudState Double) a
+simConcat :: (Semigroup a, Foldable f) => f (State HudState a) -> State HudState a
 simConcat = foldr1 simAppend
 
 -- | Apply a ChartAspect
@@ -166,9 +165,9 @@ runHudWith ::
   -- | huds to add
   Huds ->
   -- | underlying chart
-  [Chart Double] ->
+  [Chart] ->
   -- | integrated chart list
-  [Chart Double]
+  [Chart]
 runHudWith ca xs (Huds hs) cs =
    hs &
    List.sortOn (view #priority) &
@@ -193,9 +192,9 @@ runHud ::
   -- | hud
   Huds ->
   -- | underlying charts
-  [Chart Double] ->
+  [Chart] ->
   -- | integrated chart list
-  [Chart Double]
+  [Chart]
 runHud ca hs cs = runHudWith ca (padSingletons $ boxes cs) hs cs
 
 -- | Typical configurable hud elements. Anything else can be hand-coded as a 'Hud'.
@@ -236,14 +235,14 @@ fromHudOptions o = Huds $
   (view #legends o & fmap (uncurry Hud . second legend)) <>
   (view #titles o & fmap (uncurry Hud . second title))
 
-axis :: AxisOptions -> State (HudState Double) ()
+axis :: AxisOptions -> State HudState ()
 axis a = do
   a' <- freezeTicks a
   -- hardcodes axis bar before ticks
   maybe (pure ()) (makeAxisBar (view #place a)) (view #axisBar a)
   makeTick a'
 
-freezeTicks :: AxisOptions -> State (HudState Double) AxisOptions
+freezeTicks :: AxisOptions -> State HudState AxisOptions
 freezeTicks a = do
   dd <- gets (view #dataDim)
   let (newTickStyle, extraDataDim) =
@@ -254,7 +253,7 @@ freezeTicks a = do
         modify (over #dataDim (<> x))) extraDataDim
   pure $ a & set (#axisTick % #tstyle) newTickStyle
 
-legend :: LegendOptions -> State (HudState Double) ()
+legend :: LegendOptions -> State HudState ()
 legend o = do
   ca <- gets (view #chartDim)
   modify (over #hudCharts (placeChart ca <>))
@@ -270,7 +269,7 @@ legend o = do
         PlaceAbsolute p -> p
 
 -- | Make a legend hud element taking into account the chart.
-legendHud :: LegendOptions -> [Chart Double] -> State (HudState Double) ()
+legendHud :: LegendOptions -> [Chart] -> State HudState ()
 legendHud l lcs = do
   ca <- gets (view #chartDim)
   cs <- gets (view #hudCharts)
@@ -292,7 +291,7 @@ legendHud l lcs = do
 --
 -- Some huds, such as the creation of tick values, can extend the data dimension of a chart, so we return a blank chart with the new data dimension.
 -- The complexity internally to this function is due to the creation of ticks and, specifically, 'gridSensible', which is not idempotent. As a result, a tick calculation that does extends the data area, can then lead to new tick values when applying TickRound etc.
-makeHud :: Rect Double -> HudOptions -> ([Hud ()], [Chart Double])
+makeHud :: Rect Double -> HudOptions -> ([Hud ()], [Chart])
 makeHud xs cfg =
   ([axes] <> can <> titles <> l, xsext)
   where
@@ -532,7 +531,7 @@ data LegendOptions = LegendOptions
     legendFrame :: Maybe RectStyle,
     lplace :: Place,
     lscale :: Double,
-    content :: [(Text, Chart Double)]
+    content :: [(Text, Chart)]
   }
   deriving (Show, Eq, Generic)
 
@@ -576,14 +575,14 @@ flipAxis ac = case ac ^. #place of
   PlaceAbsolute _ -> ac
 
 -- | Make a canvas hud transformation.
-canvas :: RectStyle -> State (HudState Double) ()
+canvas :: RectStyle -> State HudState ()
 canvas s = do
   a <- gets (view #canvasDim)
   let c = RectChart s (a:|[])
   modify (set #canvasDim (a <> sbox c))
   modify (over #hudCharts (c:))
 
-axisBar_ :: Place -> AxisBar -> Rect Double -> Rect Double -> Chart Double
+axisBar_ :: Place -> AxisBar -> Rect Double -> Rect Double -> Chart
 axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
   case pl of
     PlaceTop ->
@@ -632,7 +631,7 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
             (w + b ^. #overhang)
         ]
 
-makeAxisBar :: Place -> AxisBar -> State (HudState Double) ()
+makeAxisBar :: Place -> AxisBar -> State HudState ()
 makeAxisBar pl b = do
   da <- gets (view #chartDim)
   ca <- gets (view #canvasDim)
@@ -640,7 +639,7 @@ makeAxisBar pl b = do
   modify (set #chartDim (da <> sbox c))
   modify (over #hudCharts (c:))
 
-title_ :: Title -> Rect Double -> Chart Double
+title_ :: Title -> Rect Double -> Chart
 title_ t a =
   TextChart
     ( style' & #rotation .~ bool (Just rot) Nothing (rot == 0))
@@ -696,7 +695,7 @@ alignPosTitle t (Rect x z y w)
       | otherwise = Point 0.0 0.0
 
 -- | title append transformation.
-title :: Title -> State (HudState Double) ()
+title :: Title -> State HudState ()
 title t = do
   ca <- gets (view #chartDim)
   let c = title_ t ca
@@ -809,7 +808,7 @@ ticksPlaced ts pl d xs = TickComponents (project (placeRange pl xs) (placeRange 
   where
     (TickComponents ps ls ext) = makeTicks ts (placeRange pl xs)
 
-tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> Rect Double -> Rect Double -> Rect Double -> Maybe (Chart Double)
+tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> Rect Double -> Rect Double -> Rect Double -> Maybe Chart
 tickGlyph_ pl (g, b) ts ca da xs =
   case l of
     [] -> Nothing
@@ -824,7 +823,7 @@ tickGlyph ::
   Place ->
   (GlyphStyle, Double) ->
   TickStyle ->
-  State (HudState Double) ()
+  State HudState ()
 tickGlyph pl (g, b) ts = do
   ca <- gets (view #chartDim)
   d <- gets (view #canvasDim)
@@ -840,7 +839,7 @@ tickText_ ::
   Rect Double ->
   Rect Double ->
   Rect Double ->
-  Maybe (Chart Double)
+  Maybe Chart
 tickText_ pl (txts, b) ts ca da xs =
   case l of
     [] -> Nothing
@@ -857,7 +856,7 @@ tickText ::
   Place ->
   (TextStyle, Double) ->
   TickStyle ->
-  State (HudState Double) ()
+  State HudState ()
 tickText pl (txts, b) ts = do
   ca <- gets (view #chartDim)
   da <- gets (view #canvasDim)
@@ -871,7 +870,7 @@ tickLine ::
   Place ->
   (LineStyle, Double) ->
   TickStyle ->
-  State (HudState Double) ()
+  State HudState ()
 tickLine pl (ls, b) ts = do
   da <- gets (view #canvasDim)
   xs <- gets (view #dataDim)
@@ -887,7 +886,7 @@ tickLine pl (ls, b) ts = do
 tick ::
   Place ->
   Tick ->
-  State (HudState Double) ()
+  State HudState ()
 tick pl t = do
   maybe (pure ()) (\x -> tickGlyph pl x (t ^. #tstyle)) (t ^. #gtick)
   maybe (pure ()) (\x -> tickText pl x (t ^. #tstyle)) (t ^. #ttick)
@@ -933,7 +932,7 @@ tickExtended pl t xs =
       PlaceRight -> Rect x z a0 a1
       PlaceAbsolute _ -> Rect a0 a1 y w
 
-extendData :: Place -> Tick -> State (HudState Double) ()
+extendData :: Place -> Tick -> State HudState ()
 extendData pl t = modify (over #dataDim (tickExtended pl t))
 
 -- | adjust Tick for sane font sizes etc
@@ -998,7 +997,7 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
     adjustSizeY = max ((maxHeight / (upper asp - lower asp)) / mry) 1
     adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
 
-makeTick :: AxisOptions -> State (HudState Double) ()
+makeTick :: AxisOptions -> State HudState ()
 makeTick c = do
   vb <- gets (view #chartDim)
   xs <- gets (view #dataDim)
@@ -1009,7 +1008,7 @@ makeTick c = do
           (c ^. #adjust)
   tick (c ^. #place) adjTick
 
-legendChart :: LegendOptions -> [(Text, Chart Double)] -> [Chart Double]
+legendChart :: LegendOptions -> [(Text, Chart)] -> [Chart]
 legendChart l lrs =
   fmap (scaleChart (view #lscale l)) $
   padChart (l ^. #outerPad)
@@ -1025,14 +1024,14 @@ legendChart l lrs =
 legendText ::
   LegendOptions ->
   Text ->
-  Chart Double
+  Chart
 legendText l t =
     TextChart (l ^. #ltext & #anchor .~ AnchorStart) ((t, zero):|[])
 
 legendizeChart ::
   LegendOptions ->
-  Chart Double ->
-  Chart Double
+  Chart ->
+  Chart
 legendizeChart l c =
   case c of
     (RectChart rs _) -> RectChart rs (Rect 0 (l ^. #lsize) 0 (l ^. #lsize):|[])
@@ -1055,8 +1054,8 @@ legendizeChart l c =
 legendEntry ::
   LegendOptions ->
   Text ->
-  Chart Double ->
-  (Chart Double, Chart Double)
+  Chart ->
+  (Chart, Chart)
 legendEntry l t c =
   ( legendizeChart l c,
     legendText l t

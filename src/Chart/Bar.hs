@@ -182,7 +182,7 @@ barRange ys'@(y :| ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] Nothing Nothing)
 -- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.69 0.35 0.16 1.00, color = Colour 0.69 0.35 0.16 1.00}), xys = [R 5.0e-2 0.45 0.0 1.0,R 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.65 0.81 0.89 1.00}), xys = [R 0.45 0.8500000000000001 0.0 2.0,R 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, xys = [R -5.0e-2 1.9500000000000002 0.0 3.0]}]
-bars :: BarOptions -> BarData -> NonEmpty (Chart Double)
+bars :: BarOptions -> BarData -> NonEmpty Chart
 bars bo bd =
   NonEmpty.zipWith (\o d -> RectChart o d) (fromList (bo ^. #barRectStyles <> repeat defaultRectStyle)) (barRects bo (bd ^. #barData)) <> [BlankChart [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]
   where
@@ -211,7 +211,7 @@ barTicks bd
         (bd ^. #barRowLabels) <> repeat ""
 
 -- | bar legend
-barLegendContent :: BarOptions -> BarData -> [(Text, Chart Double)]
+barLegendContent :: BarOptions -> BarData -> [(Text, Chart)]
 barLegendContent bo bd
   | null (bd ^. #barData) = []
   | null (bd ^. #barColumnLabels) = []
@@ -253,6 +253,6 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = NonEmpty
     igap' = igap * (1 - (1 + 1) * ogap)
 
 -- | text, hold the bars
-barTextCharts :: BarOptions -> BarData -> NonEmpty (Chart Double)
+barTextCharts :: BarOptions -> BarData -> NonEmpty Chart
 barTextCharts bo bd =
   NonEmpty.zipWith TextChart (fromList $ bo ^. #barTextStyles <> repeat defaultTextStyle) (barTexts bo (bd ^. #barData))

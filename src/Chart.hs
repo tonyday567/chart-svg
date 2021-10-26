@@ -65,9 +65,6 @@ import Data.Path.Parser
 --
 -- - 'Annotation': a description of how the data should be represented on the screen.
 --
--- >>> :t Chart
--- Chart :: Annotation -> [XY a] -> Chart a
---
 -- What exactly is annotation and what is data is highly variant within charting practice. This construction treats position on the XY plane differently from other quantitative manifests such as color and size. The chief advantage of priveliging XY position is that scaling and integrating data with other chart elements becomes much easier. The disadvantage is that, to use quantitative tools such as size, data needs to be consciously separated into that which is position-orientated, and that which is defined as 'Annotation'.
 --
 --
@@ -97,7 +94,7 @@ import Data.Path.Parser
 --
 -- Given this similarity, an efficient process for chart creation is roughly:
 --
--- - collect the chart data and data annotations into a [Chart Double]
+-- - collect the chart data and data annotations into a [Chart]
 --
 -- - measure the range of the data values
 --

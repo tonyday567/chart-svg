@@ -704,14 +704,14 @@ yify xs =
   NonEmpty.zipWith Point xs [0 ..]
 
 -- | add a horizontal line at y
-addLineX :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
+addLineX :: Double -> LineStyle -> [Chart] -> [Chart]
 addLineX y ls' cs = cs <> [l]
   where
     l = LineChart ls' [[Point lx y, Point ux y]]
     (Rect lx ux _ _) = styleBoxes cs
 
 -- | add a verticle line at x
-addLineY :: Double -> LineStyle -> [Chart Double] -> [Chart Double]
+addLineY :: Double -> LineStyle -> [Chart] -> [Chart]
 addLineY x ls' cs = cs <> [zeroLine]
   where
     zeroLine = LineChart ls' [[Point x ly, Point x uy]]
@@ -755,7 +755,7 @@ blendMidLineStyles l w (c1, c2) = lo
 blendExample :: ChartSvg
 blendExample = mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ blendExampleChart 8 5 100 0.005 (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 0)
 
-blendExampleChart :: Int -> Int -> Int -> Double -> Range Double -> Range Double -> Range Double -> Range Double -> [Chart Double]
+blendExampleChart :: Int -> Int -> Int -> Double -> Range Double -> Range Double -> Range Double -> Range Double -> [Chart]
 blendExampleChart cl c2 n s gx' gy' hx' hy' = l
   where
     gx = grid OuterPos gx' n

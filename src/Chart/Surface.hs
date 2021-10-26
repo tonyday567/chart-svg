@@ -83,7 +83,7 @@ data SurfaceData = SurfaceData
   deriving (Show, Eq, Generic)
 
 -- | surface chart without any hud trimmings
-surfaces :: RectStyle -> [SurfaceData] -> [Chart Double]
+surfaces :: RectStyle -> [SurfaceData] -> [Chart]
 surfaces rs ps =
   ( \(SurfaceData r c) ->
       RectChart
@@ -107,7 +107,7 @@ mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (blends y cs)) <$> ps', spac
     ps' = zip (fst <$> ps) rs'
 
 -- | create a surface chart from a function.
-surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart Double], Range Double)
+surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart], Range Double)
 surfacef f cfg =
   first (surfaces (cfg ^. #soStyle % #surfaceRectStyle)) $
     mkSurfaceData
@@ -117,7 +117,7 @@ surfacef f cfg =
       (toList $ cfg ^. #soStyle % #surfaceColors)
 
 -- | Create a surface chart and accompanying legend from a function.
-surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart Double], Huds)
+surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart], Huds)
 surfacefl f po slo =
   (cs,
    Huds [Hud 10 (legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo))])
@@ -169,7 +169,7 @@ surfaceLegendOptions =
     & #legendFrame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
-surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> [Chart Double]
+surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> [Chart]
 surfaceLegendChart dataRange l =
   padChart (l ^. #sloLegendOptions % #outerPad)
     . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #legendFrame)
@@ -183,7 +183,7 @@ surfaceLegendChart dataRange l =
       | otherwise = horiGlyph
     t = TextChart (l ^. #sloLegendOptions % #ltext & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
     hs = vert (l ^. #sloLegendOptions % #vgap) [a, [t]]
-    vertGlyph :: [Chart Double]
+    vertGlyph :: [Chart]
     vertGlyph =
       zipWith
         (\r c -> RectChart (blob c) [r])
@@ -195,7 +195,7 @@ surfaceLegendChart dataRange l =
         ( (\x -> blends x (toList $ l ^. #sloStyle % #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
-    horiGlyph :: [Chart Double]
+    horiGlyph :: [Chart]
     horiGlyph =
       zipWith
         (\r c -> RectChart (blob c) [r])
@@ -213,7 +213,7 @@ isHori l =
   l ^. #sloLegendOptions % #lplace == PlaceBottom
     || l ^. #sloLegendOptions % #lplace == PlaceTop
 
-makeSurfaceTick :: SurfaceLegendOptions -> [Chart Double] -> [Chart Double]
+makeSurfaceTick :: SurfaceLegendOptions -> [Chart] -> [Chart]
 makeSurfaceTick l pchart = phud
   where
     r = styleBoxes pchart
