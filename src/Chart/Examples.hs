@@ -77,7 +77,7 @@ unitExample = mempty & #chartTree .~ [RectChart defaultRectStyle [one]]
 hudOptionsExample :: ChartSvg
 hudOptionsExample =
   mempty
-    & #hudOptions .~ colourHudOptions (mix dark) defaultHudOptions
+    & #hudOptions .~ colourHudOptions (rgb dark) defaultHudOptions
     & #chartTree .~ [BlankChart [one]]
     & #svgOptions % #cssOptions % #preferColorScheme .~ PreferLight
 
@@ -87,7 +87,7 @@ hudOptionsExample =
 hudOptionsDarkExample :: ChartSvg
 hudOptionsDarkExample =
   mempty
-    & #hudOptions .~ colourHudOptions (mix light) defaultHudOptions
+    & #hudOptions .~ colourHudOptions (rgb light) defaultHudOptions
     & #chartTree .~ [BlankChart [one]]
     & #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
     & #svgOptions % #chartFrame .~ Just (RectStyle 0 dark dark)
@@ -119,8 +119,8 @@ rss = fmap fromList
 
 ropts :: [RectStyle]
 ropts =
-  [ blob (setOpac 0.3 (palette1 3)),
-    blob (setOpac 0.3 (palette1 5))
+  [ blob (set opac' 0.3 (palette1 3)),
+    blob (set opac' 0.3 (palette1 5))
   ]
 
 -- | line example
@@ -195,7 +195,7 @@ textExample fg =
       [TextChart
        (defaultTextStyle & (#color .~ fg) & (#size .~ 0.05) & (#nudge1 .~ 0))
        ts] &
-    #hudOptions .~ colourHudOptions (mix (bool dark light (fg==light))) defaultHudOptions &
+    #hudOptions .~ colourHudOptions (rgb (bool dark light (fg==light))) defaultHudOptions &
     #svgOptions % #cssOptions % #preferColorScheme .~ bool PreferLight PreferDark (fg==light)
   where
     ts :: NonEmpty (Text, Point Double)
@@ -262,7 +262,7 @@ textLocalExample =
          RectChart rs [padSingletons $ sbox t2]
        ]
   where
-    rs = defaultRectStyle & #color %~ setOpac 0.1
+    rs = defaultRectStyle & #color %~ set opac' 0.1
     t1 =
       TextChart
         (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.5 & #size .~ 0.08)
@@ -317,7 +317,7 @@ waveExample = mempty & #chartTree .~ [GlyphChart defaultGlyphStyle $ fromList $ 
 vennExample :: ChartSvg
 vennExample =
   mempty
-    & #chartTree .~ zipWith (\c x -> PathChart (defaultPathStyle & #color .~ setOpac 0.2 (palette1 c)) x) [0..] (svgToPathData <$> vennSegs)
+    & #chartTree .~ zipWith (\c x -> PathChart (defaultPathStyle & #color .~ set opac' 0.2 (palette1 c)) x) [0..] (svgToPathData <$> vennSegs)
     & #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1)
     & #hudOptions .~ defaultHudOptions
 
@@ -364,7 +364,7 @@ pathExample =
         QuadP (Point (-1) 2) (Point 0 1),
         ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)
       ]
-    path' = PathChart (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) ps
+    path' = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) ps
     c0 = GlyphChart defaultGlyphStyle (pointPath <$> ps)
 
 -- | ellipse example
@@ -401,7 +401,7 @@ arcExample =
     p1 = ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) 0 False True)
     ps = singletonArc p1
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p1
-    arc = PathChart (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) ps
+    arc = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ transparent) ps
     ell = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
     c0 = GlyphChart defaultGlyphStyle [c]
     bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [arcBox p1]
@@ -431,16 +431,16 @@ arcFlagsExample =
               ],
             vert
               0.02
-              [ checkFlags False True (setOpac 0.3 dark) & view #chartTree,
-                checkFlags False False (setOpac 0.3 dark) & view #chartTree,
+              [ checkFlags False True (set opac' 0.3 dark) & view #chartTree,
+                checkFlags False False (set opac' 0.3 dark) & view #chartTree,
                 [ BlankChart [Rect (-1) 2 (-0.25) 0.25],
                   TextChart (defaultTextStyle & #size .~ 0.4) [("False", Point 0.5 (-0.1))]
                 ]
               ],
             vert
               0.02
-              [ checkFlags True True (setOpac 0.3 dark) & view #chartTree,
-                checkFlags True False (setOpac 0.3 dark) & view #chartTree,
+              [ checkFlags True True (set opac' 0.3 dark) & view #chartTree,
+                checkFlags True False (set opac' 0.3 dark) & view #chartTree,
                 [ BlankChart [Rect (-1) 2 (-0.25) 0.25],
                   TextChart (defaultTextStyle & #size .~ 0.4) [("True", Point 0.5 (-0.1))]
                 ]
@@ -465,10 +465,10 @@ checkFlags large' sweep co =
     p1 = ArcPosition (Point 0.0 1.0) (Point 1.0 0.0) (ArcInfo (Point 1.0 1.0) 0 large' sweep)
     ps1 = singletonPie c p1
     (ArcCentroid c' r phi' ang0' angd) = arcCentroid p1
-    arc1 = PathChart (defaultPathStyle & #color .~ co & #borderColor .~ setOpac 0.5 dark) ps1
-    c1 = LineChart (defaultLineStyle & #size .~ 0.02 & #color .~ setOpac 0.2 dark) [ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
-    c2 = LineChart (defaultLineStyle & #size .~ 0.02 & #color .~ setOpac 0.2 dark) [ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
-    ell = LineChart (defaultLineStyle & #size .~ 0.05 & #color .~ setOpac 0.5 co) [ellipse c' r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
+    arc1 = PathChart (defaultPathStyle & #color .~ co & #borderColor .~ set opac' 0.5 dark) ps1
+    c1 = LineChart (defaultLineStyle & #size .~ 0.02 & #color .~ set opac' 0.2 dark) [ellipse (Point 1.0 1.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
+    c2 = LineChart (defaultLineStyle & #size .~ 0.02 & #color .~ set opac' 0.2 dark) [ellipse (Point 0.0 0.0) (Point 1.0 1.0) 0 . (\x -> 0 + 2 * pi * x / 100.0) <$> [0 .. 100]]
+    ell = LineChart (defaultLineStyle & #size .~ 0.05 & #color .~ set opac' 0.5 co) [ellipse c' r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
 
 -- | quad example
 --
@@ -482,7 +482,7 @@ quadExample =
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))
     ps = singletonQuad p
-    path' = PathChart (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) ps
+    path' = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ transparent) ps
     curve = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [quadBezier p . (/ 100.0) <$> [0 .. 100]]
     c0 = GlyphChart defaultGlyphStyle [start, end, control]
     bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [quadBox p]
@@ -499,7 +499,7 @@ cubicExample =
   where
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
     ps = singletonCubic p
-    path' = PathChart (defaultPathStyle & #color .~ setOpac 0.1 (palette1 2) & #borderColor .~ transparent) ps
+    path' = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ transparent) ps
     curve = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [cubicBezier p . (/ 100.0) <$> [0 .. 100]]
     c0 = GlyphChart defaultGlyphStyle [start, end, control1, control2, cubicBezier p 0.8]
     bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [cubicBox p]
@@ -610,7 +610,7 @@ dateExample = mempty &
 -- >   over #chartTree
 -- >     (addLineX 3
 -- >     (defaultLineStyle &
--- >      set #color (setOpac 0.3 (palette1 5)) &
+-- >      set #color (set opac' 0.3 (palette1 5)) &
 -- >      set #dasharray (Just [0.04, 0.01]))) &
 --
 -- Add a vertical, long-dash line at y=3.
@@ -618,7 +618,7 @@ dateExample = mempty &
 -- >   over #chartTree
 -- >     (addLineY 5
 -- >     (defaultLineStyle &
--- >      set #color (setOpac 0.3 (palette1 8)) &
+-- >      set #color (set opac' 0.3 (palette1 8)) &
 -- >      set #dasharray (Just [0.01]))) &
 --
 -- Add a horizontal, short-dash line at x=5.
@@ -633,8 +633,8 @@ dateExample = mempty &
 -- >      ["xify", "yify", "addLineX", "addLineY"]
 -- >      [ (palette1 8, Nothing),
 -- >        (palette1 5, Nothing),
--- >        (setOpac 0.3 $ palette1 8, Just [0.01]),
--- >        (setOpac 0.3 $ palette1 5, Just [0.04, 0.01])])) &
+-- >        (set opac' 0.3 $ palette1 8, Just [0.01]),
+-- >        (set opac' 0.3 $ palette1 5, Just [0.04, 0.01])])) &
 --
 -- Add a legend, reusing the chosen line styles.
 --
@@ -646,7 +646,7 @@ dateExample = mempty &
 -- >         over #legendFrame
 -- >           (fmap
 -- >            (set #color (Colour 1 1 1 1) .
--- >             set #borderColor (setOpac 0.1 dark)))))) &
+-- >             set #borderColor (set opac' 0.1 dark)))))) &
 --
 -- Fix up the legend a bit.
 --
@@ -671,12 +671,12 @@ subChartExample =
   over #chartTree
     (addLineX 3
     (defaultLineStyle &
-     set #color (setOpac 0.3 (palette1 5)) &
+     set #color (set opac' 0.3 (palette1 5)) &
      set #dasharray (Just [0.04, 0.01]))) &
   over #chartTree
     (addLineY 5
     (defaultLineStyle &
-     set #color (setOpac 0.3 (palette1 8)) &
+     set #color (set opac' 0.3 (palette1 8)) &
      set #dasharray (Just [0.01]))) &
   set #hudOptions
     (titlesHud "subchart example" "x axis title" "y axis title") &
@@ -688,8 +688,8 @@ subChartExample =
      ["xify", "yify", "addLineX", "addLineY"]
      [ (palette1 8, Nothing),
        (palette1 5, Nothing),
-       (setOpac 0.3 $ palette1 8, Just [0.01]),
-       (setOpac 0.3 $ palette1 5, Just [0.04, 0.01])]))] &
+       (set opac' 0.3 $ palette1 8, Just [0.01]),
+       (set opac' 0.3 $ palette1 5, Just [0.04, 0.01])]))] &
   set (#svgOptions % #chartAspect) (CanvasAspect 1.5)
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
@@ -724,7 +724,7 @@ lineLegend w rs cs =
       & #vgap .~ 0.4
       & #ltext % #size .~ 0.1
       & #lplace .~ PlaceRight
-      & #legendFrame .~ Just (RectStyle 0.02 (palette1 9) (setOpac 0.05 $ palette1 4))
+      & #legendFrame .~ Just (RectStyle 0.02 (palette1 9) (set opac' 0.05 $ palette1 4))
       & #content .~
       zipWith (\a r -> (r,LineChart a [[zero]])) ((\c -> defaultLineStyle & #color .~ fst c & #size .~ w & #dasharray .~ snd c) <$> cs) rs
 
@@ -816,7 +816,7 @@ writeAllExamplesDark = do
     ((<> "d.svg") . reverse . drop 4 . reverse)
     (\x ->
        x &
-       #hudOptions %~ colourHudOptions (mix light) &
+       #hudOptions %~ colourHudOptions (rgb light) &
        #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
     ) <$>
     pathChartSvg light

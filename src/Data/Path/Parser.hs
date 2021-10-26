@@ -20,7 +20,6 @@ import Optics.Core hiding ((<|))
 import qualified Data.Attoparsec.Text as A
 import Data.Either
 import Data.FormatN
-import Data.Generics.Labels ()
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics

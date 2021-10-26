@@ -92,6 +92,7 @@ renderToSvg csso (Point w' h') (Rect x z y w) cs =
 
 -- | Low-level conversion of a Chart to svg
 svg :: Chart Double -> Lucid.Html ()
+svg (BlankChart _) = mempty
 svg c = term "g" (atts c) (draw c)
 
 cssText :: CssOptions -> Html ()

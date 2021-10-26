@@ -49,7 +49,6 @@ module Data.Path
 where
 
 import qualified Control.Foldl as L
-import Data.Generics.Labels ()
 import GHC.Generics
 import qualified Geom2D.CubicBezier as B
 import NumHask.Prelude hiding (head, last, tail)

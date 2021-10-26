@@ -9,10 +9,9 @@ module Data.Colour
   ( Colour,
     pattern Colour,
     opac,
-    setOpac,
-    scaleOpac,
+    opac',
     hex,
-    mix,
+    rgb,
     blend,
     blends,
     toHex,
@@ -39,6 +38,7 @@ import GHC.Generics hiding (prec)
 import Graphics.Color.Model
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Foldable
+import Optics.Core
 
 -- | Wrapper for 'Color'.
 newtype Colour = Colour'
@@ -68,20 +68,17 @@ instance Show Colour where
 opac :: Colour -> Double
 opac (Colour _ _ _ o) = o
 
--- | set opacity
-setOpac :: Double -> Colour -> Colour
-setOpac o (Colour r g b _) = Colour r g b o
-
-scaleOpac :: Double -> Colour -> Colour
-scaleOpac x (Colour r g b o') = Colour r g b (o' * x)
+-- | lens for opacity
+opac' :: Lens' Colour Double
+opac' = lens opac (\(Colour r g b _) o -> Colour r g b o)
 
 -- |
 hex :: Colour -> Text
 hex c = toHex c
 
--- | colour reset but scaling opacity
-mix :: Colour -> Colour -> Colour
-mix (Colour r g b o') (Colour _ _ _ o) = Colour r g b (o' * o)
+-- | resets RGB color but not opacity
+rgb :: Colour -> Colour -> Colour
+rgb (Colour r g b _) (Colour _ _ _ o) = Colour r g b o
 
 -- | interpolate between 2 colors
 blend :: Double -> Colour -> Colour -> Colour

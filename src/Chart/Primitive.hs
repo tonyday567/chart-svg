@@ -10,8 +10,7 @@ module Chart.Primitive
     moveChart,
     scaleChart,
     scaleStyle,
-    scaleOpacStyle,
-    colourStyle,
+    colourChart,
     projectCharts,
     boxes,
     unsafeBoxes,
@@ -143,43 +142,24 @@ scaleStyle x (GlyphChart a d) = GlyphChart (a & #size %~ (* x)) d
 scaleStyle x (PathChart a d) = PathChart (a & #borderSize %~ (* x)) d
 scaleStyle _ (BlankChart d) = BlankChart d
 
--- | dim (or brighten) the opacity of an Annotation by a scale
-scaleOpacStyle :: Double -> Chart Double -> Chart Double
-scaleOpacStyle x (RectChart s d) = RectChart s' d
+-- | Modify chart color
+colourChart :: (Colour -> Colour) -> Chart Double -> Chart Double
+colourChart f (RectChart s d) = RectChart s' d
   where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacStyle x (TextChart s d) = TextChart s' d
+    s' = s & #color %~ f & #borderColor %~ f
+colourChart f (TextChart s d) = TextChart s' d
   where
-    s' = s & #color %~ scaleOpac x
-scaleOpacStyle x (LineChart s d) = LineChart s' d
+    s' = s & #color %~ f
+colourChart f (LineChart s d) = LineChart s' d
   where
-    s' = s & #color %~ scaleOpac x
-scaleOpacStyle x (GlyphChart s d) = GlyphChart s' d
+    s' = s & #color %~ f
+colourChart f (GlyphChart s d) = GlyphChart s' d
   where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacStyle x (PathChart s d) = PathChart s' d
+    s' = s & #color %~ f & #borderColor %~ f
+colourChart f (PathChart s d) = PathChart s' d
   where
-    s' = s & #color %~ scaleOpac x & #borderColor %~ scaleOpac x
-scaleOpacStyle _ (BlankChart d) = BlankChart d
-
--- | select a main colour
-colourStyle :: Colour -> Chart Double -> Chart Double
-colourStyle c (RectChart s d) = RectChart s' d
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
-colourStyle c (TextChart s d) = TextChart s' d
-  where
-    s' = s & #color %~ mix c
-colourStyle c (LineChart s d) = LineChart s' d
-  where
-    s' = s & #color %~ mix c
-colourStyle c (GlyphChart s d) = GlyphChart s' d
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
-colourStyle c (PathChart s d) = PathChart s' d
-  where
-    s' = s & #color %~ mix c & #borderColor %~ mix c
-colourStyle _ (BlankChart d) = BlankChart d
+    s' = s & #color %~ f & #borderColor %~ f
+colourChart _ (BlankChart d) = BlankChart d
 
 -- | expands singleton dimensions, avoiding zero divides
 projectCharts :: Rect Double -> [Chart Double] -> [Chart Double]

@@ -401,7 +401,7 @@ data AxisBar = AxisBar
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (RectStyle 0 transparent (setOpac 0.4 dark)) 0.004 0.01 0.002
+defaultAxisBar = AxisBar (RectStyle 0 transparent (set opac' 0.4 dark)) 0.004 0.01 0.002
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
@@ -446,8 +446,8 @@ defaultGlyphTick =
   defaultGlyphStyle
     & #borderSize .~ 0.004
     & #shape .~ VLineGlyph
-    & #color .~ setOpac 0.4 dark
-    & #borderColor .~ setOpac 0.4 dark
+    & #color .~ set opac' 0.4 dark
+    & #borderColor .~ set opac' 0.4 dark
 
 -- | The official text tick
 defaultTextTick :: TextStyle
@@ -459,7 +459,7 @@ defaultLineTick :: LineStyle
 defaultLineTick =
   defaultLineStyle
     & #size .~ 5.0e-3
-    & #color %~ setOpac 0.05
+    & #color %~ set opac' 0.05
 
 -- | The official tick
 defaultTick :: Tick
@@ -549,7 +549,7 @@ defaultLegendOptions =
     10
     0.1
     0.02
-    (Just (RectStyle 0.01 (setOpac 1 dark) (setOpac 0 dark)))
+    (Just (RectStyle 0.01 (set opac' 1 dark) (set opac' 0 dark)))
     PlaceRight
     0.25
     []
