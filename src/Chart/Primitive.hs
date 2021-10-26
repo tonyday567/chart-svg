@@ -6,7 +6,7 @@ module Chart.Primitive
   ( Chart(..),
     box,
     sbox,
-    projectChartWith,
+    projectWith,
     moveChart,
     scaleChart,
     scaleStyle,
@@ -81,7 +81,7 @@ box (GlyphChart _ a) = space1 a
 box (PathChart _ a) = pathBoxes a
 box (BlankChart a) = foldRectUnsafe a
 
--- | the bonding box for a chart including both data and style elements.
+-- | the bounding box for a chart including both data and style elements.
 --
 -- >>> sbox r
 -- Rect -0.505 0.505 -0.505 0.505
@@ -98,15 +98,15 @@ sbox (BlankChart a) = foldRectUnsafe a
 
 -- | projects a Chart to a new rectangular space from an old rectangular space, preserving linear metric structure.
 --
--- >>> projectChartWith (fmap (2*) one) one r
+-- >>> projectWith (fmap (2*) one) one r
 --
-projectChartWith :: Rect Double -> Rect Double -> Chart -> Chart
-projectChartWith new old (RectChart s a) = RectChart s (projectOnR new old <$> a)
-projectChartWith new old (TextChart s a) = TextChart s (second (projectOnP new old) <$> a)
-projectChartWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$> a)
-projectChartWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
-projectChartWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
-projectChartWith new old (PathChart s a) = PathChart s (projectPaths new old a)
+projectWith :: Rect Double -> Rect Double -> Chart -> Chart
+projectWith new old (RectChart s a) = RectChart s (projectOnR new old <$> a)
+projectWith new old (TextChart s a) = TextChart s (second (projectOnP new old) <$> a)
+projectWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$> a)
+projectWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
+projectWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
+projectWith new old (PathChart s a) = PathChart s (projectPaths new old a)
 
 -- | move a chart
 moveChart :: Point Double -> Chart -> Chart
@@ -163,7 +163,7 @@ colourChart _ (BlankChart d) = BlankChart d
 
 -- | expands singleton dimensions, avoiding zero divides
 projectCharts :: Rect Double -> [Chart] -> [Chart]
-projectCharts new cs = projectChartWith new (styleBoxes cs) <$> cs
+projectCharts new cs = projectWith new (styleBoxes cs) <$> cs
 
 boxes :: (Foldable f, Functor f) => f Chart -> Rect Double
 boxes cs = padSingletons $ fromMaybe one $ foldRect $ toList $ box <$> cs

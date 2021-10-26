@@ -418,8 +418,8 @@ toChartAspect _ _ = ChartAspect
 data SvgOptions = SvgOptions
   { svgHeight :: Double,
     outerPad :: Maybe Double,
-    innerPad :: Maybe Double,
-    chartFrame :: Maybe RectStyle,
+    -- | A frame with some padding
+    chartFrame :: Maybe (RectStyle, Double),
     cssOptions :: CssOptions,
     chartAspect :: ChartAspect
   }
@@ -427,7 +427,7 @@ data SvgOptions = SvgOptions
 
 -- | The official svg options
 defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing Nothing defaultCssOptions (FixedAspect 1.5)
+defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing defaultCssOptions (FixedAspect 1.5)
 
 -- | frame style
 defaultSvgFrame :: RectStyle

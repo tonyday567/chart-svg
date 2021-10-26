@@ -13,6 +13,8 @@ module Chart.Hud
     Huds (..),
     simAppend,
     simConcat,
+    frameHud,
+    frame,
     HudOptions (..),
     defaultHudOptions,
     colourHudOptions,
@@ -143,6 +145,8 @@ simConcat :: (Semigroup a, Foldable f) => f (State HudState a) -> State HudState
 simConcat = foldr1 simAppend
 
 -- | Apply a ChartAspect
+-- FIXME:
+-- chartDim not updated
 chartAspectHud :: Priority -> ChartAspect -> Hud ()
 chartAspectHud p fa = Hud p $ do
   canvasd <- gets (view #canvasDim)
@@ -156,10 +160,24 @@ chartAspectHud p fa = Hud p $ do
           UnadjustedAspect -> id
   modify (over #hudCharts proj)
 
+-- | overlay a frame with additive padding
+--
+frameHud :: RectStyle -> Double -> Priority -> Hud ()
+frameHud rs p pr = Hud pr $ do
+  cs <- gets (view #hudCharts)
+  let pad = padRect p (styleBoxes cs)
+  modify (over #hudCharts (RectChart rs [pad]:))
+  modify (over #chartDim (<> pad))
+
+-- | frame some charts
+--
+frame :: RectStyle -> Double -> [Chart] -> [Chart]
+frame rs p cs = runHud Nothing (Huds [frameHud rs p 0]) cs
+
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (and the use of a linear type is an open question).
 runHudWith ::
   -- | initial canvas dimension
-  Rect Double ->
+  Maybe (Rect Double) ->
   -- | initial data dimension
   Rect Double ->
   -- | huds to add
@@ -178,17 +196,17 @@ runHudWith ca xs (Huds hs) cs =
   where
     da' = boxes cs'
     ca' = styleBoxes cs'
-    cs' = projectChartWith ca xs <$> cs
+    cs' = maybe cs (\proj -> projectWith proj xs <$> cs) ca
 
--- | Combine huds and charts to form a new [Chart] using the supplied canvas and the actual data dimension.
+-- | Combine huds and charts to form a new [Chart] with an optional supplied initial canvas dimension.
 --
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
 --
--- >>> runHud one (fromHudOptions defaultHudOptions) [RectChart defaultRectStyle [one]]
+-- >>> runHud (Just one) (fromHudOptions defaultHudOptions) [RectChart defaultRectStyle [one]]
 --
 runHud ::
   -- | initial canvas dimension
-  Rect Double ->
+  Maybe (Rect Double) ->
   -- | hud
   Huds ->
   -- | underlying charts
@@ -242,6 +260,9 @@ axis a = do
   maybe (pure ()) (makeAxisBar (view #place a)) (view #axisBar a)
   makeTick a'
 
+-- FIXME:
+-- charts are reprojected, but chartDim not recalculated
+-- What about canvasDim?
 freezeTicks :: AxisOptions -> State HudState AxisOptions
 freezeTicks a = do
   dd <- gets (view #dataDim)
@@ -249,10 +270,11 @@ freezeTicks a = do
         freezeTicks_ (view #place a) dd (view (#axisTick % #tstyle) a)
   maybe (pure ())
     (\x -> do
-        modify (over #hudCharts (fmap (projectChartWith (dd <> x) dd)))
+        modify (over #hudCharts (fmap (projectWith (dd <> x) dd)))
         modify (over #dataDim (<> x))) extraDataDim
   pure $ a & set (#axisTick % #tstyle) newTickStyle
 
+-- FIXME: chartDim not recalced (occurs in legendHud)
 legend :: LegendOptions -> State HudState ()
 legend o = do
   ca <- gets (view #chartDim)
@@ -575,6 +597,8 @@ flipAxis ac = case ac ^. #place of
   PlaceAbsolute _ -> ac
 
 -- | Make a canvas hud transformation.
+-- FIXME:
+-- chartDim not recalced
 canvas :: RectStyle -> State HudState ()
 canvas s = do
   a <- gets (view #canvasDim)

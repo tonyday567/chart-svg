@@ -29,7 +29,6 @@ import qualified Data.Text.Lazy as Lazy
 import Chart.Data
 import GHC.Generics
 import Data.Semigroup
-import Data.Maybe
 import Data.Foldable
 import Data.Path.Parser
 
@@ -134,31 +133,28 @@ cssPreferColorScheme _ PreferNormal = mempty
 -- | render Charts with the supplied options.
 renderChartsWith :: SvgOptions -> [Chart] -> Text
 renderChartsWith so cs =
-  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs')
+  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs)
   where
-    rect' = styleBoxes cs' & maybe id padRect (so ^. #outerPad)
-    cs' =
-      cs
-        & maybe
-          id
-          (\x -> frameChart x (fromMaybe 0 (so ^. #innerPad)))
-          (so ^. #chartFrame)
+    rect' = styleBoxes cs & maybe id padRect (so ^. #outerPad)
     Point w h = width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
 
 -- | render charts with the supplied svg options and hud
 renderHudChart :: SvgOptions -> Huds -> [Chart] -> Text
 renderHudChart so hs cs =
-  renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect) cs) hs' cs)
+  renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect)) hs' cs)
   where
-    hs' = hs <> Huds [chartAspectHud maxBound (so ^. #chartAspect)]
+    hs' =
+      hs <>
+      Huds [ chartAspectHud 1000 (so ^. #chartAspect)] <>
+      Huds (foldMap (\(r,pad) -> [frameHud r pad 999]) (view #chartFrame so))
 
 -- | calculation of the canvas given the 'ChartAspect'
-initialCanvas :: ChartAspect -> [Chart] -> Rect Double
-initialCanvas (FixedAspect a) _ = aspect a
-initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = aspect $ ratio $ styleBoxes cs
-initialCanvas UnadjustedAspect cs = boxes cs
+initialCanvas :: ChartAspect -> Maybe (Rect Double)
+initialCanvas (FixedAspect a) = Just (aspect a)
+initialCanvas (CanvasAspect a) = Just (aspect a)
+initialCanvas ChartAspect = Nothing
+initialCanvas UnadjustedAspect = Nothing
 
 -- | Render a chart using the supplied svg and hud config.
 --

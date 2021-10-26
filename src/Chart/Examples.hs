@@ -90,7 +90,7 @@ hudOptionsDarkExample =
     & #hudOptions .~ colourHudOptions (rgb light) defaultHudOptions
     & #chartTree .~ [BlankChart [one]]
     & #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
-    & #svgOptions % #chartFrame .~ Just (RectStyle 0 dark dark)
+    & #svgOptions % #chartFrame .~ Just ((RectStyle 0 dark dark), 0)
 
 -- | 'SvgOptions' example.
 --

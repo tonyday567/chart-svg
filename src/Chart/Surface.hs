@@ -172,7 +172,7 @@ surfaceLegendOptions =
 surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> [Chart]
 surfaceLegendChart dataRange l =
   padChart (l ^. #sloLegendOptions % #outerPad)
-    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #legendFrame)
+    . maybe id (\x -> frame x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #legendFrame)
     $ hs
   where
     a = makeSurfaceTick l pchart
@@ -219,4 +219,4 @@ makeSurfaceTick l pchart = phud
     r = styleBoxes pchart
     r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #lsize)) (Rect 0 (l ^. #sloLegendOptions % #lsize) 0 (l ^. #sloWidth)) (isHori l)
     h = fromHudOptions (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))])
-    phud = runHudWith r' r h pchart
+    phud = runHudWith (Just r') r h pchart
