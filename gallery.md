@@ -7,6 +7,10 @@ scratchpad
 ---
 ![](other/t1.svg)
 
+debug
+---
+![](other/debug.svg)
+
 subchart
 ---
 ![](other/subchart.svg)

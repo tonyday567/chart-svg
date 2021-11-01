@@ -1,8 +1,8 @@
-<svg width="300.0000000000001" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.6293699237450872 -0.6286873174330332 1.2533952365161158 1.2533952365161154" height="300.0"><style>svg {
+<svg width="300.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.7699999999999999 -0.7765445026178008 1.5399999999999998 1.5399999999999996" height="300.0"><style>svg {
   color-scheme: light dark;
 }
 @media (prefers-color-scheme:dark) {
   svg {
     background-color: #f0f0f0;
   }
-}</style><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="8.0e-2" fill-opacity="1.0" text-anchor="middle"><text x="-1.3986013986014068e-2" y="9.324009324009286e-3" transform="rotate(45.0, -1.3986013986014068e-2, 9.324009324009286e-3)">text at (1,1) rotated by -(pi/4) radians</text></g></svg>
+}</style><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.11106389233296557" fill-opacity="1.0" text-anchor="middle"><text x="-1.963350785340312e-2" y="1.308900523560208e-2" transform="rotate(45.0, -1.963350785340312e-2, 1.308900523560208e-2)">text at (1,1) rotated by -(pi/4) radians</text></g></svg>

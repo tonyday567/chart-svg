@@ -117,10 +117,10 @@ surfacef f cfg =
       (toList $ cfg ^. #soStyle % #surfaceColors)
 
 -- | Create a surface chart and accompanying legend from a function.
-surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart], Huds)
+surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart], [Hud])
 surfacefl f po slo =
   (cs,
-   Huds [Hud 10 (legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo))])
+   [Hud 10 (legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo))])
   where
     (cs, dr) = surfacef f po
 
@@ -172,7 +172,7 @@ surfaceLegendOptions =
 surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> [Chart]
 surfaceLegendChart dataRange l =
   padChart (l ^. #sloLegendOptions % #outerPad)
-    . maybe id (\x -> frame x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #legendFrame)
+    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #legendFrame)
     $ hs
   where
     a = makeSurfaceTick l pchart

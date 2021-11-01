@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | The primitive 'Chart' Type and support
@@ -21,6 +22,9 @@ module Chart.Primitive
     stack,
     frameChart,
     padChart,
+    rectangularize,
+    glyphize,
+    overText,
   ) where
 
 import Chart.Style
@@ -28,7 +32,7 @@ import Data.Bifunctor
 import Data.Path
 import Data.Text (Text)
 import Prelude
-import Data.List.NonEmpty (NonEmpty(..))
+import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Optics.Core
 import Chart.Data
 import Data.Foldable
@@ -68,6 +72,7 @@ data Chart =
   PathChart PathStyle (NonEmpty (PathData Double)) |
   BlankChart (NonEmpty (Rect Double)) deriving (Eq, Show)
 
+
 -- | Library functionality (rescaling, combining charts, working out axes and generally putting charts together) is driven by a box model.
 --
 -- 'box' provides a 'Rect' which defines the rectangle that encloses the chart (the bounding box) of the data elements of the chart.
@@ -102,7 +107,14 @@ sbox (BlankChart a) = foldRectUnsafe a
 --
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old (RectChart s a) = RectChart s (projectOnR new old <$> a)
-projectWith new old (TextChart s a) = TextChart s (second (projectOnP new old) <$> a)
+projectWith new old (TextChart s a) = TextChart (projectX s) (second (projectOnP new old) <$> a)
+  where
+    projectX :: TextStyle -> TextStyle
+    projectX s' = case view #scalex s' of
+      NoScaleX -> s' & over #hsize (*(width ox/width nx)) & over #vsize (*(width ox/width nx))
+      ScaleX -> s' & over #size (*(width nx/width ox))
+    (Ranges nx _) = new
+    (Ranges ox _) = old
 projectWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$> a)
 projectWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
 projectWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
@@ -221,3 +233,22 @@ stack n gap cs = vert gap (hori gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
+
+rectangularize :: RectStyle -> [Chart] -> [Chart]
+rectangularize r c = rectangularize_ r <$> c
+
+rectangularize_ :: RectStyle -> Chart -> Chart
+rectangularize_ rs (TextChart s xs) = TextChart (s & #textFrame .~ Just rs) xs
+rectangularize_ rs c = RectChart rs [sbox c]
+
+glyphize :: GlyphStyle -> Chart -> Chart
+glyphize g (TextChart _ xs) = GlyphChart g (snd <$> xs)
+glyphize g (PathChart _ xs) = GlyphChart g (pointPath <$> xs)
+glyphize g (LineChart _ xs) = GlyphChart g (sconcat xs)
+glyphize g (BlankChart xs) = GlyphChart g (mid <$> xs)
+glyphize g (RectChart _ xs) = GlyphChart g (mid <$> xs)
+glyphize g (GlyphChart _ xs) = GlyphChart g xs
+
+overText :: (TextStyle -> TextStyle) -> Chart -> Chart
+overText f (TextChart s xs) = TextChart (f s) xs
+overText _ x = x

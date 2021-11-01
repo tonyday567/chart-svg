@@ -43,6 +43,9 @@ module Chart.Examples
     blendMidLineStyles,
     blendExample,
 
+    -- * debugging
+    debugExample,
+
     writeAllExamples,
     writeAllExamplesDark,
   )
@@ -154,16 +157,16 @@ lineExample =
   #hudOptions .~
   ( mempty &
     #axes .~
-    [(2, defaultAxisOptions),
-     (2, defaultAxisOptions & #place .~ PlaceLeft)
+    [(2, defaultAxisOptions & #axisTick % #tstyle .~ TickRound (FormatFixed (Just 1)) 8 TickExtend),
+     (2, defaultAxisOptions & #place .~ PlaceLeft & #axisTick % #tstyle .~ TickRound (FormatFixed (Just 1)) 8 TickExtend)
     ] &
     #titles .~
-    [ (6, defaultTitle "Line Chart"),
+    [ (6, defaultTitle "Line Chart" & #style % #size .~ 0.08 ),
       (5, defaultTitle "Made with love and chart-svg" &
          #style % #size .~ 0.05 & #place .~ PlaceBottom & #anchor .~ AnchorEnd)
     ] &
     #legends .~
-    [ (7, defaultLegendOptions & #content .~ (zip ["hockey", "line", "vertical"] cs))
+    [ (7, defaultLegendOptions & #content .~ zip ["hockey", "line", "vertical"] cs)
     ]
   )
   & #chartTree .~ cs
@@ -265,11 +268,11 @@ textLocalExample =
     rs = defaultRectStyle & #color %~ set opac' 0.1
     t1 =
       TextChart
-        (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.5 & #size .~ 0.08)
+        (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.9 & #size .~ 0.08)
         [("a pretty long piece of text", zero)]
     t2 =
       TextChart
-        (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.5 & #size .~ 0.08)
+        (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.9 & #size .~ 0.08)
         [("another pretty long piece of text", Point 1 1)]
 
 -- | label example.
@@ -681,8 +684,8 @@ subChartExample =
   set #hudOptions
     (titlesHud "subchart example" "x axis title" "y axis title") &
   set (#hudOptions % #axes)
-      [ (1, defaultAxisOptions & set (#axisTick % #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend)),
-        (1, defaultAxisOptions & set #place PlaceLeft & set (#axisTick % #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))] &
+      [ (1, defaultAxisOptions & set (#axisTick % #tstyle) (TickRound (FormatFixed (Just 2)) 8 TickExtend)),
+        (1, defaultAxisOptions & set #place PlaceLeft & set (#axisTick % #tstyle) (TickRound (FormatFixed (Just 2)) 8 TickExtend))] &
   set (#hudOptions % #legends)
     [(20, (lineLegend 0.01
      ["xify", "yify", "addLineX", "addLineY"]
@@ -733,9 +736,9 @@ titlesHud :: Text -> Text -> Text -> HudOptions
 titlesHud t x y =
   mempty & #titles .~
   (fmap (10,)
-    [ defaultTitle t & #style % #size .~ 0.08,
-      defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.06,
-      defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.06
+    [ defaultTitle t & #style % #size .~ 0.14,
+      defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.12,
+      defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.12
     ])
 
 -- | /blendMidLineStyle n w/ produces n lines of size w interpolated between two colors.
@@ -768,6 +771,16 @@ blendExampleChart cl c2 n s gx' gy' hx' hy' = l
     c = blendMidLineStyles n s (palette1 cl, palette1 c2)
     l = zipWith LineChart c gh
 
+-- | Adding reference points and bounding boxes to visualize chart alignment and debug.
+--
+-- -- ![debug example](other/debug.svg)
+debugExample :: ChartSvg -> ChartSvg
+debugExample cs = mempty & (#chartTree .~ e1 <> e2 <> e3)
+  where
+    e1 = toCharts cs
+    e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) <$> e1
+    e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.2) e1
+
 pathChartSvg :: Colour -> [(FilePath, ChartSvg)]
 pathChartSvg c =
   [
@@ -798,7 +811,8 @@ pathChartSvg c =
     ("other/arrow.svg",arrowExample c),
     ("other/date.svg",dateExample),
     ("other/subchart.svg",subChartExample),
-    ("other/blend.svg",blendExample)
+    ("other/blend.svg",blendExample),
+    ("other/debug.svg",debugExample lineExample)
   ]
 
 -- | Run this to refresh haddock example SVGs.

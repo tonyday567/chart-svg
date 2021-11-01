@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -8,6 +9,7 @@
 -- | Chart API
 module Chart.Svg
   ( ChartSvg(..),
+    toCharts,
     writeChartSvg,
     chartSvg,
   ) where
@@ -54,7 +56,7 @@ atts (BlankChart _) = mempty
 data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
     hudOptions :: HudOptions,
-    extraHuds :: Huds,
+    extraHuds :: [Hud],
     chartTree :: [Chart]
   }
   deriving (Generic)
@@ -64,6 +66,10 @@ instance Semigroup ChartSvg where
 
 instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty mempty []
+
+toCharts :: ChartSvg -> [Chart]
+toCharts cs =
+  runHud (initialCanvas (view (#svgOptions % #chartAspect) cs)) (fromHudOptions (view #hudOptions cs) <> view #extraHuds cs) (view #chartTree cs)
 
 -- * rendering
 
@@ -140,14 +146,14 @@ renderChartsWith so cs =
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
 
 -- | render charts with the supplied svg options and hud
-renderHudChart :: SvgOptions -> Huds -> [Chart] -> Text
+renderHudChart :: SvgOptions -> [Hud] -> [Chart] -> Text
 renderHudChart so hs cs =
   renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect)) hs' cs)
   where
     hs' =
       hs <>
-      Huds [ chartAspectHud 1000 (so ^. #chartAspect)] <>
-      Huds (foldMap (\(r,pad) -> [frameHud r pad 999]) (view #chartFrame so))
+      [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect)] <>
+      foldMap (\(r,pad) -> [Hud 999 $ frameHud r pad]) (view #chartFrame so)
 
 -- | calculation of the canvas given the 'ChartAspect'
 initialCanvas :: ChartAspect -> Maybe (Rect Double)
@@ -193,7 +199,10 @@ svgText_ s t p@(Point x y) =
       ]
         <> foldMap (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
     )
-    (toHtmlRaw t)
+    (toHtmlRaw t) <>
+    case view #textFrame s of
+      Nothing -> mempty
+      Just f -> svg (RectChart (f & over #borderSize (*view #size s)) [styleBoxText s t p])
 
 -- | line svg
 svgLine_ :: NonEmpty (NonEmpty (Point Double)) -> Lucid.Html ()

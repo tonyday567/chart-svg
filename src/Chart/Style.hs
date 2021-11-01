@@ -16,6 +16,7 @@ module Chart.Style
     TextStyle (..),
     defaultTextStyle,
     styleBoxText,
+    ScaleX (..),
     GlyphStyle (..),
     defaultGlyphStyle,
     styleBoxGlyph,
@@ -130,9 +131,14 @@ data TextStyle = TextStyle
     hsize :: Double,
     vsize :: Double,
     nudge1 :: Double,
-    rotation :: Maybe Double
+    rotation :: Maybe Double,
+    scalex :: ScaleX,
+    textFrame :: Maybe RectStyle
   }
   deriving (Show, Eq, Generic)
+
+-- | Whether to scale text given X-axis scaling
+data ScaleX = ScaleX | NoScaleX deriving (Eq, Show, Generic)
 
 -- | position anchor
 data Anchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
@@ -153,7 +159,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.08 dark AnchorMiddle 0.5 1.45 (-0.2) Nothing
+  TextStyle 0.12 dark AnchorMiddle 0.45 1.1 (-0.25) Nothing ScaleX Nothing
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -161,20 +167,23 @@ styleBoxText ::
   Text ->
   Point Double ->
   Rect Double
-styleBoxText o t p = move p $ maybe flat (`rotationBound` flat) (o ^. #rotation)
+styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #rotation)
   where
-    flat = Rect ((-x' / 2.0) + x' * a') (x' / 2 + x' * a') ((-y' / 2) - n1') (y' / 2 - n1')
+    flat = Rect ((-x' / 2.0) + x' * a') (x' / 2 + x' * a') (-y' / 2 + n1') (y' / 2 + n1')
     s = o ^. #size
     h = o ^. #hsize
     v = o ^. #vsize
     n1 = o ^. #nudge1
     x' = s * h * fromIntegral (sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
     y' = s * v
-    n1' = s * n1
+    n1' = -s * n1
     a' = case o ^. #anchor of
       AnchorStart -> 0.5
       AnchorEnd -> -0.5
       AnchorMiddle -> 0.0
+    mpad = case view #textFrame o of
+      Nothing -> id
+      Just f -> padRect (0.5 * view #borderSize f * view #size o)
 
 -- | Glyph styling
 --
