@@ -69,7 +69,14 @@ instance Monoid ChartSvg where
 
 toCharts :: ChartSvg -> [Chart]
 toCharts cs =
-  runHud (initialCanvas (view (#svgOptions % #chartAspect) cs)) (fromHudOptions (view #hudOptions cs) <> view #extraHuds cs) (view #chartTree cs)
+  runHudWith
+  (initialCanvas (view (#svgOptions % #chartAspect) cs) (view #chartTree cs))
+  db'
+  (hs <> view #extraHuds cs)
+  (view #chartTree cs <> [BlankChart [db']])
+  where
+   (hs, db') = toHuds (view #hudOptions cs) (boxes $ view #chartTree cs)
+
 
 -- * rendering
 
@@ -146,28 +153,31 @@ renderChartsWith so cs =
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
 
 -- | render charts with the supplied svg options and hud
-renderHudChart :: SvgOptions -> [Hud] -> [Chart] -> Text
-renderHudChart so hs cs =
-  renderChartsWith so (runHud (initialCanvas (so ^. #chartAspect)) hs' cs)
+renderHudChartWith :: Rect Double -> SvgOptions -> [Hud] -> [Chart] -> Text
+renderHudChartWith db so hs cs =
+  renderChartsWith so (runHudWith (initialCanvas (so ^. #chartAspect) (cs <> [BlankChart [db]])) db hs' cs)
   where
     hs' =
       hs <>
       [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect)] <>
+      -- FIXME: a frame is a canvas, with low priority
       foldMap (\(r,pad) -> [Hud 999 $ frameHud r pad]) (view #chartFrame so)
 
 -- | calculation of the canvas given the 'ChartAspect'
-initialCanvas :: ChartAspect -> Maybe (Rect Double)
-initialCanvas (FixedAspect a) = Just (aspect a)
-initialCanvas (CanvasAspect a) = Just (aspect a)
-initialCanvas ChartAspect = Nothing
-initialCanvas UnadjustedAspect = Nothing
+initialCanvas :: ChartAspect -> [Chart] -> Rect Double
+initialCanvas (FixedAspect a) _ = aspect a
+initialCanvas (CanvasAspect a) _ = aspect a
+initialCanvas ChartAspect cs = boxes cs
+initialCanvas UnadjustedAspect cs = boxes cs
 
 -- | Render a chart using the supplied svg and hud config.
 --
 -- >>> chartSvg mempty
 -- "<svg height=\"300.0\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-0.52 -0.52 1.04 1.04\"></svg>"
 chartSvg :: ChartSvg -> Text
-chartSvg (ChartSvg so ho hs cs) = renderHudChart so (hs <> fromHudOptions ho) cs
+chartSvg (ChartSvg so ho hs cs) = renderHudChartWith db' so (hs <> hs') (cs <> [BlankChart [db']])
+  where
+    (hs', db') = toHuds ho (boxes cs)
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()

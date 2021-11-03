@@ -218,5 +218,5 @@ makeSurfaceTick l pchart = phud
   where
     r = styleBoxes pchart
     r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #lsize)) (Rect 0 (l ^. #sloLegendOptions % #lsize) 0 (l ^. #sloWidth)) (isHori l)
-    h = fromHudOptions (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))])
-    phud = runHudWith (Just r') r h pchart
+    (hs, db) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r
+    phud = runHudWith r' db hs pchart

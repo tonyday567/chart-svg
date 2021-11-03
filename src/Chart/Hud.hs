@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TupleSections #-}
 
 -- | Chart API
 module Chart.Hud
@@ -22,7 +23,7 @@ module Chart.Hud
     defaultCanvas,
     runHudWith,
     runHud,
-    fromHudOptions,
+    toHuds,
     fromEffect,
 
     -- * Hud primitives
@@ -82,39 +83,32 @@ import qualified Data.List as List
 -- This is done to support functionality where we can choose whether to normalise the chart aspect based on the entire chart (FixedAspect) or on just the data visualisation space (CanvasAspect).
 data Charts = Charts
   { charts :: [Chart],
-    huds :: [Chart],
-    dbox :: Maybe DataBox
+    dbox :: DataBox,
+    cbox :: CanvasBox
   }
   deriving (Eq, Show, Generic)
-
-instance Semigroup Charts where
-  (<>) (Charts cs hs db) (Charts cs' hs' db') =
-    Charts (cs <> cs') (hs <> hs') (foldRect $ maybeToList db <> maybeToList db')
-
-instance Monoid Charts where
-  mempty = Charts [] [] Nothing
-
-boxs_ :: Charts -> Rect Double
-boxs_ cs = styleBoxes (view #charts cs <> view #huds cs)
-
-reboxs_ :: Charts -> Rect Double -> Charts
-reboxs_ cs r =
-  cs &
-  over #charts (fmap (projectWith r (boxs_ cs))) &
-  over #huds (fmap (projectWith r (boxs_ cs)))
 
 type StyleBox = Rect Double
 type CanvasBox = Rect Double
 type DataBox = Rect Double
 
+sbox_ :: Charts -> StyleBox
+sbox_ = styleBoxes . view #charts
+
+rebox_ :: Charts -> Rect Double -> Charts
+rebox_ cs r =
+  cs &
+  over #charts (fmap (projectWith r (sbox_ cs))) &
+  over #cbox (projectOnR (sbox_ cs) r)
+
 sbox' :: Lens' Charts StyleBox
-sbox' = lens boxs_ reboxs_
+sbox' = lens sbox_ rebox_
 
-cbox' :: Getter Charts CanvasBox
-cbox' = to (styleBoxes . view #charts)
-
-charts' :: Getter Charts [Chart]
-charts' = to (\x -> view #charts x <> view #huds x)
+append :: [Chart] -> Charts -> Charts
+append cs x =
+  x & over #charts (cs<>) & over #cbox (projectOnR oldbox (view sbox' x))
+  where
+    oldbox = view sbox' x
 
 -- | The priority of a Hud element or transformation
 type Priority = Int
@@ -124,22 +118,22 @@ data Hud =
   Hud {
     -- | priority for ordering of transformations
     priority :: Priority,
-    -- | state transformations+additions
-    hud :: State Charts Charts
+    -- | additional charts
+    hud :: State Charts [Chart]
   } deriving (Generic)
 
-close :: State Charts Charts -> State Charts ()
+close :: State Charts [Chart] -> State Charts ()
 close a = do
   a' <- a
-  modify (a'<>)
+  modify (append a')
 
-closes :: (Traversable f) => f (State Charts Charts) -> State Charts ()
+closes :: (Traversable f) => f (State Charts [Chart]) -> State Charts ()
 closes xs = do
   xs' <- fmap (mconcat . toList) $ sequence xs
-  modify (xs' <>)
+  modify (append xs')
 
 fromEffect :: Priority -> State Charts () -> Hud
-fromEffect p s = Hud p (s >> pure mempty)
+fromEffect p s = Hud p (s >> pure [])
 
 -- | Apply a ChartAspect
 applyChartAspect :: ChartAspect -> State Charts ()
@@ -150,14 +144,14 @@ applyChartAspect fa = do
     CanvasAspect a ->
       modify
       (set sbox'
-      (aspect (a * ratio (view cbox' hc) / ratio (view sbox' hc))))
+      (aspect (a * ratio (view #cbox hc) / ratio (view sbox' hc))))
     ChartAspect -> pure ()
     UnadjustedAspect -> pure ()
 
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (a linear type might be useful here).
 runHudWith ::
   -- | initial canvas
-  Maybe CanvasBox ->
+  CanvasBox ->
   -- | initial data space
   DataBox ->
   -- | huds to add
@@ -171,10 +165,8 @@ runHudWith cb db hs cs =
    List.sortOn (view #priority) &
    List.groupBy (\a b-> view #priority a == view #priority b) &
    mapM_ (closes . fmap (view #hud)) &
-   flip execState (Charts cs' [] (Just db)) &
-   view charts'
-  where
-    cs' = maybe cs (\proj -> projectWith proj db <$> cs) cb
+   flip execState (Charts (projectWith cb db <$> cs) db cb) &
+   view #charts
 
 -- | Combine huds and charts to form a new [Chart] with an optional supplied initial canvas dimension.
 --
@@ -184,7 +176,7 @@ runHudWith cb db hs cs =
 --
 runHud ::
   -- | initial canvas dimension
-  Maybe CanvasBox ->
+  CanvasBox ->
   -- | huds
   [Hud] ->
   -- | underlying charts
@@ -193,18 +185,33 @@ runHud ::
   [Chart]
 runHud ca hs cs = runHudWith ca (padSingletons $ boxes cs) hs cs
 
+-- | Combine huds and charts to form a new [Chart] with an optional supplied initial canvas dimension.
+--
+-- Note that the original chart data are transformed and irrevocably lost by this computation.
+--
+-- >>> runHud (Just one) (fromHudOptions defaultHudOptions) [RectChart defaultRectStyle [one]]
+--
+runHud_ ::
+  -- | huds
+  [Hud] ->
+  -- | underlying charts
+  [Chart] ->
+  -- | integrated chart list
+  [Chart]
+runHud_ hs cs = runHudWith (padSingletons $ boxes cs) (padSingletons $ boxes cs) hs cs
+
 -- | overlay a frame with additive padding
 --
-frameHud :: RectStyle -> Double -> State Charts Charts
+frameHud :: RectStyle -> Double -> State Charts [Chart]
 frameHud rs p = do
   cs <- get
   let pad = padRect p (view sbox' cs)
-  pure $ (\x -> Charts [] [x] Nothing) (RectChart rs [pad])
+  pure [RectChart rs [pad]]
 
 -- | frame some charts
 --
 frame :: RectStyle -> Double -> [Chart] -> [Chart]
-frame rs p cs = runHud Nothing [Hud 0 (frameHud rs p)] cs
+frame rs p cs = runHud_ [Hud 0 (frameHud rs p)] cs
 
 -- | Typical configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
@@ -235,42 +242,56 @@ defaultHudOptions =
     []
     []
 
--- | Make a Hud from a HudOption
+-- | Make Huds and potential data box extension; from a HudOption and an initial data box.
 --
-fromHudOptions :: HudOptions -> [Hud]
-fromHudOptions o =
-  (view #axes o & fmap (uncurry Hud . second axis)) <>
+toHuds :: HudOptions -> DataBox -> ([Hud], DataBox)
+toHuds o db =
+  (,db''') $
+  (as' & fmap (uncurry Hud . second axis)) <>
   (view #canvii o & fmap (uncurry Hud . second canvas)) <>
   (view #legends o & fmap (uncurry Hud . second legend)) <>
   (view #titles o & fmap (uncurry Hud . second title))
+  where
+    (as', db''') = foldr (\a (as,db') -> let (db'', a') = freezeTicks db' (snd a) in (as <> [(fst a, a')], db'')) ([], db) (view #axes o)
 
-axis :: AxisOptions -> State Charts Charts
+-- Should charts be modified here? Alternative is passing a Charts
+freezeTicks :: DataBox -> AxisOptions -> (DataBox, AxisOptions)
+freezeTicks db a = do
+  case freezeTicks_ (view #place a) db (view (#axisTick % #tstyle) a) of
+    Nothing -> (db,a)
+    Just (ts',db') -> (db', a & set (#axisTick % #tstyle) ts')
+
+toTickPlaced :: Range Double -> TickStyle -> (Range Double, TickStyle)
+toTickPlaced r t@TickRound {} = (fromMaybe r ext, TickPlaced (zip ps ls))
+  where
+    (TickComponents ps ls ext) = makeTicks t r
+toTickPlaced r t = (r,t)
+
+-- | convert TickRound to TickPlaced and potentially an extension to the data range
+freezeTicks_ :: Place -> DataBox -> TickStyle -> Maybe (TickStyle, DataBox)
+freezeTicks_ pl db ts@TickRound {} =
+  case ext of
+    Nothing -> Nothing
+    Just ext' -> Just (TickPlaced (zip ps ls), replaceRange pl ext' db)
+  where
+    (TickComponents ps ls ext) = makeTicks ts (placeRange pl db)
+    replaceRange :: Place -> Range Double -> Rect Double -> Rect Double
+    replaceRange pl' (Range a0 a1) (Rect x z y w) = case pl' of
+      PlaceRight -> Rect x z a0 a1
+      PlaceLeft -> Rect x z a0 a1
+      _ -> Rect a0 a1 y w
+freezeTicks_ _ _ _ = Nothing
+
+axis :: AxisOptions -> State Charts [Chart]
 axis a = do
-  a' <- freezeTicks a
-  -- hardcodes axis bar before ticks
-  t <- makeTick a'
+  t <- makeTick a
   b <- maybe (pure mempty) (makeAxisBar (view #place a)) (view #axisBar a)
   pure (b <> t)
 
--- Should charts be modified here? Alternative is passing a Charts
-freezeTicks :: AxisOptions -> State Charts AxisOptions
-freezeTicks a = do
-  db <- gets (view #dbox)
-  cb <- gets (view cbox')
-  case db of
-    Nothing -> pure a
-    Just db' -> do
-      let (newTickStyle, extradb) = freezeTicks_ (view #place a) db' (view (#axisTick % #tstyle) a)
-      maybe (pure ())
-        (\x -> do
-          modify (over #charts (BlankChart [projectOnR cb db' x]:))
-          modify (over #dbox (<> Just x))) extradb
-      pure $ a & set (#axisTick % #tstyle) newTickStyle
-
-legend :: LegendOptions -> State Charts Charts
+legend :: LegendOptions -> State Charts [Chart]
 legend o = do
   hc <- get
-  pure $ mempty & set #huds (placeChart (view sbox' hc))
+  pure (placeChart (view sbox' hc))
   where
     cs = legendChart o (view #content o)
     placeChart ca = moveChart (placel (o ^. #lplace) ca (styleBoxes cs)) <$> cs
@@ -283,11 +304,11 @@ legend o = do
         PlaceAbsolute p -> p
 
 -- | Make a legend hud element taking into account the chart.
-legendHud :: LegendOptions -> [Chart] -> State Charts Charts
+legendHud :: LegendOptions -> [Chart] -> State Charts [Chart]
 legendHud l lcs = do
   hc <- get
   let ca = view sbox' hc
-  pure $ mempty & set #huds (place' ca (scaleChart (l ^. #lscale) <$> lcs))
+  pure (place' ca (scaleChart (l ^. #lscale) <$> lcs))
   where
     place' ca xs = moveChart (placel (l ^. #lplace) ca (styleBoxes xs)) <$> xs
     placel pl (Rect x z y w) (Rect x' z' y' w') =
@@ -564,18 +585,6 @@ defaultLegendOptions =
     0.25
     []
 
--- | convert TickRound to TickPlaced and potentially an extension to the data range
-freezeTicks_ :: Place -> DataBox -> TickStyle -> (TickStyle, Maybe DataBox)
-freezeTicks_ pl db ts@TickRound {} = maybe (ts, Nothing) (\x -> (TickPlaced (zip ps ls), Just x)) ((\x -> replaceRange pl x db) <$> ext)
-  where
-    (TickComponents ps ls ext) = makeTicks ts (placeRange pl db)
-    replaceRange :: Place -> Range Double -> Rect Double -> Rect Double
-    replaceRange pl' (Range a0 a1) (Rect x z y w) = case pl' of
-      PlaceRight -> Rect x z a0 a1
-      PlaceLeft -> Rect x z a0 a1
-      _ -> Rect a0 a1 y w
-freezeTicks_ _ _ ts = (ts, Nothing)
-
 -- | flip an axis from being an X dimension to a Y one or vice-versa.
 flipAxis :: AxisOptions -> AxisOptions
 flipAxis ac = case ac ^. #place of
@@ -586,12 +595,10 @@ flipAxis ac = case ac ^. #place of
   PlaceAbsolute _ -> ac
 
 -- | Make a canvas hud transformation.
--- FIXME:
--- made part of dataCharts - is this valid?
-canvas :: RectStyle -> State Charts Charts
+canvas :: RectStyle -> State Charts [Chart]
 canvas s = do
   hc <- get
-  pure $ mempty & set #charts [RectChart s [view sbox' hc]]
+  pure [RectChart s [view sbox' hc]]
 
 axisBar_ :: Place -> AxisBar -> CanvasBox -> StyleBox -> Chart
 axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
@@ -642,11 +649,12 @@ axisBar_ pl b (Rect x z y w) (Rect x' z' y' w') =
             (w + b ^. #overhang)
         ]
 
-makeAxisBar :: Place -> AxisBar -> State Charts Charts
+makeAxisBar :: Place -> AxisBar -> State Charts [Chart]
 makeAxisBar pl b = do
-  hc <- get
-  let c = axisBar_ pl b (view cbox' hc) (view sbox' hc)
-  pure $ mempty & set #huds [c]
+  cb <- gets (view #cbox)
+  sb <- gets (view sbox')
+  let c = axisBar_ pl b cb sb
+  pure [c]
 
 title_ :: Title -> StyleBox -> Chart
 title_ t sb =
@@ -700,10 +708,10 @@ alignPosTitle t (Rect x z y w)
       | otherwise = Point 0.0 0.0
 
 -- | title append transformation.
-title :: Title -> State Charts Charts
+title :: Title -> State Charts [Chart]
 title t = do
   ca <- gets (view sbox')
-  pure $ mempty & #huds .~ [title_ t ca]
+  pure [title_ t ca]
 
 placePos :: Place -> Double -> StyleBox -> Point Double
 placePos pl b (Rect x z y w) = case pl of
@@ -749,7 +757,6 @@ placeTextAnchor pl
   | pl == PlaceLeft = #anchor .~ AnchorEnd
   | pl == PlaceRight = #anchor .~ AnchorStart
   | otherwise = id
-
 
 placeGridLines :: Place -> StyleBox -> Double -> Double -> NonEmpty (Point Double)
 placeGridLines pl (Rect x z y w) a b
@@ -830,13 +837,13 @@ tickGlyph ::
   Place ->
   (GlyphStyle, Double) ->
   TickStyle ->
-  State Charts Charts
+  State Charts [Chart]
 tickGlyph pl (g, b) ts = do
-  ca <- gets (view sbox')
-  d <- styleBoxes <$> gets (view #charts)
-  xs <- gets (view #dbox)
-  let c = tickGlyph_ pl (g, b) ts ca d =<< xs
-  pure $ mempty & set #huds (maybeToList c)
+  sb <- gets (view sbox')
+  cb <- gets (view #cbox)
+  db <- gets (view #dbox)
+  let c = tickGlyph_ pl (g, b) ts sb cb db
+  pure (maybeToList c)
 
 tickText_ ::
   Place ->
@@ -862,96 +869,36 @@ tickText ::
   Place ->
   (TextStyle, Double) ->
   TickStyle ->
-  State Charts Charts
+  State Charts [Chart]
 tickText pl (txts, b) ts = do
   sb <- gets (view sbox')
-  cb <- gets (view cbox')
+  cb <- gets (view #cbox)
   db <- gets (view #dbox)
-  let c = tickText_ pl (txts, b) ts sb cb =<< db
-  pure (mempty & set #huds (maybeToList c))
+  let c = tickText_ pl (txts, b) ts sb cb db
+  pure (maybeToList c)
 
 -- | aka grid lines
 tickLine ::
   Place ->
   (LineStyle, Double) ->
   TickStyle ->
-  State Charts Charts
+  State Charts [Chart]
 tickLine pl (ls, b) ts = do
-  cb <- gets (view cbox')
+  cb <- gets (view #cbox)
   db <- gets (view #dbox)
-  case db of
-    Nothing -> pure mempty
-    Just db' -> do
-      let l = (\x -> placeGridLines pl cb x b) <$> positions (ticksPlaced ts pl cb db')
-      bool (pure (mempty & set #huds [LineChart ls (fromList l)])) (pure mempty) (null l)
+  let l = (\x -> placeGridLines pl cb x b) <$> positions (ticksPlaced ts pl cb db)
+  pure (bool [LineChart ls (fromList l)] [] (null l))
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
 tick ::
   Place ->
   Tick ->
-  State Charts Charts
+  State Charts [Chart]
 tick pl t = do
   g <- maybe (pure mempty) (\x -> tickGlyph pl x (t ^. #tstyle)) (t ^. #gtick)
   l <- maybe (pure mempty) (\x -> tickText pl x (t ^. #tstyle)) (t ^. #ttick)
   t' <- maybe (pure mempty) (\x -> tickLine pl x (t ^. #tstyle)) (t ^. #ltick)
-  extendData pl t
-  pure (g <> l <> t')
-
--- | compute an extension to the Range if a tick went over the data bounding box
--- FIXME:
--- computeTickExtension (TickRound (FormatFixed (Just 1)) 4 TickExtend) (Range 0 0.8)
--- Just Range 0.0 0.8
-computeTickExtension :: TickStyle -> Range Double -> Maybe (Range Double)
-computeTickExtension s r =
-  case s of
-    TickNone -> Nothing
-    TickRound _ n e -> bool Nothing (Just (space1 ticks0 <> r)) (e == TickExtend)
-      where
-        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
-    TickExact _ _ -> Nothing
-    TickLabels _ -> Nothing
-    TickPlaced xs -> Just $ r <> space1 (fst <$> xs)
-
--- | Create a style extension for the data, if ticks extend beyond the existing range
--- >>> tickExtended PlaceBottom (defaultTick & #tstyle .~ TickRound (FormatFixed (Just 1)) 4 TickExtend) (Rect 0 0.88 0 0.88)
--- Rect 0.0 1.0 0.0 0.88
---
-tickExtended ::
-  Place ->
-  Tick ->
-  DataBox ->
-  Maybe DataBox
-tickExtended pl t db =
-  case computeTickExtension (t ^. #tstyle) (ranged db) of
-    Nothing -> Nothing
-    Just dr -> Just $ rangeext db dr
-  where
-    ranged xs' = case pl of
-      PlaceTop -> rangex xs'
-      PlaceBottom -> rangex xs'
-      PlaceLeft -> rangey xs'
-      PlaceRight -> rangey xs'
-      PlaceAbsolute _ -> rangex xs'
-    rangex (Rect x z _ _) = Range x z
-    rangey (Rect _ _ y w) = Range y w
-    rangeext (Rect x z y w) (Range a0 a1) = case pl of
-      PlaceTop -> Rect a0 a1 y w
-      PlaceBottom -> Rect a0 a1 y w
-      PlaceLeft -> Rect x z a0 a1
-      PlaceRight -> Rect x z a0 a1
-      PlaceAbsolute _ -> Rect a0 a1 y w
-
-extendData :: Place -> Tick -> State Charts ()
-extendData pl t = do
-  db <- gets (view #dbox)
-  case db of
-    Nothing -> pure ()
-    Just db' -> do
-      case tickExtended pl t db' of
-        Nothing -> pure ()
-        Just db'' -> do
-          -- modify (over #dbox (<> Just db''))
-          modify (over #charts (fmap (projectWith db'' db')))
+  pure $ g <> l <> t'
 
 -- | adjust Tick for sane font sizes etc
 adjustTick ::
@@ -1015,15 +962,12 @@ adjustTick (Adjustments mrx ma mry ad) vb cs pl t
     adjustSizeY = max ((maxHeight / (upper asp - lower asp)) / mry) 1
     adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
 
-makeTick :: AxisOptions -> State Charts Charts
+makeTick :: AxisOptions -> State Charts [Chart]
 makeTick c = do
   sb <- gets (view sbox')
   db <- gets (view #dbox)
-  case db of
-    Nothing -> pure mempty
-    Just db' -> do
-      let adjTick = maybe (c ^. #axisTick) (\x -> adjustTick x sb db' (c ^. #place) (c ^. #axisTick)) (c ^. #adjust)
-      tick (c ^. #place) adjTick
+  let adjTick = maybe (c ^. #axisTick) (\x -> adjustTick x sb db (c ^. #place) (c ^. #axisTick)) (c ^. #adjust)
+  tick (c ^. #place) adjTick
 
 legendChart :: LegendOptions -> [(Text, Chart)] -> [Chart]
 legendChart l lrs =
