@@ -67,10 +67,6 @@ label
 ---
 ![](other/label.svg)
 
-legend
----
-![](other/legend.svg)
-
 path
 ---
 ![](other/path.svg)
@@ -86,10 +82,6 @@ rect
 surface
 ---
 ![](other/surface.svg)
-
-svgoptions
----
-![](other/svgoptions.svg)
 
 text
 ---

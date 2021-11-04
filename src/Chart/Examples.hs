@@ -7,7 +7,6 @@
 -- | Examples of chart construction.
 module Chart.Examples
   ( unitExample,
-    svgOptionsExample,
     hudOptionsExample,
     hudOptionsDarkExample,
     rectExample,
@@ -17,7 +16,6 @@ module Chart.Examples
     barExample,
     waveExample,
     labelExample,
-    legendExample,
     surfaceExample,
     rosenbrock,
     arcExample,
@@ -92,16 +90,7 @@ hudOptionsDarkExample =
     & #hudOptions .~ colourHudOptions (rgb light) defaultHudOptions
     & #chartTree .~ [BlankChart [one]]
     & #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
-    & #svgOptions % #chartFrame .~ Just (RectStyle 0 dark dark, 0.02)
-
--- | 'SvgOptions' example.
---
--- ![svgoptions example](other/svgoptions.svg)
-svgOptionsExample :: ChartSvg
-svgOptionsExample =
-  mempty
-    & #svgOptions %~ #chartAspect .~ FixedAspect 0.7
-    & #chartTree .~ zipWith (\s l -> LineChart s [l]) lopts ls
+    & #extraHuds .~ [Hud 999 (frameHud (RectStyle 0 dark dark) 0.02)]
 
 -- | rect example
 --
@@ -110,7 +99,7 @@ rectExample :: ChartSvg
 rectExample =
   mempty &
   #hudOptions .~ (mempty & set #axes
-    [ (1, (defaultAxisOptions & #axisTick % #ltick .~ Nothing))]) &
+    [ (1, (defaultAxisOptions & #ticks % #ltick .~ Nothing))]) &
   #chartTree .~ zipWith RectChart ropts rss
 
 rss :: [NonEmpty (Rect Double)]
@@ -156,8 +145,8 @@ lineExample =
   #hudOptions .~
   ( mempty &
     #axes .~
-    [(2, defaultAxisOptions & #axisTick % #tstyle .~ TickRound (FormatFixed (Just 1)) 8 TickExtend),
-     (2, defaultAxisOptions & #place .~ PlaceLeft & #axisTick % #tstyle .~ TickRound (FormatFixed (Just 1)) 8 TickExtend)
+    [(2, defaultAxisOptions & #ticks % #style .~ TickRound (FormatFixed (Just 1)) 8 TickExtend),
+     (2, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatFixed (Just 1)) 8 TickExtend)
     ] &
     #titles .~
     [ (6, defaultTitle "Line Chart" & #style % #size .~ 0.08 ),
@@ -195,7 +184,7 @@ textExample fg =
   mempty &
     #chartTree .~
       [TextChart
-       (defaultTextStyle & (#color .~ fg) & (#size .~ 0.05) & (#nudge1 .~ 0))
+       (defaultTextStyle & (#color .~ fg) & (#size .~ 0.05) & (#vshift .~ 0))
        ts] &
     #hudOptions .~ colourHudOptions (rgb (bool dark light (fg==light))) defaultHudOptions &
     #svgOptions % #cssOptions % #preferColorScheme .~ bool PreferLight PreferDark (fg==light)
@@ -259,24 +248,6 @@ labelExample :: ChartSvg
 labelExample =
   mempty & #chartTree
     .~ [TextChart (defaultTextStyle & #rotation ?~ -pi / 4) [("text at (1,1) rotated by -(pi/4) radians", Point 1.0 1.0)]]
-
--- | legend test
---
--- ![legend example](other/legend.svg)
-legendExample :: ChartSvg
-legendExample =
-  mempty & #hudOptions
-    .~ ( defaultHudOptions & #legends .~
-           [(10, defaultLegendOptions
-                  & #content .~ l1)]
-       )
-  where
-    l1 =
-      [ ("glyph", GlyphChart (defaultGlyphStyle & #shape .~ CircleGlyph) [zero]),
-        ("rect", RectChart defaultRectStyle [one]),
-        ("text", TextChart (defaultTextStyle & #anchor .~ AnchorStart) [("text", zero)]),
-        ("line", LineChart defaultLineStyle [[zero]])
-      ]
 
 -- | wave example
 --
@@ -501,9 +472,9 @@ surfaceExample c =
         )
         ( defaultSurfaceLegendOptions c t
             & #sloStyle % #surfaceColors .~ (palette1 <$> [0 .. 5])
-            & #sloLegendOptions % #ltext % #color .~ c
+            & #sloLegendOptions % #style % #color .~ c
             & #sloAxisOptions .~ surfaceAxisOptions c
-            & #sloLegendOptions % #legendFrame %~ fmap (#borderColor .~ c)
+            & #sloLegendOptions % #frame %~ fmap (#borderColor .~ c)
         )
 
 -- | arrow example
@@ -514,7 +485,7 @@ surfaceExample c =
 arrowExample :: Colour -> ChartSvg
 arrowExample arrowColour =
   mempty
-    & #hudOptions .~ (defaultHudOptions & #axes %~ fmap (second (#axisTick % #ltick .~ Nothing)))
+    & #hudOptions .~ (defaultHudOptions & #axes %~ fmap (second (#ticks % #ltick .~ Nothing)))
     & #chartTree .~ ((\p -> chart (tail' . f $ p) (angle . f $ p) p) <$> ps)
     & #svgOptions .~ defaultSvgOptions
   where
@@ -554,8 +525,8 @@ dateExample :: ChartSvg
 dateExample = mempty &
   #chartTree .~ [BlankChart [Rect 0 1 0 1]] &
   #hudOptions .~ (mempty & #axes .~
-  [ (1, defaultAxisOptions & #place .~ PlaceLeft & #axisTick % #tstyle .~ TickPlaced tsTime),
-    (1, defaultAxisOptions & #axisTick % #tstyle .~ TickPlaced tsDate)
+  [ (1, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
+    (1, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
   ])
   where
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
@@ -613,10 +584,10 @@ dateExample = mempty &
 --
 -- >   over (#hudOptions % #hudLegend)
 -- >     (fmap (first
--- >       ( set #lscale 0.4 .
+-- >       ( set #overallScale 0.4 .
 -- >         set #vgap 0.3 .
--- >         set #lplace (PlaceAbsolute (Point 0.1 0.1)) .
--- >         over #legendFrame
+-- >         set #place (PlaceAbsolute (Point 0.1 0.1)) .
+-- >         over #frame
 -- >           (fmap
 -- >            (set #color (Colour 1 1 1 1) .
 -- >             set #borderColor (set opac' 0.1 dark)))))) &
@@ -625,7 +596,7 @@ dateExample = mempty &
 --
 -- >   over (#hudOptions % #hudAxes)
 -- >     (fmap
--- >       (set (#axisTick % #tstyle) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))) &
+-- >       (set (#ticks % #style) (TickRound (FormatComma (Just 2)) 8 NoTickExtend))) &
 --
 -- Stop the axes from extending past the data ranges.
 --
@@ -654,8 +625,8 @@ subChartExample =
   set #hudOptions
     (titlesHud "subchart example" "x axis title" "y axis title") &
   set (#hudOptions % #axes)
-      [ (1, defaultAxisOptions & set (#axisTick % #tstyle) (TickRound (FormatFixed (Just 1)) 8 TickExtend)),
-        (1, defaultAxisOptions & set #place PlaceLeft & set (#axisTick % #tstyle) (TickRound (FormatFixed (Just 1)) 8 TickExtend))] &
+      [ (1, defaultAxisOptions & set (#ticks % #style) (TickRound (FormatFixed (Just 1)) 8 TickExtend)),
+        (1, defaultAxisOptions & set #place PlaceLeft & set (#ticks % #style) (TickRound (FormatFixed (Just 1)) 8 TickExtend))] &
   set (#hudOptions % #legends)
     [(8000, (lineLegend 0.01
      ["xify", "yify", "addLineX", "addLineY"]
@@ -694,7 +665,7 @@ addLineY x ls' cs = cs <> [zeroLine]
 lineLegend :: Double -> [Text] -> [(Colour, Maybe [Double])] -> LegendOptions
 lineLegend w rs cs =
   defaultLegendOptions
-      & #legendFrame .~ Just (RectStyle 0.02 (palette1 9) (set opac' 0.05 $ palette1 4))
+      & #frame .~ Just (RectStyle 0.02 (palette1 9) (set opac' 0.05 $ palette1 4))
       & #content .~
       zipWith (\a r -> (r,LineChart a [[zero]])) ((\c -> defaultLineStyle & #color .~ fst c & #size .~ w & #dasharray .~ snd c) <$> cs) rs
 
@@ -756,10 +727,8 @@ pathChartSvg c =
     ("other/text.svg",textExample c),
     ("other/glyphs.svg",glyphsExample),
     ("other/line.svg",lineExample),
-    ("other/svgoptions.svg",svgOptionsExample),
     ("other/hudoptions.svg",hudOptionsExample),
     ("other/hudoptionsdark.svg",hudOptionsDarkExample),
-    ("other/legend.svg",legendExample),
       -- charts in Chart.Bar docs
     ("other/bar.svg",barExample),
       -- charts in Chart.Surface docs

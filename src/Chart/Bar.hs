@@ -84,7 +84,7 @@ barHudOptions bo bd =
       ]
       where
         o = view #barLegendOptions bo
-        axis1 = bool id flipAxis (barOrientation bo == Vert) (defaultAxisOptions & #axisTick % #ltick .~ Nothing & #axisTick % #tstyle .~ barTicks bd)
+        axis1 = bool id flipAxis (barOrientation bo == Vert) (defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
         axis2 = bool id flipAxis (barOrientation bo == Hori) defaultAxisOptions
 
 -- | The official bar options.

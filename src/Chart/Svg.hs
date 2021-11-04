@@ -12,6 +12,20 @@ module Chart.Svg
     toCharts,
     writeChartSvg,
     chartSvg,
+
+    -- * SVG Options
+    SvgOptions (..),
+    defaultSvgOptions,
+    ChartAspect (..),
+    toChartAspect,
+    fromChartAspect,
+    applyChartAspect,
+
+    -- * SVG Style primitives
+    CssOptions (..),
+    defaultCssOptions,
+    CssShapeRendering (..),
+    CssPreferColorScheme (..),
   ) where
 
 import Chart.Primitive
@@ -33,6 +47,8 @@ import GHC.Generics
 import Data.Semigroup
 import Data.Foldable
 import Data.Path.Parser
+import Control.Monad.State.Lazy
+import Data.String
 
 draw :: Chart -> Html ()
 draw (RectChart _ a) = sconcat $ svgRect_ <$> a
@@ -159,8 +175,7 @@ renderHudChartWith db so hs cs =
   where
     hs' =
       hs <>
-      [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect)] <>
-      foldMap (\(r,pad) -> [Hud 999 $ frameHud r pad]) (view #chartFrame so)
+      [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect)]
 
 -- | calculation of the canvas given the 'ChartAspect'
 initialCanvas :: ChartAspect -> [Chart] -> Rect Double
@@ -208,7 +223,7 @@ svgText_ s t p@(Point x y) =
         <> foldMap (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
     )
     (toHtmlRaw t) <>
-    case view #textFrame s of
+    case view #frame s of
       Nothing -> mempty
       Just f -> svg (RectChart (f & over #borderSize (*view #size s)) [styleBoxText s t p])
 
@@ -364,3 +379,69 @@ toScaleText :: Double -> Text
 toScaleText x =
   pack $
     "scale(" <> show x <> ")"
+
+-- | The basis for the x-y ratio of the final chart
+--
+-- Default style features tend towards assuming that the usual height of the overall svg image is around 1, and ChartAspect is based on this assumption, so that a ChartAspect of "FixedAspect 1.5", say, means a height of 1 and a width of 1.5.
+data ChartAspect
+  = -- | Rescale charts to a fixed x-y ratio, inclusive of hud and style features
+    FixedAspect Double
+  | -- | Rescale charts to an overall height of 1, preserving the x-y ratio of the data canvas.
+    CanvasAspect Double
+  | -- | Rescale charts to a height of 1, preserving the existing x-y ratio of the underlying charts, inclusive of hud and style.
+    ChartAspect
+  deriving (Show, Eq, Generic)
+
+-- | textifier
+fromChartAspect :: (IsString s) => ChartAspect -> s
+fromChartAspect (FixedAspect _) = "FixedAspect"
+fromChartAspect (CanvasAspect _) = "CanvasAspect"
+fromChartAspect ChartAspect = "ChartAspect"
+
+-- | readifier
+toChartAspect :: (Eq s, IsString s) => s -> Double -> ChartAspect
+toChartAspect "FixedAspect" a = FixedAspect a
+toChartAspect "CanvasAspect" a = CanvasAspect a
+toChartAspect "ChartAspect" _ = ChartAspect
+toChartAspect _ _ = ChartAspect
+
+-- | SVG tag options.
+--
+-- >>> defaultSvgOptions
+--
+-- ![svgoptions example](other/svgoptions.svg)
+data SvgOptions = SvgOptions
+  { svgHeight :: Double,
+    outerPad :: Maybe Double,
+    cssOptions :: CssOptions,
+    chartAspect :: ChartAspect
+  }
+  deriving (Eq, Show, Generic)
+
+-- | The official svg options
+defaultSvgOptions :: SvgOptions
+defaultSvgOptions = SvgOptions 300 (Just 0.02) defaultCssOptions (FixedAspect 1.5)
+
+-- | Apply a ChartAspect
+applyChartAspect :: ChartAspect -> State Charts ()
+applyChartAspect fa = do
+  hc <- get
+  case fa of
+    FixedAspect a -> modify (set sbox' (aspect a))
+    CanvasAspect a ->
+      modify
+      (set sbox'
+      (aspect (a * ratio (view #cbox hc) / ratio (view sbox' hc))))
+    ChartAspect -> pure ()
+
+data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
+
+data CssPreferColorScheme = PreferDark | PreferLight | PreferNormal deriving (Show, Eq, Generic)
+
+-- | css options
+-- >>> defaultCssOptions
+data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme} deriving (Show, Eq, Generic)
+
+-- | No special shape rendering and no reponse to OS color scheme preferences.
+defaultCssOptions :: CssOptions
+defaultCssOptions = CssOptions NoShapeRendering PreferLight

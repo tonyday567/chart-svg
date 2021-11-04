@@ -142,7 +142,7 @@ surfaceAxisOptions c =
   AxisOptions
     Nothing
     Nothing
-    ( Tick
+    ( Ticks
         (TickRound (FormatPrec (Just 3)) 4 NoTickExtend)
         (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c & #shape .~ VLineGlyph, 0.01))
         (Just (defaultTextTick & #color .~ c, 0.03))
@@ -158,30 +158,30 @@ defaultSurfaceLegendOptions c t =
 surfaceLegendOptions :: LegendOptions
 surfaceLegendOptions =
   defaultLegendOptions
-    & #lplace .~ PlaceRight
-    & #lscale .~ 0.7
-    & #lsize .~ 0.5
+    & #place .~ PlaceRight
+    & #overallScale .~ 0.7
+    & #size .~ 0.5
     & #vgap .~ 0.05
     & #hgap .~ 0.01
     & #innerPad .~ 0.05
     & #outerPad .~ 0.02
-    & #ltext % #hsize .~ 0.5
-    & #legendFrame .~ Nothing
+    & #style % #hsize .~ 0.5
+    & #frame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
 surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> [Chart]
 surfaceLegendChart dataRange l =
   padChart (l ^. #sloLegendOptions % #outerPad)
-    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #legendFrame)
+    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #frame)
     $ hs
   where
     a = makeSurfaceTick l pchart
     pchart
-      | l ^. #sloLegendOptions % #lplace == PlaceBottom
-          || l ^. #sloLegendOptions % #lplace == PlaceTop =
+      | l ^. #sloLegendOptions % #place == PlaceBottom
+          || l ^. #sloLegendOptions % #place == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
-    t = TextChart (l ^. #sloLegendOptions % #ltext & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
+    t = TextChart (l ^. #sloLegendOptions % #style & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
     hs = vert (l ^. #sloLegendOptions % #vgap) [a, [t]]
     vertGlyph :: [Chart]
     vertGlyph =
@@ -210,13 +210,13 @@ surfaceLegendChart dataRange l =
 
 isHori :: SurfaceLegendOptions -> Bool
 isHori l =
-  l ^. #sloLegendOptions % #lplace == PlaceBottom
-    || l ^. #sloLegendOptions % #lplace == PlaceTop
+  l ^. #sloLegendOptions % #place == PlaceBottom
+    || l ^. #sloLegendOptions % #place == PlaceTop
 
 makeSurfaceTick :: SurfaceLegendOptions -> [Chart] -> [Chart]
 makeSurfaceTick l pchart = phud
   where
     r = styleBoxes pchart
-    r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #lsize)) (Rect 0 (l ^. #sloLegendOptions % #lsize) 0 (l ^. #sloWidth)) (isHori l)
+    r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
     (hs, db) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r
     phud = runHudWith r' db hs pchart

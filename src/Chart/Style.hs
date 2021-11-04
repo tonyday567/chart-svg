@@ -39,22 +39,6 @@ module Chart.Style
     PathStyle (..),
     defaultPathStyle,
 
-    -- * SVG Options
-    SvgOptions (..),
-    defaultSvgOptions,
-    defaultSvgFrame,
-    ChartAspect (..),
-    toChartAspect,
-    fromChartAspect,
-    Orientation (..),
-    fromOrientation,
-    toOrientation,
-
-    -- * SVG Style primitives
-    CssOptions (..),
-    defaultCssOptions,
-    CssShapeRendering (..),
-    CssPreferColorScheme (..),
   )
 where
 
@@ -118,7 +102,7 @@ border s c = RectStyle s c transparent
 -- | Text styling
 --
 -- >>> defaultTextStyle
--- TextStyle {size = 8.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, nudge1 = -0.2, rotation = Nothing}
+-- TextStyle {size = 8.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, vshift = -0.2, rotation = Nothing}
 --
 -- >>> import qualified Data.Text as Text
 -- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
@@ -130,10 +114,10 @@ data TextStyle = TextStyle
     anchor :: Anchor,
     hsize :: Double,
     vsize :: Double,
-    nudge1 :: Double,
+    vshift :: Double,
     rotation :: Maybe Double,
     scalex :: ScaleX,
-    textFrame :: Maybe RectStyle
+    frame :: Maybe RectStyle
   }
   deriving (Show, Eq, Generic)
 
@@ -173,7 +157,7 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
     s = o ^. #size
     h = o ^. #hsize
     v = o ^. #vsize
-    n1 = o ^. #nudge1
+    n1 = o ^. #vshift
     x' = s * h * fromIntegral (sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
     y' = s * v
     n1' = -s * n1
@@ -181,7 +165,7 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
       AnchorStart -> 0.5
       AnchorEnd -> -0.5
       AnchorMiddle -> 0.0
-    mpad = case view #textFrame o of
+    mpad = case view #frame o of
       Nothing -> id
       Just f -> padRect (0.5 * view #borderSize f * view #size o)
 
@@ -362,79 +346,3 @@ data PathStyle = PathStyle
 defaultPathStyle :: PathStyle
 defaultPathStyle =
   PathStyle 0.01 (palette1 1) (palette1 2)
-
--- | Verticle or Horizontal
-data Orientation = Vert | Hori deriving (Eq, Show, Generic)
-
--- | textifier
-fromOrientation :: (IsString s) => Orientation -> s
-fromOrientation Hori = "Hori"
-fromOrientation Vert = "Vert"
-
--- | readifier
-toOrientation :: (Eq s, IsString s) => s -> Orientation
-toOrientation "Hori" = Hori
-toOrientation "Vert" = Vert
-toOrientation _ = Hori
-
-data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
-
-data CssPreferColorScheme = PreferDark | PreferLight | PreferNormal deriving (Show, Eq, Generic)
-
--- | css options
--- >>> defaultCssOptions
-data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme} deriving (Show, Eq, Generic)
-
--- | No special shape rendering and no reponse to OS color scheme preferences.
-defaultCssOptions :: CssOptions
-defaultCssOptions = CssOptions NoShapeRendering PreferLight
-
--- | The basis for the x-y ratio of the final chart
---
--- Default style features tend towards assuming that the usual height of the overall svg image is around 1, and ChartAspect is based on this assumption, so that a ChartAspect of "FixedAspect 1.5", say, means a height of 1 and a width of 1.5.
-data ChartAspect
-  = -- | Rescale charts to a fixed x-y ratio, inclusive of hud and style features
-    FixedAspect Double
-  | -- | Rescale charts to an overall height of 1, preserving the x-y ratio of the data canvas.
-    CanvasAspect Double
-  | -- | Rescale charts to a height of 1, preserving the existing x-y ratio of the underlying charts, inclusive of hud and style.
-    ChartAspect
-  deriving (Show, Eq, Generic)
-
--- | textifier
-fromChartAspect :: (IsString s) => ChartAspect -> s
-fromChartAspect (FixedAspect _) = "FixedAspect"
-fromChartAspect (CanvasAspect _) = "CanvasAspect"
-fromChartAspect ChartAspect = "ChartAspect"
-
--- | readifier
-toChartAspect :: (Eq s, IsString s) => s -> Double -> ChartAspect
-toChartAspect "FixedAspect" a = FixedAspect a
-toChartAspect "CanvasAspect" a = CanvasAspect a
-toChartAspect "ChartAspect" _ = ChartAspect
-toChartAspect _ _ = ChartAspect
-
--- | SVG tag options.
---
--- >>> defaultSvgOptions
--- SvgOptions {svgHeight = 300.0, outerPad = Just 2.0e-2, innerPad = Nothing, chartFrame = Nothing, cssOptions = defaultCssOptions, chartAspect = FixedAspect 1.5, background = Nothing}
---
---
--- ![svgoptions example](other/svgoptions.svg)
-data SvgOptions = SvgOptions
-  { svgHeight :: Double,
-    outerPad :: Maybe Double,
-    -- | A frame with some padding
-    chartFrame :: Maybe (RectStyle, Double),
-    cssOptions :: CssOptions,
-    chartAspect :: ChartAspect
-  }
-  deriving (Eq, Show, Generic)
-
--- | The official svg options
-defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) Nothing defaultCssOptions (FixedAspect 1.5)
-
--- | frame style
-defaultSvgFrame :: RectStyle
-defaultSvgFrame = border 0.01 dark

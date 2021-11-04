@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | The primitive 'Chart' Type and support
@@ -25,6 +26,9 @@ module Chart.Primitive
     rectangularize,
     glyphize,
     overText,
+    Orientation (..),
+    fromOrientation,
+    toOrientation,
   ) where
 
 import Chart.Style
@@ -32,13 +36,15 @@ import Data.Bifunctor
 import Data.Path
 import Data.Text (Text)
 import Prelude
-import Data.List.NonEmpty (NonEmpty(..), fromList)
+import Data.List.NonEmpty (NonEmpty(..))
 import Optics.Core
 import Chart.Data
 import Data.Foldable
 import Data.Semigroup
 import Data.Maybe
 import Data.Colour
+import Data.String
+import GHC.Generics
 
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
@@ -238,7 +244,7 @@ rectangularize :: RectStyle -> [Chart] -> [Chart]
 rectangularize r c = rectangularize_ r <$> c
 
 rectangularize_ :: RectStyle -> Chart -> Chart
-rectangularize_ rs (TextChart s xs) = TextChart (s & #textFrame .~ Just rs) xs
+rectangularize_ rs (TextChart s xs) = TextChart (s & #frame .~ Just rs) xs
 rectangularize_ rs c = RectChart rs [sbox c]
 
 glyphize :: GlyphStyle -> Chart -> Chart
@@ -252,3 +258,17 @@ glyphize g (GlyphChart _ xs) = GlyphChart g xs
 overText :: (TextStyle -> TextStyle) -> Chart -> Chart
 overText f (TextChart s xs) = TextChart (f s) xs
 overText _ x = x
+
+-- | Verticle or Horizontal
+data Orientation = Vert | Hori deriving (Eq, Show, Generic)
+
+-- | textifier
+fromOrientation :: (IsString s) => Orientation -> s
+fromOrientation Hori = "Hori"
+fromOrientation Vert = "Vert"
+
+-- | readifier
+toOrientation :: (Eq s, IsString s) => s -> Orientation
+toOrientation "Hori" = Hori
+toOrientation "Vert" = Vert
+toOrientation _ = Hori
