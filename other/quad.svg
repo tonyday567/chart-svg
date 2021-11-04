@@ -1,11 +1,11 @@
-<svg width="305.04398173922726" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.21650000000000003 -1.0762499999999997 2.283 2.2452499999999995" height="300.0"><style>svg {
+<svg width="305.03053858967246" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.22250000000000003 -1.0762499999999997 2.289 2.2512499999999998" height="300.0"><style>svg {
   color-scheme: light dark;
 }
 @media (prefers-color-scheme:dark) {
   svg {
     background-color: #f0f0f0;
   }
-}</style><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.999999999999997e-3" x="-3.05e-2" y="-1.0019999999999998" height="2.0039999999999996"/></g><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -4.65e-2, 1.0)"><polyline points="-4.65e-2,1.015
+}</style><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -4.65e-2, 1.0)"><polyline points="-4.65e-2,1.015
 -4.65e-2,0.985"/></g><g transform="rotate(-90.0, -4.65e-2, 0.8)"><polyline points="-4.65e-2,0.8150000000000001
 -4.65e-2,0.785"/></g><g transform="rotate(-90.0, -4.65e-2, 0.6000000000000001)"><polyline points="-4.65e-2,0.6150000000000001
 -4.65e-2,0.5850000000000001"/></g><g transform="rotate(-90.0, -4.65e-2, 0.4)"><polyline points="-4.65e-2,0.41500000000000004
@@ -16,7 +16,7 @@
 -4.65e-2,-0.4149999999999999"/></g><g transform="rotate(-90.0, -4.65e-2, -0.5999999999999999)"><polyline points="-4.65e-2,-0.5849999999999999
 -4.65e-2,-0.6149999999999999"/></g><g transform="rotate(-90.0, -4.65e-2, -0.7999999999999998)"><polyline points="-4.65e-2,-0.7849999999999998
 -4.65e-2,-0.8149999999999998"/></g><g transform="rotate(-90.0, -4.65e-2, -0.9999999999999998)"><polyline points="-4.65e-2,-0.9849999999999998
--4.65e-2,-1.0149999999999997"/></g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="end"><text x="-7.65e-2" y="1.01375">-1</text><text x="-7.65e-2" y="0.8137500000000001">-0.8</text><text x="-7.65e-2" y="0.6137500000000001">-0.6</text><text x="-7.65e-2" y="0.41375">-0.4</text><text x="-7.65e-2" y="0.21375000000000008">-0.2</text><text x="-7.65e-2" y="1.3750000000000113e-2">0</text><text x="-7.65e-2" y="-0.18624999999999994">0.2</text><text x="-7.65e-2" y="-0.3862499999999999">0.4</text><text x="-7.65e-2" y="-0.5862499999999998">0.6</text><text x="-7.65e-2" y="-0.7862499999999998">0.8</text><text x="-7.65e-2" y="-0.9862499999999997">1</text></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="0.0,1.0
+-4.65e-2,-1.0149999999999997"/></g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="end"><text x="-8.25e-2" y="1.01375">-1</text><text x="-8.25e-2" y="0.8137500000000001">-0.8</text><text x="-8.25e-2" y="0.6137500000000001">-0.6</text><text x="-8.25e-2" y="0.41375">-0.4</text><text x="-8.25e-2" y="0.21375000000000008">-0.2</text><text x="-8.25e-2" y="1.3750000000000113e-2">0</text><text x="-8.25e-2" y="-0.18624999999999994">0.2</text><text x="-8.25e-2" y="-0.3862499999999999">0.4</text><text x="-8.25e-2" y="-0.5862499999999998">0.6</text><text x="-8.25e-2" y="-0.7862499999999998">0.8</text><text x="-8.25e-2" y="-0.9862499999999997">1</text></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="0.0,1.0
 2.0,1.0"/><polyline points="0.0,0.8
 2.0,0.8"/><polyline points="0.0,0.6000000000000001
 2.0,0.6000000000000001"/><polyline points="0.0,0.4
@@ -27,7 +27,7 @@
 2.0,-0.3999999999999999"/><polyline points="0.0,-0.5999999999999999
 2.0,-0.5999999999999999"/><polyline points="0.0,-0.7999999999999998
 2.0,-0.7999999999999998"/><polyline points="0.0,-0.9999999999999998
-2.0,-0.9999999999999998"/></g><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="2.0039999999999996" x="-2.0e-3" y="1.0265" height="4.0000000000000036e-3"/></g><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="0.0,1.0614999999999999
+2.0,-0.9999999999999998"/></g><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.999999999999997e-3" x="-3.05e-2" y="-1.0019999999999998" height="2.0039999999999996"/></g><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="0.0,1.0614999999999999
 0.0,1.0315"/><polyline points="0.2,1.0614999999999999
 0.2,1.0315"/><polyline points="0.4,1.0614999999999999
 0.4,1.0315"/><polyline points="0.6000000000000001,1.0614999999999999
@@ -38,7 +38,7 @@
 1.4000000000000001,1.0315"/><polyline points="1.6,1.0614999999999999
 1.6,1.0315"/><polyline points="1.8,1.0614999999999999
 1.8,1.0315"/><polyline points="2.0,1.0614999999999999
-2.0,1.0315"/></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="middle"><text x="0.0" y="1.104">0</text><text x="0.2" y="1.104">0.2</text><text x="0.4" y="1.104">0.4</text><text x="0.6000000000000001" y="1.104">0.6</text><text x="0.8" y="1.104">0.8</text><text x="1.0" y="1.104">1</text><text x="1.2000000000000002" y="1.104">1.2</text><text x="1.4000000000000001" y="1.104">1.4</text><text x="1.6" y="1.104">1.6</text><text x="1.8" y="1.104">1.8</text><text x="2.0" y="1.104">2</text></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="0.0,1.0
+2.0,1.0315"/></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="middle"><text x="0.0" y="1.1099999999999999">0</text><text x="0.2" y="1.1099999999999999">0.2</text><text x="0.4" y="1.1099999999999999">0.4</text><text x="0.6000000000000001" y="1.1099999999999999">0.6</text><text x="0.8" y="1.1099999999999999">0.8</text><text x="1.0" y="1.1099999999999999">1</text><text x="1.2000000000000002" y="1.1099999999999999">1.2</text><text x="1.4000000000000001" y="1.1099999999999999">1.4</text><text x="1.6" y="1.1099999999999999">1.6</text><text x="1.8" y="1.1099999999999999">1.8</text><text x="2.0" y="1.1099999999999999">2</text></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="0.0,1.0
 0.0,-0.9999999999999998"/><polyline points="0.2,1.0
 0.2,-0.9999999999999998"/><polyline points="0.4,1.0
 0.4,-0.9999999999999998"/><polyline points="0.6000000000000001,1.0
@@ -49,7 +49,7 @@
 1.4000000000000001,-0.9999999999999998"/><polyline points="1.6,1.0
 1.6,-0.9999999999999998"/><polyline points="1.8,1.0
 1.8,-0.9999999999999998"/><polyline points="2.0,1.0
-2.0,-0.9999999999999998"/></g><g stroke-opacity="0.0" fill="#ffffff" stroke="#000000" stroke-width="0.0" fill-opacity="2.0e-2"><rect width="2.0330000000000004" x="-1.65e-2" y="-1.0165" height="2.033"/></g><g stroke-opacity="0.0" fill="#1f78b5" stroke="#000000" stroke-width="1.0e-2" fill-opacity="0.1"><path d="M 0,0 Q 2.0,1.0 1.0,-1.0"/></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="2.0e-3"><polyline points="0.0,-0.0
+2.0,-0.9999999999999998"/></g><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="2.0039999999999996" x="-2.0e-3" y="1.0265" height="4.0000000000000036e-3"/></g><g stroke-opacity="0.0" fill="#ffffff" stroke="#000000" stroke-width="0.0" fill-opacity="2.0e-2"><rect width="2.0330000000000004" x="-1.65e-2" y="-1.0165" height="2.033"/></g><g stroke-opacity="0.0" fill="#1f78b5" stroke="#000000" stroke-width="1.0e-2" fill-opacity="0.1"><path d="M 0,0 Q 2.0,1.0 1.0,-1.0"/></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="2.0e-3"><polyline points="0.0,-0.0
 3.9700000000000006e-2,1.970000000000005e-2
 7.88e-2,3.8799999999999946e-2
 0.11729999999999999,5.730000000000002e-2

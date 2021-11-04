@@ -160,7 +160,6 @@ renderHudChartWith db so hs cs =
     hs' =
       hs <>
       [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect)] <>
-      -- FIXME: a frame is a canvas, with low priority
       foldMap (\(r,pad) -> [Hud 999 $ frameHud r pad]) (view #chartFrame so)
 
 -- | calculation of the canvas given the 'ChartAspect'
@@ -168,7 +167,6 @@ initialCanvas :: ChartAspect -> [Chart] -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
 initialCanvas ChartAspect cs = boxes cs
-initialCanvas UnadjustedAspect cs = boxes cs
 
 -- | Render a chart using the supplied svg and hud config.
 --
@@ -366,4 +364,3 @@ toScaleText :: Double -> Text
 toScaleText x =
   pack $
     "scale(" <> show x <> ")"
-

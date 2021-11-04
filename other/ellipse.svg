@@ -1,11 +1,11 @@
-<svg width="263.2104719255942" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-1.6500000000000001 -1.52625 3.18375 3.62875" height="300.0"><style>svg {
+<svg width="263.2712015957081" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-1.656 -1.52625 3.18975 3.6347500000000004" height="300.0"><style>svg {
   color-scheme: light dark;
 }
 @media (prefers-color-scheme:dark) {
   svg {
     background-color: #f0f0f0;
   }
-}</style><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="4.0000000000000036e-3" x="-1.514" y="-1.502" height="3.5039999999999996"/></g><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -1.53, 2.0)"><polyline points="-1.53,2.015
+}</style><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -1.53, 2.0)"><polyline points="-1.53,2.015
 -1.53,1.985"/></g><g transform="rotate(-90.0, -1.53, 1.5)"><polyline points="-1.53,1.515
 -1.53,1.485"/></g><g transform="rotate(-90.0, -1.53, 1.0)"><polyline points="-1.53,1.015
 -1.53,0.985"/></g><g transform="rotate(-90.0, -1.53, 0.5)"><polyline points="-1.53,0.515
@@ -13,7 +13,7 @@
 -1.53,-1.5e-2"/></g><g transform="rotate(-90.0, -1.53, -0.49999999999999956)"><polyline points="-1.53,-0.48499999999999954
 -1.53,-0.5149999999999996"/></g><g transform="rotate(-90.0, -1.53, -1.0)"><polyline points="-1.53,-0.985
 -1.53,-1.015"/></g><g transform="rotate(-90.0, -1.53, -1.5)"><polyline points="-1.53,-1.485
--1.53,-1.515"/></g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="end"><text x="-1.56" y="2.01375">-2</text><text x="-1.56" y="1.51375">-1.5</text><text x="-1.56" y="1.01375">-1</text><text x="-1.56" y="0.51375">-0.5</text><text x="-1.56" y="1.3750000000000002e-2">0</text><text x="-1.56" y="-0.48624999999999957">0.5</text><text x="-1.56" y="-0.98625">1</text><text x="-1.56" y="-1.48625">1.5</text></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-1.5,2.0
+-1.53,-1.515"/></g></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="end"><text x="-1.5659999999999998" y="2.01375">-2</text><text x="-1.5659999999999998" y="1.51375">-1.5</text><text x="-1.5659999999999998" y="1.01375">-1</text><text x="-1.5659999999999998" y="0.51375">-0.5</text><text x="-1.5659999999999998" y="1.3750000000000002e-2">0</text><text x="-1.5659999999999998" y="-0.48624999999999957">0.5</text><text x="-1.5659999999999998" y="-0.98625">1</text><text x="-1.5659999999999998" y="-1.48625">1.5</text></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-1.5,2.0
 1.5,2.0"/><polyline points="-1.5,1.5
 1.5,1.5"/><polyline points="-1.5,1.0
 1.5,1.0"/><polyline points="-1.5,0.5
@@ -21,21 +21,21 @@
 1.5,-0.0"/><polyline points="-1.5,-0.49999999999999956
 1.5,-0.49999999999999956"/><polyline points="-1.5,-1.0
 1.5,-1.0"/><polyline points="-1.5,-1.5
-1.5,-1.5"/></g><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.004" x="-1.502" y="2.01" height="4.0000000000000036e-3"/></g><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="-1.5,2.045
+1.5,-1.5"/></g><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="4.0000000000000036e-3" x="-1.514" y="-1.502" height="3.5039999999999996"/></g><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="-1.5,2.045
 -1.5,2.0149999999999997"/><polyline points="-1.0,2.045
 -1.0,2.0149999999999997"/><polyline points="-0.5,2.045
 -0.5,2.0149999999999997"/><polyline points="0.0,2.045
 0.0,2.0149999999999997"/><polyline points="0.5,2.045
 0.5,2.0149999999999997"/><polyline points="1.0,2.045
 1.0,2.0149999999999997"/><polyline points="1.5,2.045
-1.5,2.0149999999999997"/></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="middle"><text x="-1.5" y="2.0875">-1.5</text><text x="-1.0" y="2.0875">-1</text><text x="-0.5" y="2.0875">-0.5</text><text x="0.0" y="2.0875">0</text><text x="0.5" y="2.0875">0.5</text><text x="1.0" y="2.0875">1</text><text x="1.5" y="2.0875">1.5</text></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-1.5,2.0
+1.5,2.0149999999999997"/></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="middle"><text x="-1.5" y="2.0935">-1.5</text><text x="-1.0" y="2.0935">-1</text><text x="-0.5" y="2.0935">-0.5</text><text x="0.0" y="2.0935">0</text><text x="0.5" y="2.0935">0.5</text><text x="1.0" y="2.0935">1</text><text x="1.5" y="2.0935">1.5</text></g><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-1.5,2.0
 -1.5,-1.5"/><polyline points="-1.0,2.0
 -1.0,-1.5"/><polyline points="-0.5,2.0
 -0.5,-1.5"/><polyline points="0.0,2.0
 0.0,-1.5"/><polyline points="0.5,2.0
 0.5,-1.5"/><polyline points="1.0,2.0
 1.0,-1.5"/><polyline points="1.5,2.0
-1.5,-1.5"/></g><g stroke-opacity="0.0" fill="#ffffff" stroke="#000000" stroke-width="0.0" fill-opacity="2.0e-2"><rect width="3.0" x="-1.5" y="-1.5" height="3.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="2.0e-3"><polyline points="1.0000000000000004,-0.0
+1.5,-1.5"/></g><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.004" x="-1.502" y="2.01" height="4.0000000000000036e-3"/></g><g stroke-opacity="0.0" fill="#ffffff" stroke="#000000" stroke-width="0.0" fill-opacity="2.0e-2"><rect width="3.0" x="-1.5" y="-1.5" height="3.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="2.0e-3"><polyline points="1.0000000000000004,-0.0
 0.9940146461148016,6.427210796446392e-2
 0.9854684971040975,0.12920580153034278
 0.9743808284486222,0.19465462547461176

@@ -146,7 +146,6 @@ applyChartAspect fa = do
       (set sbox'
       (aspect (a * ratio (view #cbox hc) / ratio (view sbox' hc))))
     ChartAspect -> pure ()
-    UnadjustedAspect -> pure ()
 
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (a linear type might be useful here).
 runHudWith ::
@@ -286,31 +285,32 @@ axis :: AxisOptions -> State Charts [Chart]
 axis a = do
   t <- makeTick a
   b <- maybe (pure mempty) (makeAxisBar (view #place a)) (view #axisBar a)
-  pure (b <> t)
+  pure (t <> b)
 
 legend :: LegendOptions -> State Charts [Chart]
 legend o = do
-  hc <- get
-  pure (placeChart (view sbox' hc))
+  sb <- gets (view sbox')
+  pure (placeChart sb)
   where
     cs = legendChart o (view #content o)
     placeChart ca = moveChart (placel (o ^. #lplace) ca (styleBoxes cs)) <$> cs
-    placel pl (Rect x z y w) (Rect x' z' y' w') =
+    placel pl (Rect x z y w) (Rect x' z' y' w')=
       case pl of
-        PlaceTop -> Point ((x + z) / 2.0) (w + (w' - y') / 2.0)
-        PlaceBottom -> Point ((x + z) / 2.0) (y - (w' - y' / 2.0))
-        PlaceLeft -> Point (x - (z' - x') / 2.0) ((y + w) / 2.0)
-        PlaceRight -> Point (z + (z' - x') / 2.0) ((y + w) / 2.0)
+        PlaceTop -> Point ((x + z) / 2.0) (view #buffer o + w + (w' - y') / 2.0)
+        PlaceBottom -> Point ((x + z) / 2.0) (y - view #buffer o - (w' - y'))
+        PlaceLeft -> Point (x - view #buffer o - (z' - x')) ((y + w) / 2.0)
+        PlaceRight -> Point (z + view #buffer o) ((y + w) / 2.0)
         PlaceAbsolute p -> p
 
--- | Make a legend hud element taking into account the chart.
+-- | Make a legend hud element, inserting a bespoke [Chart].
+--
+--
 legendHud :: LegendOptions -> [Chart] -> State Charts [Chart]
 legendHud l lcs = do
-  hc <- get
-  let ca = view sbox' hc
-  pure (place' ca (scaleChart (l ^. #lscale) <$> lcs))
+  sb <- gets (view sbox')
+  pure (placeChart sb (scaleChart (l ^. #lscale) <$> lcs))
   where
-    place' ca xs = moveChart (placel (l ^. #lplace) ca (styleBoxes xs)) <$> xs
+    placeChart ca xs = moveChart (placel (l ^. #lplace) ca (styleBoxes xs)) <$> xs
     placel pl (Rect x z y w) (Rect x' z' y' w') =
       case pl of
         PlaceTop -> Point ((x + z) / 2.0) (w + (w' - y') / 2.0)
@@ -352,7 +352,6 @@ makeHud xs cfg =
       foldMap
         (\(lo, ats) -> [legendHud lo (legendChart ats lo)])
         (cfg ^. #hudLegend)
-
 
 -}
 
@@ -497,9 +496,9 @@ defaultTick :: Tick
 defaultTick =
   Tick
     defaultTickStyle
-    (Just (defaultGlyphTick, 0.03)) -- 0.017
-    (Just (defaultTextTick, 0.03))  -- 0.015
-    (Just (defaultLineTick, 0))      -- 0
+    (Just (defaultGlyphTick, 0.03))
+    (Just (defaultTextTick, 0.033))
+    (Just (defaultLineTick, 0))
 
 -- | Style of tick marks on an axis.
 data TickStyle
@@ -554,6 +553,7 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- ![legend example](other/legend.svg)
 data LegendOptions = LegendOptions
   { lsize :: Double,
+    buffer :: Double,
     vgap :: Double,
     hgap :: Double,
     ltext :: TextStyle,
@@ -572,10 +572,11 @@ defaultLegendOptions :: LegendOptions
 defaultLegendOptions =
   LegendOptions
     0.3
+    0.1
     0.2
     0.1
     ( defaultTextStyle
-        & #size .~ 0.12
+        & #size .~ 0.20
     )
     10
     0.1

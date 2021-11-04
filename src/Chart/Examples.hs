@@ -16,7 +16,6 @@ module Chart.Examples
     lineExample,
     barExample,
     waveExample,
-    textLocalExample,
     labelExample,
     legendExample,
     surfaceExample,
@@ -93,7 +92,7 @@ hudOptionsDarkExample =
     & #hudOptions .~ colourHudOptions (rgb light) defaultHudOptions
     & #chartTree .~ [BlankChart [one]]
     & #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
-    & #svgOptions % #chartFrame .~ Just ((RectStyle 0 dark dark), 0)
+    & #svgOptions % #chartFrame .~ Just (RectStyle 0 dark dark, 0.02)
 
 -- | 'SvgOptions' example.
 --
@@ -214,7 +213,7 @@ glyphsExample :: ChartSvg
 glyphsExample =
   mempty
     & #svgOptions % #svgHeight
-    .~ 50
+    .~ 200
       & #chartTree
     .~ zipWith
       ( \(sh, bs) p ->
@@ -233,7 +232,8 @@ glyphsExample =
         (EllipseGlyph 0.75, 0.01),
         (VLineGlyph, 0.01),
         (HLineGlyph, 0.01),
-        (TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0), 0.01),
+        (TriangleGlyph (Point 0.0 (0.5 * sqrt 2)) (Point (-cos (pi/3)) (-sin (pi/3) / 2)) (Point (cos (pi/3)) (-sin (pi/3) / 2)), 0.01),
+
         (PathGlyph "M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" ScaleBorder, 0.01)
       ]
       [Point x 0 | x <- [0 .. (8 :: Double)]]
@@ -252,29 +252,6 @@ barDataExample =
 barExample :: ChartSvg
 barExample = barChart defaultBarOptions barDataExample
 
--- | Text is not scaled as a data element of the chart. It could be, but projecting a piece of text from a 1x10 size to a 10x1 size is problematic with respect to human perception.
--- This example shows the results of this design, with the rectangles having been computed as the bounded rectangle of the text, prior to scaling of the chart. The rectangles scale correctly, but the text does not change size in the transformation.
---
--- ![text local example](other/textlocal.svg)
-textLocalExample :: ChartSvg
-textLocalExample =
-  mempty & #chartTree
-    .~ [ t1,
-         t2,
-         RectChart rs [padSingletons $ sbox t1],
-         RectChart rs [padSingletons $ sbox t2]
-       ]
-  where
-    rs = defaultRectStyle & #color %~ set opac' 0.1
-    t1 =
-      TextChart
-        (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.9 & #size .~ 0.08)
-        [("a pretty long piece of text", zero)]
-    t2 =
-      TextChart
-        (defaultTextStyle & #anchor .~ AnchorStart & #hsize .~ 0.9 & #size .~ 0.08)
-        [("another pretty long piece of text", Point 1 1)]
-
 -- | label example.
 --
 -- ![label example](other/label.svg)
@@ -291,21 +268,14 @@ legendExample =
   mempty & #hudOptions
     .~ ( defaultHudOptions & #legends .~
            [(10, defaultLegendOptions
-                  & #lscale .~ 0.3
-                  & #lplace .~ PlaceAbsolute (Point 0.0 0.0)
-                  & #lsize .~ 0.16
-                  & #vgap .~ (-0.1)
-                  & #hgap .~ 0.06
-                  & #ltext % #size .~ 0.16
                   & #content .~ l1)]
        )
   where
     l1 =
-      [ ("glyph", GlyphChart defaultGlyphStyle [zero]),
+      [ ("glyph", GlyphChart (defaultGlyphStyle & #shape .~ CircleGlyph) [zero]),
         ("rect", RectChart defaultRectStyle [one]),
         ("text", TextChart (defaultTextStyle & #anchor .~ AnchorStart) [("text", zero)]),
-        ("line", LineChart defaultLineStyle [[zero]]),
-        ("abcdefghijklmnopqrst", GlyphChart defaultGlyphStyle [one])
+        ("line", LineChart defaultLineStyle [[zero]])
       ]
 
 -- | wave example
@@ -380,7 +350,7 @@ ellipseExample =
   mempty
     & #chartTree .~ [ell, ellFull, c0, bbox, xradii, yradii]
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
+    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ ChartAspect))
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
@@ -455,13 +425,13 @@ arcFlagsExample =
       ]
     & #hudOptions
     .~ mempty
-    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ UnadjustedAspect))
+    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ ChartAspect))
 
 checkFlags :: Bool -> Bool -> Colour -> ChartSvg
 checkFlags large' sweep co =
   mempty
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions % #chartAspect .~ UnadjustedAspect
+    & #svgOptions % #chartAspect .~ ChartAspect
     & #chartTree .~ [c1, c2, ell, arc1]
   where
     c = Point 1.0 1.0
@@ -684,16 +654,16 @@ subChartExample =
   set #hudOptions
     (titlesHud "subchart example" "x axis title" "y axis title") &
   set (#hudOptions % #axes)
-      [ (1, defaultAxisOptions & set (#axisTick % #tstyle) (TickRound (FormatFixed (Just 2)) 8 TickExtend)),
-        (1, defaultAxisOptions & set #place PlaceLeft & set (#axisTick % #tstyle) (TickRound (FormatFixed (Just 2)) 8 TickExtend))] &
+      [ (1, defaultAxisOptions & set (#axisTick % #tstyle) (TickRound (FormatFixed (Just 1)) 8 TickExtend)),
+        (1, defaultAxisOptions & set #place PlaceLeft & set (#axisTick % #tstyle) (TickRound (FormatFixed (Just 1)) 8 TickExtend))] &
   set (#hudOptions % #legends)
-    [(20, (lineLegend 0.01
+    [(8000, (lineLegend 0.01
      ["xify", "yify", "addLineX", "addLineY"]
      [ (palette1 8, Nothing),
        (palette1 5, Nothing),
        (set opac' 0.3 $ palette1 8, Just [0.01]),
        (set opac' 0.3 $ palette1 5, Just [0.04, 0.01])]))] &
-  set (#svgOptions % #chartAspect) (CanvasAspect 1.5)
+  set (#svgOptions % #chartAspect) (CanvasAspect 1)
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 --
@@ -711,22 +681,19 @@ addLineX :: Double -> LineStyle -> [Chart] -> [Chart]
 addLineX y ls' cs = cs <> [l]
   where
     l = LineChart ls' [[Point lx y, Point ux y]]
-    (Rect lx ux _ _) = styleBoxes cs
+    (Rect lx ux _ _) = boxes cs
 
 -- | add a verticle line at x
 addLineY :: Double -> LineStyle -> [Chart] -> [Chart]
 addLineY x ls' cs = cs <> [zeroLine]
   where
     zeroLine = LineChart ls' [[Point x ly, Point x uy]]
-    (Rect _ _ ly uy) = styleBoxes cs
+    (Rect _ _ ly uy) = boxes cs
 
 -- | Legend template for a line chart.
 lineLegend :: Double -> [Text] -> [(Colour, Maybe [Double])] -> LegendOptions
 lineLegend w rs cs =
   defaultLegendOptions
-      & #vgap .~ 0.4
-      & #ltext % #size .~ 0.1
-      & #lplace .~ PlaceRight
       & #legendFrame .~ Just (RectStyle 0.02 (palette1 9) (set opac' 0.05 $ palette1 4))
       & #content .~
       zipWith (\a r -> (r,LineChart a [[zero]])) ((\c -> defaultLineStyle & #color .~ fst c & #size .~ w & #dasharray .~ snd c) <$> cs) rs
@@ -736,9 +703,9 @@ titlesHud :: Text -> Text -> Text -> HudOptions
 titlesHud t x y =
   mempty & #titles .~
   (fmap (10,)
-    [ defaultTitle t & #style % #size .~ 0.14,
-      defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.12,
-      defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.12
+    [ defaultTitle t & #style % #size .~ 0.1,
+      defaultTitle x & #place .~ PlaceBottom & #style % #size .~ 0.08,
+      defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.08
     ])
 
 -- | /blendMidLineStyle n w/ produces n lines of size w interpolated between two colors.
@@ -799,7 +766,6 @@ pathChartSvg c =
     ("other/surface.svg",surfaceExample c),
       -- extra Charts
     ("other/wave.svg",waveExample),
-    ("other/textlocal.svg",textLocalExample),
     ("other/label.svg",labelExample),
     ("other/venn.svg",vennExample),
     ("other/path.svg",pathExample),

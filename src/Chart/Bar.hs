@@ -101,13 +101,7 @@ defaultBarOptions =
     (FormatComma (Just 2))
     False
     Hori
-    (defaultLegendOptions
-                 & #lplace .~ PlaceRight
-                 & #lsize .~ 0.12
-                 & #vgap .~ 0.4
-                 & #hgap .~ 0.14
-                 & #ltext % #size .~ 0.12
-                 & #lscale .~ 0.4)
+    defaultLegendOptions
   where
     gs = (\x -> RectStyle 0.002 (palette1 x) (palette1 x)) <$> [0..9]
     ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.04) <$> [0..9]

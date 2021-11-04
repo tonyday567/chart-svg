@@ -7,6 +7,10 @@ scratchpad
 ---
 ![](other/t1.svg)
 
+line
+---
+![](other/line.svg)
+
 debug
 ---
 ![](other/debug.svg)
@@ -67,10 +71,6 @@ legend
 ---
 ![](other/legend.svg)
 
-line
----
-![](other/line.svg)
-
 path
 ---
 ![](other/path.svg)
@@ -94,10 +94,6 @@ svgoptions
 text
 ---
 ![](other/text.svg)
-
-textlocal
----
-![](other/textlocal.svg)
 
 unit
 ---

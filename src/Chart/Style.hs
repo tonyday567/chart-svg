@@ -251,14 +251,14 @@ glyphText sh =
 -- | the extra area from glyph styling
 styleBoxGlyph :: GlyphStyle -> Rect Double
 styleBoxGlyph s = move p' $
-  sw $ case sh of
+  rot' $ sw $ case sh of
     CircleGlyph -> (sz *) <$> one
     SquareGlyph -> (sz *) <$> one
     EllipseGlyph a -> scale (Point sz (a * sz)) one
     RectSharpGlyph a -> scale (Point sz (a * sz)) one
     RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
-    VLineGlyph -> scale (Point ((s ^. #borderSize) * sz) sz) one
-    HLineGlyph -> scale (Point sz ((s ^. #borderSize) * sz)) one
+    VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
+    HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
     TriangleGlyph a b c -> (sz *) <$> space1 ([a,b,c] :: NonEmpty (Point Double))
     PathGlyph path' _ -> (sz *) <$> (pathBoxes . svgToPathData $ path')
   where
@@ -266,6 +266,7 @@ styleBoxGlyph s = move p' $
     sz = s ^. #size
     sw = padRect (0.5 * s ^. #borderSize)
     p' = fromMaybe (Point 0.0 0.0) (s ^. #translate)
+    rot' = maybe id rotationBound (view #rotation s)
 
 -- | Infinite list of glyph shapes
 --
@@ -398,8 +399,6 @@ data ChartAspect
     CanvasAspect Double
   | -- | Rescale charts to a height of 1, preserving the existing x-y ratio of the underlying charts, inclusive of hud and style.
     ChartAspect
-  | -- | Do not rescale.
-    UnadjustedAspect
   deriving (Show, Eq, Generic)
 
 -- | textifier
@@ -407,14 +406,12 @@ fromChartAspect :: (IsString s) => ChartAspect -> s
 fromChartAspect (FixedAspect _) = "FixedAspect"
 fromChartAspect (CanvasAspect _) = "CanvasAspect"
 fromChartAspect ChartAspect = "ChartAspect"
-fromChartAspect UnadjustedAspect = "UnadjustedAspect"
 
 -- | readifier
 toChartAspect :: (Eq s, IsString s) => s -> Double -> ChartAspect
 toChartAspect "FixedAspect" a = FixedAspect a
 toChartAspect "CanvasAspect" a = CanvasAspect a
 toChartAspect "ChartAspect" _ = ChartAspect
-toChartAspect "UnadjustedAspect" _ = UnadjustedAspect
 toChartAspect _ _ = ChartAspect
 
 -- | SVG tag options.
