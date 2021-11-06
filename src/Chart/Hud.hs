@@ -12,6 +12,7 @@ module Chart.Hud
   ( -- * Hud types
     Hud (..),
     frameHud,
+    labelHud,
     legend,
     legendHud,
     Charts(..),
@@ -70,6 +71,7 @@ import Data.Path
 import Chart.Data
 import qualified Data.List as List
 import Data.Tuple
+import Data.Tree
 
 -- * Hud
 
@@ -81,7 +83,7 @@ import Data.Tuple
 --
 -- This is done to support functionality where we can choose whether to normalise the chart aspect based on the entire chart (FixedAspect) or on just the data visualisation space (CanvasAspect).
 data Charts = Charts
-  { charts :: [Chart],
+  { charts :: Tree ChartNode,
     dbox :: DataBox,
     cbox :: CanvasBox
   }
@@ -92,20 +94,20 @@ type CanvasBox = Rect Double
 type DataBox = Rect Double
 
 sbox_ :: Charts -> StyleBox
-sbox_ = styleBoxes . view #charts
+sbox_ = styleBoxes . view (#charts % charts')
 
 rebox_ :: Charts -> Rect Double -> Charts
 rebox_ cs r =
   cs &
-  over #charts (fmap (projectWith r (sbox_ cs))) &
+  over #charts (fmap (over #charts (fmap (projectWith r (sbox_ cs))))) &
   over #cbox (projectOnR (sbox_ cs) r)
 
 sbox' :: Lens' Charts StyleBox
 sbox' = lens sbox_ rebox_
 
-append :: [Chart] -> Charts -> Charts
+append :: Tree ChartNode -> Charts -> Charts
 append cs x =
-  x & over #charts (cs<>) & over #cbox (projectOnR oldbox (view sbox' x))
+  x & over #charts (<> cs) & over #cbox (projectOnR oldbox (view sbox' x))
   where
     oldbox = view sbox' x
 
@@ -118,16 +120,19 @@ data Hud =
     -- | priority for ordering of transformations
     priority :: Priority,
     -- | additional charts
-    hud :: State Charts [Chart]
+    hud :: State Charts (Tree ChartNode)
   } deriving (Generic)
 
-closes :: (Traversable f) => f (State Charts [Chart]) -> State Charts ()
+closes :: (Traversable f) => f (State Charts (Tree ChartNode)) -> State Charts ()
 closes xs = do
   xs' <- fmap (mconcat . toList) $ sequence xs
   modify (append xs')
 
 fromEffect :: Priority -> State Charts () -> Hud
-fromEffect p s = Hud p (s >> pure [])
+fromEffect p s = Hud p (s >> pure mempty)
+
+labelHud :: Priority -> Text -> Hud
+labelHud p l = Hud p (pure (Node (ChartNode (Just l) []) []))
 
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (a linear type might be useful here).
 runHudWith ::
@@ -138,18 +143,19 @@ runHudWith ::
   -- | huds to add
   [Hud] ->
   -- | underlying chart
-  [Chart] ->
-  -- | integrated chart list
-  [Chart]
+  Tree ChartNode ->
+  -- | integrated chart tree
+  Tree ChartNode
 runHudWith cb db hs cs =
    hs &
    List.sortOn (view #priority) &
    List.groupBy (\a b-> view #priority a == view #priority b) &
    mapM_ (closes . fmap (view #hud)) &
-   flip execState (Charts (projectWith cb db <$> cs) db cb) &
+   flip execState
+   (Charts (cs & fmap (over #charts (fmap (projectWith cb db)))) db cb) &
    view #charts
 
--- | Combine huds and charts to form a new [Chart] with an optional supplied initial canvas dimension.
+-- | Combine huds and charts to form a new Tree ChartNode with an optional supplied initial canvas dimension.
 --
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
 --
@@ -161,18 +167,18 @@ runHud ::
   -- | huds
   [Hud] ->
   -- | underlying charts
-  [Chart] ->
+  Tree ChartNode ->
   -- | integrated chart list
-  [Chart]
-runHud ca hs cs = runHudWith ca (padSingletons $ boxes cs) hs cs
+  Tree ChartNode
+runHud ca hs cs = runHudWith ca (padSingletons $ boxes (view charts' cs)) hs cs
 
 -- | overlay a frame with additive padding
 --
-frameHud :: RectStyle -> Double -> State Charts [Chart]
+frameHud :: RectStyle -> Double -> State Charts (Tree ChartNode)
 frameHud rs p = do
   cs <- get
   let pad = padRect p (view sbox' cs)
-  pure [RectChart rs [pad]]
+  pure $ toTree (Just "frame") [RectChart rs [pad]]
 
 -- | Typical configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
@@ -269,25 +275,26 @@ placeOrigin pl x
   | pl == PlaceTop || pl == PlaceBottom = Point x 0
   | otherwise = Point 0 x
 
-axis :: AxisOptions -> State Charts [Chart]
+axis :: AxisOptions -> State Charts (Tree ChartNode)
 axis a = do
   t <- makeTick a
   b <- maybe (pure mempty) (makeAxisBar (view #place a)) (view #bar a)
-  pure (t <> b)
+  pure (Node (ChartNode (Just "axis") []) [t,b])
 
-legend :: LegendOptions -> State Charts [Chart]
+legend :: LegendOptions -> State Charts (Tree ChartNode)
 legend o = legendHud o (legendChart o (view #content o))
 
--- | Make a legend hud element, inserting a bespoke [Chart].
+-- | Make a legend hud element, inserting a bespoke Tree ChartNode.
 --
 --
-legendHud :: LegendOptions -> [Chart] -> State Charts [Chart]
+legendHud :: LegendOptions -> Tree ChartNode -> State Charts (Tree ChartNode)
 legendHud o lcs = do
   sb <- gets (view sbox')
-  pure (placeChart sb (scaleChart (o ^. #overallScale) <$> lcs))
-  where
-    placeChart ca xs =
-      moveChart (placeBeside_ (o ^. #place) (view #buffer o) ca (styleBoxes xs)) <$> xs
+  pure $ placeLegend o sb (fmap (over #charts (fmap (scaleChart (o ^. #overallScale)))) lcs)
+
+placeLegend :: LegendOptions -> StyleBox -> Tree ChartNode -> Tree ChartNode
+placeLegend o sb t =
+  t & fmap (over #charts (fmap (moveChart (placeBeside_ (o ^. #place) (view #buffer o) sb (styleBoxes $ view charts' t)))))
 
 placeBeside_ :: Place -> Double -> Rect Double -> Rect Double -> Point Double
 placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
@@ -538,10 +545,10 @@ flipAxis ac = case ac ^. #place of
   PlaceAbsolute _ -> ac
 
 -- | Make a canvas hud transformation.
-canvas :: RectStyle -> State Charts [Chart]
+canvas :: RectStyle -> State Charts (Tree ChartNode)
 canvas s = do
   hc <- get
-  pure [RectChart s [view sbox' hc]]
+  pure $ toTree (Just "canvas") [RectChart s [view sbox' hc]]
 
 bar_ :: Place -> AxisBar -> CanvasBox -> StyleBox -> Chart
 bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
@@ -583,12 +590,12 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
             (w + b ^. #overhang)
         ]
 
-makeAxisBar :: Place -> AxisBar -> State Charts [Chart]
+makeAxisBar :: Place -> AxisBar -> State Charts (Tree ChartNode)
 makeAxisBar pl b = do
   cb <- gets (view #cbox)
   sb <- gets (view sbox')
   let c = bar_ pl b cb sb
-  pure [c]
+  pure $ toTree (Just "axisbar") [c]
 
 title_ :: Title -> StyleBox -> Chart
 title_ t sb =
@@ -642,10 +649,10 @@ alignPosTitle t (Rect x z y w)
       | otherwise = Point 0.0 0.0
 
 -- | title append transformation.
-title :: Title -> State Charts [Chart]
+title :: Title -> State Charts (Tree ChartNode)
 title t = do
   ca <- gets (view sbox')
-  pure [title_ t ca]
+  pure $ toTree (Just "title") [title_ t ca]
 
 placePos :: Place -> Double -> StyleBox -> Point Double
 placePos pl b (Rect x z y w) = case pl of
@@ -729,13 +736,13 @@ tickGlyph ::
   Place ->
   (GlyphStyle, Double) ->
   TickStyle ->
-  State Charts [Chart]
+  State Charts (Tree ChartNode)
 tickGlyph pl (g, b) ts = do
   sb <- gets (view sbox')
   cb <- gets (view #cbox)
   db <- gets (view #dbox)
   let c = tickGlyph_ pl (g, b) ts sb cb db
-  pure (maybeToList c)
+  pure $ toTree (Just "tickglyph") (maybeToList c)
 
 tickText_ ::
   Place ->
@@ -759,36 +766,36 @@ tickText ::
   Place ->
   (TextStyle, Double) ->
   TickStyle ->
-  State Charts [Chart]
+  State Charts (Tree ChartNode)
 tickText pl (txts, b) ts = do
   sb <- gets (view sbox')
   cb <- gets (view #cbox)
   db <- gets (view #dbox)
   let c = tickText_ pl (txts, b) ts sb cb db
-  pure (maybeToList c)
+  pure $ toTree (Just "ticktext") (maybeToList c)
 
 -- | aka grid lines
 tickLine ::
   Place ->
   (LineStyle, Double) ->
   TickStyle ->
-  State Charts [Chart]
+  State Charts (Tree ChartNode)
 tickLine pl (ls, b) ts = do
   cb <- gets (view #cbox)
   db <- gets (view #dbox)
   let l = (\x -> placeGridLines pl cb x b) <$> fmap fst (ticksPlacedCanvas ts pl cb db)
-  pure (bool [LineChart ls (fromList l)] [] (null l))
+  pure $ toTree (Just "ticklines") (bool [LineChart ls (fromList l)] [] (null l))
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
 applyTicks ::
   Place ->
   Ticks ->
-  State Charts [Chart]
+  State Charts (Tree ChartNode)
 applyTicks pl t = do
   g <- maybe (pure mempty) (\x -> tickGlyph pl x (t ^. #style)) (t ^. #gtick)
   l <- maybe (pure mempty) (\x -> tickText pl x (t ^. #style)) (t ^. #ttick)
   t' <- maybe (pure mempty) (\x -> tickLine pl x (t ^. #style)) (t ^. #ltick)
-  pure $ g <> l <> t'
+  pure $ Node (ChartNode (Just "ticks") []) [g, l, t']
 
 -- | adjust Tick for sane font sizes etc
 adjustTicks ::
@@ -852,20 +859,19 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
     adjustSizeY = max ((maxHeight / (upper asp - lower asp)) / mry) 1
     adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
 
-makeTick :: AxisOptions -> State Charts [Chart]
+makeTick :: AxisOptions -> State Charts (Tree ChartNode)
 makeTick c = do
   sb <- gets (view sbox')
   db <- gets (view #dbox)
   let adjTick = maybe (c ^. #ticks) (\x -> adjustTicks x sb db (c ^. #place) (c ^. #ticks)) (c ^. #adjust)
   applyTicks (c ^. #place) adjTick
 
-legendChart :: LegendOptions -> [(Text, Chart)] -> [Chart]
-legendChart l lrs =
-  padChart (l ^. #outerPad)
-    . maybe id (\x -> frameChart x (l ^. #innerPad)) (l ^. #frame)
-    . vert (l ^. #hgap)
-    $ (\(a, t) -> hori ((l ^. #vgap) + twidth - gapwidth t) [[t], [a]])
-      <$> es
+legendChart :: LegendOptions -> [(Text, Chart)] -> Tree ChartNode
+legendChart l lrs = (\x -> x { rootLabel = ChartNode (Just "legend") (view #charts (rootLabel x))}) $
+  fmap (over #charts (padChart (l ^. #outerPad))) $
+  maybe id (\x -> frameTree x (l ^. #innerPad) (Just "legendborder")) (l ^. #frame) $
+  vert (l ^. #hgap)
+  ((\(a, t) -> hori ((l ^. #vgap) + twidth - gapwidth t) (fmap (toTree Nothing) [[t], [a]])) <$> es)
   where
     es = reverse $ uncurry (legendEntry l) <$> lrs
     twidth = (\(Rect _ z _ _) -> z) $ styleBoxes (snd <$> es)

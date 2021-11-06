@@ -1,11 +1,16 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | The primitive 'Chart' Type and support
 module Chart.Primitive
   ( Chart(..),
+    ChartNode(..),
+    charts',
+    toTree,
     box,
     sbox,
     projectWith,
@@ -22,6 +27,7 @@ module Chart.Primitive
     hori,
     stack,
     frameChart,
+    frameTree,
     padChart,
     rectangularize,
     glyphize,
@@ -45,6 +51,7 @@ import Data.Maybe
 import Data.Colour
 import Data.String
 import GHC.Generics
+import Data.Tree
 
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
@@ -78,6 +85,25 @@ data Chart =
   PathChart PathStyle (NonEmpty (PathData Double)) |
   BlankChart (NonEmpty (Rect Double)) deriving (Eq, Show)
 
+data ChartNode = ChartNode { name :: Maybe Text, charts :: [Chart] } deriving (Eq, Show, Generic)
+
+toChartList_ :: Tree ChartNode -> [Chart]
+toChartList_ t = mconcat $ view #charts <$> flatten t
+
+toTree :: Maybe Text -> [Chart] -> Tree ChartNode
+toTree l cs = Node (ChartNode l cs) []
+
+charts' :: Getter (Tree ChartNode) [Chart]
+charts' = Optics.Core.to toChartList_
+
+instance Semigroup (Tree ChartNode) where
+  (<>) x@(Node (ChartNode n cs) xs) x'@(Node (ChartNode n' cs') xs') =
+    case (n,n') of
+      (Nothing, Nothing) -> Node (ChartNode Nothing (cs <> cs')) (xs <> xs')
+      _ -> Node (ChartNode Nothing []) [x, x']
+
+instance Monoid (Tree ChartNode) where
+  mempty = Node (ChartNode Nothing []) []
 
 -- | Library functionality (rescaling, combining charts, working out axes and generally putting charts together) is driven by a box model.
 --
@@ -202,6 +228,11 @@ unsafeStyleBoxes cs = foldRectUnsafe $ sbox <$> cs
 frameChart :: RectStyle -> Double -> [Chart] -> [Chart]
 frameChart rs p cs = RectChart rs (padRect p (styleBoxes cs):|[]):cs
 
+-- | overlay a frame on some Tree ChartNode with additive padding between
+--
+frameTree :: RectStyle -> Double -> Maybe Text -> Tree ChartNode -> Tree ChartNode
+frameTree rs p label cs = Node (ChartNode label [RectChart rs [padRect p (styleBoxes (view charts' cs))]]) [cs]
+
 -- | additively pad a [Chart]
 --
 -- >>> import NumHask.Prelude (one)
@@ -211,49 +242,60 @@ padChart :: Double -> [Chart] -> [Chart]
 padChart p cs = BlankChart (padRect p (styleBoxes cs):|[]):cs
 
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
-hori :: Double -> [[Chart]] -> [Chart]
-hori _ [] = []
-hori gap cs = foldl' step [] cs
+hori :: Double -> [Tree ChartNode] -> Tree ChartNode
+hori _ [] = mempty
+hori gap cs = foldl' step mempty cs
   where
-    step x c = x <> (moveChart (Point (widthx x) (aligny x - aligny c)) <$> c)
-    widthx [] = zero
-    widthx xs = (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
-    aligny [] = zero
-    aligny xs = (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
+    step :: Tree ChartNode -> Tree ChartNode -> Tree ChartNode
+    step x c = x <> fmap (over #charts (fmap (moveChart (Point (widthx x) (aligny x - aligny c))))) c
+    widthx x = case view charts' x of
+      [] -> zero
+      xs -> (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
+    aligny x = case view charts' x of
+      [] -> zero
+      xs -> (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
 
--- | vertically stack a list of charts (proceeding upwards), aligning them to the left
-vert :: Double -> [[Chart]] -> [Chart]
-vert _ [] = []
-vert gap cs = foldl' step [] cs
+-- | vertically stack a chart nodes (proceeding upwards), aligning them to the left
+vert :: Double -> [Tree ChartNode] -> Tree ChartNode
+vert _ [] = mempty
+vert gap cs = foldl' step mempty cs
   where
-    step x c = x <> (moveChart (Point (alignx x - alignx c) (widthy x)) <$> c)
-    widthy [] = zero
-    widthy xs = (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
-    alignx [] = zero
-    alignx xs = (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+    step :: Tree ChartNode -> Tree ChartNode -> Tree ChartNode
+    step x c = x <> fmap (over #charts (fmap (moveChart (Point (alignx x - alignx c) (widthy x))))) c
+    widthy x = case view charts' x of
+      [] -> zero
+      xs -> (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
+    alignx x = case view charts' x of
+      [] -> zero
+      xs -> (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- | stack a list of charts horizontally, then vertically
-stack :: Int -> Double -> [[Chart]] -> [Chart]
-stack _ _ [] = []
+stack :: Int -> Double -> [Tree ChartNode] -> Tree ChartNode
+stack _ _ [] = mempty
 stack n gap cs = vert gap (hori gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
 
-rectangularize :: RectStyle -> [Chart] -> [Chart]
-rectangularize r c = rectangularize_ r <$> c
+rectangularize :: RectStyle -> Tree ChartNode -> Tree ChartNode
+rectangularize r c = Node (ChartNode (Just "rectangularize") [])
+  [fmap (over #charts (fmap (rectangularize_ r))) c]
 
 rectangularize_ :: RectStyle -> Chart -> Chart
 rectangularize_ rs (TextChart s xs) = TextChart (s & #frame .~ Just rs) xs
 rectangularize_ rs c = RectChart rs [sbox c]
 
-glyphize :: GlyphStyle -> Chart -> Chart
-glyphize g (TextChart _ xs) = GlyphChart g (snd <$> xs)
-glyphize g (PathChart _ xs) = GlyphChart g (pointPath <$> xs)
-glyphize g (LineChart _ xs) = GlyphChart g (sconcat xs)
-glyphize g (BlankChart xs) = GlyphChart g (mid <$> xs)
-glyphize g (RectChart _ xs) = GlyphChart g (mid <$> xs)
-glyphize g (GlyphChart _ xs) = GlyphChart g xs
+glyphize :: GlyphStyle -> Tree ChartNode -> Tree ChartNode
+glyphize g c = Node (ChartNode (Just "glyphize") [])
+  [fmap (over #charts (fmap (glyphize_ g))) c]
+
+glyphize_ :: GlyphStyle -> Chart -> Chart
+glyphize_ g (TextChart _ xs) = GlyphChart g (snd <$> xs)
+glyphize_ g (PathChart _ xs) = GlyphChart g (pointPath <$> xs)
+glyphize_ g (LineChart _ xs) = GlyphChart g (sconcat xs)
+glyphize_ g (BlankChart xs) = GlyphChart g (mid <$> xs)
+glyphize_ g (RectChart _ xs) = GlyphChart g (mid <$> xs)
+glyphize_ g (GlyphChart _ xs) = GlyphChart g xs
 
 overText :: (TextStyle -> TextStyle) -> Chart -> Chart
 overText f (TextChart s xs) = TextChart (f s) xs

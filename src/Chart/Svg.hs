@@ -3,13 +3,17 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Chart API
 module Chart.Svg
-  ( ChartSvg(..),
+  (
+    ChartSvg(..),
+    charts',
     toCharts,
+    toTree,
     writeChartSvg,
     chartSvg,
 
@@ -49,6 +53,7 @@ import Data.Foldable
 import Data.Path.Parser
 import Control.Monad.State.Lazy
 import Data.String
+import Data.Tree
 
 draw :: Chart -> Html ()
 draw (RectChart _ a) = sconcat $ svgRect_ <$> a
@@ -66,6 +71,14 @@ atts (GlyphChart s _) = attsGlyph s
 atts (PathChart s _) = attsPath s
 atts (BlankChart _) = mempty
 
+svgChartTree :: Tree ChartNode -> Lucid.Html ()
+svgChartTree (Node (ChartNode Nothing []) xs) = mconcat $ svgChartTree <$> xs
+svgChartTree (Node cn xs)
+  | renderText content' == mempty && Nothing == (view #name cn) = mempty
+  | otherwise = term "g" (foldMap (\x -> [term "class" x]) (view #name cn)) content'
+    where
+      content' = (mconcat $ svg <$> view #charts cn) <> (mconcat $ svgChartTree <$> xs)
+
 -- ** ChartSvg
 
 -- | Specification of a chart for rendering to SVG
@@ -73,26 +86,26 @@ data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
     hudOptions :: HudOptions,
     extraHuds :: [Hud],
-    chartTree :: [Chart]
+    chartTree :: Tree ChartNode
   }
   deriving (Generic)
+
 instance Semigroup ChartSvg where
   (<>) (ChartSvg _ o h c) (ChartSvg s' o' h' c') =
     ChartSvg s' (o <> o') (h <> h') (c <> c')
 
 instance Monoid ChartSvg where
-  mempty = ChartSvg defaultSvgOptions mempty mempty []
+  mempty = ChartSvg defaultSvgOptions mempty mempty mempty
 
-toCharts :: ChartSvg -> [Chart]
+toCharts :: ChartSvg -> Tree ChartNode
 toCharts cs =
   runHudWith
   (initialCanvas (view (#svgOptions % #chartAspect) cs) (view #chartTree cs))
   db'
   (hs <> view #extraHuds cs)
-  (view #chartTree cs <> [BlankChart [db']])
+  (view #chartTree cs <> toTree Nothing [BlankChart [db']])
   where
-   (hs, db') = toHuds (view #hudOptions cs) (boxes $ view #chartTree cs)
-
+   (hs, db') = toHuds (view #hudOptions cs) (boxes $ view (#chartTree % charts') cs)
 
 -- * rendering
 
@@ -105,14 +118,10 @@ svg2Tag m =
     ]
     m
 
-renderToSvg :: CssOptions -> Point Double -> Rect Double -> [Chart] -> Html ()
+renderToSvg :: CssOptions -> Point Double -> Rect Double -> Tree ChartNode -> Html ()
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
   with
-    ( svg2Tag
-        ( cssText csso
-            <> mconcat (svg <$> cs)
-        )
-    )
+    (svg2Tag (cssText csso <> svgChartTree cs))
     [ width_ (pack $ show w'),
       height_ (pack $ show h'),
       makeAttribute "viewBox" (pack $ show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
@@ -134,6 +143,30 @@ cssShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 cssShapeRendering NoShapeRendering = mempty
 
 cssPreferColorScheme :: (Colour, Colour) -> CssPreferColorScheme -> Text
+cssPreferColorScheme (bglight, bgdark) PreferHud =
+  [trimming|
+svg {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme:dark) {
+  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
+    fill: $cl;
+  }
+  .ticklines g, .tickglyph g, .legendborder g {
+    stroke: $cl;
+  }
+}
+@media (prefers-color-scheme:light) {
+  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
+    fill: $cd;
+  }
+  .ticklines g, .tickglyph g, .legendborder g {
+    stroke: $cd;
+  }
+  |]
+    where
+      cl = hex bglight
+      cd = hex bgdark
 cssPreferColorScheme (bglight, _) PreferLight =
   [trimming|
     svg {
@@ -160,37 +193,38 @@ cssPreferColorScheme (_, bgdark) PreferDark =
 cssPreferColorScheme _ PreferNormal = mempty
 
 -- | render Charts with the supplied options.
-renderChartsWith :: SvgOptions -> [Chart] -> Text
+renderChartsWith :: SvgOptions -> Tree ChartNode -> Text
 renderChartsWith so cs =
   Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs)
   where
-    rect' = styleBoxes cs & maybe id padRect (so ^. #outerPad)
+    rect' = styleBoxes (view charts' cs) & maybe id padRect (so ^. #outerPad)
     Point w h = width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
 
 -- | render charts with the supplied svg options and hud
-renderHudChartWith :: Rect Double -> SvgOptions -> [Hud] -> [Chart] -> Text
+renderHudChartWith :: Rect Double -> SvgOptions -> [Hud] -> Tree ChartNode -> Text
 renderHudChartWith db so hs cs =
-  renderChartsWith so (runHudWith (initialCanvas (so ^. #chartAspect) (cs <> [BlankChart [db]])) db hs' cs)
+  renderChartsWith so
+  (runHudWith (initialCanvas (so ^. #chartAspect) (cs <> toTree Nothing [BlankChart [db]])) db hs' cs)
   where
     hs' =
       hs <>
       [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect)]
 
 -- | calculation of the canvas given the 'ChartAspect'
-initialCanvas :: ChartAspect -> [Chart] -> Rect Double
+initialCanvas :: ChartAspect -> Tree ChartNode -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = boxes cs
+initialCanvas ChartAspect cs = boxes $ view charts' cs
 
 -- | Render a chart using the supplied svg and hud config.
 --
 -- >>> chartSvg mempty
 -- "<svg height=\"300.0\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-0.52 -0.52 1.04 1.04\"></svg>"
 chartSvg :: ChartSvg -> Text
-chartSvg (ChartSvg so ho hs cs) = renderHudChartWith db' so (hs <> hs') (cs <> [BlankChart [db']])
+chartSvg cs = renderHudChartWith db' (view #svgOptions cs) (view #extraHuds cs <> hs') (view #chartTree cs <> toTree Nothing [BlankChart [db']])
   where
-    (hs', db') = toHuds ho (boxes cs)
+    (hs', db') = toHuds (view #hudOptions cs) (boxes $ view (#chartTree % charts') cs)
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()
@@ -436,12 +470,12 @@ applyChartAspect fa = do
 
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
 
-data CssPreferColorScheme = PreferDark | PreferLight | PreferNormal deriving (Show, Eq, Generic)
+data CssPreferColorScheme = PreferHud | PreferDark | PreferLight | PreferNormal deriving (Show, Eq, Generic)
 
 -- | css options
 -- >>> defaultCssOptions
 data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme} deriving (Show, Eq, Generic)
 
--- | No special shape rendering and no reponse to OS color scheme preferences.
+-- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions
-defaultCssOptions = CssOptions NoShapeRendering PreferLight
+defaultCssOptions = CssOptions NoShapeRendering PreferHud

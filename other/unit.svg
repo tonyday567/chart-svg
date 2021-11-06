@@ -2,7 +2,17 @@
   color-scheme: light dark;
 }
 @media (prefers-color-scheme:dark) {
-  svg {
-    background-color: #f0f0f0;
+  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
+    fill: #f0f0f0;
   }
-}</style><g stroke-opacity="1.0" fill="#1f78b5" stroke="#a6cfe3" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="1.4900662251655628" x="-0.7450331125827815" y="-0.49504950495049493" height="0.99009900990099"/></g></svg>
+  .ticklines g, .tickglyph g, .legendborder g {
+    stroke: #f0f0f0;
+  }
+}
+@media (prefers-color-scheme:light) {
+  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
+    fill: #0d0d0d;
+  }
+  .ticklines g, .tickglyph g, .legendborder g {
+    stroke: #0d0d0d;
+  }</style><g class="unit"><g stroke-opacity="1.0" fill="#1f78b5" stroke="#a6cfe3" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="1.4900662251655628" x="-0.7450331125827815" y="-0.49504950495049493" height="0.99009900990099"/></g></g></svg>

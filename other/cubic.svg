@@ -2,10 +2,20 @@
   color-scheme: light dark;
 }
 @media (prefers-color-scheme:dark) {
-  svg {
-    background-color: #f0f0f0;
+  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
+    fill: #f0f0f0;
   }
-}</style><g stroke-opacity="0.0" fill="#1f78b5" stroke="#000000" stroke-width="1.0e-2" fill-opacity="0.1"><path d="M 0,0 C 1.0,0 0,-1.0 1.0,-1.0"/></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="2.0e-3"><polyline points="0.0,-0.0
+  .ticklines g, .tickglyph g, .legendborder g {
+    stroke: #f0f0f0;
+  }
+}
+@media (prefers-color-scheme:light) {
+  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
+    fill: #0d0d0d;
+  }
+  .ticklines g, .tickglyph g, .legendborder g {
+    stroke: #0d0d0d;
+  }</style><g class="cubic"><g stroke-opacity="0.0" fill="#1f78b5" stroke="#000000" stroke-width="1.0e-2" fill-opacity="0.1"><path d="M 0,0 C 1.0,0 0,-1.0 1.0,-1.0"/></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="2.0e-3"><polyline points="0.0,-0.0
 2.9404e-2,-2.9800000000000003e-4
 5.7631999999999996e-2,-1.184e-3
 8.470799999999999e-2,-2.6460000000000003e-3
@@ -105,4 +115,4 @@
 0.915292,-0.9973540000000001
 0.9423679999999999,-0.9988159999999999
 0.9705959999999999,-0.999702
-1.0,-1.0"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="3.0e-3" fill-opacity="1.0"><rect width="3.0e-2" x="-1.5e-2" y="-1.5e-2" height="3.0e-2"/><rect width="2.9999999999999916e-2" x="0.985" y="-1.015" height="2.9999999999999916e-2"/><rect width="2.9999999999999916e-2" x="0.985" y="-1.5e-2" height="3.0e-2"/><rect width="3.0e-2" x="-1.5e-2" y="-1.015" height="2.9999999999999916e-2"/><rect width="3.0000000000000027e-2" x="0.5930000000000001" y="-0.9110000000000001" height="3.0000000000000027e-2"/></g><g stroke-opacity="1.0" fill="#6666cc" stroke="#808080" stroke-width="2.0e-3" fill-opacity="0.1"><rect width="1.0" x="0.0" y="-1.0" height="1.0"/></g></svg>
+1.0,-1.0"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="3.0e-3" fill-opacity="1.0"><rect width="3.0e-2" x="-1.5e-2" y="-1.5e-2" height="3.0e-2"/><rect width="2.9999999999999916e-2" x="0.985" y="-1.015" height="2.9999999999999916e-2"/><rect width="2.9999999999999916e-2" x="0.985" y="-1.5e-2" height="3.0e-2"/><rect width="3.0e-2" x="-1.5e-2" y="-1.015" height="2.9999999999999916e-2"/><rect width="3.0000000000000027e-2" x="0.5930000000000001" y="-0.9110000000000001" height="3.0000000000000027e-2"/></g><g stroke-opacity="1.0" fill="#6666cc" stroke="#808080" stroke-width="2.0e-3" fill-opacity="0.1"><rect width="1.0" x="0.0" y="-1.0" height="1.0"/></g></g></svg>

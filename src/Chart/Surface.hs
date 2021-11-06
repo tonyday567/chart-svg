@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
@@ -38,6 +39,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Chart.Data
 import Data.Bool
 import Data.Foldable
+import Data.Tree
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -169,20 +171,19 @@ surfaceLegendOptions =
     & #frame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
-surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> [Chart]
+surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> Tree ChartNode
 surfaceLegendChart dataRange l =
-  padChart (l ^. #sloLegendOptions % #outerPad)
-    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #frame)
-    $ hs
+  fmap (over #charts (padChart (l ^. #sloLegendOptions % #outerPad)
+    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #frame))) hs
   where
-    a = makeSurfaceTick l pchart
+    a = makeSurfaceTick l (toTree (Just "pchart") pchart)
     pchart
       | l ^. #sloLegendOptions % #place == PlaceBottom
           || l ^. #sloLegendOptions % #place == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
     t = TextChart (l ^. #sloLegendOptions % #style & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
-    hs = vert (l ^. #sloLegendOptions % #vgap) [a, [t]]
+    hs = vert (l ^. #sloLegendOptions % #vgap) [a, toTree Nothing [t]]
     vertGlyph :: [Chart]
     vertGlyph =
       zipWith
@@ -213,10 +214,10 @@ isHori l =
   l ^. #sloLegendOptions % #place == PlaceBottom
     || l ^. #sloLegendOptions % #place == PlaceTop
 
-makeSurfaceTick :: SurfaceLegendOptions -> [Chart] -> [Chart]
+makeSurfaceTick :: SurfaceLegendOptions -> Tree ChartNode -> Tree ChartNode
 makeSurfaceTick l pchart = phud
   where
-    r = styleBoxes pchart
+    r = styleBoxes (view charts' pchart)
     r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
     (hs, db) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r
     phud = runHudWith r' db hs pchart
