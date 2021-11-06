@@ -2,20 +2,10 @@
   color-scheme: light dark;
 }
 @media (prefers-color-scheme:dark) {
-  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
-    fill: #f0f0f0;
+  svg {
+    background-color: #f0f0f0;
   }
-  .ticklines g, .tickglyph g, .legendborder g {
-    stroke: #f0f0f0;
-  }
-}
-@media (prefers-color-scheme:light) {
-  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
-    fill: #0d0d0d;
-  }
-  .ticklines g, .tickglyph g, .legendborder g {
-    stroke: #0d0d0d;
-  }</style><g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.6" fill-opacity="1.0" text-anchor="middle"><text x="0.5" y="-0.0" transform="rotate(-90.0, 0.5, -0.0)">Sweep</text></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="5.1499999999999995,1.6599999999999993
+}</style><g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.6" fill-opacity="1.0" text-anchor="middle"><text x="0.5" y="-0.0" transform="rotate(-90.0, 0.5, -0.0)">Sweep</text></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="5.1499999999999995,1.6599999999999993
 5.148026728428272,1.5972094804706858
 5.142114701314479,1.534666766435695
 5.132287250728689,1.4726186854142749

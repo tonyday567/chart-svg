@@ -3,10 +3,6 @@ chart-svg
 
 All the charts.
 
-scratchpad
----
-![](other/t1.svg)
-
 line
 ---
 ![](other/line.svg)
@@ -58,14 +54,6 @@ glyphs
 hudoptions
 ---
 ![](other/hudoptions.svg)
-
-hudoptionsdark
----
-![](other/hudoptionsdark.svg)
-
-label
----
-![](other/label.svg)
 
 path
 ---
