@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 -- | Examples of chart construction.
 module Chart.Examples
@@ -57,6 +58,7 @@ import Prelude hiding (abs)
 import Data.Bifunctor
 import Data.Function
 import Optics.Core
+import NeatInterpolation
 
 -- $setup
 -- >>> import Chart
@@ -173,13 +175,32 @@ textExample =
        (defaultTextStyle & (#color .~ dark) & (#size .~ 0.05) & (#vshift .~ 0))
        ts] &
     #hudOptions .~ defaultHudOptions &
-    #svgOptions % #cssOptions % #preferColorScheme .~ PreferLight
+    #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud &
+    #svgOptions % #cssOptions % #cssExtra .~ textSwitch (light, dark)
   where
     ts :: NonEmpty (Text, Point Double)
     ts =
       NonEmpty.zip
         (fmap Text.singleton ['a' .. 'z'])
         ((\x -> Point (sin (x * 0.1)) x) <$> [0 .. 25])
+
+    textSwitch :: (Colour, Colour) -> Text
+    textSwitch (cl, cd) =
+      [trimming|
+{
+  .text g {
+    fill: $hexDark;
+  }
+}
+@media (prefers-color-scheme:dark) {
+  .text g {
+    fill: $hexLight;
+  }
+}
+|]
+        where
+          hexLight = hex cl
+          hexDark = hex cd
 
 -- | glyphs example
 --

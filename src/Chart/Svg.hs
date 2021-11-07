@@ -135,7 +135,8 @@ svg c = term "g" (atts c) (draw c)
 cssText :: CssOptions -> Html ()
 cssText csso = style_ [] $
   cssShapeRendering (csso ^. #shapeRendering) <>
-  cssPreferColorScheme (light, dark) (csso ^. #preferColorScheme)
+  cssPreferColorScheme (light, dark) (csso ^. #preferColorScheme) <>
+  csso ^. #cssExtra
 
 cssShapeRendering :: CssShapeRendering -> Text
 cssShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPrecision; }"
@@ -143,30 +144,31 @@ cssShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 cssShapeRendering NoShapeRendering = mempty
 
 cssPreferColorScheme :: (Colour, Colour) -> CssPreferColorScheme -> Text
-cssPreferColorScheme (bglight, bgdark) PreferHud =
+cssPreferColorScheme (cl, cd) PreferHud =
   [trimming|
 svg {
   color-scheme: light dark;
 }
-@media (prefers-color-scheme:dark) {
-  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
-    fill: $cl;
+{
+  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
+    fill: $hexDark;
   }
-  .ticklines g, .tickglyph g, .legendborder g {
-    stroke: $cl;
+  .ticklines g, .tickglyph g, .legendBorder g {
+    stroke: $hexDark;
   }
 }
-@media (prefers-color-scheme:light) {
-  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
-    fill: $cd;
+@media (prefers-color-scheme:dark) {
+  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
+    fill: $hexLight;
   }
-  .ticklines g, .tickglyph g, .legendborder g {
-    stroke: $cd;
+  .ticklines g, .tickglyph g, .legendBorder g {
+    stroke: $hexLight;
   }
-  |]
+}
+|]
     where
-      cl = hex bglight
-      cd = hex bgdark
+      hexLight = hex cl
+      hexDark = hex cd
 cssPreferColorScheme (bglight, _) PreferLight =
   [trimming|
     svg {
@@ -465,7 +467,7 @@ applyChartAspect fa = do
     CanvasAspect a ->
       modify
       (set sbox'
-      (aspect (a * ratio (view #cbox hc) / ratio (view sbox' hc))))
+      (aspect (a * ratio (view cbox' hc) / ratio (view sbox' hc))))
     ChartAspect -> pure ()
 
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
@@ -474,8 +476,8 @@ data CssPreferColorScheme = PreferHud | PreferDark | PreferLight | PreferNormal 
 
 -- | css options
 -- >>> defaultCssOptions
-data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme} deriving (Show, Eq, Generic)
+data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: Text } deriving (Show, Eq, Generic)
 
 -- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions
-defaultCssOptions = CssOptions NoShapeRendering PreferHud
+defaultCssOptions = CssOptions NoShapeRendering PreferHud mempty

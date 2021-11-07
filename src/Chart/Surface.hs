@@ -173,8 +173,7 @@ surfaceLegendOptions =
 -- | Creation of the classical heatmap glyph within a legend context.
 surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> Tree ChartNode
 surfaceLegendChart dataRange l =
-  fmap (over #charts (padChart (l ^. #sloLegendOptions % #outerPad)
-    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions % #innerPad)) (l ^. #sloLegendOptions % #frame))) hs
+  legendFrame (view #sloLegendOptions l) hs
   where
     a = makeSurfaceTick l (toTree (Just "pchart") pchart)
     pchart

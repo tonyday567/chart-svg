@@ -27,7 +27,6 @@ module Chart.Primitive
     hori,
     stack,
     frameChart,
-    frameTree,
     padChart,
     rectangularize,
     glyphize,
@@ -221,25 +220,17 @@ unsafeBoxes cs = foldRectUnsafe $ box <$> cs
 unsafeStyleBoxes :: (Foldable f, Functor f) => f Chart -> Rect Double
 unsafeStyleBoxes cs = foldRectUnsafe $ sbox <$> cs
 
--- | overlay a frame on some charts with some additive padding between
+-- | Create a frame over some charts with (additive) padding.
 --
 -- >>> frameChart defaultRectStyle 0.1 [Chart BlankA []]
 -- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = []},Chart {annotation = BlankA, xys = []}]
-frameChart :: RectStyle -> Double -> [Chart] -> [Chart]
-frameChart rs p cs = RectChart rs (padRect p (styleBoxes cs):|[]):cs
-
--- | overlay a frame on some Tree ChartNode with additive padding between
---
-frameTree :: RectStyle -> Double -> Maybe Text -> Tree ChartNode -> Tree ChartNode
-frameTree rs p label cs = Node (ChartNode label [RectChart rs [padRect p (styleBoxes (view charts' cs))]]) [cs]
+frameChart :: RectStyle -> Double -> [Chart] -> Chart
+frameChart rs p cs = RectChart rs [padRect p (styleBoxes cs)]
 
 -- | additively pad a [Chart]
 --
--- >>> import NumHask.Prelude (one)
--- >>> padChart 0.1 [Chart (RectA defaultRectStyle) [RectXY one]]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = [R -0.5 0.5 -0.5 0.5]},Chart {annotation = BlankA, xys = [R -0.605 0.605 -0.605 0.605]}]
-padChart :: Double -> [Chart] -> [Chart]
-padChart p cs = BlankChart (padRect p (styleBoxes cs):|[]):cs
+padChart :: Double -> [Chart] -> Chart
+padChart p cs = BlankChart [padRect p (styleBoxes cs)]
 
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: Double -> [Tree ChartNode] -> Tree ChartNode

@@ -1,21 +1,22 @@
 <svg width="263.2712015957081" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-1.656 -1.52625 3.18975 3.6347500000000004" height="300.0"><style>svg {
   color-scheme: light dark;
 }
-@media (prefers-color-scheme:dark) {
-  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
-    fill: #f0f0f0;
-  }
-  .ticklines g, .tickglyph g, .legendborder g {
-    stroke: #f0f0f0;
-  }
-}
-@media (prefers-color-scheme:light) {
-  .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legend g {
+{
+  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
     fill: #0d0d0d;
   }
-  .ticklines g, .tickglyph g, .legendborder g {
+  .ticklines g, .tickglyph g, .legendBorder g {
     stroke: #0d0d0d;
-  }</style><g class="ellipse"><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="2.0e-3"><polyline points="1.0000000000000004,-0.0
+  }
+}
+@media (prefers-color-scheme:dark) {
+  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
+    fill: #f0f0f0;
+  }
+  .ticklines g, .tickglyph g, .legendBorder g {
+    stroke: #f0f0f0;
+  }
+}</style><g class="ellipse"><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="2.0e-3"><polyline points="1.0000000000000004,-0.0
 0.9940146461148016,6.427210796446392e-2
 0.9854684971040975,0.12920580153034278
 0.9743808284486222,0.19465462547461176
@@ -217,7 +218,7 @@
 0.6615359169804229,-0.907480891631427
 0.6086376856300113,-0.9414395063606076"/></g><g stroke-opacity="1.0" fill="#a6cfe3" stroke="#1f78b5" stroke-width="3.0e-3" fill-opacity="1.0"><rect width="3.0000000000000027e-2" x="-0.1563623143699887" y="0.34259859931604997" height="3.0000000000000027e-2"/><rect width="2.9999999999999916e-2" x="0.985" y="-1.5e-2" height="3.0e-2"/><rect width="3.0e-2" x="-1.5e-2" y="-1.015" height="2.9999999999999916e-2"/></g><g stroke-opacity="1.0" fill="#6666cc" stroke="#808080" stroke-width="2.0e-3" fill-opacity="0.1"><rect width="2.2870062381089493" x="-1.2870062381089489" y="-1.0" height="2.7495396900235556"/></g><g stroke-opacity="1.0" fill="none" stroke="#e63305" stroke-dasharray="3.0e-2 1.0e-2" stroke-linecap="round" stroke-width="5.0e-3"><polyline points="0.6086376856300113,-0.9414395063606076
 -0.8913623143699891,1.656636704992708"/></g><g stroke-opacity="1.0" fill="none" stroke="#e6e605" stroke-dasharray="3.0e-2 1.0e-2" stroke-linecap="round" stroke-width="5.0e-3"><polyline points="-1.0073877181544273,-0.14240140068395002
-0.7246630894144497,0.8575985993160504"/></g></g><g class="canvas"><g stroke-opacity="0.0" fill="#ffffff" stroke="#000000" stroke-width="0.0" fill-opacity="2.0e-2"><rect width="3.0" x="-1.5" y="-1.5" height="3.5"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -1.53, 2.0)"><polyline points="-1.53,2.015
+0.7246630894144497,0.8575985993160504"/></g></g><g class="hud"><g class="canvas"><g stroke-opacity="0.0" fill="#ffffff" stroke="#000000" stroke-width="0.0" fill-opacity="2.0e-2"><rect width="3.0" x="-1.5" y="-1.5" height="3.5"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -1.53, 2.0)"><polyline points="-1.53,2.015
 -1.53,1.985"/></g><g transform="rotate(-90.0, -1.53, 1.5)"><polyline points="-1.53,1.515
 -1.53,1.485"/></g><g transform="rotate(-90.0, -1.53, 1.0)"><polyline points="-1.53,1.015
 -1.53,0.985"/></g><g transform="rotate(-90.0, -1.53, 0.5)"><polyline points="-1.53,0.515
@@ -247,4 +248,4 @@
 0.0,-1.5"/><polyline points="0.5,2.0
 0.5,-1.5"/><polyline points="1.0,2.0
 1.0,-1.5"/><polyline points="1.5,2.0
-1.5,-1.5"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.004" x="-1.502" y="2.01" height="4.0000000000000036e-3"/></g></g></g></svg>
+1.5,-1.5"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.004" x="-1.502" y="2.01" height="4.0000000000000036e-3"/></g></g></g></g></svg>

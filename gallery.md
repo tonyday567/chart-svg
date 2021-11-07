@@ -1,7 +1,5 @@
-chart-svg
-=========
-
-All the charts.
+Chart Gallery
+===
 
 line
 ---
