@@ -199,7 +199,7 @@ renderChartsWith :: SvgOptions -> Tree ChartNode -> Text
 renderChartsWith so cs =
   Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs)
   where
-    rect' = styleBoxes (view charts' cs) & maybe id padRect (so ^. #outerPad)
+    rect' = fmap (view #aspectBasis so *) $ styleBoxes (view charts' cs) & maybe id padRect (so ^. #outerPad)
     Point w h = width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
 
@@ -211,7 +211,7 @@ renderHudChartWith db so hs cs =
   where
     hs' =
       hs <>
-      [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect)]
+      [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect) (so ^. #aspectBasis)]
 
 -- | calculation of the canvas given the 'ChartAspect'
 initialCanvas :: ChartAspect -> Tree ChartNode -> Rect Double
@@ -450,24 +450,25 @@ data SvgOptions = SvgOptions
   { svgHeight :: Double,
     outerPad :: Maybe Double,
     cssOptions :: CssOptions,
-    chartAspect :: ChartAspect
+    chartAspect :: ChartAspect,
+    aspectBasis :: Double
   }
   deriving (Eq, Show, Generic)
 
 -- | The official svg options
 defaultSvgOptions :: SvgOptions
-defaultSvgOptions = SvgOptions 300 (Just 0.02) defaultCssOptions (FixedAspect 1.5)
+defaultSvgOptions = SvgOptions 300 (Just 0.02) defaultCssOptions (FixedAspect 1.5) 1
 
 -- | Apply a ChartAspect
-applyChartAspect :: ChartAspect -> State Charts ()
-applyChartAspect fa = do
+applyChartAspect :: ChartAspect -> Double -> State Charts ()
+applyChartAspect fa x = do
   hc <- get
   case fa of
-    FixedAspect a -> modify (set sbox' (aspect a))
+    FixedAspect a -> modify (set sbox' (fmap (x*) (aspect a)))
     CanvasAspect a ->
       modify
       (set sbox'
-      (aspect (a * ratio (view cbox' hc) / ratio (view sbox' hc))))
+      (fmap (x*) (aspect (a * ratio (view cbox' hc) / ratio (view sbox' hc)))))
     ChartAspect -> pure ()
 
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
