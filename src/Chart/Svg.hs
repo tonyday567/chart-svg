@@ -30,6 +30,8 @@ module Chart.Svg
     defaultCssOptions,
     CssShapeRendering (..),
     CssPreferColorScheme (..),
+    cssShapeRendering,
+    cssPreferColorScheme,
   ) where
 
 import Chart.Primitive
