@@ -26,9 +26,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - compiler: ghc-9.2.0.20210821
+          - compiler: ghc-9.2.1
             compilerKind: ghc
-            compilerVersion: 9.2.0.20210821
+            compilerVersion: 9.2.1
             setup-method: ghcup
             allow-failure: true
           - compiler: ghc-9.0.1
@@ -36,9 +36,9 @@ jobs:
             compilerVersion: 9.0.1
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-8.10.4
+          - compiler: ghc-8.10.7
             compilerKind: ghc
-            compilerVersion: 8.10.4
+            compilerVersion: 8.10.7
             setup-method: hvr-ppa
             allow-failure: false
           - compiler: ghc-8.8.4
@@ -150,15 +150,6 @@ jobs:
           rm -f cabal-plan.xz
           chmod a+x $HOME/.cabal/bin/cabal-plan
           cabal-plan --version
-      - name: install cabal-docspec
-        run: |
-          mkdir -p $HOME/.cabal/bin
-          curl -sL https://github.com/phadej/cabal-extras/releases/download/cabal-docspec-0.0.0.20210111/cabal-docspec-0.0.0.20210111.xz > cabal-docspec.xz
-          echo '0829bd034fba901cbcfe491d98ed8b28fd54f9cb5c91fa8e1ac62dc4413c9562  cabal-docspec.xz' | sha256sum -c -
-          xz -d < cabal-docspec.xz > $HOME/.cabal/bin/cabal-docspec
-          rm -f cabal-docspec.xz
-          chmod a+x $HOME/.cabal/bin/cabal-docspec
-          cabal-docspec --version
       - name: checkout
         uses: actions/checkout@v2
         with:
@@ -215,10 +206,6 @@ jobs:
       - name: build
         run: |
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --write-ghc-environment-files=always
-      - name: docspec
-        run: |
-          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all ; fi
-          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then cabal-docspec $ARG_COMPILER --verbose --timeout 2 ; fi
       - name: cabal check
         run: |
           cd ${PKGDIR_chart_svg} || false

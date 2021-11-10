@@ -31,9 +31,9 @@ build-type:      Simple
 extra-doc-files: other/*.svg
 tested-with:
   GHC ==8.8.4
-   || ==8.10.4
+   || ==8.10.7
    || ==9.0.1
-   || ==9.2.0.20210821
+   || ==9.2.1
 source-repository head
   type:     git
   location: https://github.com/tonyday567/chart-svg
