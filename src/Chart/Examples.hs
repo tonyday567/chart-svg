@@ -69,7 +69,7 @@ import NeatInterpolation
 --
 -- ![unit example](other/unit.svg)
 unitExample :: ChartSvg
-unitExample = mempty & #chartTree .~ toTree (Just "unit") [RectChart defaultRectStyle [one]]
+unitExample = mempty & #charts .~ named "unit" [RectChart defaultRectStyle [one]]
 
 -- | 'HudOptions' example
 --
@@ -78,7 +78,7 @@ hudOptionsExample :: ChartSvg
 hudOptionsExample =
   mempty
     & #hudOptions .~ colourHudOptions (rgb dark) defaultHudOptions
-    & #chartTree .~ toTree Nothing [BlankChart [one]]
+    & #charts .~ blank one
 
 -- | rect example
 --
@@ -88,7 +88,7 @@ rectExample =
   mempty &
   #hudOptions .~ (mempty & set #axes
     [ (1, defaultAxisOptions & #ticks % #ltick .~ Nothing)]) &
-  #chartTree .~ toTree (Just "rect") (zipWith RectChart ropts rss)
+  #charts .~ named "rect" (zipWith RectChart ropts rss)
 
 rss :: [NonEmpty (Rect Double)]
 rss = fmap fromList
@@ -120,7 +120,7 @@ ropts =
 -- >>> anns
 -- [LineA (LineStyle {size = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}),LineA (LineStyle {size = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing})]
 --
--- >>> let lineExample = mempty & (#chartTree .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
+-- >>> let lineExample = mempty & (#charts .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
 -- >>> :t lineExample
 -- lineExample :: ChartSvg
 --
@@ -145,7 +145,7 @@ lineExample =
     [ (7, defaultLegendOptions & #content .~ zip ["hockey", "line", "vertical"] cs)
     ]
   )
-  & #chartTree .~ toTree (Just "line") cs
+  & #charts .~ named "line" cs
   where
     cs = zipWith (\s l -> LineChart s [l]) lopts ls
 
@@ -170,7 +170,7 @@ lopts =
 textExample :: ChartSvg
 textExample =
   mempty &
-    #chartTree .~ toTree (Just "text")
+    #charts .~ named "text"
       [TextChart
        (defaultTextStyle & (#color .~ dark) & (#size .~ 0.05) & (#vshift .~ 0))
        ts] &
@@ -209,8 +209,8 @@ glyphsExample :: ChartSvg
 glyphsExample =
   mempty &
   set (#svgOptions % #svgHeight) 200 &
-  set #chartTree
-    (toTree (Just "glyphs") $ zipWith
+  set #charts
+    (named "glyphs" $ zipWith
       ( \(sh, bs) p ->
           GlyphChart
                 ( defaultGlyphStyle
@@ -250,7 +250,7 @@ barExample = barChart defaultBarOptions barDataExample
 --
 -- ![wave example](other/wave.svg)
 waveExample :: ChartSvg
-waveExample = mempty & #chartTree .~ toTree (Just "wave") [GlyphChart defaultGlyphStyle $ fromList $ gridP sin (Range 0 (2 * pi)) 30]
+waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ fromList $ gridP sin (Range 0 (2 * pi)) 30]
 
 -- | venn diagram
 --
@@ -258,7 +258,7 @@ waveExample = mempty & #chartTree .~ toTree (Just "wave") [GlyphChart defaultGly
 vennExample :: ChartSvg
 vennExample =
   mempty
-    & #chartTree .~ toTree (Just "venn") (zipWith (\c x -> PathChart (defaultPathStyle & #color .~ set opac' 0.2 (palette1 c)) x) [0..] (svgToPathData <$> vennSegs))
+    & #charts .~ named "venn" (zipWith (\c x -> PathChart (defaultPathStyle & #color .~ set opac' 0.2 (palette1 c)) x) [0..] (svgToPathData <$> vennSegs))
     & #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1)
     & #hudOptions .~ defaultHudOptions
 
@@ -291,7 +291,7 @@ vennSegs =
 pathExample :: ChartSvg
 pathExample =
   mempty
-    & #chartTree .~ toTree (Just "path") [path', c0]
+    & #charts .~ named "path" [path', c0]
     & #hudOptions .~ defaultHudOptions
     & #svgOptions
     %~ ( (#outerPad ?~ 0.1)
@@ -316,7 +316,7 @@ pathExample =
 ellipseExample :: ChartSvg
 ellipseExample =
   mempty
-    & #chartTree .~ toTree (Just "ellipse") [ell, ellFull, c0, bbox, xradii, yradii]
+    & #charts .~ named "ellipse" [ell, ellFull, c0, bbox, xradii, yradii]
     & #hudOptions .~ defaultHudOptions
     & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ ChartAspect))
   where
@@ -335,7 +335,7 @@ ellipseExample =
 arcExample :: ChartSvg
 arcExample =
   mempty
-    & #chartTree .~ toTree (Just "arc") [arc, ell, c0, bbox]
+    & #charts .~ named "arc" [arc, ell, c0, bbox]
     & #hudOptions .~ defaultHudOptions
     & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ FixedAspect 1))
   where
@@ -352,38 +352,50 @@ arcExample =
 -- ![arc flags example](other/arcflags.svg)
 arcFlagsExample :: ChartSvg
 arcFlagsExample =
-  mempty & set #chartTree
+  mempty & set #charts
     (vert 0.02
-      [ hori 0.02
-        [ toTree Nothing [ BlankChart [Rect (-0.4) 0.4 (-1) 5], TextChart (defaultTextStyle & #size .~ 0.6 & #rotation .~ Just (pi / 2)) [("Sweep", Point 0.1 2)]],
-        vert 0.02
-          [ toTree (Just "true") [ BlankChart [Rect (-0.25) 0.25 (-1) 2], TextChart (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2)) [("True", Point 0.1 0.5)]],
-            toTree (Just "false") [BlankChart [Rect (-0.25) 0.25 (-1) 2], TextChart (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2)) [("False", Point 0.1 0.5)]]
-          ],
-        vert 0.02
-          [ toTree Nothing (checkFlags False True (set opac' 0.3 dark) & view (#chartTree % charts')),
-            toTree Nothing (checkFlags False False (set opac' 0.3 dark) & view (#chartTree % charts')),
-            toTree Nothing [BlankChart [Rect (-1) 2 (-0.25) 0.25], TextChart (defaultTextStyle & #size .~ 0.4) [("False", Point 0.5 (-0.1))]]],
-        vert 0.02
-          [ toTree Nothing (checkFlags True True (set opac' 0.3 dark) & view (#chartTree % charts')),
-            toTree Nothing (checkFlags True False (set opac' 0.3 dark) & view (#chartTree % charts')),
-            toTree Nothing [BlankChart [Rect (-1) 2 (-0.25) 0.25],
-                  TextChart (defaultTextStyle & #size .~ 0.4) [("True", Point 0.5 (-0.1))]]]
-        ],
-        toTree Nothing
-        [ BlankChart [Rect 0 9 (-2.75) (-3.25)],
-          TextChart (defaultTextStyle & #size .~ 0.6) [("Large", Point 5.5 (-3.0))]
-        ]
-      ])
+      [ hori 0.02 [ colSweep, colSweep2, colLargeFalse, colLargeTrue ],
+        rowLarge
+      ]
+    )
     & #svgOptions % #cssOptions % #preferColorScheme .~ PreferLight
     & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ ChartAspect))
+  where
+    rowLarge = unnamed
+      [ BlankChart [Rect 0 9 (-2.75) (-3.25)],
+          TextChart (defaultTextStyle & #size .~ 0.6) [("Large", Point 5.5 (-3.0))]
+      ]
+    colLargeFalse = vert 0.02
+      [ unnamed (checkFlags False True (set opac' 0.3 dark)),
+        unnamed (checkFlags False False (set opac' 0.3 dark)),
+        unnamed [ BlankChart [Rect (-1) 2 (-0.25) 0.25],
+                  TextChart (defaultTextStyle & #size .~ 0.4) [("False", Point 0.5 (-0.1))]]
+      ]
+    colLargeTrue = vert 0.02
+      [ unnamed (checkFlags True True (set opac' 0.3 dark)),
+        unnamed (checkFlags True False (set opac' 0.3 dark)),
+        unnamed [ BlankChart [Rect (-1) 2 (-0.25) 0.25],
+                  TextChart (defaultTextStyle & #size .~ 0.4) [("True", Point 0.5 (-0.1))]
+                ]
+      ]
+    colSweep = unnamed
+      [ BlankChart [Rect (-0.4) 0.4 (-1) 5],
+        TextChart (defaultTextStyle & #size .~ 0.6 & #rotation .~ Just (pi / 2))
+        [("Sweep", Point 0.1 2)]
+      ]
+    colSweep2 = vert 0.02
+      [ unnamed [ BlankChart [Rect (-0.25) 0.25 (-1) 2],
+                  TextChart (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2))
+                  [("True", Point 0.1 0.5)]
+                ],
+        unnamed [ BlankChart [Rect (-0.25) 0.25 (-1) 2],
+                  TextChart (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2))
+                  [("False", Point 0.1 0.5)]
+                ]
+      ]
 
-checkFlags :: Bool -> Bool -> Colour -> ChartSvg
-checkFlags large' sweep co =
-  mempty
-    & #hudOptions .~ defaultHudOptions
-    & #svgOptions % #chartAspect .~ ChartAspect
-    & #chartTree .~ toTree (Just "checkflags") [c1, c2, ell, arc1]
+checkFlags :: Bool -> Bool -> Colour -> [Chart]
+checkFlags large' sweep co = [c1, c2, ell, arc1]
   where
     c = Point 1.0 1.0
     p1 = ArcPosition (Point 0.0 1.0) (Point 1.0 0.0) (ArcInfo (Point 1.0 1.0) 0 large' sweep)
@@ -400,7 +412,7 @@ checkFlags large' sweep co =
 quadExample :: ChartSvg
 quadExample =
   mempty
-    & #chartTree .~ toTree (Just "quad") [path', curve, c0, bbox]
+    & #charts .~ named "quad" [path', curve, c0, bbox]
     & #hudOptions .~ defaultHudOptions
     & #svgOptions %~ ((#outerPad ?~ 0.05) . (#chartAspect .~ ChartAspect))
   where
@@ -417,7 +429,7 @@ quadExample =
 cubicExample :: ChartSvg
 cubicExample =
   mempty
-    & #chartTree .~ toTree (Just "cubic") [path', curve, c0, bbox]
+    & #charts .~ named "cubic" [path', curve, c0, bbox]
     & #hudOptions .~ mempty
     & #svgOptions %~ ((#outerPad ?~ 0.02) . (#chartAspect .~ ChartAspect))
   where
@@ -435,7 +447,7 @@ surfaceExample :: ChartSvg
 surfaceExample =
   mempty
     & #extraHuds .~ h
-    & #chartTree .~ toTree (Just "surface") cs
+    & #charts .~ named "surface" cs
     & #svgOptions .~ (defaultSvgOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
   where
     t = "rosenbrock"
@@ -466,7 +478,7 @@ arrowExample :: ChartSvg
 arrowExample =
   mempty
     & #hudOptions .~ (defaultHudOptions & #axes %~ fmap (second (#ticks % #ltick .~ Nothing)))
-    & #chartTree .~ toTree (Just "arrow") ((\p -> chart (tail' . f $ p) (angle . f $ p) p) <$> ps)
+    & #charts .~ named "arrow" ((\p -> gchart (tail' . f $ p) (angle . f $ p) p) <$> ps)
     & #svgOptions % #cssOptions % #preferColorScheme .~ PreferLight
   where
     f = snd . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
@@ -479,7 +491,7 @@ arrowExample =
         & #borderColor .~ dark
         & #rotation .~ Just r'
         & #shape .~ arrow
-    chart s r' p = GlyphChart (gs s r') [p]
+    gchart s r' p = GlyphChart (gs s r') [p]
 
     tail' :: Point Double -> Double
     tail' = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . norm
@@ -503,7 +515,7 @@ rosenbrock a b (Point x y) = (a ** 2 - 2 * a * x + x ** 2 + b * y ** 2 - b * 2 *
 -- ![date example](other/date.svg)
 dateExample :: ChartSvg
 dateExample = mempty &
-  #chartTree .~ toTree Nothing [BlankChart [Rect 0 1 0 1]] &
+  #charts .~ blank (Rect 0 1 0 1) &
   #hudOptions .~ (mempty & #axes .~
   [ (1, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
     (1, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
@@ -521,17 +533,17 @@ dateExample = mempty &
 -- >   mempty &
 -- Using mempty :: ChartSvg as a baseline to begin composing charts, which can be visualised at any time with writeChartSvg "example.svg" $ mempty & ...
 --
--- >   over #chartTree
+-- >   over #charts
 -- >     (LineChart (defaultLineStyle & set #color (palette1 8)) [xify [1,2,7,3,13,14]]:) &
 --
 -- Convert a one-dimensional list of numbers to points using 'xify', and make it an orange line. A classical line with a data point for every x.
 --
--- >   over #chartTree
+-- >   over #charts
 -- >     (LineChart (defaultLineStyle & set #color (palette1 5)) [yify [1,2,7,3,13,14]]:) &
 --
 -- Convert the same numbers to points using 'yify', and make it a green line. Not so classic line of a chart with a data point for every y.
 --
--- >   over #chartTree
+-- >   over #charts
 -- >     (addLineX 3
 -- >     (defaultLineStyle &
 -- >      set #color (set opac' 0.3 (palette1 5)) &
@@ -539,7 +551,7 @@ dateExample = mempty &
 --
 -- Add a vertical, long-dash line at y=3.
 --
--- >   over #chartTree
+-- >   over #charts
 -- >     (addLineY 5
 -- >     (defaultLineStyle &
 -- >      set #color (set opac' 0.3 (palette1 8)) &
@@ -588,18 +600,18 @@ dateExample = mempty &
 subChartExample :: ChartSvg
 subChartExample =
   mempty &
-  over #chartTree
-    (<> toTree (Just "xline")
+  over #charts
+    (<> named "xline"
      [LineChart (defaultLineStyle & set #color (palette1 8)) [xify [1,2,7,3,13,14]]]) &
-  over #chartTree
-    (<> toTree (Just "yline")
+  over #charts
+    (<> named "yline"
      [LineChart (defaultLineStyle & set #color (palette1 5)) [yify [1,2,7,3,13,14]]]) &
-  over #chartTree
-    (\x -> x <> toTree (Just "addlinex")
-      (addLineX 3 (view charts' x))) &
-  over #chartTree
-    (\x -> x <> toTree (Just "addlinex")
-      (addLineY 5 (view charts' x))) &
+  over #charts
+    (\x -> x <> named "addlinex"
+      (addLineX 3 (foldOf charts' x))) &
+  over #charts
+    (\x -> x <> named "addliney"
+      (addLineY 5 (foldOf charts' x))) &
   set #hudOptions
     (titlesHud "subchart example" "x axis title" "y axis title") &
   set (#hudOptions % #axes)
@@ -678,7 +690,7 @@ blendMidLineStyles l w (c1, c2) = lo
 --
 -- ![blend example](other/blend.svg)
 blendExample :: ChartSvg
-blendExample = mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ toTree (Just "blend") (blendExampleChart 8 5 100 0.005 (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 0))
+blendExample = mempty & #hudOptions .~ defaultHudOptions & #charts .~ named "blend" (blendExampleChart 8 5 100 0.005 (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 0))
 
 blendExampleChart :: Int -> Int -> Int -> Double -> Range Double -> Range Double -> Range Double -> Range Double -> [Chart]
 blendExampleChart cl c2 n s gx' gy' hx' hy' = l
@@ -698,7 +710,7 @@ blendExampleChart cl c2 n s gx' gy' hx' hy' = l
 -- -- ![debug example](other/debug.svg)
 debugExample :: ChartSvg -> ChartSvg
 debugExample cs =
-  mempty & set #chartTree
+  mempty & set #charts
   (e1 <> e2 <> e3)
   where
     e1 = toCharts cs

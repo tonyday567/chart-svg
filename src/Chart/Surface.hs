@@ -39,7 +39,6 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Chart.Data
 import Data.Bool
 import Data.Foldable
-import Data.Tree
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -171,18 +170,18 @@ surfaceLegendOptions =
     & #frame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
-surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> Tree ChartNode
+surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> Charts
 surfaceLegendChart dataRange l =
   legendFrame (view #sloLegendOptions l) hs
   where
-    a = makeSurfaceTick l (toTree (Just "pchart") pchart)
+    a = makeSurfaceTick l (named "pchart" pchart)
     pchart
       | l ^. #sloLegendOptions % #place == PlaceBottom
           || l ^. #sloLegendOptions % #place == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
     t = TextChart (l ^. #sloLegendOptions % #style & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
-    hs = vert (l ^. #sloLegendOptions % #vgap) [a, toTree Nothing [t]]
+    hs = vert (l ^. #sloLegendOptions % #vgap) [a, unnamed [t]]
     vertGlyph :: [Chart]
     vertGlyph =
       zipWith
@@ -213,10 +212,10 @@ isHori l =
   l ^. #sloLegendOptions % #place == PlaceBottom
     || l ^. #sloLegendOptions % #place == PlaceTop
 
-makeSurfaceTick :: SurfaceLegendOptions -> Tree ChartNode -> Tree ChartNode
+makeSurfaceTick :: SurfaceLegendOptions -> Charts -> Charts
 makeSurfaceTick l pchart = phud
   where
-    r = styleBoxes (view charts' pchart)
+    r = view styleBox' pchart
     r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
     (hs, db) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r
     phud = runHudWith r' db hs pchart

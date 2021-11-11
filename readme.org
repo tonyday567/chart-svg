@@ -12,7 +12,7 @@ A charting library.
   let lines = fmap (uncurry Point) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]]
   let style = zipWith (\w c -> LineA (defaultLineStyle & set #width w & set #color (palette1 c))) [0.015, 0.03, 0.01] [0..2]
   let lineChart = zipWith LineChart style lines
-  writeChartSvg "lined.svg" $ mempty & set #chartTree (toTree Nothing lineChart)
+  writeChartSvg "lined.svg" $ mempty & set #charts (toTree Nothing lineChart)
 #+end_src
 
 #+begin_src haskell :file other/lined.svg :results output graphics file :exports both
@@ -50,5 +50,5 @@ import Chart.Examples
 Emacs does not like small viewboxes in SVG, and decides to render fonts way too large. To get around this, the hacky snippet below scales the chart (by 100, which is arbitrary), and then writes using ChartAspect:
 
 #+begin_src haskell
-emacsWrite f c = writeChartSvg f $ mempty & #chartTree .~ (toCharts (c & over #hudOptions (colourHudOptions (rgb light))) & (fmap (over #charts (fmap (scaleChart 100))))) & #svgOptions % #chartAspect .~ ChartAspect & #svgOptions % #outerPad .~ Just 5 & #svgOptions % #svgHeight .~ 200
+emacsWrite f c = writeChartSvg f $ mempty & #charts .~ (toCharts (c & over #hudOptions (colourHudOptions (rgb light))) & (fmap (over #charts (fmap (scaleChart 100))))) & #svgOptions % #chartAspect .~ ChartAspect & #svgOptions % #outerPad .~ Just 5 & #svgOptions % #svgHeight .~ 200
 #+end_src

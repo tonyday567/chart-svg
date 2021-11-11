@@ -13,7 +13,6 @@ module Chart.Svg
     ChartSvg(..),
     charts',
     toCharts,
-    toTree,
     writeChartSvg,
     chartSvg,
 
@@ -56,6 +55,7 @@ import Data.Path.Parser
 import Control.Monad.State.Lazy
 import Data.String
 import Data.Tree
+import Data.Maybe
 
 draw :: Chart -> Html ()
 draw (RectChart _ a) = sconcat $ svgRect_ <$> a
@@ -73,13 +73,13 @@ atts (GlyphChart s _) = attsGlyph s
 atts (PathChart s _) = attsPath s
 atts (BlankChart _) = mempty
 
-svgChartTree :: Tree ChartNode -> Lucid.Html ()
-svgChartTree (Node (ChartNode Nothing []) xs) = mconcat $ svgChartTree <$> xs
-svgChartTree (Node cn xs)
-  | renderText content' == mempty && Nothing == (view #name cn) = mempty
-  | otherwise = term "g" (foldMap (\x -> [term "class" x]) (view #name cn)) content'
+svgChartTree :: Charts -> Lucid.Html ()
+svgChartTree (Charts (Node (Nothing, []) xs)) = mconcat $ svgChartTree . Charts <$> xs
+svgChartTree (Charts (Node cn xs))
+  | renderText content' == mempty && isNothing (view _1 cn) = mempty
+  | otherwise = term "g" (foldMap (\x -> [term "class" x]) (view _1 cn)) content'
     where
-      content' = (mconcat $ svg <$> view #charts cn) <> (mconcat $ svgChartTree <$> xs)
+      content' = (mconcat $ svg <$> view _2 cn) <> (mconcat $ svgChartTree . Charts <$> xs)
 
 -- ** ChartSvg
 
@@ -88,7 +88,7 @@ data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
     hudOptions :: HudOptions,
     extraHuds :: [Hud],
-    chartTree :: Tree ChartNode
+    charts :: Charts
   }
   deriving (Generic)
 
@@ -99,15 +99,15 @@ instance Semigroup ChartSvg where
 instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty mempty mempty
 
-toCharts :: ChartSvg -> Tree ChartNode
+toCharts :: ChartSvg -> Charts
 toCharts cs =
   runHudWith
-  (initialCanvas (view (#svgOptions % #chartAspect) cs) (view #chartTree cs))
+  (initialCanvas (view (#svgOptions % #chartAspect) cs) (view #charts cs))
   db'
   (hs <> view #extraHuds cs)
-  (view #chartTree cs <> toTree Nothing [BlankChart [db']])
+  (view #charts cs <> unnamed [BlankChart [db']])
   where
-   (hs, db') = toHuds (view #hudOptions cs) (boxes $ view (#chartTree % charts') cs)
+   (hs, db') = toHuds (view #hudOptions cs) (view (#charts % box') cs)
 
 -- * rendering
 
@@ -120,7 +120,7 @@ svg2Tag m =
     ]
     m
 
-renderToSvg :: CssOptions -> Point Double -> Rect Double -> Tree ChartNode -> Html ()
+renderToSvg :: CssOptions -> Point Double -> Rect Double -> Charts -> Html ()
 renderToSvg csso (Point w' h') (Rect x z y w) cs =
   with
     (svg2Tag (cssText csso <> svgChartTree cs))
@@ -197,38 +197,38 @@ cssPreferColorScheme (_, bgdark) PreferDark =
 cssPreferColorScheme _ PreferNormal = mempty
 
 -- | render Charts with the supplied options.
-renderChartsWith :: SvgOptions -> Tree ChartNode -> Text
+renderChartsWith :: SvgOptions -> Charts -> Text
 renderChartsWith so cs =
   Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs)
   where
-    rect' = fmap (view #aspectBasis so *) $ styleBoxes (view charts' cs) & maybe id padRect (so ^. #outerPad)
+    rect' = fmap (view #aspectBasis so *) $ view styleBox' cs & maybe id padRect (so ^. #outerPad)
     Point w h = width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
 
 -- | render charts with the supplied svg options and hud
-renderHudChartWith :: Rect Double -> SvgOptions -> [Hud] -> Tree ChartNode -> Text
+renderHudChartWith :: Rect Double -> SvgOptions -> [Hud] -> Charts -> Text
 renderHudChartWith db so hs cs =
   renderChartsWith so
-  (runHudWith (initialCanvas (so ^. #chartAspect) (cs <> toTree Nothing [BlankChart [db]])) db hs' cs)
+  (runHudWith (initialCanvas (so ^. #chartAspect) (cs <> blank db)) db hs' cs)
   where
     hs' =
       hs <>
       [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect) (so ^. #aspectBasis)]
 
 -- | calculation of the canvas given the 'ChartAspect'
-initialCanvas :: ChartAspect -> Tree ChartNode -> Rect Double
+initialCanvas :: ChartAspect -> Charts -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = boxes $ view charts' cs
+initialCanvas ChartAspect cs = view box' cs
 
 -- | Render a chart using the supplied svg and hud config.
 --
 -- >>> chartSvg mempty
 -- "<svg height=\"300.0\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-0.52 -0.52 1.04 1.04\"></svg>"
 chartSvg :: ChartSvg -> Text
-chartSvg cs = renderHudChartWith db' (view #svgOptions cs) (view #extraHuds cs <> hs') (view #chartTree cs <> toTree Nothing [BlankChart [db']])
+chartSvg cs = renderHudChartWith db' (view #svgOptions cs) (view #extraHuds cs <> hs') (view #charts cs <> blank db')
   where
-    (hs', db') = toHuds (view #hudOptions cs) (boxes $ view (#chartTree % charts') cs)
+    (hs', db') = toHuds (view #hudOptions cs) (view (#charts % box') cs)
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()
@@ -462,15 +462,15 @@ defaultSvgOptions :: SvgOptions
 defaultSvgOptions = SvgOptions 300 (Just 0.02) defaultCssOptions (FixedAspect 1.5) 1
 
 -- | Apply a ChartAspect
-applyChartAspect :: ChartAspect -> Double -> State Charts ()
+applyChartAspect :: ChartAspect -> Double -> State HudChart ()
 applyChartAspect fa x = do
   hc <- get
   case fa of
-    FixedAspect a -> modify (set sbox' (fmap (x*) (aspect a)))
+    FixedAspect a -> modify (set hudBox' (fmap (x*) (aspect a)))
     CanvasAspect a ->
       modify
-      (set sbox'
-      (fmap (x*) (aspect (a * ratio (view cbox' hc) / ratio (view sbox' hc)))))
+      (set hudBox'
+      (fmap (x*) (aspect (a * ratio (view canvasBox' hc) / ratio (view hudBox' hc)))))
     ChartAspect -> pure ()
 
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)

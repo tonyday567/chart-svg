@@ -36,7 +36,6 @@ import Prelude hiding (abs)
 import Chart.Data
 import Data.Semigroup
 import Data.Foldable
-import Data.Tree
 
 -- $setup
 --
@@ -70,10 +69,10 @@ barChart :: BarOptions -> BarData -> ChartSvg
 barChart bo bd =
   mempty
     & set #hudOptions (barHudOptions bo bd)
-    & set #chartTree
-      (Node (ChartNode (Just "barchart")
+    & set #charts
+      (named "barchart"
              (toList (bars bo bd) <>
-              bool [] (toList $ barTextCharts bo bd) (view #displayValues bo))) [])
+              bool [] (toList $ barTextCharts bo bd) (view #displayValues bo)))
 
 barHudOptions :: BarOptions -> BarData -> HudOptions
 barHudOptions bo bd =

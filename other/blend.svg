@@ -1,4 +1,4 @@
-<svg width="430.60097685283495" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.9059999999999999 -0.5462500000000002 1.6897500000000003 1.1772500000000004" height="300.0"><style>svg {
+<svg width="443.5290978894216" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.77 -0.5211965814414417 1.54 1.0416452994819823" height="300.0"><style>svg {
   color-scheme: light dark;
 }
 {
@@ -16,148 +16,148 @@
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: #f0f0f0;
   }
-}</style><g class="blend"><g stroke-opacity="1.0" fill="none" stroke="#ff8000" stroke-width="5.0e-3"><polyline points="-0.75,0.5
-0.75,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#fb8001" stroke-width="5.0e-3"><polyline points="-0.7349999999999999,0.49
-0.7350000000000003,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#f78102" stroke-width="5.0e-3"><polyline points="-0.72,0.48000000000000004
-0.7199999999999998,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#f38203" stroke-width="5.0e-3"><polyline points="-0.705,0.47
-0.7050000000000005,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ef8204" stroke-width="5.0e-3"><polyline points="-0.69,0.46
-0.69,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ea8304" stroke-width="5.0e-3"><polyline points="-0.675,0.45
-0.6749999999999998,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#e68405" stroke-width="5.0e-3"><polyline points="-0.66,0.44000000000000006
-0.6600000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#e28406" stroke-width="5.0e-3"><polyline points="-0.645,0.43000000000000005
-0.645,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#de8507" stroke-width="5.0e-3"><polyline points="-0.6300000000000001,0.42
-0.6300000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#da8608" stroke-width="5.0e-3"><polyline points="-0.6149999999999999,0.4100000000000001
-0.615,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#d68609" stroke-width="5.0e-3"><polyline points="-0.6,0.4
-0.6000000000000003,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#d2870a" stroke-width="5.0e-3"><polyline points="-0.585,0.39
-0.5850000000000002,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ce880b" stroke-width="5.0e-3"><polyline points="-0.5700000000000001,0.38
-0.5700000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#c9880b" stroke-width="5.0e-3"><polyline points="-0.5549999999999999,0.37000000000000005
-0.5549999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#c5890c" stroke-width="5.0e-3"><polyline points="-0.54,0.36
-0.5400000000000003,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#c18a0d" stroke-width="5.0e-3"><polyline points="-0.525,0.35
-0.5250000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#bd8a0e" stroke-width="5.0e-3"><polyline points="-0.51,0.33999999999999997
-0.51,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#b98b0f" stroke-width="5.0e-3"><polyline points="-0.49499999999999994,0.32999999999999996
-0.4950000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#b58c10" stroke-width="5.0e-3"><polyline points="-0.4799999999999999,0.32
-0.4800000000000002,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#b18c11" stroke-width="5.0e-3"><polyline points="-0.4649999999999999,0.31000000000000005
-0.4650000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ad8d12" stroke-width="5.0e-3"><polyline points="-0.4499999999999999,0.29999999999999993
-0.4500000000000002,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a88e12" stroke-width="5.0e-3"><polyline points="-0.435,0.29000000000000004
-0.43500000000000005,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a48e13" stroke-width="5.0e-3"><polyline points="-0.42000000000000004,0.28
-0.42000000000000015,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a08f14" stroke-width="5.0e-3"><polyline points="-0.4049999999999999,0.27
-0.4049999999999998,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#9c9015" stroke-width="5.0e-3"><polyline points="-0.39,0.26
-0.3900000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#989016" stroke-width="5.0e-3"><polyline points="-0.375,0.25
-0.375,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#949117" stroke-width="5.0e-3"><polyline points="-0.36,0.23999999999999994
-0.3600000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#909218" stroke-width="5.0e-3"><polyline points="-0.3449999999999999,0.22999999999999998
-0.34499999999999975,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#8c9219" stroke-width="5.0e-3"><polyline points="-0.3299999999999999,0.21999999999999997
-0.33000000000000007,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#879319" stroke-width="5.0e-3"><polyline points="-0.31500000000000006,0.21000000000000002
-0.31499999999999995,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#83941a" stroke-width="5.0e-3"><polyline points="-0.29999999999999993,0.19999999999999996
-0.2999999999999998,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#7f941b" stroke-width="5.0e-3"><polyline points="-0.2850000000000001,0.19
-0.28500000000000014,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#7b951c" stroke-width="5.0e-3"><polyline points="-0.2699999999999999,0.17999999999999994
-0.27,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#77961d" stroke-width="5.0e-3"><polyline points="-0.25500000000000006,0.16999999999999993
-0.2550000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#73961e" stroke-width="5.0e-3"><polyline points="-0.24,0.15999999999999986
-0.23999999999999988,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#6f971f" stroke-width="5.0e-3"><polyline points="-0.22499999999999998,0.14999999999999997
-0.2250000000000003,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#6b9820" stroke-width="5.0e-3"><polyline points="-0.20999999999999996,0.13999999999999996
-0.2100000000000002,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#679820" stroke-width="5.0e-3"><polyline points="-0.19500000000000006,0.12999999999999995
-0.19499999999999995,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#629921" stroke-width="5.0e-3"><polyline points="-0.17999999999999994,0.11999999999999994
-0.17999999999999983,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#5e9a22" stroke-width="5.0e-3"><polyline points="-0.16500000000000004,0.10999999999999993
-0.16500000000000004,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#5a9a23" stroke-width="5.0e-3"><polyline points="-0.15000000000000002,9.999999999999987e-2
-0.15000000000000002,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#569b24" stroke-width="5.0e-3"><polyline points="-0.135,8.999999999999991e-2
-0.1349999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#529c25" stroke-width="5.0e-3"><polyline points="-0.12,8.000000000000002e-2
-0.11999999999999977,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#4e9c26" stroke-width="5.0e-3"><polyline points="-0.10499999999999998,7.0e-2
-0.10499999999999998,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#4a9d27" stroke-width="5.0e-3"><polyline points="-8.999999999999986e-2,6.0e-2
-8.999999999999997e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#469e27" stroke-width="5.0e-3"><polyline points="-7.499999999999996e-2,4.999999999999999e-2
-7.499999999999996e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#419e28" stroke-width="5.0e-3"><polyline points="-5.999999999999994e-2,3.999999999999998e-2
-6.000000000000005e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#3d9f29" stroke-width="5.0e-3"><polyline points="-4.499999999999993e-2,3.0000000000000027e-2
-4.500000000000015e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#39a02a" stroke-width="5.0e-3"><polyline points="-3.0000000000000027e-2,1.9999999999999907e-2
-3.0000000000000027e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#35a02b" stroke-width="5.0e-3"><polyline points="-1.5000000000000124e-2,9.999999999999953e-3
-1.4999999999999902e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#35a02b" stroke-width="5.0e-3"><polyline points="0.0,-1.1102230246251565e-16
-0.0,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#39a02a" stroke-width="5.0e-3"><polyline points="1.4999999999999902e-2,-1.000000000000012e-2
--1.5000000000000124e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#3d9f29" stroke-width="5.0e-3"><polyline points="3.0000000000000027e-2,-2.000000000000013e-2
--3.0000000000000027e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#419e28" stroke-width="5.0e-3"><polyline points="4.500000000000015e-2,-3.0000000000000138e-2
--4.499999999999993e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#469e27" stroke-width="5.0e-3"><polyline points="6.000000000000005e-2,-4.0000000000000036e-2
--5.999999999999994e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#4a9d27" stroke-width="5.0e-3"><polyline points="7.499999999999996e-2,-5.0000000000000044e-2
--7.499999999999996e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#4e9c26" stroke-width="5.0e-3"><polyline points="8.999999999999997e-2,-6.0000000000000164e-2
--8.999999999999986e-2,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#529c25" stroke-width="5.0e-3"><polyline points="0.10499999999999998,-7.000000000000028e-2
--0.10499999999999998,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#569b24" stroke-width="5.0e-3"><polyline points="0.11999999999999977,-8.000000000000018e-2
--0.12,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#5a9a23" stroke-width="5.0e-3"><polyline points="0.1349999999999999,-8.999999999999986e-2
--0.135,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#5e9a22" stroke-width="5.0e-3"><polyline points="0.15000000000000002,-9.999999999999998e-2
--0.15000000000000002,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#629921" stroke-width="5.0e-3"><polyline points="0.16500000000000004,-0.11000000000000021
--0.16500000000000004,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#679820" stroke-width="5.0e-3"><polyline points="0.17999999999999983,-0.12
--0.17999999999999994,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#6b9820" stroke-width="5.0e-3"><polyline points="0.19499999999999995,-0.13000000000000012
--0.19500000000000006,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#6f971f" stroke-width="5.0e-3"><polyline points="0.2100000000000002,-0.14000000000000024
--0.20999999999999996,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#73961e" stroke-width="5.0e-3"><polyline points="0.2250000000000003,-0.15000000000000002
--0.22499999999999998,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#77961d" stroke-width="5.0e-3"><polyline points="0.23999999999999988,-0.16000000000000014
--0.24,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#7b951c" stroke-width="5.0e-3"><polyline points="0.2550000000000001,-0.17000000000000004
--0.25500000000000006,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#7f941b" stroke-width="5.0e-3"><polyline points="0.27,-0.18000000000000016
--0.2699999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#83941a" stroke-width="5.0e-3"><polyline points="0.28500000000000014,-0.19000000000000028
--0.2850000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#879319" stroke-width="5.0e-3"><polyline points="0.2999999999999998,-0.20000000000000018
--0.29999999999999993,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#8c9219" stroke-width="5.0e-3"><polyline points="0.31499999999999995,-0.21000000000000008
--0.31500000000000006,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#909218" stroke-width="5.0e-3"><polyline points="0.33000000000000007,-0.22000000000000008
--0.3299999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#949117" stroke-width="5.0e-3"><polyline points="0.34499999999999975,-0.2300000000000002
--0.3449999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#989016" stroke-width="5.0e-3"><polyline points="0.3600000000000001,-0.2400000000000001
--0.36,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#9c9015" stroke-width="5.0e-3"><polyline points="0.375,-0.2500000000000002
--0.375,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a08f14" stroke-width="5.0e-3"><polyline points="0.3900000000000001,-0.26
--0.39,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a48e13" stroke-width="5.0e-3"><polyline points="0.4049999999999998,-0.27000000000000013
--0.4049999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#a88e12" stroke-width="5.0e-3"><polyline points="0.42000000000000015,-0.28000000000000014
--0.42000000000000004,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ad8d12" stroke-width="5.0e-3"><polyline points="0.43500000000000005,-0.29000000000000004
--0.435,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#b18c11" stroke-width="5.0e-3"><polyline points="0.4500000000000002,-0.30000000000000016
--0.4499999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#b58c10" stroke-width="5.0e-3"><polyline points="0.4650000000000001,-0.3100000000000003
--0.4649999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#b98b0f" stroke-width="5.0e-3"><polyline points="0.4800000000000002,-0.3200000000000002
--0.4799999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#bd8a0e" stroke-width="5.0e-3"><polyline points="0.4950000000000001,-0.3300000000000003
--0.49499999999999994,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#c18a0d" stroke-width="5.0e-3"><polyline points="0.51,-0.3400000000000001
--0.51,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#c5890c" stroke-width="5.0e-3"><polyline points="0.5250000000000001,-0.3500000000000002
--0.525,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#c9880b" stroke-width="5.0e-3"><polyline points="0.5400000000000003,-0.3600000000000001
--0.54,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ce880b" stroke-width="5.0e-3"><polyline points="0.5549999999999999,-0.3700000000000002
--0.5549999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#d2870a" stroke-width="5.0e-3"><polyline points="0.5700000000000001,-0.3800000000000001
--0.5700000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#d68609" stroke-width="5.0e-3"><polyline points="0.5850000000000002,-0.39000000000000024
--0.585,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#da8608" stroke-width="5.0e-3"><polyline points="0.6000000000000003,-0.40000000000000036
--0.6,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#de8507" stroke-width="5.0e-3"><polyline points="0.615,-0.41000000000000003
--0.6149999999999999,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#e28406" stroke-width="5.0e-3"><polyline points="0.6300000000000001,-0.42000000000000026
--0.6300000000000001,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#e68405" stroke-width="5.0e-3"><polyline points="0.645,-0.43000000000000005
--0.645,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ea8304" stroke-width="5.0e-3"><polyline points="0.6600000000000001,-0.4400000000000005
--0.66,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ef8204" stroke-width="5.0e-3"><polyline points="0.6749999999999998,-0.45000000000000007
--0.675,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#f38203" stroke-width="5.0e-3"><polyline points="0.69,-0.4600000000000002
--0.69,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#f78102" stroke-width="5.0e-3"><polyline points="0.7050000000000005,-0.47
--0.705,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#fb8001" stroke-width="5.0e-3"><polyline points="0.7199999999999998,-0.4800000000000001
--0.72,0.5"/></g><g stroke-opacity="1.0" fill="none" stroke="#ff8000" stroke-width="5.0e-3"><polyline points="0.7350000000000003,-0.4900000000000002
--0.7349999999999999,0.5"/></g></g><g class="hud"><g class="canvas"><g stroke-opacity="0.0" fill="#ffffff" stroke="#000000" stroke-width="0.0" fill-opacity="2.0e-2"><rect width="1.5050000000000003" x="-0.7525" y="-0.5" height="1.0025"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -0.7825, 0.5025)"><polyline points="-0.7825,0.5175
--0.7825,0.48749999999999993"/></g><g transform="rotate(-90.0, -0.7825, 0.40225)"><polyline points="-0.7825,0.41725
--0.7825,0.38725"/></g><g transform="rotate(-90.0, -0.7825, 0.30199999999999994)"><polyline points="-0.7825,0.31699999999999995
--0.7825,0.2869999999999999"/></g><g transform="rotate(-90.0, -0.7825, 0.20174999999999987)"><polyline points="-0.7825,0.2167499999999999
--0.7825,0.18674999999999986"/></g><g transform="rotate(-90.0, -0.7825, 0.10149999999999987)"><polyline points="-0.7825,0.11649999999999987
--0.7825,8.649999999999987e-2"/></g><g transform="rotate(-90.0, -0.7825, 1.2499999999998623e-3)"><polyline points="-0.7825,1.6249999999999862e-2
--0.7825,-1.3750000000000137e-2"/></g><g transform="rotate(-90.0, -0.7825, -9.900000000000031e-2)"><polyline points="-0.7825,-8.400000000000031e-2
--0.7825,-0.11400000000000031"/></g><g transform="rotate(-90.0, -0.7825, -0.19925000000000015)"><polyline points="-0.7825,-0.18425000000000014
--0.7825,-0.21425000000000016"/></g><g transform="rotate(-90.0, -0.7825, -0.2995000000000001)"><polyline points="-0.7825,-0.2845000000000001
--0.7825,-0.3145000000000001"/></g><g transform="rotate(-90.0, -0.7825, -0.39975000000000016)"><polyline points="-0.7825,-0.38475000000000015
--0.7825,-0.4147500000000002"/></g><g transform="rotate(-90.0, -0.7825, -0.5)"><polyline points="-0.7825,-0.485
--0.7825,-0.515"/></g></g></g><g class="ticktext"><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="end"><text x="-0.8184999999999999" y="0.51625">0</text><text x="-0.8184999999999999" y="0.416">0.1</text><text x="-0.8184999999999999" y="0.3157499999999999">0.2</text><text x="-0.8184999999999999" y="0.21549999999999986">0.3</text><text x="-0.8184999999999999" y="0.11524999999999991">0.4</text><text x="-0.8184999999999999" y="1.5000000000000013e-2">0.5</text><text x="-0.8184999999999999" y="-8.525000000000005e-2">0.6</text><text x="-0.8184999999999999" y="-0.1855">0.7</text><text x="-0.8184999999999999" y="-0.28575000000000017">0.8</text><text x="-0.8184999999999999" y="-0.3860000000000001">0.9</text><text x="-0.8184999999999999" y="-0.4862500000000002">1</text></g></g><g class="ticklines"><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.7525,0.5025
-0.7525000000000004,0.5025"/><polyline points="-0.7525,0.40225
-0.7525000000000004,0.40225"/><polyline points="-0.7525,0.30199999999999994
-0.7525000000000004,0.30199999999999994"/><polyline points="-0.7525,0.20174999999999987
-0.7525000000000004,0.20174999999999987"/><polyline points="-0.7525,0.10149999999999987
-0.7525000000000004,0.10149999999999987"/><polyline points="-0.7525,1.2499999999998623e-3
-0.7525000000000004,1.2499999999998623e-3"/><polyline points="-0.7525,-9.900000000000031e-2
-0.7525000000000004,-9.900000000000031e-2"/><polyline points="-0.7525,-0.19925000000000015
-0.7525000000000004,-0.19925000000000015"/><polyline points="-0.7525,-0.2995000000000001
-0.7525000000000004,-0.2995000000000001"/><polyline points="-0.7525,-0.39975000000000016
-0.7525000000000004,-0.39975000000000016"/><polyline points="-0.7525,-0.5
-0.7525000000000004,-0.5"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="4.0000000000000036e-3" x="-0.7665" y="-0.5020000000000002" height="1.0065000000000002"/></g></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="-0.7525,0.5475
--0.7525,0.5175"/><polyline points="-0.602,0.5475
--0.602,0.5175"/><polyline points="-0.45149999999999996,0.5475
--0.45149999999999996,0.5175"/><polyline points="-0.3009999999999998,0.5475
--0.3009999999999998,0.5175"/><polyline points="-0.15049999999999986,0.5475
--0.15049999999999986,0.5175"/><polyline points="0.0,0.5475
-0.0,0.5175"/><polyline points="0.1505000000000003,0.5475
-0.1505000000000003,0.5175"/><polyline points="0.3010000000000004,0.5475
-0.3010000000000004,0.5175"/><polyline points="0.4514999999999998,0.5475
-0.4514999999999998,0.5175"/><polyline points="0.6020000000000001,0.5475
-0.6020000000000001,0.5175"/><polyline points="0.7525000000000004,0.5475
-0.7525000000000004,0.5175"/></g></g><g class="ticktext"><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="5.0e-2" fill-opacity="1.0" text-anchor="middle"><text x="-0.7525" y="0.596">0</text><text x="-0.602" y="0.596">0.1</text><text x="-0.45149999999999996" y="0.596">0.2</text><text x="-0.3009999999999998" y="0.596">0.3</text><text x="-0.15049999999999986" y="0.596">0.4</text><text x="0.0" y="0.596">0.5</text><text x="0.1505000000000003" y="0.596">0.6</text><text x="0.3010000000000004" y="0.596">0.7</text><text x="0.4514999999999998" y="0.596">0.8</text><text x="0.6020000000000001" y="0.596">0.9</text><text x="0.7525000000000004" y="0.596">1</text></g></g><g class="ticklines"><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.7525,0.5025
--0.7525,-0.5"/><polyline points="-0.602,0.5025
--0.602,-0.5"/><polyline points="-0.45149999999999996,0.5025
--0.45149999999999996,-0.5"/><polyline points="-0.3009999999999998,0.5025
--0.3009999999999998,-0.5"/><polyline points="-0.15049999999999986,0.5025
--0.15049999999999986,-0.5"/><polyline points="0.0,0.5025
-0.0,-0.5"/><polyline points="0.1505000000000003,0.5025
-0.1505000000000003,-0.5"/><polyline points="0.3010000000000004,0.5025
-0.3010000000000004,-0.5"/><polyline points="0.4514999999999998,0.5025
-0.4514999999999998,-0.5"/><polyline points="0.6020000000000001,0.5025
-0.6020000000000001,-0.5"/><polyline points="0.7525000000000004,0.5025
-0.7525000000000004,-0.5"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="1.509" x="-0.7545" y="0.5125" height="4.0000000000000036e-3"/></g></g></g></g></svg>
+}</style><g class="chart"><g class="blend"><g stroke-opacity="1.0" fill="none" stroke="#ff8000" stroke-width="5.0e-3"><polyline points="-0.6263449007425368,0.40239613101780614
+0.7374981057736021,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#fb8001" stroke-width="5.0e-3"><polyline points="-0.6127064706773753,0.3936029896680589
+0.7238596757084408,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#f78102" stroke-width="5.0e-3"><polyline points="-0.599068040612214,0.3848098483183117
+0.710221245643279,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#f38203" stroke-width="5.0e-3"><polyline points="-0.5854296105470526,0.3760167069685645
+0.6965828155781182,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ef8204" stroke-width="5.0e-3"><polyline points="-0.5717911804818911,0.3672235656188173
+0.6829443855129564,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ea8304" stroke-width="5.0e-3"><polyline points="-0.5581527504167298,0.3584304242690701
+0.6693059554477949,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#e68405" stroke-width="5.0e-3"><polyline points="-0.5445143203515684,0.34963728291932294
+0.6556675253826338,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#e28406" stroke-width="5.0e-3"><polyline points="-0.530875890286407,0.34084414156957576
+0.6420290953174723,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#de8507" stroke-width="5.0e-3"><polyline points="-0.5172374602212457,0.33205100021982853
+0.628390665252311,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#da8608" stroke-width="5.0e-3"><polyline points="-0.5035990301560842,0.3232578588700814
+0.6147522351871495,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#d68609" stroke-width="5.0e-3"><polyline points="-0.48996060009092285,0.31446471752033417
+0.6011138051219884,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#d2870a" stroke-width="5.0e-3"><polyline points="-0.4763221700257615,0.30567157617058693
+0.5874753750568269,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ce880b" stroke-width="5.0e-3"><polyline points="-0.4626837399606002,0.29687843482083975
+0.5738369449916654,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#c9880b" stroke-width="5.0e-3"><polyline points="-0.44904530989543867,0.2880852934710926
+0.5601985149265039,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#c5890c" stroke-width="5.0e-3"><polyline points="-0.43540687983027737,0.27929215212134534
+0.5465600848613428,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#c18a0d" stroke-width="5.0e-3"><polyline points="-0.42176844976511596,0.2704990107715981
+0.5329216547961813,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#bd8a0e" stroke-width="5.0e-3"><polyline points="-0.40813001969995455,0.2617058694218509
+0.5192832247310197,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#b98b0f" stroke-width="5.0e-3"><polyline points="-0.39449158963479314,0.25291272807210374
+0.5056447946658587,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#b58c10" stroke-width="5.0e-3"><polyline points="-0.3808531595696317,0.24411958672235656
+0.49200636460069713,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#b18c11" stroke-width="5.0e-3"><polyline points="-0.3672147295044703,0.23532644537260938
+0.4783679345355356,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ad8d12" stroke-width="5.0e-3"><polyline points="-0.3535762994393089,0.22653330402286215
+0.46472950447037453,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#a88e12" stroke-width="5.0e-3"><polyline points="-0.3399378693741476,0.21774016267311497
+0.451091074405213,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#a48e13" stroke-width="5.0e-3"><polyline points="-0.32629943930898625,0.2089470213233678
+0.4374526443400515,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#a08f14" stroke-width="5.0e-3"><polyline points="-0.3126610092438248,0.2001538799736206
+0.42381421427488997,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#9c9015" stroke-width="5.0e-3"><polyline points="-0.2990225791786635,0.19136073862387337
+0.4101757842097289,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#989016" stroke-width="5.0e-3"><polyline points="-0.2853841491135021,0.1825675972741262
+0.39653735414456737,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#949117" stroke-width="5.0e-3"><polyline points="-0.27174571904834066,0.17377445592437896
+0.38289892407940584,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#909218" stroke-width="5.0e-3"><polyline points="-0.25810728898317925,0.16498131457463178
+0.3692604940142443,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#8c9219" stroke-width="5.0e-3"><polyline points="-0.24446885891801784,0.15618817322488454
+0.35562206394908324,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#879319" stroke-width="5.0e-3"><polyline points="-0.23083042885285654,0.14739503187513742
+0.3419836338839217,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#83941a" stroke-width="5.0e-3"><polyline points="-0.21719199878769513,0.13860189052539018
+0.3283452038187602,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#7f941b" stroke-width="5.0e-3"><polyline points="-0.20355356872253383,0.129808749175643
+0.3147067737535991,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#7b951c" stroke-width="5.0e-3"><polyline points="-0.1899151386573723,0.12101560782589577
+0.3010683436884376,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#77961d" stroke-width="5.0e-3"><polyline points="-0.176276708592211,0.11222246647614859
+0.2874299136232763,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#73961e" stroke-width="5.0e-3"><polyline points="-0.1626382785270496,0.10342932512640135
+0.2737914835581148,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#6f971f" stroke-width="5.0e-3"><polyline points="-0.14899984846188818,9.463618377665417e-2
+0.2601530534929537,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#6b9820" stroke-width="5.0e-3"><polyline points="-0.13536141839672677,8.584304242690699e-2
+0.24651462342779218,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#679820" stroke-width="5.0e-3"><polyline points="-0.12172298833156547,7.704990107715981e-2
+0.23287619336263055,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#629921" stroke-width="5.0e-3"><polyline points="-0.10808455826640395,6.825675972741257e-2
+0.21923776329746913,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#5e9a22" stroke-width="5.0e-3"><polyline points="-9.444612820124265e-2,5.9463618377665395e-2
+0.20559933323230795,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#5a9a23" stroke-width="5.0e-3"><polyline points="-8.080769813608124e-2,5.067047702791816e-2
+0.19196090316714653,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#569b24" stroke-width="5.0e-3"><polyline points="-6.716926807091994e-2,4.187733567817098e-2
+0.178322473101985,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#529c25" stroke-width="5.0e-3"><polyline points="-5.353083800575853e-2,3.3084194328423855e-2
+0.1646840430368235,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#4e9c26" stroke-width="5.0e-3"><polyline points="-3.989240794059701e-2,2.4291052978676675e-2
+0.1510456129716624,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#4a9d27" stroke-width="5.0e-3"><polyline points="-2.6253977875435597e-2,1.549791162892944e-2
+0.1374071829065009,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#469e27" stroke-width="5.0e-3"><polyline points="-1.2615547810274297e-2,6.704770279182259e-3
+0.12376875284133959,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#419e28" stroke-width="5.0e-3"><polyline points="1.0228822548871142e-3,-2.0883710705649206e-3
+0.11013032277617818,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#3d9f29" stroke-width="5.0e-3"><polyline points="1.4661312320048525e-2,-1.08815124203121e-2
+9.649189271101688e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#39a02a" stroke-width="5.0e-3"><polyline points="2.8299742385209825e-2,-1.967465377005939e-2
+8.285346264585547e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#35a02b" stroke-width="5.0e-3"><polyline points="4.1938172450371125e-2,-2.846779511980657e-2
+6.921503258069395e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#35a02b" stroke-width="5.0e-3"><polyline points="5.557660251553265e-2,-3.726093646955375e-2
+5.557660251553265e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#39a02a" stroke-width="5.0e-3"><polyline points="6.921503258069395e-2,-4.605407781930093e-2
+4.1938172450371125e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#3d9f29" stroke-width="5.0e-3"><polyline points="8.285346264585547e-2,-5.484721916904822e-2
+2.8299742385209825e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#419e28" stroke-width="5.0e-3"><polyline points="9.649189271101688e-2,-6.36403605187954e-2
+1.4661312320048525e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#469e27" stroke-width="5.0e-3"><polyline points="0.11013032277617818,-7.243350186854258e-2
+1.0228822548871142e-3,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#4a9d27" stroke-width="5.0e-3"><polyline points="0.12376875284133959,-8.122664321828976e-2
+-1.2615547810274297e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#4e9c26" stroke-width="5.0e-3"><polyline points="0.1374071829065009,-9.001978456803705e-2
+-2.6253977875435597e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#529c25" stroke-width="5.0e-3"><polyline points="0.1510456129716624,-9.881292591778423e-2
+-3.989240794059701e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#569b24" stroke-width="5.0e-3"><polyline points="0.1646840430368235,-0.1076060672675313
+-5.353083800575853e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#5a9a23" stroke-width="5.0e-3"><polyline points="0.178322473101985,-0.11639920861727848
+-6.716926807091994e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#5e9a22" stroke-width="5.0e-3"><polyline points="0.19196090316714653,-0.12519234996702577
+-8.080769813608124e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#629921" stroke-width="5.0e-3"><polyline points="0.20559933323230795,-0.13398549131677295
+-9.444612820124265e-2,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#679820" stroke-width="5.0e-3"><polyline points="0.21923776329746913,-0.14277863266652013
+-0.10808455826640395,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#6b9820" stroke-width="5.0e-3"><polyline points="0.23287619336263055,-0.1515717740162673
+-0.12172298833156547,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#6f971f" stroke-width="5.0e-3"><polyline points="0.24651462342779218,-0.1603649153660146
+-0.13536141839672677,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#73961e" stroke-width="5.0e-3"><polyline points="0.2601530534929537,-0.16915805671576178
+-0.14899984846188818,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#77961d" stroke-width="5.0e-3"><polyline points="0.2737914835581148,-0.17795119806550896
+-0.1626382785270496,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#7b951c" stroke-width="5.0e-3"><polyline points="0.2874299136232763,-0.18674433941525614
+-0.176276708592211,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#7f941b" stroke-width="5.0e-3"><polyline points="0.3010683436884376,-0.19553748076500332
+-0.1899151386573723,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#83941a" stroke-width="5.0e-3"><polyline points="0.3147067737535991,-0.20433062211475062
+-0.20355356872253383,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#879319" stroke-width="5.0e-3"><polyline points="0.3283452038187602,-0.2131237634644978
+-0.21719199878769513,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#8c9219" stroke-width="5.0e-3"><polyline points="0.3419836338839217,-0.22191690481424486
+-0.23083042885285654,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#909218" stroke-width="5.0e-3"><polyline points="0.35562206394908324,-0.23071004616399204
+-0.24446885891801784,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#949117" stroke-width="5.0e-3"><polyline points="0.3692604940142443,-0.23950318751373934
+-0.25810728898317925,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#989016" stroke-width="5.0e-3"><polyline points="0.38289892407940584,-0.24829632886348652
+-0.27174571904834066,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#9c9015" stroke-width="5.0e-3"><polyline points="0.39653735414456737,-0.2570894702132337
+-0.2853841491135021,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#a08f14" stroke-width="5.0e-3"><polyline points="0.4101757842097289,-0.2658826115629809
+-0.2990225791786635,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#a48e13" stroke-width="5.0e-3"><polyline points="0.42381421427488997,-0.27467575291272817
+-0.3126610092438248,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#a88e12" stroke-width="5.0e-3"><polyline points="0.4374526443400515,-0.28346889426247535
+-0.32629943930898625,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ad8d12" stroke-width="5.0e-3"><polyline points="0.451091074405213,-0.2922620356122225
+-0.3399378693741476,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#b18c11" stroke-width="5.0e-3"><polyline points="0.46472950447037453,-0.3010551769619697
+-0.3535762994393089,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#b58c10" stroke-width="5.0e-3"><polyline points="0.4783679345355356,-0.309848318311717
+-0.3672147295044703,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#b98b0f" stroke-width="5.0e-3"><polyline points="0.49200636460069713,-0.3186414596614642
+-0.3808531595696317,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#bd8a0e" stroke-width="5.0e-3"><polyline points="0.5056447946658587,-0.32743460101121136
+-0.39449158963479314,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#c18a0d" stroke-width="5.0e-3"><polyline points="0.5192832247310197,-0.3362277423609584
+-0.40813001969995455,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#c5890c" stroke-width="5.0e-3"><polyline points="0.5329216547961813,-0.3450208837107057
+-0.42176844976511596,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#c9880b" stroke-width="5.0e-3"><polyline points="0.5465600848613428,-0.3538140250604529
+-0.43540687983027737,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ce880b" stroke-width="5.0e-3"><polyline points="0.5601985149265039,-0.3626071664102001
+-0.44904530989543867,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#d2870a" stroke-width="5.0e-3"><polyline points="0.5738369449916654,-0.37140030775994726
+-0.4626837399606002,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#d68609" stroke-width="5.0e-3"><polyline points="0.5874753750568269,-0.38019344910969444
+-0.4763221700257615,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#da8608" stroke-width="5.0e-3"><polyline points="0.6011138051219884,-0.38898659045944184
+-0.48996060009092285,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#de8507" stroke-width="5.0e-3"><polyline points="0.6147522351871495,-0.3977797318091888
+-0.5035990301560842,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#e28406" stroke-width="5.0e-3"><polyline points="0.628390665252311,-0.4065728731589362
+-0.5172374602212457,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#e68405" stroke-width="5.0e-3"><polyline points="0.6420290953174723,-0.41536601450868327
+-0.530875890286407,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ea8304" stroke-width="5.0e-3"><polyline points="0.6556675253826338,-0.42415915585843067
+-0.5445143203515684,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ef8204" stroke-width="5.0e-3"><polyline points="0.6693059554477949,-0.4329522972081776
+-0.5581527504167298,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#f38203" stroke-width="5.0e-3"><polyline points="0.6829443855129564,-0.4417454385579248
+-0.5717911804818911,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#f78102" stroke-width="5.0e-3"><polyline points="0.6965828155781182,-0.450538579907672
+-0.5854296105470526,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#fb8001" stroke-width="5.0e-3"><polyline points="0.710221245643279,-0.4593317212574193
+-0.599068040612214,0.40239613101780614"/></g><g stroke-opacity="1.0" fill="none" stroke="#ff8000" stroke-width="5.0e-3"><polyline points="0.7238596757084408,-0.46812486260716646
+-0.6127064706773753,0.40239613101780614"/></g></g></g><g class="hud"><g class="canvas"><g stroke-opacity="0.0" fill="#ffffff" stroke="#000000" stroke-width="0.0" fill-opacity="2.0e-2"><rect width="1.3683891498711926" x="-0.6286179724200636" y="-0.47691800395691364" height="0.8815124203121565"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -0.6558948325503864, 0.40459441635524285)"><polyline points="-0.6558948325503864,0.41959441635524286
+-0.6558948325503864,0.38959441635524283"/></g><g transform="rotate(-90.0, -0.6558948325503864, 0.31644317432402724)"><polyline points="-0.6558948325503864,0.33144317432402726
+-0.6558948325503864,0.30144317432402723"/></g><g transform="rotate(-90.0, -0.6558948325503864, 0.22829193229281153)"><polyline points="-0.6558948325503864,0.24329193229281154
+-0.6558948325503864,0.21329193229281151"/></g><g transform="rotate(-90.0, -0.6558948325503864, 0.14014069026159587)"><polyline points="-0.6558948325503864,0.15514069026159588
+-0.6558948325503864,0.12514069026159585"/></g><g transform="rotate(-90.0, -0.6558948325503864, 5.198944823038021e-2)"><polyline points="-0.6558948325503864,6.698944823038021e-2
+-0.6558948325503864,3.698944823038021e-2"/></g><g transform="rotate(-90.0, -0.6558948325503864, -3.6161793800835396e-2)"><polyline points="-0.6558948325503864,-2.1161793800835396e-2
+-0.6558948325503864,-5.1161793800835395e-2"/></g><g transform="rotate(-90.0, -0.6558948325503864, -0.12431303583205111)"><polyline points="-0.6558948325503864,-0.10931303583205111
+-0.6558948325503864,-0.13931303583205112"/></g><g transform="rotate(-90.0, -0.6558948325503864, -0.21246427786326672)"><polyline points="-0.6558948325503864,-0.1974642778632667
+-0.6558948325503864,-0.22746427786326673"/></g><g transform="rotate(-90.0, -0.6558948325503864, -0.30061551989448243)"><polyline points="-0.6558948325503864,-0.2856155198944824
+-0.6558948325503864,-0.31561551989448244"/></g><g transform="rotate(-90.0, -0.6558948325503864, -0.38876676192569803)"><polyline points="-0.6558948325503864,-0.373766761925698
+-0.6558948325503864,-0.40376676192569805"/></g><g transform="rotate(-90.0, -0.6558948325503864, -0.47691800395691364)"><polyline points="-0.6558948325503864,-0.4619180039569136
+-0.6558948325503864,-0.49191800395691365"/></g></g></g><g class="ticktext"><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="4.5461433550537965e-2" fill-opacity="1.0" text-anchor="end"><text x="-0.6886270647067737" y="0.4166849857111453">0</text><text x="-0.6886270647067737" y="0.3285337436799296">0.1</text><text x="-0.6886270647067737" y="0.24038250164871394">0.2</text><text x="-0.6886270647067737" y="0.15223125961749828">0.3</text><text x="-0.6886270647067737" y="6.408001758628262e-2">0.4</text><text x="-0.6886270647067737" y="-2.4071224444932926e-2">0.5</text><text x="-0.6886270647067737" y="-0.11222246647614864">0.6</text><text x="-0.6886270647067737" y="-0.20037370850736425">0.7</text><text x="-0.6886270647067737" y="-0.28852495053858007">0.8</text><text x="-0.6886270647067737" y="-0.3766761925697957">0.9</text><text x="-0.6886270647067737" y="-0.4648274346010113">1</text></g></g><g class="ticklines"><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.6286179724200636,0.40459441635524285
+0.7397711774511291,0.40459441635524285"/><polyline points="-0.6286179724200636,0.31644317432402724
+0.7397711774511291,0.31644317432402724"/><polyline points="-0.6286179724200636,0.22829193229281153
+0.7397711774511291,0.22829193229281153"/><polyline points="-0.6286179724200636,0.14014069026159587
+0.7397711774511291,0.14014069026159587"/><polyline points="-0.6286179724200636,5.198944823038021e-2
+0.7397711774511291,5.198944823038021e-2"/><polyline points="-0.6286179724200636,-3.6161793800835396e-2
+0.7397711774511291,-3.6161793800835396e-2"/><polyline points="-0.6286179724200636,-0.12431303583205111
+0.7397711774511291,-0.12431303583205111"/><polyline points="-0.6286179724200636,-0.21246427786326672
+0.7397711774511291,-0.21246427786326672"/><polyline points="-0.6286179724200636,-0.30061551989448243
+0.7397711774511291,-0.30061551989448243"/><polyline points="-0.6286179724200636,-0.38876676192569803
+0.7397711774511291,-0.38876676192569803"/><polyline points="-0.6286179724200636,-0.47691800395691364
+0.7397711774511291,-0.47691800395691364"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.6369146840430355e-3" x="-0.6413471738142142" y="-0.4786766322268631" height="0.8850296768520554"/></g></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="-0.6286179724200636,0.4459738404044845
+-0.6286179724200636,0.4159738404044845"/><polyline points="-0.49177905743294437,0.4459738404044845
+-0.49177905743294437,0.4159738404044845"/><polyline points="-0.3549401424458251,0.4459738404044845
+-0.3549401424458251,0.4159738404044845"/><polyline points="-0.21810122745870575,0.4459738404044845
+-0.21810122745870575,0.4159738404044845"/><polyline points="-8.126231247158655e-2,0.4459738404044845
+-8.126231247158655e-2,0.4159738404044845"/><polyline points="5.557660251553265e-2,0.4459738404044845
+5.557660251553265e-2,0.4159738404044845"/><polyline points="0.19241551750265207,0.4459738404044845
+0.19241551750265207,0.4159738404044845"/><polyline points="0.3292544324897715,0.4459738404044845
+0.3292544324897715,0.4159738404044845"/><polyline points="0.46609334747689024,0.4459738404044845
+0.46609334747689024,0.4159738404044845"/><polyline points="0.6029322624640097,0.4459738404044845
+0.6029322624640097,0.4159738404044845"/><polyline points="0.7397711774511291,0.4459738404044845
+0.7397711774511291,0.4159738404044845"/></g></g><g class="ticktext"><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="4.5461433550537965e-2" fill-opacity="1.0" text-anchor="middle"><text x="-0.6286179724200636" y="0.4868102879753792">0</text><text x="-0.49177905743294437" y="0.4868102879753792">0.1</text><text x="-0.3549401424458251" y="0.4868102879753792">0.2</text><text x="-0.21810122745870575" y="0.4868102879753792">0.3</text><text x="-8.126231247158655e-2" y="0.4868102879753792">0.4</text><text x="5.557660251553265e-2" y="0.4868102879753792">0.5</text><text x="0.19241551750265207" y="0.4868102879753792">0.6</text><text x="0.3292544324897715" y="0.4868102879753792">0.7</text><text x="0.46609334747689024" y="0.4868102879753792">0.8</text><text x="0.6029322624640097" y="0.4868102879753792">0.9</text><text x="0.7397711774511291" y="0.4868102879753792">1</text></g></g><g class="ticklines"><g stroke-opacity="5.0e-2" fill="none" stroke="#0d0d0d" stroke-width="5.0e-3"><polyline points="-0.6286179724200636,0.40459441635524285
+-0.6286179724200636,-0.47691800395691364"/><polyline points="-0.49177905743294437,0.40459441635524285
+-0.49177905743294437,-0.47691800395691364"/><polyline points="-0.3549401424458251,0.40459441635524285
+-0.3549401424458251,-0.47691800395691364"/><polyline points="-0.21810122745870575,0.40459441635524285
+-0.21810122745870575,-0.47691800395691364"/><polyline points="-8.126231247158655e-2,0.40459441635524285
+-8.126231247158655e-2,-0.47691800395691364"/><polyline points="5.557660251553265e-2,0.40459441635524285
+5.557660251553265e-2,-0.47691800395691364"/><polyline points="0.19241551750265207,0.40459441635524285
+0.19241551750265207,-0.47691800395691364"/><polyline points="0.3292544324897715,0.40459441635524285
+0.3292544324897715,-0.47691800395691364"/><polyline points="0.46609334747689024,0.40459441635524285
+0.46609334747689024,-0.47691800395691364"/><polyline points="0.6029322624640097,0.40459441635524285
+0.6029322624640097,-0.47691800395691364"/><polyline points="0.7397711774511291,0.40459441635524285
+0.7397711774511291,-0.47691800395691364"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="1.3720260645552353" x="-0.6304364297620851" y="0.4133875577049901" height="3.517256539898872e-3"/></g></g></g></g></svg>

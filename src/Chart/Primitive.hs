@@ -8,9 +8,13 @@
 -- | The primitive 'Chart' Type and support
 module Chart.Primitive
   ( Chart(..),
-    ChartNode(..),
+    Charts(..),
+    chart',
     charts',
-    toTree,
+    named,
+    unnamed,
+    blank,
+    group,
     box,
     sbox,
     projectWith,
@@ -20,8 +24,10 @@ module Chart.Primitive
     colourChart,
     projectCharts,
     boxes,
+    box',
     unsafeBoxes,
     styleBoxes,
+    styleBox',
     unsafeStyleBoxes,
     vert,
     hori,
@@ -73,7 +79,7 @@ import Data.Tree
 --
 -- Using the defaults, this chart is rendered as:
 --
--- >>> writeChartSvg "other/unit.hs" $ mempty & #chartTree .~ [r]
+-- >>> writeChartSvg "other/unit.hs" $ mempty & #charts .~ [r]
 --
 --
 data Chart =
@@ -84,25 +90,37 @@ data Chart =
   PathChart PathStyle (NonEmpty (PathData Double)) |
   BlankChart (NonEmpty (Rect Double)) deriving (Eq, Show)
 
-data ChartNode = ChartNode { name :: Maybe Text, charts :: [Chart] } deriving (Eq, Show, Generic)
+newtype Charts = Charts { tree :: Tree (Maybe Text, [Chart]) } deriving (Eq, Show, Generic)
 
-toChartList_ :: Tree ChartNode -> [Chart]
-toChartList_ t = mconcat $ view #charts <$> flatten t
+tree' :: Iso' Charts (Tree (Maybe Text, [Chart]))
+tree' = iso tree Charts
 
-toTree :: Maybe Text -> [Chart] -> Tree ChartNode
-toTree l cs = Node (ChartNode l cs) []
+charts' :: Traversal' Charts [Chart]
+charts' = tree' % traversed % _2
 
-charts' :: Getter (Tree ChartNode) [Chart]
-charts' = Optics.Core.to toChartList_
+chart' :: Traversal' Charts Chart
+chart' = tree' % traversed % _2 % traversed
 
-instance Semigroup (Tree ChartNode) where
-  (<>) x@(Node (ChartNode n cs) xs) x'@(Node (ChartNode n' cs') xs') =
+named :: Text -> [Chart] -> Charts
+named l cs = Charts $ Node (Just l,cs) []
+
+unnamed :: [Chart] -> Charts
+unnamed cs = Charts $ Node (Nothing,cs) []
+
+blank :: Rect Double -> Charts
+blank r = unnamed [BlankChart [r]]
+
+group :: Maybe Text -> [Charts] -> Charts
+group name cs = Charts $ Node (name, []) (tree <$> cs)
+
+instance Semigroup Charts where
+  (<>) (Charts x@(Node (n, cs) xs)) (Charts x'@(Node (n', cs') xs')) =
     case (n,n') of
-      (Nothing, Nothing) -> Node (ChartNode Nothing (cs <> cs')) (xs <> xs')
-      _ -> Node (ChartNode Nothing []) [x, x']
+      (Nothing, Nothing) -> Charts $ Node (Nothing, cs <> cs') (xs <> xs')
+      _ -> Charts $ Node (Nothing, []) [x, x']
 
-instance Monoid (Tree ChartNode) where
-  mempty = Node (ChartNode Nothing []) []
+instance Monoid Charts where
+  mempty = Charts $ Node (Nothing, []) []
 
 -- | Library functionality (rescaling, combining charts, working out axes and generally putting charts together) is driven by a box model.
 --
@@ -211,8 +229,32 @@ projectCharts new cs = projectWith new (styleBoxes cs) <$> cs
 boxes :: (Foldable f, Functor f) => f Chart -> Rect Double
 boxes cs = padSingletons $ fromMaybe one $ foldRect $ toList $ box <$> cs
 
+box_ :: Charts -> Rect Double
+box_ = boxes . foldOf charts'
+
+rebox_ :: Charts -> Rect Double -> Charts
+rebox_ cs r =
+  cs &
+  over chart' (projectWith r (box_ cs))
+
+box' :: Lens' Charts (Rect Double)
+box' =
+  lens box_ rebox_
+
 styleBoxes :: (Foldable f, Functor f) => f Chart -> Rect Double
 styleBoxes cs = padSingletons $ fromMaybe one $ foldRect $ toList $ sbox <$> cs
+
+styleBox_ :: Charts -> Rect Double
+styleBox_ = styleBoxes . foldOf charts'
+
+styleRebox_ :: Charts -> Rect Double -> Charts
+styleRebox_ cs r =
+  cs &
+  over chart' (projectWith r (styleBox_ cs))
+
+styleBox' :: Lens' Charts (Rect Double)
+styleBox' =
+  lens styleBox_ styleRebox_
 
 unsafeBoxes :: (Foldable f, Functor f) => f Chart -> Rect Double
 unsafeBoxes cs = foldRectUnsafe $ box <$> cs
@@ -233,52 +275,50 @@ padChart :: Double -> [Chart] -> Chart
 padChart p cs = BlankChart [padRect p (styleBoxes cs)]
 
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
-hori :: Double -> [Tree ChartNode] -> Tree ChartNode
+hori :: Double -> [Charts] -> Charts
 hori _ [] = mempty
 hori gap cs = foldl' step mempty cs
   where
-    step :: Tree ChartNode -> Tree ChartNode -> Tree ChartNode
-    step x c = x <> fmap (over #charts (fmap (moveChart (Point (widthx x) (aligny x - aligny c))))) c
-    widthx x = case view charts' x of
+    step x c = x <> over chart' (moveChart (Point (widthx x) (aligny x - aligny c))) c
+    widthx x = case foldOf charts' x of
       [] -> zero
       xs -> (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
-    aligny x = case view charts' x of
+    aligny x = case foldOf charts' x of
       [] -> zero
       xs -> (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
 
--- | vertically stack a chart nodes (proceeding upwards), aligning them to the left
-vert :: Double -> [Tree ChartNode] -> Tree ChartNode
+-- | vertically stack a list of Charts (proceeding upwards), aligning them to the left
+vert :: Double -> [Charts] -> Charts
 vert _ [] = mempty
 vert gap cs = foldl' step mempty cs
   where
-    step :: Tree ChartNode -> Tree ChartNode -> Tree ChartNode
-    step x c = x <> fmap (over #charts (fmap (moveChart (Point (alignx x - alignx c) (widthy x))))) c
-    widthy x = case view charts' x of
+    step :: Charts -> Charts -> Charts
+    step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (widthy x))) c
+    widthy x = case foldOf charts' x of
       [] -> zero
       xs -> (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
-    alignx x = case view charts' x of
+    alignx x = case foldOf charts' x of
       [] -> zero
       xs -> (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- | stack a list of charts horizontally, then vertically
-stack :: Int -> Double -> [Tree ChartNode] -> Tree ChartNode
+stack :: Int -> Double -> [Charts] -> Charts
 stack _ _ [] = mempty
 stack n gap cs = vert gap (hori gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
 
-rectangularize :: RectStyle -> Tree ChartNode -> Tree ChartNode
-rectangularize r c = Node (ChartNode (Just "rectangularize") [])
-  [fmap (over #charts (fmap (rectangularize_ r))) c]
+rectangularize :: RectStyle -> Charts -> Charts
+rectangularize r c = group (Just "rectangularize") [over chart' (rectangularize_ r) c]
 
 rectangularize_ :: RectStyle -> Chart -> Chart
 rectangularize_ rs (TextChart s xs) = TextChart (s & #frame .~ Just rs) xs
 rectangularize_ rs c = RectChart rs [sbox c]
 
-glyphize :: GlyphStyle -> Tree ChartNode -> Tree ChartNode
-glyphize g c = Node (ChartNode (Just "glyphize") [])
-  [fmap (over #charts (fmap (glyphize_ g))) c]
+glyphize :: GlyphStyle -> Charts -> Charts
+glyphize g c =
+  group (Just "glyphize") [over chart' (glyphize_ g) c]
 
 glyphize_ :: GlyphStyle -> Chart -> Chart
 glyphize_ g (TextChart _ xs) = GlyphChart g (snd <$> xs)
