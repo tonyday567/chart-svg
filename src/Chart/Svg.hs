@@ -15,7 +15,6 @@ module Chart.Svg
     toCharts,
     writeChartSvg,
     chartSvg,
-    renderHudChartWith,
 
     -- * SVG Options
     SvgOptions (..),
@@ -100,18 +99,7 @@ instance Semigroup ChartSvg where
 instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty mempty mempty
 
-toCharts :: ChartSvg -> Charts
-toCharts cs =
-  runHudWith
-  (initialCanvas (view (#svgOptions % #chartAspect) cs) (view #charts cs))
-  db'
-  (hs <> view #extraHuds cs)
-  (view #charts cs <> unnamed [BlankChart [db']])
-  where
-   (hs, db') = toHuds (view #hudOptions cs) (view (#charts % box') cs)
-
 -- * rendering
-
 -- | @svg@ element + svg 2 attributes
 svg2Tag :: Term [Attribute] (s -> t) => s -> t
 svg2Tag m =
@@ -202,22 +190,29 @@ renderChartsWith :: SvgOptions -> Charts -> Text
 renderChartsWith so cs =
   Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs)
   where
-    rect' = fmap (view #aspectBasis so *) $ view styleBox' cs & maybe id padRect (so ^. #outerPad)
+    rect' = view styleBox' cs
     Point w h = width rect'
     size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
 
--- | render charts with the supplied svg options and hud
-renderHudChartWith :: Rect Double -> SvgOptions -> [Hud] -> Charts -> Text
-renderHudChartWith db so hs cs =
-  renderChartsWith so
-  (runHudWith (initialCanvas (so ^. #chartAspect) (cs <> blank db)) db hs' cs)
+toCharts :: ChartSvg -> Charts
+toCharts cs =
+  runHudWith
+  (initialCanvas (view (#svgOptions % #chartAspect) cs) (view #charts cs))
+  db'
+  hs'
+  (view #charts cs)
   where
+    (hs, db') = toHuds (view #hudOptions cs) (view (#charts % box') cs)
     hs' =
       hs <>
-      [ fromEffect 1000 $ applyChartAspect (so ^. #chartAspect) (so ^. #aspectBasis)]
+      view #extraHuds cs <>
+      [ fromEffect 1000 $
+        applyChartAspect (view (#svgOptions % #chartAspect) cs) (view (#svgOptions % #aspectBasis) cs)
+      ] <>
+      foldMap (\x -> [Hud 1001 (padHud x)]) (view (#svgOptions % #outerPad) cs)
 
--- | calculation of the canvas given the 'ChartAspect'
-initialCanvas :: ChartAspect -> Charts -> Rect Double
+-- | The initial canvas before applying Huds
+initialCanvas :: ChartAspect -> Charts -> CanvasBox
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
 initialCanvas ChartAspect cs = view box' cs
@@ -227,9 +222,7 @@ initialCanvas ChartAspect cs = view box' cs
 -- >>> chartSvg mempty
 -- "<svg height=\"300.0\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-0.52 -0.52 1.04 1.04\"></svg>"
 chartSvg :: ChartSvg -> Text
-chartSvg cs = renderHudChartWith db' (view #svgOptions cs) (view #extraHuds cs <> hs') (view #charts cs <> blank db')
-  where
-    (hs', db') = toHuds (view #hudOptions cs) (view (#charts % box') cs)
+chartSvg cs = renderChartsWith (view #svgOptions cs) (toCharts cs)
 
 -- \cs -> let (hs', db') = toHuds (view #hudOptions cs) (view (#charts % box') cs) in renderHudChartWith db' (view #svgOptions cs) (view #extraHuds cs <> hs') (view #charts cs)
 

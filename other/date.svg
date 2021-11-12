@@ -16,7 +16,7 @@
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: #f0f0f0;
   }
-}</style><g class="chart"></g><g class="hud"><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="-0.591484249882333,0.37667090754096255
+}</style><g class="chart"></g><g class="hud"><g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="-0.591484249882333,0.37667090754096255
 -0.591484249882333,0.3466709075409625"/><polyline points="-0.24816849549078213,0.37667090754096255
 -0.24816849549078213,0.3466709075409625"/><polyline points="0.17754303995474108,0.37667090754096255
 0.17754303995474108,0.3466709075409625"/><polyline points="0.5620566848732782,0.37667090754096255
@@ -44,4 +44,4 @@
 0.7405808771568847,-0.17266702802290057"/><polyline points="-0.591484249882333,-0.27463991648928665
 0.7405808771568847,-0.27463991648928665"/><polyline points="-0.591484249882333,-0.37661280495567273
 0.7405808771568847,-0.37661280495567273"/><polyline points="-0.591484249882333,-0.4785856934220588
-0.7405808771568847,-0.4785856934220588"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.552173672104586e-3" x="-0.603916857734699" y="-0.48021725963752115" height="0.8190462401620132"/></g></g></g></g></svg>
+0.7405808771568847,-0.4785856934220588"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#0d0d0d" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="3.552173672104586e-3" x="-0.603916857734699" y="-0.48021725963752115" height="0.8190462401620132"/></g></g></g></g></g></svg>

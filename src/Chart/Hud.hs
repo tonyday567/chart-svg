@@ -7,12 +7,15 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TupleSections #-}
 
-
 -- | Chart API
 module Chart.Hud
   ( -- * Hud types
     Hud (..),
+    HudBox,
+    CanvasBox,
+    DataBox,
     frameHud,
+    padHud,
     legend,
     legendHud,
     legendChart,
@@ -191,6 +194,12 @@ frameHud rs p = do
   cs <- get
   let pad = padRect p (view hudBox' cs)
   pure $ named "frame" [RectChart rs [pad]]
+
+padHud :: Double -> State HudChart Charts
+padHud p = do
+  cs <- get
+  let pad = padRect p (view hudBox' cs)
+  pure $ blank pad
 
 -- | Typical configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
