@@ -15,6 +15,7 @@ module Chart.Svg
     toCharts,
     writeChartSvg,
     chartSvg,
+    renderHudChartWith,
 
     -- * SVG Options
     SvgOptions (..),
@@ -229,6 +230,9 @@ chartSvg :: ChartSvg -> Text
 chartSvg cs = renderHudChartWith db' (view #svgOptions cs) (view #extraHuds cs <> hs') (view #charts cs <> blank db')
   where
     (hs', db') = toHuds (view #hudOptions cs) (view (#charts % box') cs)
+
+-- \cs -> let (hs', db') = toHuds (view #hudOptions cs) (view (#charts % box') cs) in renderHudChartWith db' (view #svgOptions cs) (view #extraHuds cs <> hs') (view #charts cs)
+
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()

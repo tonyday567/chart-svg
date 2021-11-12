@@ -6,13 +6,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ghc: ['8.8.4', '8.10.7', '9.2.1']
+        ghc: ['8.8.4', '8.10.7']
         cabal: ['3.6.2.0']
         os: [ubuntu-latest, macOS-latest]
         experimental: [false]
         include:
           - os: windows-latest
             ghc: '8.10.7'
+            experimental: true
+        include:
+          - os: ubuntu-latest
+            ghc: '9.2.1'
             experimental: true
     continue-on-error: ${{ matrix.experimental }}
     name: ghc ${{ matrix.ghc }} ${{ matrix.os }}

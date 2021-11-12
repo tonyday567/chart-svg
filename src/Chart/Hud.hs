@@ -880,7 +880,7 @@ placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
 
 legendFrame :: LegendOptions -> Charts -> Charts
 legendFrame l content' =
-  group (Just "legend") [named "legendBorder" borders, group (Just "legendContent") [content']]
+  group (Just "legend") [named "legendBorder" borders, rename (Just "legendContent") content']
   where
     borders = [outer, inner] <> frame'
     outer = padChart (view #outerPad l) [inner]

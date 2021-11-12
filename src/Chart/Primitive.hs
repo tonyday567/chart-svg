@@ -13,6 +13,7 @@ module Chart.Primitive
     charts',
     named,
     unnamed,
+    rename,
     blank,
     group,
     box,
@@ -106,6 +107,9 @@ named l cs = Charts $ Node (Just l,cs) []
 
 unnamed :: [Chart] -> Charts
 unnamed cs = Charts $ Node (Nothing,cs) []
+
+rename :: Maybe Text -> Charts -> Charts
+rename l (Charts (Node (_,cs) xs)) = Charts (Node (l,cs) xs)
 
 blank :: Rect Double -> Charts
 blank r = unnamed [BlankChart [r]]
