@@ -109,14 +109,21 @@ svg2Tag m =
     ]
     m
 
-renderToSvg :: CssOptions -> Point Double -> Rect Double -> Charts -> Html ()
-renderToSvg csso (Point w' h') (Rect x z y w) cs =
+renderToText :: Html () -> Text
+renderToText = Lazy.toStrict . renderText
+
+renderToSvg :: SvgOptions -> Charts -> Html ()
+renderToSvg so cs =
   with
-    (svg2Tag (cssText csso <> svgChartTree cs))
-    [ width_ (pack $ show w'),
-      height_ (pack $ show h'),
+    (svg2Tag (cssText (view #cssOptions so) <> svgChartTree cs))
+    [ width_ (pack $ show w''),
+      height_ (pack $ show h''),
       makeAttribute "viewBox" (pack $ show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
+  where
+    r@(Rect x z y w) = view styleBox' cs
+    Point w' h' = width r
+    Point w'' h'' = Point ((so ^. #svgHeight) / h' * w') (so ^. #svgHeight)
 
 -- | Low-level conversion of a Chart to svg
 svg :: Chart -> Lucid.Html ()
@@ -185,15 +192,6 @@ cssPreferColorScheme (_, bgdark) PreferDark =
   |] where c = hex bgdark
 cssPreferColorScheme _ PreferNormal = mempty
 
--- | render Charts with the supplied options.
-renderChartsWith :: SvgOptions -> Charts -> Text
-renderChartsWith so cs =
-  Lazy.toStrict $ renderText (renderToSvg (so ^. #cssOptions) size' rect' cs)
-  where
-    rect' = view styleBox' cs
-    Point w h = width rect'
-    size' = Point ((so ^. #svgHeight) / h * w) (so ^. #svgHeight)
-
 toCharts :: ChartSvg -> Charts
 toCharts cs =
   runHudWith
@@ -222,10 +220,7 @@ initialCanvas ChartAspect cs = view box' cs
 -- >>> chartSvg mempty
 -- "<svg height=\"300.0\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-0.52 -0.52 1.04 1.04\"></svg>"
 chartSvg :: ChartSvg -> Text
-chartSvg cs = renderChartsWith (view #svgOptions cs) (toCharts cs)
-
--- \cs -> let (hs', db') = toHuds (view #hudOptions cs) (view (#charts % box') cs) in renderHudChartWith db' (view #svgOptions cs) (view #extraHuds cs <> hs') (view #charts cs)
-
+chartSvg cs = renderToText (renderToSvg (view #svgOptions cs) (toCharts cs))
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()
