@@ -259,7 +259,7 @@ styleRebox_ cs r =
 
 -- |
 --
--- Note that a round trip may not be isomorphic ie
+-- Note that a round trip may be only approximately isomorphic ie
 --
 -- > forall c r. \c -> view styleBox' . set styleBox r c ~= r
 --
@@ -289,6 +289,11 @@ styleRebox_ cs r =
 -- >>> view styleBox' $ set styleBox' one (x1 0.002)
 -- Rect -0.5000199203187251 0.5000199203187251 -0.5 0.5
 --
+--
+-- If having an exact box is important, try running set styleBox' multiple times eg
+--
+-- >>> view styleBox' $ foldr ($) (x1 0.002) (replicate 10 (set styleBox' one))
+-- Rect -0.5 0.5000000000000001 -0.5 0.4999999999999999
 styleBox' :: Lens' Charts (Rect Double)
 styleBox' =
   lens styleBox_ styleRebox_
