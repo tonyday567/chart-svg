@@ -39,8 +39,7 @@ module Chart.Primitive
     glyphize,
     overText,
     Orientation (..),
-    fromOrientation,
-    toOrientation,
+    ChartAspect(..),
   ) where
 
 import Chart.Style
@@ -55,9 +54,9 @@ import Data.Foldable
 import Data.Semigroup
 import Data.Maybe
 import Data.Colour
-import Data.String
 import GHC.Generics
 import Data.Tree
+import qualified NumHask.Prelude as NH
 
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
@@ -144,7 +143,7 @@ box (BlankChart a) = foldRectUnsafe a
 -- >>> sbox r
 -- Rect -0.505 0.505 -0.505 0.505
 --
--- In our simplest example, the border of the rectangle adds an extra 0.1 to the height and width of the bounding box enclosing the chart.
+-- In the above example, the border of the rectangle adds an extra 0.1 to the height and width of the bounding box enclosing the chart.
 --
 sbox :: Chart -> Rect Double
 sbox (RectChart s a) = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
@@ -231,7 +230,7 @@ projectCharts :: Rect Double -> [Chart] -> [Chart]
 projectCharts new cs = projectWith new (styleBoxes cs) <$> cs
 
 boxes :: (Foldable f, Functor f) => f Chart -> Rect Double
-boxes cs = padSingletons $ fromMaybe one $ foldRect $ toList $ box <$> cs
+boxes cs = fromMaybe one $ foldRect $ toList $ box <$> cs
 
 box_ :: Charts -> Rect Double
 box_ = boxes . foldOf charts'
@@ -246,7 +245,7 @@ box' =
   lens box_ rebox_
 
 styleBoxes :: (Foldable f, Functor f) => f Chart -> Rect Double
-styleBoxes cs = padSingletons $ fromMaybe one $ foldRect $ toList $ sbox <$> cs
+styleBoxes cs = fromMaybe one $ foldRect $ toList $ sbox <$> cs
 
 styleBox_ :: Charts -> Rect Double
 styleBox_ = styleBoxes . foldOf charts'
@@ -254,8 +253,42 @@ styleBox_ = styleBoxes . foldOf charts'
 styleRebox_ :: Charts -> Rect Double -> Charts
 styleRebox_ cs r =
   cs &
-  over chart' (projectWith r (styleBox_ cs))
+  over chart' (projectWith r' (box_ cs))
+  where
+    r' = r NH.- (styleBox_ cs NH.- box_ cs)
 
+-- |
+--
+-- Note that a round trip may not be isomorphic ie
+--
+-- > forall c r. \c -> view styleBox' . set styleBox r c ~= r
+--
+-- - SVG is, in general, an additive model eg a border adds a constant amount no matter the scale or aspect. TextCharts, in particular, can have small data boxes but large style additions to the box.
+--
+-- - Style reboxing is a multiplicative model.
+--
+-- In practice, this can lead to weird corner cases and unrequited distortion.
+--
+-- The example below starts with the unit chart, and a simple axis bar, with a dynamic overhang, so that the axis bar represents the x-axis extremity.
+--
+-- >>> t1 = unnamed [RectChart defaultRectStyle [one]]
+-- >>> x1 h = toCharts $ mempty & set #charts t1 & set (#hudOptions % #chartAspect) (ChartAspect) & set (#hudOptions % #axes) [(1,defaultAxisOptions & over #bar (fmap (set #overhang h)) & set (#ticks % #ttick) Nothing & set (#ticks % #gtick) Nothing & set (#ticks % #ltick) Nothing)]
+--
+-- WIth a significant overhang, the axis bar dominates the extrema:
+--
+-- >>> view styleBox' $ set styleBox' one (x1 0.1)
+-- Rect -0.5 0.5 -0.5 0.5
+--
+-- With no overhang, the style additions caused by the chart dominates:
+--
+-- >>> view styleBox' $ set styleBox' one (x1 0)
+-- Rect -0.5 0.5 -0.5 0.5
+--
+-- In between:
+--
+-- >>> view styleBox' $ set styleBox' one (x1 0.002)
+-- Rect -0.5000199203187251 0.5000199203187251 -0.5 0.5
+--
 styleBox' :: Lens' Charts (Rect Double)
 styleBox' =
   lens styleBox_ styleRebox_
@@ -339,13 +372,14 @@ overText _ x = x
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)
 
--- | textifier
-fromOrientation :: (IsString s) => Orientation -> s
-fromOrientation Hori = "Hori"
-fromOrientation Vert = "Vert"
-
--- | readifier
-toOrientation :: (Eq s, IsString s) => s -> Orientation
-toOrientation "Hori" = Hori
-toOrientation "Vert" = Vert
-toOrientation _ = Hori
+-- | The basis for the x-y ratio of a chart
+--
+-- Default style features tend towards assuming that the usual height of the overall svg image is around 1, and ChartAspect is based on this assumption, so that a ChartAspect of "FixedAspect 1.5", say, means a height of 1 and a width of 1.5.
+data ChartAspect
+  = -- | Rescale charts to a fixed x-y ratio, inclusive of hud and style features
+    FixedAspect Double
+  | -- | Rescale charts to an overall height of 1, preserving the x-y ratio of the data canvas.
+    CanvasAspect Double
+  | -- | Rescale charts to a height of 1, preserving the existing x-y ratio of the underlying charts, inclusive of hud and style.
+    ChartAspect
+  deriving (Show, Eq, Generic)

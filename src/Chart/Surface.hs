@@ -166,7 +166,8 @@ surfaceLegendOptions =
     & #hgap .~ 0.01
     & #innerPad .~ 0.05
     & #outerPad .~ 0.02
-    & #style % #hsize .~ 0.5
+    & #textStyle % #hsize .~ 0.5
+    & #textStyle % #size .~ 0.1
     & #frame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
@@ -180,7 +181,7 @@ surfaceLegendChart dataRange l =
           || l ^. #sloLegendOptions % #place == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
-    t = TextChart (l ^. #sloLegendOptions % #style & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
+    t = TextChart (l ^. #sloLegendOptions % #textStyle & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
     hs = vert (l ^. #sloLegendOptions % #vgap) [a, unnamed [t]]
     vertGlyph :: [Chart]
     vertGlyph =
@@ -217,5 +218,5 @@ makeSurfaceTick l pchart = phud
   where
     r = view styleBox' pchart
     r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
-    (hs, db) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r
+    (hs, db) = toHuds (mempty & set #chartAspect ChartAspect & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r
     phud = runHudWith r' db hs pchart

@@ -8,11 +8,11 @@
 -- | Examples of chart construction.
 module Chart.Examples
   ( unitExample,
+    lineExample,
     hudOptionsExample,
     rectExample,
     textExample,
     glyphsExample,
-    lineExample,
     barExample,
     waveExample,
     surfaceExample,
@@ -208,7 +208,7 @@ textExample =
 glyphsExample :: ChartSvg
 glyphsExample =
   mempty &
-  set (#svgOptions % #svgHeight) 200 &
+  set (#svgOptions % #svgHeight) 60 &
   set #charts
     (named "glyphs" $ zipWith
       ( \(sh, bs) p ->
@@ -259,8 +259,8 @@ vennExample :: ChartSvg
 vennExample =
   mempty
     & #charts .~ named "venn" (zipWith (\c x -> PathChart (defaultPathStyle & #color .~ set opac' 0.2 (palette1 c)) x) [0..] (svgToPathData <$> vennSegs))
-    & #svgOptions .~ (defaultSvgOptions & #chartAspect .~ FixedAspect 1)
     & #hudOptions .~ defaultHudOptions
+    & #hudOptions % #chartAspect .~ FixedAspect 1
 
 {-
 These were originally based on:
@@ -293,10 +293,7 @@ pathExample =
   mempty
     & #charts .~ named "path" [path', c0]
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions
-    %~ ( (#outerPad ?~ 0.1)
-           . (#chartAspect .~ ChartAspect)
-       )
+    & #hudOptions % #chartAspect .~ ChartAspect
   where
     ps =
       [ StartP (Point 0 0),
@@ -318,7 +315,7 @@ ellipseExample =
   mempty
     & #charts .~ named "ellipse" [ell, ellFull, c0, bbox, xradii, yradii]
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ ChartAspect))
+    & #hudOptions % #chartAspect .~ ChartAspect
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
@@ -337,7 +334,7 @@ arcExample =
   mempty
     & #charts .~ named "arc" [arc, ell, c0, bbox]
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ FixedAspect 1))
+    & #hudOptions % #chartAspect .~ FixedAspect 1
   where
     p1 = ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) 0 False True)
     ps = singletonArc p1
@@ -358,9 +355,30 @@ arcFlagsExample =
         rowLarge
       ]
     )
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferLight
-    & #svgOptions %~ ((#outerPad .~ Nothing) . (#chartAspect .~ ChartAspect))
+    & #hudOptions % #chartAspect .~ ChartAspect
+    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #svgOptions % #cssOptions % #cssExtra .~
+      [trimming|
+{
+  .chart g {
+    stroke: $hexDark;
+  }
+  .chart g text {
+    fill: $hexDark;
+  }
+}
+@media (prefers-color-scheme:dark) {
+  .chart g {
+    stroke: $hexLight;
+  }
+  .chart g text {
+    fill: $hexLight;
+  }
+}
+|]
   where
+    hexDark = hex dark
+    hexLight = hex light
     rowLarge = unnamed
       [ BlankChart [Rect 0 9 (-2.75) (-3.25)],
           TextChart (defaultTextStyle & #size .~ 0.6) [("Large", Point 5.5 (-3.0))]
@@ -414,7 +432,7 @@ quadExample =
   mempty
     & #charts .~ named "quad" [path', curve, c0, bbox]
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions %~ ((#outerPad ?~ 0.05) . (#chartAspect .~ ChartAspect))
+    & #hudOptions % #chartAspect .~ ChartAspect
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))
     ps = singletonQuad p
@@ -431,7 +449,7 @@ cubicExample =
   mempty
     & #charts .~ named "cubic" [path', curve, c0, bbox]
     & #hudOptions .~ mempty
-    & #svgOptions %~ ((#outerPad ?~ 0.02) . (#chartAspect .~ ChartAspect))
+    & #hudOptions % #chartAspect .~ ChartAspect
   where
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
     ps = singletonCubic p
@@ -450,7 +468,7 @@ surfaceExample =
     & #charts .~ named "surface" cs
     & #svgOptions .~ (defaultSvgOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
   where
-    t = "rosenbrock"
+    t = "rosenbrock function"
     grain = Point 20 20
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
@@ -464,7 +482,7 @@ surfaceExample =
         )
         ( defaultSurfaceLegendOptions dark t
             & #sloStyle % #surfaceColors .~ (palette1 <$> [0 .. 5])
-            & #sloLegendOptions % #style % #color .~ dark
+            & #sloLegendOptions % #textStyle % #color .~ dark
             & #sloAxisOptions .~ surfaceAxisOptions dark
             & #sloLegendOptions % #frame %~ fmap (#borderColor .~ dark)
         )
@@ -479,8 +497,25 @@ arrowExample =
   mempty
     & #hudOptions .~ (defaultHudOptions & #axes %~ fmap (second (#ticks % #ltick .~ Nothing)))
     & #charts .~ named "arrow" ((\p -> gchart (tail' . f $ p) (angle . f $ p) p) <$> ps)
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferLight
+    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #svgOptions % #cssOptions % #cssExtra .~
+      [trimming|
+{
+  .arrow g {
+    fill: $hexDark;
+    stroke: $hexDark;
+  }
+}
+@media (prefers-color-scheme:dark) {
+  .arrow g {
+    fill: $hexLight;
+    stroke: $hexLight;
+  }
+}
+|]
   where
+    hexLight = hex light
+    hexDark = hex dark
     f = snd . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     ps = grid MidPos (one :: Rect Double) (Point 10 10 :: Point Int) :: [Point Double]
     arrow = PathGlyph "M -1 0 L 1 0 M 1 0 L 0.4 0.3 M 1 0 L 0.4 -0.3" NoScaleBorder
@@ -516,7 +551,7 @@ rosenbrock a b (Point x y) = (a ** 2 - 2 * a * x + x ** 2 + b * y ** 2 - b * 2 *
 dateExample :: ChartSvg
 dateExample = mempty &
   #charts .~ blank (Rect 0 1 0 1) &
-  #hudOptions .~ (mempty & #axes .~
+  #hudOptions .~ (mempty & #chartAspect .~ FixedAspect 1.5 & #axes .~
   [ (1, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
     (1, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
   ])
@@ -592,7 +627,7 @@ dateExample = mempty &
 --
 -- Stop the axes from extending past the data ranges.
 --
--- >   set (#svgOptions % #chartAspect) (CanvasAspect 1.5)
+-- >   set (#hudOptions % #chartAspect) (CanvasAspect 1.5)
 --
 -- Rescale the chart so that the canvas element is a pleasant ratio.
 --
@@ -624,7 +659,7 @@ subChartExample =
        (palette1 5, Nothing),
        (set opac' 0.3 $ palette1 8, Just [0.01]),
        (set opac' 0.3 $ palette1 5, Just [0.04, 0.01])])] &
-  set (#svgOptions % #chartAspect) (CanvasAspect 1)
+  set (#hudOptions % #chartAspect) (FixedAspect 1.5)
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 --
@@ -710,8 +745,9 @@ blendExampleChart cl c2 n s gx' gy' hx' hy' = l
 -- -- ![debug example](other/debug.svg)
 debugExample :: ChartSvg -> ChartSvg
 debugExample cs =
-  mempty & set #charts
-  (e1 <> e2 <> e3)
+  mempty &
+  set #charts (e1 <> e2 <> e3)
+
   where
     e1 = toCharts cs
     e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1

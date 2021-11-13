@@ -1,4 +1,4 @@
-<svg width="444.2075832700292" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.7700331125827815 -0.520049504950495 1.540066225165563 1.04009900990099" height="300.0"><style>svg {
+<svg width="450.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.75 -0.5 1.5 1.0" height="300.0"><style>svg {
   color-scheme: light dark;
 }
 {
@@ -16,4 +16,4 @@
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: #f0f0f0;
   }
-}</style><g class="chart"><g class="unit"><g stroke-opacity="1.0" fill="#1f78b5" stroke="#a6cfe3" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="1.4900662251655628" x="-0.7450331125827815" y="-0.49504950495049493" height="0.99009900990099"/></g></g></g><g class="hud"></g></svg>
+}</style><g class="chart"><g class="unit"><g stroke-opacity="1.0" fill="#1f78b5" stroke="#a6cfe3" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="1.49" x="-0.745" y="-0.495" height="0.99"/></g></g></g><g class="hud"></g></svg>
