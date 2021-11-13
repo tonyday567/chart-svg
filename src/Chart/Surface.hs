@@ -1,7 +1,7 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Surface chart combinators.
@@ -21,20 +21,24 @@ module Chart.Surface
     surfacefl,
     SurfaceLegendOptions (..),
     defaultSurfaceLegendOptions,
+    surfaceAxisOptions,
   )
 where
 
-import Chart.Types
-import Control.Lens
+import Chart.Primitive
+import Chart.Style
+import Chart.Hud
+import Optics.Core
 import Data.Bifunctor
 import Data.Colour
 import Data.FormatN
-import Data.Generics.Labels ()
 import Data.Text (Text)
 import GHC.Generics
-import GHC.OverloadedLabels
-import NumHask.Prelude
-import NumHask.Space
+import Prelude
+import Data.List.NonEmpty (NonEmpty(..))
+import Chart.Data
+import Data.Bool
+import Data.Foldable
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -52,7 +56,7 @@ defaultSurfaceOptions :: SurfaceOptions
 defaultSurfaceOptions =
   SurfaceOptions defaultSurfaceStyle (Point 10 10) one
 
--- | A surface chart is a specialization of a 'RectA' chart
+-- | A surface chart is a specialization of a 'RectChart'
 --
 -- >>> defaultSurfaceStyle
 -- SurfaceStyle {surfaceColors = [Colour 0.69 0.35 0.16 1.00,Colour 0.65 0.81 0.89 1.00], surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 1.00}}
@@ -60,7 +64,7 @@ defaultSurfaceOptions =
 -- ![surface example](other/surface.svg)
 data SurfaceStyle = SurfaceStyle
   { -- | list of colours to interpolate between.
-    surfaceColors :: [Colour],
+    surfaceColors :: NonEmpty Colour,
     surfaceRectStyle :: RectStyle
   }
   deriving (Show, Eq, Generic)
@@ -68,7 +72,7 @@ data SurfaceStyle = SurfaceStyle
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
 defaultSurfaceStyle =
-  SurfaceStyle (take 2 palette1_) (blob dark)
+  SurfaceStyle (palette1 <$> [0..1]) (blob dark)
 
 -- | Main surface data elements
 data SurfaceData = SurfaceData
@@ -80,12 +84,12 @@ data SurfaceData = SurfaceData
   deriving (Show, Eq, Generic)
 
 -- | surface chart without any hud trimmings
-surfaces :: RectStyle -> [SurfaceData] -> [Chart Double]
+surfaces :: RectStyle -> [SurfaceData] -> [Chart]
 surfaces rs ps =
   ( \(SurfaceData r c) ->
-      Chart
-        (RectA (rs & #color .~ c))
-        [RectXY r]
+      RectChart
+        (rs & #color .~ c)
+        [r]
   )
     <$> ps
 
@@ -104,18 +108,20 @@ mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (blends y cs)) <$> ps', spac
     ps' = zip (fst <$> ps) rs'
 
 -- | create a surface chart from a function.
-surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart Double], Range Double)
+surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart], Range Double)
 surfacef f cfg =
-  first (surfaces (cfg ^. #soStyle . #surfaceRectStyle)) $
+  first (surfaces (cfg ^. #soStyle % #surfaceRectStyle)) $
     mkSurfaceData
       f
       (cfg ^. #soRange)
       (cfg ^. #soGrain)
-      (cfg ^. #soStyle . #surfaceColors)
+      (toList $ cfg ^. #soStyle % #surfaceColors)
 
 -- | Create a surface chart and accompanying legend from a function.
-surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart Double], [Hud Double])
-surfacefl f po slo = (cs, [legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo)])
+surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart], [Hud])
+surfacefl f po slo =
+  (cs,
+   [Hud 10 (legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo))])
   where
     (cs, dr) = surfacef f po
 
@@ -132,93 +138,85 @@ data SurfaceLegendOptions = SurfaceLegendOptions
   }
   deriving (Eq, Show, Generic)
 
-surfaceAxisOptions :: AxisOptions
-surfaceAxisOptions =
+surfaceAxisOptions :: Colour -> AxisOptions
+surfaceAxisOptions c =
   AxisOptions
     Nothing
     Nothing
-    ( Tick
+    ( Ticks
         (TickRound (FormatPrec (Just 3)) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #color .~ dark & #shape .~ VLineGlyph 0.005, 0.01))
-        (Just (defaultTextTick, 0.03))
+        (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c & #shape .~ VLineGlyph, 0.01))
+        (Just (defaultTextTick & #color .~ c, 0.03))
         Nothing
     )
     PlaceRight
 
 -- | official surface legend options
-defaultSurfaceLegendOptions :: Text -> SurfaceLegendOptions
-defaultSurfaceLegendOptions t =
-  SurfaceLegendOptions defaultSurfaceStyle t 0.05 100 surfaceAxisOptions surfaceLegendOptions
+defaultSurfaceLegendOptions :: Colour -> Text -> SurfaceLegendOptions
+defaultSurfaceLegendOptions c t =
+  SurfaceLegendOptions defaultSurfaceStyle t 0.05 100 (surfaceAxisOptions c) surfaceLegendOptions
 
 surfaceLegendOptions :: LegendOptions
 surfaceLegendOptions =
   defaultLegendOptions
-    & #lplace .~ PlaceRight
-    & #lscale .~ 0.7
-    & #lsize .~ 0.5
+    & #place .~ PlaceRight
+    & #overallScale .~ 0.7
+    & #size .~ 0.5
     & #vgap .~ 0.05
     & #hgap .~ 0.01
     & #innerPad .~ 0.05
     & #outerPad .~ 0.02
-    & #ltext . #hsize .~ 0.5
-    & #legendFrame .~ Nothing
+    & #textStyle % #hsize .~ 0.5
+    & #textStyle % #size .~ 0.1
+    & #frame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
-surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> [Chart Double]
+surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> Charts
 surfaceLegendChart dataRange l =
-  padChart (l ^. #sloLegendOptions . #outerPad)
-    . maybe id (\x -> frameChart x (l ^. #sloLegendOptions . #innerPad)) (l ^. #sloLegendOptions . #legendFrame)
-    $ hs
+  legendFrame (view #sloLegendOptions l) hs
   where
-    a = makeSurfaceTick l pchart
+    a = makeSurfaceTick l (named "pchart" pchart)
     pchart
-      | l ^. #sloLegendOptions . #lplace == PlaceBottom
-          || l ^. #sloLegendOptions . #lplace == PlaceTop =
+      | l ^. #sloLegendOptions % #place == PlaceBottom
+          || l ^. #sloLegendOptions % #place == PlaceTop =
         vertGlyph
       | otherwise = horiGlyph
-    t = Chart (TextA (l ^. #sloLegendOptions . #ltext & #anchor .~ AnchorStart) [l ^. #sloTitle]) [zero]
-    hs = vert (l ^. #sloLegendOptions . #vgap) [a, [t]]
-    vertGlyph :: [Chart Double]
+    t = TextChart (l ^. #sloLegendOptions % #textStyle & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
+    hs = vert (l ^. #sloLegendOptions % #vgap) [a, unnamed [t]]
+    vertGlyph :: [Chart]
     vertGlyph =
       zipWith
-        (\r c -> Chart (RectA $ blob c) [RectXY r])
+        (\r c -> RectChart (blob c) [r])
         ( (\xr -> Ranges xr (Range 0 (l ^. #sloWidth)))
             <$> gridSpace
               dataRange
               (l ^. #sloResolution)
         )
-        ( (\x -> blends x (l ^. #sloStyle . #surfaceColors))
+        ( (\x -> blends x (toList $ l ^. #sloStyle % #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
-    horiGlyph :: [Chart Double]
+    horiGlyph :: [Chart]
     horiGlyph =
       zipWith
-        (\r c -> Chart (RectA $ blob c) [RectXY r])
+        (\r c -> RectChart (blob c) [r])
         ( (\yr -> Ranges (Range 0 (l ^. #sloWidth)) yr)
             <$> gridSpace
               dataRange
               (l ^. #sloResolution)
         )
-        ( (\x -> blends x (l ^. #sloStyle . #surfaceColors))
+        ( (\x -> blends x (toList $ l ^. #sloStyle % #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
 
 isHori :: SurfaceLegendOptions -> Bool
 isHori l =
-  l ^. #sloLegendOptions . #lplace == PlaceBottom
-    || l ^. #sloLegendOptions . #lplace == PlaceTop
+  l ^. #sloLegendOptions % #place == PlaceBottom
+    || l ^. #sloLegendOptions % #place == PlaceTop
 
-makeSurfaceTick :: SurfaceLegendOptions -> [Chart Double] -> [Chart Double]
+makeSurfaceTick :: SurfaceLegendOptions -> Charts -> Charts
 makeSurfaceTick l pchart = phud
   where
-    r = fromMaybe one (styleBoxes pchart)
-    r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions . #lsize)) (Rect 0 (l ^. #sloLegendOptions . #lsize) 0 (l ^. #sloWidth)) (isHori l)
-    (hs, _) =
-      makeHud
-        r
-        ( mempty & #hudAxes
-            .~ [ l ^. #sloAxisOptions
-                   & #place .~ bool PlaceRight PlaceBottom (isHori l)
-               ]
-        )
-    phud = runHudWith r' r hs pchart
+    r = view styleBox' pchart
+    r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
+    (hs, db) = toHuds (mempty & set #chartAspect ChartAspect & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r
+    phud = runHudWith r' db hs pchart

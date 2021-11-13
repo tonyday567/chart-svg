@@ -1,34 +1,23 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 -- | Colour representations and combinations, based on <https://hackage.haskell.org/package/Color>
 module Data.Colour
   ( Colour,
     pattern Colour,
     opac,
-    setOpac,
+    opac',
     hex,
+    rgb,
     blend,
     blends,
     toHex,
     fromHex,
     unsafeFromHex,
     palette1,
-    palette1_,
     transparent,
     black,
     white,
@@ -42,12 +31,14 @@ import Data.Bifunctor
 import Data.Char
 import Data.Either
 import Data.FormatN
-import Data.Generics.Labels ()
 import qualified Data.List as List
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model
+import Data.List.NonEmpty (NonEmpty(..))
+import Data.Foldable
+import Optics.Core
 
 -- | Wrapper for 'Color'.
 newtype Colour = Colour'
@@ -77,13 +68,17 @@ instance Show Colour where
 opac :: Colour -> Double
 opac (Colour _ _ _ o) = o
 
--- | set opacity
-setOpac :: Double -> Colour -> Colour
-setOpac o (Colour r g b _) = Colour r g b o
+-- | lens for opacity
+opac' :: Lens' Colour Double
+opac' = lens opac (\(Colour r g b _) o -> Colour r g b o)
 
 -- |
 hex :: Colour -> Text
 hex c = toHex c
+
+-- | resets RGB color but not opacity
+rgb :: Colour -> Colour -> Colour
+rgb (Colour r g b _) (Colour _ _ _ o) = Colour r g b o
 
 -- | interpolate between 2 colors
 blend :: Double -> Colour -> Colour -> Colour
@@ -168,10 +163,10 @@ i2d i = chr (ord '0' + i)
 -- >>> palette1 0
 -- Colour 0.69 0.35 0.16 1.00
 palette1 :: Int -> Colour
-palette1 x = cycle palette1_ List.!! x
+palette1 x = cycle (toList palette1_) List.!! x
 
 -- | finite list of Colours
-palette1_ :: [Colour]
+palette1_ :: NonEmpty Colour
 palette1_ =
   [ Colour 0.69 0.35 0.16 1.00,
     Colour 0.65 0.81 0.89 1.00,

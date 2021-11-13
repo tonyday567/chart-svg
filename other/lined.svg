@@ -1,0 +1,62 @@
+<svg width="311.7378821145077" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-94.85000000000001 -71.175 230.72500000000002 148.025" height="200.0"><style>svg {
+  color-scheme: light dark;
+}
+{
+  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
+    fill: #0d0d0d;
+  }
+  .ticklines g, .tickglyph g, .legendBorder g {
+    stroke: #0d0d0d;
+  }
+}
+@media (prefers-color-scheme:dark) {
+  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
+    fill: #f0f0f0;
+  }
+  .ticklines g, .tickglyph g, .legendBorder g {
+    stroke: #f0f0f0;
+  }
+}</style><g><g class="line"><g stroke-opacity="1.0" fill="none" stroke="#b05929" stroke-width="1.5"><polyline points="-75.0,30.0
+-24.999999999999993,30.0
+25.0,-50.0"/></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="3.0"><polyline points="-75.0,50.0
+65.00000000000001,-10.000000000000014"/></g><g stroke-opacity="1.0" fill="none" stroke="#1f78b5" stroke-width="1.0"><polyline points="-49.99999999999999,-30.0
+-49.99999999999999,50.0"/></g></g><g class="hud"><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#f0f0f0" stroke="#f0f0f0" stroke-width="4.0e-3" fill-opacity="0.4"><g transform="rotate(-90.0, -79.5, 51.5)"><polyline points="-79.5,53.0
+-79.5,50.0"/></g><g transform="rotate(-90.0, -79.5, 41.275)"><polyline points="-79.5,42.775
+-79.5,39.775"/></g><g transform="rotate(-90.0, -79.5, 31.049999999999997)"><polyline points="-79.5,32.55
+-79.5,29.549999999999997"/></g><g transform="rotate(-90.0, -79.5, 20.825000000000003)"><polyline points="-79.5,22.325000000000003
+-79.5,19.325000000000003"/></g><g transform="rotate(-90.0, -79.5, 10.599999999999994)"><polyline points="-79.5,12.099999999999994
+-79.5,9.099999999999994"/></g><g transform="rotate(-90.0, -79.5, 0.3750000000000142)"><polyline points="-79.5,1.8750000000000142
+-79.5,-1.1249999999999858"/></g><g transform="rotate(-90.0, -79.5, -9.850000000000009)"><polyline points="-79.5,-8.350000000000009
+-79.5,-11.350000000000009"/></g><g transform="rotate(-90.0, -79.5, -20.07499999999999)"><polyline points="-79.5,-18.57499999999999
+-79.5,-21.57499999999999"/></g><g transform="rotate(-90.0, -79.5, -30.299999999999997)"><polyline points="-79.5,-28.799999999999997
+-79.5,-31.799999999999997"/></g><g transform="rotate(-90.0, -79.5, -40.52499999999998)"><polyline points="-79.5,-39.02499999999998
+-79.5,-42.02499999999998"/></g><g transform="rotate(-90.0, -79.5, -50.749999999999986)"><polyline points="-79.5,-49.249999999999986
+-79.5,-52.249999999999986"/></g></g></g><g class="ticktext"><g fill="#f0f0f0" stroke="none" stroke-width="0.0" font-size="5.0" fill-opacity="1.0" text-anchor="end"><text x="-83.10000000000001" y="52.875000000000014">0.0</text><text x="-83.10000000000001" y="42.650000000000006">0.5</text><text x="-83.10000000000001" y="32.425">1.0</text><text x="-83.10000000000001" y="22.200000000000003">1.5</text><text x="-83.10000000000001" y="11.974999999999994">2.0</text><text x="-83.10000000000001" y="1.75">2.5</text><text x="-83.10000000000001" y="-8.475000000000009">3.0</text><text x="-83.10000000000001" y="-18.700000000000003">3.5</text><text x="-83.10000000000001" y="-28.924999999999997">4.0</text><text x="-83.10000000000001" y="-39.14999999999999">4.5</text><text x="-83.10000000000001" y="-49.374999999999986">5.0</text></g></g><g class="ticklines"><g stroke-opacity="5.0e-2" fill="none" stroke="#f0f0f0" stroke-width="0.5"><polyline points="-76.5,51.5
+75.00000000000001,51.5"/><polyline points="-76.5,41.275
+75.00000000000001,41.275"/><polyline points="-76.5,31.049999999999997
+75.00000000000001,31.049999999999997"/><polyline points="-76.5,20.825000000000003
+75.00000000000001,20.825000000000003"/><polyline points="-76.5,10.599999999999994
+75.00000000000001,10.599999999999994"/><polyline points="-76.5,0.3750000000000142
+75.00000000000001,0.3750000000000142"/><polyline points="-76.5,-9.850000000000009
+75.00000000000001,-9.850000000000009"/><polyline points="-76.5,-20.07499999999999
+75.00000000000001,-20.07499999999999"/><polyline points="-76.5,-30.299999999999997
+75.00000000000001,-30.299999999999997"/><polyline points="-76.5,-40.52499999999998
+75.00000000000001,-40.52499999999998"/><polyline points="-76.5,-50.749999999999986
+75.00000000000001,-50.749999999999986"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#f0f0f0" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="0.4000000000000057" x="-77.9" y="-50.95" height="102.65"/></g></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-opacity="0.4" fill="#f0f0f0" stroke="#f0f0f0" stroke-width="4.0e-3" fill-opacity="0.4"><polyline points="-76.5,56.00000000000001
+-76.5,53.00000000000001"/><polyline points="-51.24999999999999,56.00000000000001
+-51.24999999999999,53.00000000000001"/><polyline points="-26.0,56.00000000000001
+-26.0,53.00000000000001"/><polyline points="-0.75,56.00000000000001
+-0.75,53.00000000000001"/><polyline points="24.500000000000014,56.00000000000001
+24.500000000000014,53.00000000000001"/><polyline points="49.749999999999986,56.00000000000001
+49.749999999999986,53.00000000000001"/><polyline points="75.00000000000001,56.00000000000001
+75.00000000000001,53.00000000000001"/></g></g><g class="ticktext"><g fill="#f0f0f0" stroke="none" stroke-width="0.0" font-size="5.0" fill-opacity="1.0" text-anchor="middle"><text x="-76.5" y="60.85">0.0</text><text x="-51.24999999999999" y="60.85">0.5</text><text x="-26.0" y="60.85">1.0</text><text x="-0.75" y="60.85">1.5</text><text x="24.500000000000014" y="60.85">2.0</text><text x="49.749999999999986" y="60.85">2.5</text><text x="75.00000000000001" y="60.85">3.0</text></g></g><g class="ticklines"><g stroke-opacity="5.0e-2" fill="none" stroke="#f0f0f0" stroke-width="0.5"><polyline points="-76.5,51.5
+-76.5,-50.749999999999986"/><polyline points="-51.24999999999999,51.5
+-51.24999999999999,-50.749999999999986"/><polyline points="-26.0,51.5
+-26.0,-50.749999999999986"/><polyline points="-0.75,51.5
+-0.75,-50.749999999999986"/><polyline points="24.500000000000014,51.5
+24.500000000000014,-50.749999999999986"/><polyline points="49.749999999999986,51.5
+49.749999999999986,-50.749999999999986"/><polyline points="75.00000000000001,51.5
+75.00000000000001,-50.749999999999986"/></g></g></g><g class="axisbar"><g stroke-opacity="0.0" fill="#f0f0f0" stroke="#000000" stroke-width="0.0" fill-opacity="0.4"><rect width="151.90000000000003" x="-76.7" y="52.5" height="0.4000000000000057"/></g></g></g><g class="title"><g fill="#f0f0f0" stroke="none" stroke-width="0.0" font-size="5.0" fill-opacity="1.0" text-anchor="end"><text x="78.37500000000001" y="70.35000000000001">Made with love and chart-svg</text></g></g><g class="title"><g fill="#f0f0f0" stroke="none" stroke-width="0.0" font-size="8.0" fill-opacity="1.0" text-anchor="middle"><text x="-5.737499999999997" y="-59.77499999999999">Line Chart</text></g></g><g class="legend"><g class="legendBorder"><g stroke-opacity="1.0" fill="#f0f0f0" stroke="#f0f0f0" stroke-width="0.25" fill-opacity="0.0"><rect width="44.499999999999986" x="85.87500000000001" y="-18.412499999999994" height="26.500000000000007"/></g></g><g class="legendContent"><g><g fill="#f0f0f0" stroke="none" stroke-width="0.0" font-size="5.0" fill-opacity="1.0" text-anchor="start"><text x="88.37500000000004" y="4.087500000000006">vertical</text></g><g stroke-opacity="1.0" fill="none" stroke="#1f78b5" stroke-width="1.0"><polyline points="111.37500000000001,2.8375000000000057
+126.37500000000001,2.8375000000000057"/></g><g fill="#f0f0f0" stroke="none" stroke-width="0.0" font-size="5.0" fill-opacity="1.0" text-anchor="start"><text x="88.37500000000004" y="-3.9124999999999943">line</text></g><g stroke-opacity="1.0" fill="none" stroke="#a6cfe3" stroke-width="3.0"><polyline points="111.37500000000001,-5.162499999999994
+126.37500000000001,-5.162499999999994"/></g><g fill="#f0f0f0" stroke="none" stroke-width="0.0" font-size="5.0" fill-opacity="1.0" text-anchor="start"><text x="88.37500000000004" y="-11.91249999999998">hockey</text></g><g stroke-opacity="1.0" fill="none" stroke="#b05929" stroke-width="1.5"><polyline points="111.37500000000001,-13.162499999999994
+126.37500000000001,-13.162499999999994"/></g></g></g></g></g></g><g class="hud"></g></svg>

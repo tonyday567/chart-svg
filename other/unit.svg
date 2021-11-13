@@ -1,1 +1,19 @@
-<svg height="300.0" width="442.8571428571429" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.775 -0.525 1.55 1.05"><g fill-opacity="1.0" stroke-opacity="1.0" fill="#1f78b5" stroke-width="1.0e-2" stroke="#a6cfe3"><rect height="1.0" y="-0.5" width="1.5" x="-0.75"/></g></svg>
+<svg width="450.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="-0.75 -0.5 1.5 1.0" height="300.0"><style>svg {
+  color-scheme: light dark;
+}
+{
+  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
+    fill: #0d0d0d;
+  }
+  .ticklines g, .tickglyph g, .legendBorder g {
+    stroke: #0d0d0d;
+  }
+}
+@media (prefers-color-scheme:dark) {
+  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
+    fill: #f0f0f0;
+  }
+  .ticklines g, .tickglyph g, .legendBorder g {
+    stroke: #f0f0f0;
+  }
+}</style><g class="chart"><g class="unit"><g stroke-opacity="1.0" fill="#1f78b5" stroke="#a6cfe3" stroke-width="1.0e-2" fill-opacity="1.0"><rect width="1.49" x="-0.745" y="-0.495" height="0.99"/></g></g></g><g class="hud"></g></svg>

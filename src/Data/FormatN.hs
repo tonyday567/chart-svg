@@ -1,19 +1,8 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 -- | Formatting of numeric values.
 module Data.FormatN
@@ -40,7 +29,6 @@ import Data.Bifunctor
 import Data.Bool
 import Data.Containers.ListUtils (nubOrd)
 import Data.Foldable
-import Data.Generics.Labels ()
 import Data.Scientific
 import Data.String
 import Data.Text (Text, pack)
@@ -122,8 +110,8 @@ roundSig n x = scientific r' (e - length ds0)
     (ds, e) = toDecimalDigits $ fromFloatDigits x
     (ds0, ds1) = splitAt (n + 1) ds
     r =
-      (fromIntegral $ foldl' (\x a -> x * 10 + a) 0 ds0 :: Double)
-        + fromIntegral (foldl' (\x a -> x * 10 + a) 0 ds1) / (10.0 ^ length ds1)
+      (fromIntegral $ foldl' (\x' a -> x' * 10 + a) 0 ds0 :: Double)
+        + fromIntegral (foldl' (\x' a -> x' * 10 + a) 0 ds1) / (10.0 ^ length ds1)
     r' = round r :: Integer
 
 -- | format numbers between 0.001 and 1,000,000 using digit and comma notation and exponential outside this range, with x significant figures.
@@ -161,7 +149,7 @@ decimal :: Maybe Int -> Double -> Text
 decimal n x = x''
   where
     x' = pack $ formatScientific Fixed Nothing $ maybe fromFloatDigits roundSig n x
-    x'' = (\x -> bool x' (fst x) (snd x == ".0")) $ Text.breakOn "." x'
+    x'' = (\y -> bool x' (fst y) (snd y == ".0")) $ Text.breakOn "." x'
 
 -- | add commas format for numbers above 1,000 but below 1 million, otherwise use prec.
 --
@@ -179,7 +167,7 @@ comma n x
     Just _ -> addcomma (prec n x)
   where
     addcomma :: Text -> Text
-    addcomma x = uncurry (<>) . first (Text.reverse . Text.intercalate "," . Text.chunksOf 3 . Text.reverse) $ Text.breakOn "." x
+    addcomma x' = uncurry (<>) . first (Text.reverse . Text.intercalate "," . Text.chunksOf 3 . Text.reverse) $ Text.breakOn "." x'
 
 -- | dollars and cents, always decimal notation
 --

@@ -1,0 +1,54 @@
+#+TITLE: chart-svg
+
+[[https://hackage.haskell.org/package/chart-svg][https://img.shields.io/hackage/v/chart-svg.svg]]
+[[https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci][https://github.com/tonyday567/chart-svg/workflows/haskell-ci/badge.svg]]
+
+A charting library.
+
+* Usage
+
+#+begin_src haskell
+  import Chart
+  let lines = fmap (uncurry Point) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]]
+  let style = zipWith (\w c -> LineA (defaultLineStyle & set #width w & set #color (palette1 c))) [0.015, 0.03, 0.01] [0..2]
+  let lineChart = zipWith LineChart style lines
+  writeChartSvg "lined.svg" $ mempty & set #charts (toTree Nothing lineChart)
+#+end_src
+
+#+begin_src haskell :file other/lined.svg :results output graphics file :exports both
+emacsWrite "other/lined.svg" lineExample
+#+end_src
+
+#+RESULTS:
+[[file:other/lined.svg]]
+
+
+* Examples
+
+~Chart.Examples~ contains a collection of examples.
+
+
+
+
+#+begin_src haskell :file other/subchartd.svg :results output graphics file :exports both
+emacsWrite "other/subchartd.svg" subChartExample
+#+end_src
+
+#+RESULTS:
+[[file:other/subchartd.svg]]
+
+
+* Org-mode setup
+
+#+begin_src haskell
+:set -XOverloadedStrings
+:set -Wno-type-defaults
+:set prompt "> "
+import Chart.Examples
+#+end_src
+
+Emacs does not like small viewboxes in SVG, and decides to render fonts way too large. To get around this, the hacky snippet below scales the chart (by 100, which is arbitrary), and then writes using ChartAspect:
+
+#+begin_src haskell
+emacsWrite f c = writeChartSvg f $ mempty & #charts .~ (toCharts (c & over #hudOptions (colourHudOptions (rgb light))) & (fmap (over #charts (fmap (scaleChart 100))))) & #svgOptions % #chartAspect .~ ChartAspect & #svgOptions % #outerPad .~ Just 5 & #svgOptions % #svgHeight .~ 200
+#+end_src

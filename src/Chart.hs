@@ -1,4 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | A haskell Charting library targetting SVGs
@@ -13,151 +12,42 @@ module Chart
     --
     -- $overview
 
-    -- * Chart
-    Chart (..),
-    moveChart,
-    projectXYs,
-    projectXYsWith,
-    projectArcPosition,
-
-    -- * Annotation
-    Annotation (..),
-    annotationText,
-    scaleAnn,
-    scaleOpacAnn,
-    colourAnn,
-    padRect,
-
-    -- * Styles
-    RectStyle (..),
-    defaultRectStyle,
-    blob,
-    clear,
-    border,
-    TextStyle (..),
-    defaultTextStyle,
-    GlyphStyle (..),
-    defaultGlyphStyle,
-    GlyphShape (..),
-    glyphText,
-    LineStyle (..),
-    defaultLineStyle,
-    LineCap (..),
-    fromLineCap,
-    toLineCap,
-    LineJoin (..),
-    fromLineJoin,
-    toLineJoin,
-    fromDashArray,
-    Anchor (..),
-    fromAnchor,
-    toAnchor,
-    PathStyle (..),
-    toPathChart,
-    defaultPathStyle,
-
-    -- * Hud types
-    ChartDims (..),
-    HudT (..),
-    Hud,
-    simulHud,
-    HudOptions (..),
-    defaultHudOptions,
-    scaleOpacHudOptions,
-    colourHudOptions,
-    defaultCanvas,
-    runHudWith,
-    runHud,
-    makeHud,
-    ChartAspect (..),
-    toChartAspect,
-    fromChartAspect,
-    initialCanvas,
-    chartAspectHud,
-    canvas,
-    title,
-    tick,
-
-    -- * Hud primitives
-    AxisOptions (..),
-    defaultAxisOptions,
-    flipAxis,
-    Place (..),
-    placeText,
-    AxisBar (..),
-    defaultAxisBar,
-    Title (..),
-    defaultTitle,
-    Tick (..),
-    defaultGlyphTick,
-    defaultTextTick,
-    defaultLineTick,
-    defaultTick,
-    TickStyle (..),
-    defaultTickStyle,
-    tickStyleText,
-    TickExtend (..),
-    adjustTick,
-    makeTickDates,
-    makeTickDatesContinuous,
-    Adjustments (..),
-    defaultAdjustments,
-    LegendOptions (..),
-    defaultLegendOptions,
-    legendHud,
-    Orientation (..),
-    fromOrientation,
-    toOrientation,
-
-    -- * SVG primitives
-    CssOptions (..),
-    SvgOptions (..),
-    defaultSvgOptions,
-    defaultSvgFrame,
-
-    -- * Chart manipulation
-    padChart,
-    frameChart,
-    hori,
-    vert,
-    stack,
-
-    -- * Bounding box calculation
-    padBox,
-    dataBox,
-    dataBoxes,
-    dataBoxesS,
-    styleBox,
-    styleBoxes,
-    styleBoxesS,
-    styleBoxText,
-    styleBoxGlyph,
-
     -- * Re-exports
-    module Chart.Render,
+    module Chart.Primitive,
+    module Chart.Data,
+    module Chart.Hud,
+    module Chart.Style,
+    module Chart.Svg,
     module Chart.Bar,
     module Chart.Surface,
     module Data.Colour,
     module Data.FormatN,
     module Data.Path,
+    module Data.Path.Parser,
     module NumHask.Space,
   )
 where
 
+
 import Chart.Bar
-import Chart.Render
+import Chart.Primitive
+import Chart.Style
+import Chart.Hud
+import Chart.Svg
 import Chart.Surface
-import Chart.Types
 import Data.Colour
 import Data.FormatN
 import Data.Path
-import NumHask.Space
+import NumHask.Space hiding (singleton)
+import Chart.Data
+import Data.Path.Parser
 
 -- $setup
 --
 -- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedLists
 -- >>> import Chart
--- >>> import Control.Lens
+-- >>> import Optics.Core
 
 -- $overview
 --
@@ -175,9 +65,6 @@ import NumHask.Space
 --
 -- - 'Annotation': a description of how the data should be represented on the screen.
 --
--- >>> :t Chart
--- Chart :: Annotation -> [XY a] -> Chart a
---
 -- What exactly is annotation and what is data is highly variant within charting practice. This construction treats position on the XY plane differently from other quantitative manifests such as color and size. The chief advantage of priveliging XY position is that scaling and integrating data with other chart elements becomes much easier. The disadvantage is that, to use quantitative tools such as size, data needs to be consciously separated into that which is position-orientated, and that which is defined as 'Annotation'.
 --
 --
@@ -187,7 +74,7 @@ import NumHask.Space
 --
 -- and an Annotation to describe representation of this data; three line styles with different colors and widths:
 --
--- >>> let anns = zipWith (\w c -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] palette1_
+-- >>> let anns = zipWith (\w (palette1 c) -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] [0..2]
 --
 -- and this is enough to create a Chart.
 --
@@ -207,11 +94,11 @@ import NumHask.Space
 --
 -- Given this similarity, an efficient process for chart creation is roughly:
 --
--- - collect the chart data and data annotations into a [Chart Double]
+-- - collect the chart data and data annotations into a [Chart]
 --
 -- - measure the range of the data values
 --
--- - begin a process of folding a [Hud Double] in with the charts, supplying the the data values to the hud elements if needed, and keeping track of the overall page size of the chart.
+-- - begin a process of folding a [Hud ()] in with the charts, supplying the the data values to the hud elements if needed, and keeping track of the overall page size of the chart.
 --
 -- This process is encapsulated in 'runHud'.
 --
