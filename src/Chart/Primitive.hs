@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,6 +10,7 @@
 module Chart.Primitive
   ( Chart(..),
     Charts(..),
+    filterCharts,
     chart',
     charts',
     named,
@@ -57,6 +59,7 @@ import Data.Colour
 import GHC.Generics
 import Data.Tree
 import qualified NumHask.Prelude as NH
+import Data.Bool
 
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
@@ -90,39 +93,45 @@ data Chart =
   PathChart PathStyle (NonEmpty (PathData Double)) |
   BlankChart (NonEmpty (Rect Double)) deriving (Eq, Show)
 
-newtype Charts = Charts { tree :: Tree (Maybe Text, [Chart]) } deriving (Eq, Show, Generic)
+newtype Charts a = Charts { tree :: Tree (a, [Chart]) } deriving (Eq, Show, Generic)
 
-tree' :: Iso' Charts (Tree (Maybe Text, [Chart]))
+filterCharts :: (Chart -> Bool) -> Charts a -> Charts a
+filterCharts p (Charts (Node (a, cs) xs)) =
+  Charts (Node (a, catMaybes (rem' <$> cs)) (tree . filterCharts p . Charts <$> xs))
+  where
+    rem' x = bool Nothing (Just x) (p x)
+
+tree' :: Iso' (Charts a) (Tree (a, [Chart]))
 tree' = iso tree Charts
 
-charts' :: Traversal' Charts [Chart]
+charts' :: Traversal' (Charts a) [Chart]
 charts' = tree' % traversed % _2
 
-chart' :: Traversal' Charts Chart
+chart' :: Traversal' (Charts a) Chart
 chart' = tree' % traversed % _2 % traversed
 
-named :: Text -> [Chart] -> Charts
+named :: Text -> [Chart] -> Charts (Maybe Text)
 named l cs = Charts $ Node (Just l,cs) []
 
-unnamed :: [Chart] -> Charts
+unnamed :: [Chart] -> Charts (Maybe Text)
 unnamed cs = Charts $ Node (Nothing,cs) []
 
-rename :: Maybe Text -> Charts -> Charts
+rename :: Maybe Text -> Charts (Maybe Text) -> Charts (Maybe Text)
 rename l (Charts (Node (_,cs) xs)) = Charts (Node (l,cs) xs)
 
-blank :: Rect Double -> Charts
+blank :: Rect Double -> Charts (Maybe Text)
 blank r = unnamed [BlankChart [r]]
 
-group :: Maybe Text -> [Charts] -> Charts
+group :: Maybe Text -> [Charts (Maybe Text)] -> Charts (Maybe Text)
 group name cs = Charts $ Node (name, []) (tree <$> cs)
 
-instance Semigroup Charts where
+instance Semigroup (Charts (Maybe Text)) where
   (<>) (Charts x@(Node (n, cs) xs)) (Charts x'@(Node (n', cs') xs')) =
     case (n,n') of
       (Nothing, Nothing) -> Charts $ Node (Nothing, cs <> cs') (xs <> xs')
       _ -> Charts $ Node (Nothing, []) [x, x']
 
-instance Monoid Charts where
+instance Monoid (Charts (Maybe Text)) where
   mempty = Charts $ Node (Nothing, []) []
 
 -- | Library functionality (rescaling, combining charts, working out axes and generally putting charts together) is driven by a box model.
@@ -232,25 +241,25 @@ projectCharts new cs = projectWith new (styleBoxes cs) <$> cs
 boxes :: (Foldable f, Functor f) => f Chart -> Rect Double
 boxes cs = fromMaybe one $ foldRect $ toList $ box <$> cs
 
-box_ :: Charts -> Rect Double
+box_ :: Charts a -> Rect Double
 box_ = boxes . foldOf charts'
 
-rebox_ :: Charts -> Rect Double -> Charts
+rebox_ :: Charts a -> Rect Double -> Charts a
 rebox_ cs r =
   cs &
   over chart' (projectWith r (box_ cs))
 
-box' :: Lens' Charts (Rect Double)
+box' :: Lens' (Charts a) (Rect Double)
 box' =
   lens box_ rebox_
 
 styleBoxes :: (Foldable f, Functor f) => f Chart -> Rect Double
 styleBoxes cs = fromMaybe one $ foldRect $ toList $ sbox <$> cs
 
-styleBox_ :: Charts -> Rect Double
+styleBox_ :: Charts a -> Rect Double
 styleBox_ = styleBoxes . foldOf charts'
 
-styleRebox_ :: Charts -> Rect Double -> Charts
+styleRebox_ :: Charts a -> Rect Double -> Charts a
 styleRebox_ cs r =
   cs &
   over chart' (projectWith r' (box_ cs))
@@ -294,7 +303,7 @@ styleRebox_ cs r =
 --
 -- >>> view styleBox' $ foldr ($) (x1 0.002) (replicate 10 (set styleBox' one))
 -- Rect -0.5 0.5000000000000001 -0.5 0.4999999999999999
-styleBox' :: Lens' Charts (Rect Double)
+styleBox' :: Lens' (Charts a) (Rect Double)
 styleBox' =
   lens styleBox_ styleRebox_
 
@@ -317,7 +326,7 @@ padChart :: Double -> [Chart] -> Chart
 padChart p cs = BlankChart [padRect p (styleBoxes cs)]
 
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
-hori :: Double -> [Charts] -> Charts
+hori :: (Monoid (Charts a)) => Double -> [Charts a] -> Charts a
 hori _ [] = mempty
 hori gap cs = foldl' step mempty cs
   where
@@ -330,11 +339,10 @@ hori gap cs = foldl' step mempty cs
       xs -> (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
 
 -- | vertically stack a list of Charts (proceeding upwards), aligning them to the left
-vert :: Double -> [Charts] -> Charts
+vert :: (Monoid (Charts a)) => Double -> [Charts a] -> Charts a
 vert _ [] = mempty
 vert gap cs = foldl' step mempty cs
   where
-    step :: Charts -> Charts -> Charts
     step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (widthy x))) c
     widthy x = case foldOf charts' x of
       [] -> zero
@@ -344,21 +352,21 @@ vert gap cs = foldl' step mempty cs
       xs -> (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- | stack a list of charts horizontally, then vertically
-stack :: Int -> Double -> [Charts] -> Charts
+stack :: (Monoid (Charts a)) => Int -> Double -> [Charts a] -> Charts a
 stack _ _ [] = mempty
 stack n gap cs = vert gap (hori gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
 
-rectangularize :: RectStyle -> Charts -> Charts
+rectangularize :: RectStyle -> Charts (Maybe Text) -> Charts (Maybe Text)
 rectangularize r c = group (Just "rectangularize") [over chart' (rectangularize_ r) c]
 
 rectangularize_ :: RectStyle -> Chart -> Chart
 rectangularize_ rs (TextChart s xs) = TextChart (s & #frame .~ Just rs) xs
 rectangularize_ rs c = RectChart rs [sbox c]
 
-glyphize :: GlyphStyle -> Charts -> Charts
+glyphize :: GlyphStyle -> Charts (Maybe Text) -> Charts (Maybe Text)
 glyphize g c =
   group (Just "glyphize") [over chart' (glyphize_ g) c]
 

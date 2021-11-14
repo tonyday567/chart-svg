@@ -21,6 +21,7 @@ module Chart.Hud
     legendFrame,
     HudChart (..),
     canvasBox',
+    canvasStyleBox',
     hudBox',
     hudStyleBox',
     HudOptions (..),
@@ -91,8 +92,8 @@ import qualified NumHask.Prelude as NH
 --
 -- This is done to support functionality where we can choose whether to normalise the chart aspect based on the entire chart (FixedAspect) or on just the data visualisation space (CanvasAspect).
 data HudChart = HudChart
-  { chart :: Charts,
-    hud :: Charts,
+  { chart :: Charts (Maybe Text),
+    hud :: Charts (Maybe Text),
     dataBox :: DataBox
   }
   deriving (Eq, Show, Generic)
@@ -113,6 +114,9 @@ canvasRebox_ cs r =
 canvasBox' :: Lens' HudChart CanvasBox
 canvasBox' =
   lens canvasBox_ canvasRebox_
+
+canvasStyleBox' :: Getter HudChart HudBox
+canvasStyleBox' = to (styleBoxes . foldOf (#chart % charts'))
 
 hudStyleBox_ :: HudChart -> HudBox
 hudStyleBox_ = styleBoxes . (\x -> foldOf (#chart % charts') x <> foldOf (#hud % charts') x)
@@ -135,7 +139,7 @@ hudBox' :: Lens' HudChart HudBox
 hudBox' =
   lens hudBox_ hudRebox_
 
-appendHud :: Charts -> HudChart -> HudChart
+appendHud :: Charts (Maybe Text) -> HudChart -> HudChart
 appendHud cs x =
   x & over #hud (<> cs)
 
@@ -148,10 +152,10 @@ data Hud =
     -- | priority for ordering of transformations
     priority :: Priority,
     -- | additional charts
-    hud :: State HudChart Charts
+    hud :: State HudChart (Charts (Maybe Text))
   } deriving (Generic)
 
-closes :: (Traversable f) => f (State HudChart Charts) -> State HudChart ()
+closes :: (Traversable f) => f (State HudChart (Charts (Maybe Text))) -> State HudChart ()
 closes xs = do
   xs' <- fmap (mconcat . toList) $ sequence xs
   modify (appendHud xs')
@@ -187,9 +191,9 @@ runHudWith ::
   -- | huds to add
   [Hud] ->
   -- | underlying chart
-  Charts ->
+  Charts (Maybe Text) ->
   -- | integrated chart tree
-  Charts
+  Charts (Maybe Text)
 runHudWith cb db hs cs =
    hs &
    List.sortOn (view #priority) &
@@ -212,9 +216,9 @@ runHud ::
   -- | huds
   [Hud] ->
   -- | underlying charts
-  Charts ->
+  Charts (Maybe Text) ->
   -- | integrated chart list
-  Charts
+  Charts (Maybe Text)
 runHud ca hs cs = runHudWith ca (padSingletons $ boxes (foldOf charts' cs)) hs cs
 
 -- | Typical configurable hud elements. Anything else can be hand-coded as a 'Hud'.
@@ -336,7 +340,7 @@ placeOrigin pl x
   | pl == PlaceTop || pl == PlaceBottom = Point x 0
   | otherwise = Point 0 x
 
-axis :: AxisOptions -> State HudChart Charts
+axis :: AxisOptions -> State HudChart (Charts (Maybe Text))
 axis a = do
   t <- makeTick a
   b <- maybe (pure mempty) (makeAxisBar (view #place a)) (view #bar a)
@@ -591,7 +595,7 @@ data FrameOptions = FrameOptions
   } deriving (Eq, Show, Generic)
 
 -- | Make a frame hud transformation.
-frameHud :: FrameOptions -> State HudChart Charts
+frameHud :: FrameOptions -> State HudChart (Charts (Maybe Text))
 frameHud o = do
   hc <- get
   let r = padRect (view #buffer o) (view hudStyleBox' hc)
@@ -639,7 +643,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
             (w + b ^. #overhang)
         ]
 
-makeAxisBar :: Place -> AxisBar -> State HudChart Charts
+makeAxisBar :: Place -> AxisBar -> State HudChart (Charts (Maybe Text))
 makeAxisBar pl b = do
   cb <- gets (view canvasBox')
   hb <- gets (view hudStyleBox')
@@ -698,7 +702,7 @@ alignPosTitle t (Rect x z y w)
       | otherwise = Point 0.0 0.0
 
 -- | title append transformation.
-title :: Title -> State HudChart Charts
+title :: Title -> State HudChart (Charts (Maybe Text))
 title t = do
   hb <- gets (view hudStyleBox')
   pure $ named "title" [title_ t hb]
@@ -771,13 +775,13 @@ ticksPlacedCanvas ts pl cb db =
   first (project (placeRange pl db) (placeRange pl cb)) <$>
   fst (makePlacedTicks ts (placeRange pl db))
 
-tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> CanvasBox -> DataBox -> Maybe Chart
-tickGlyph_ pl (g, b) ts cb db =
+tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> CanvasBox -> CanvasBox -> DataBox -> Maybe Chart
+tickGlyph_ pl (g, b) ts sb cb db =
   case l of
     [] -> Nothing
     l' -> Just $ GlyphChart (g & #rotation .~ placeRot pl) $ fromList l'
     where
-      l = addp (placePos pl b cb) . placeOrigin pl
+      l = addp (placePos pl b sb) . placeOrigin pl
         <$> fmap fst (ticksPlacedCanvas ts pl cb db)
 
 -- | aka marks
@@ -785,11 +789,12 @@ tickGlyph ::
   Place ->
   (GlyphStyle, Double) ->
   TickStyle ->
-  State HudChart Charts
+  State HudChart (Charts (Maybe Text))
 tickGlyph pl (g, b) ts = do
+  sb <- gets (view canvasStyleBox')
   cb <- gets (view canvasBox')
   db <- gets (view #dataBox)
-  let c = tickGlyph_ pl (g, b) ts cb db
+  let c = tickGlyph_ pl (g, b) ts sb cb db
   pure $ named "tickglyph" (maybeToList c)
 
 tickText_ ::
@@ -797,15 +802,16 @@ tickText_ ::
   (TextStyle, Double) ->
   TickStyle ->
   CanvasBox ->
+  CanvasBox ->
   DataBox ->
   Maybe Chart
-tickText_ pl (txts, b) ts cb db =
+tickText_ pl (txts, b) ts sb cb db =
   case l of
     [] -> Nothing
     _ -> Just $ TextChart (placeTextAnchor pl txts) $ fromList l
   where
     l =
-      swap . first (addp (addp (placePos pl b cb) (textPos pl txts b)) . placeOrigin pl)
+      swap . first (addp (addp (placePos pl b sb) (textPos pl txts b)) . placeOrigin pl)
         <$> ticksPlacedCanvas ts pl cb db
 
 -- | aka tick labels
@@ -813,11 +819,12 @@ tickText ::
   Place ->
   (TextStyle, Double) ->
   TickStyle ->
-  State HudChart Charts
+  State HudChart (Charts (Maybe Text))
 tickText pl (txts, b) ts = do
+  sb <- gets (view canvasStyleBox')
   cb <- gets (view canvasBox')
   db <- gets (view #dataBox)
-  let c = tickText_ pl (txts, b) ts cb db
+  let c = tickText_ pl (txts, b) ts sb cb db
   pure $ named "ticktext" (maybeToList c)
 
 -- | aka grid lines
@@ -825,7 +832,7 @@ tickLine ::
   Place ->
   (LineStyle, Double) ->
   TickStyle ->
-  State HudChart Charts
+  State HudChart (Charts (Maybe Text))
 tickLine pl (ls, b) ts = do
   cb <- gets (view canvasBox')
   db <- gets (view #dataBox)
@@ -836,7 +843,7 @@ tickLine pl (ls, b) ts = do
 applyTicks ::
   Place ->
   Ticks ->
-  State HudChart Charts
+  State HudChart (Charts (Maybe Text))
 applyTicks pl t = do
   g <- maybe (pure mempty) (\x -> tickGlyph pl x (t ^. #style)) (t ^. #gtick)
   l <- maybe (pure mempty) (\x -> tickText pl x (t ^. #style)) (t ^. #ttick)
@@ -905,25 +912,25 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
     adjustSizeY = max ((maxHeight / (upper asp - lower asp)) / mry) 1
     adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
 
-makeTick :: AxisOptions -> State HudChart Charts
+makeTick :: AxisOptions -> State HudChart (Charts (Maybe Text))
 makeTick c = do
   hb <- gets (view hudBox')
   db <- gets (view #dataBox)
   let adjTick = maybe (c ^. #ticks) (\x -> adjustTicks x hb db (c ^. #place) (c ^. #ticks)) (c ^. #adjust)
   applyTicks (c ^. #place) adjTick
 
-legend :: LegendOptions -> State HudChart Charts
+legend :: LegendOptions -> State HudChart (Charts (Maybe Text))
 legend o = legendHud o (legendChart o)
 
 -- | Make a legend hud element, from a bespoke Charts.
 --
 --
-legendHud :: LegendOptions -> Charts -> State HudChart Charts
+legendHud :: LegendOptions -> Charts (Maybe Text) -> State HudChart (Charts (Maybe Text))
 legendHud o lcs = do
   sb <- gets (view hudStyleBox')
   pure $ placeLegend o sb (over chart' (scaleChart (o ^. #overallScale)) lcs)
 
-placeLegend :: LegendOptions -> HudBox -> Charts -> Charts
+placeLegend :: LegendOptions -> HudBox -> Charts (Maybe Text) -> Charts (Maybe Text)
 placeLegend o hb t =
   t & over chart' (moveChart (placeBeside_ (o ^. #place) (view #buffer o) hb (view styleBox' t)))
 
@@ -936,7 +943,7 @@ placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
         PlaceRight -> Point (z + buff) ((y + w) / 2.0)
         PlaceAbsolute p -> p
 
-legendFrame :: LegendOptions -> Charts -> Charts
+legendFrame :: LegendOptions -> Charts (Maybe Text) -> Charts (Maybe Text)
 legendFrame l content' =
   group (Just "legend") [named "legendBorder" borders, rename (Just "legendContent") content']
   where
@@ -945,7 +952,7 @@ legendFrame l content' =
     frame' = foldMap (\r -> [frameChart r 0 [inner]]) (view #frame l)
     inner = padChart (view #innerPad l) (foldOf charts' content')
 
-legendChart :: LegendOptions -> Charts
+legendChart :: LegendOptions -> Charts (Maybe Text)
 legendChart l = legendFrame l content'
   where
     content' =
@@ -976,12 +983,11 @@ legendizeChart l c =
           [[Point 0 (1 * l ^. #size), Point (2 * l ^. #size) (1 * l ^. #size)]]
     (PathChart ps _) ->
         ( let cs =
-                singletonCubic
-                  ( CubicPosition
+                singletonQuad
+                  ( QuadPosition
                       (Point 0 0)
-                      (Point (0.33 * l ^. #size) (0.33 * l ^. #size))
-                      (Point 0 (0.33 * l ^. #size))
-                      (Point (0.33 * l ^. #size) 0)
+                      (Point (l ^. #size) (l ^. #size))
+                      (Point (2 * l ^. #size) ((-1) * l ^. #size))
                   )
            in PathChart (ps & #borderSize .~ (l ^. #size)) cs)
     (BlankChart _) -> BlankChart (Rect 0 (l ^. #size) 0 (l ^. #size):|[])

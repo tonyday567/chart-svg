@@ -171,7 +171,7 @@ surfaceLegendOptions =
     & #frame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
-surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> Charts
+surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> Charts (Maybe Text)
 surfaceLegendChart dataRange l =
   legendFrame (view #sloLegendOptions l) hs
   where
@@ -213,7 +213,7 @@ isHori l =
   l ^. #sloLegendOptions % #place == PlaceBottom
     || l ^. #sloLegendOptions % #place == PlaceTop
 
-makeSurfaceTick :: SurfaceLegendOptions -> Charts -> Charts
+makeSurfaceTick :: SurfaceLegendOptions -> Charts (Maybe Text) -> Charts (Maybe Text)
 makeSurfaceTick l pchart = phud
   where
     r = view styleBox' pchart

@@ -17,7 +17,6 @@ module Chart.Examples
     waveExample,
     surfaceExample,
     rosenbrock,
-    arcExample,
     arcFlagsExample,
     ellipseExample,
     quadExample,
@@ -50,7 +49,7 @@ where
 import Chart
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
-import Data.List.NonEmpty (NonEmpty, fromList)
+import Data.List.NonEmpty (NonEmpty, fromList, toList)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Time
 import Data.Bool
@@ -69,7 +68,7 @@ import NeatInterpolation
 --
 -- ![unit example](other/unit.svg)
 unitExample :: ChartSvg
-unitExample = mempty & #charts .~ named "unit" [RectChart defaultRectStyle [one]]
+unitExample = mempty & #charts .~ named "unit" [RectChart defaultRectStyle [one]] & #hudOptions .~ defaultHudOptions
 
 -- | 'HudOptions' example
 --
@@ -250,7 +249,7 @@ barExample = barChart defaultBarOptions barDataExample
 --
 -- ![wave example](other/wave.svg)
 waveExample :: ChartSvg
-waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ fromList $ gridP sin (Range 0 (2 * pi)) 30]
+waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ fromList $ gridP sin (Range 0 (2 * pi)) 30] & #hudOptions .~ defaultHudOptions
 
 -- | venn diagram
 --
@@ -291,7 +290,7 @@ vennSegs =
 pathExample :: ChartSvg
 pathExample =
   mempty
-    & #charts .~ named "path" [path', c0]
+    & #charts .~ named "path" [path', c0, t0]
     & #hudOptions .~ defaultHudOptions
     & #hudOptions % #chartAspect .~ ChartAspect
   where
@@ -302,47 +301,61 @@ pathExample =
         QuadP (Point (-1) 2) (Point 0 1),
         ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)
       ]
+    ts =
+      [ "StartP (Point 0 0)",
+        "LineP (Point 1 0)",
+        "CubicP (Point 0.2 0) (Point 0.25 1) (Point 1 1)",
+        "QuadP (Point (-1) 2) (Point 0 1)",
+        "ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)"
+      ]
     path' = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) ps
     c0 = GlyphChart defaultGlyphStyle (pointPath <$> ps)
+    midp = Point 0 0:zipWith (\(Point x y) (Point x' y') -> Point ((x+x')/2) ((y+y')/2)) (drop 1 (pointPath <$> toList ps)) (pointPath <$> toList ps)
+    offp = [Point 0 0.05, Point 0 0, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
+    t0 = TextChart (defaultTextStyle & set #size 0.05) (NonEmpty.zip ts (fromList $ zipWith addp offp midp))
 
 -- | ellipse example
 --
--- (ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) 0 True True))
+-- Under scaling, angles are not invariant, and this effects the shape of ellipses and thus SVG arc paths. Compare the effect of aspect changes to the axes of this ellipse:
 --
 -- ![ellipse example](other/ellipse.svg)
-ellipseExample :: ChartSvg
-ellipseExample =
+--
+-- Below is the same ellipse with FixedAspect 2. Points scale exactly, but the original points that represent the end points of the axes are no longer on the new axes of the ellipse.
+--
+-- ![ellipse2 example](other/ellipse2.svg)
+ellipseExample :: ChartAspect -> ChartSvg
+ellipseExample a =
   mempty
-    & #charts .~ named "ellipse" [ell, ellFull, c0, bbox, xradii, yradii]
+    & #charts .~ named "ellipse" [ell, ellFull, c0, c1, bbox, xradii, yradii]
     & #hudOptions .~ defaultHudOptions
-    & #hudOptions % #chartAspect .~ ChartAspect
+    & #hudOptions % #chartAspect .~ a
+    & #hudOptions % #legends .~ [(10,defaultLegendOptions & #content .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1)]
+    & #hudOptions % #titles .~ [(11,defaultTitle "ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)" & #style % #size .~ 0.08)]
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
-    ellFull = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100]]
-    ell = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
-    c0 = GlyphChart defaultGlyphStyle [c, p1, p2]
-    bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [arcBox p]
-    xradii = LineChart (defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) [[ellipse c r phi' 0, ellipse c r phi' pi]]
-    yradii = LineChart (defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound) [[ellipse c r phi' (pi / 2), ellipse c r phi' (3 / 2 * pi)]]
-
--- | arc example
---
--- ![arc example](other/arc.svg)
-arcExample :: ChartSvg
-arcExample =
-  mempty
-    & #charts .~ named "arc" [arc, ell, c0, bbox]
-    & #hudOptions .~ defaultHudOptions
-    & #hudOptions % #chartAspect .~ FixedAspect 1
-  where
-    p1 = ArcPosition (Point 1.0 0.0) (Point 0.0 1.0) (ArcInfo (Point 1.0 0.5) 0 False True)
-    ps = singletonArc p1
-    (ArcCentroid c r phi' ang0' angd) = arcCentroid p1
-    arc = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ transparent) ps
-    ell = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
-    c0 = GlyphChart defaultGlyphStyle [c]
-    bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [arcBox p1]
+    ellFull = LineChart fullels [ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100]]
+    ell = LineChart els [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
+    g0 = defaultGlyphStyle & #shape .~ CircleGlyph
+    c0 = GlyphChart g0 [c]
+    g1 = defaultGlyphStyle & #color .~ palette1 6
+    c1= GlyphChart g1 [p1,p2]
+    bbox = RectChart bbs [arcBox p]
+    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1
+    xradii = LineChart xals [[ellipse c r phi' 0, ellipse c r phi' pi]]
+    yradii = LineChart yals [[ellipse c r phi' (pi / 2), ellipse c r phi' (3 / 2 * pi)]]
+    xals = defaultLineStyle & #color .~ Colour 0.9 0.2 0.02 1 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound
+    yals = defaultLineStyle & #color .~ Colour 0.9 0.9 0.02 1 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound
+    fullels = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
+    els = defaultLineStyle & #size .~ 0.005 & #color .~ palette1 2
+    lrows = [ ("Major Axis", LineChart xals [[zero]]),
+              ("Minor Axis", LineChart yals [[zero]]),
+              ("Full Ellipse", LineChart fullels [[zero]]),
+              ("Arc", LineChart els [[zero]]),
+              ("Centroid", GlyphChart (g0 & #size .~ 0.01) [zero]),
+              ("Endpoints", GlyphChart (g1 & #size .~ 0.01) [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [fmap (2*) one])
+            ]
 
 -- | Reproduction of the flag explanation chart in <https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths>
 --
@@ -430,16 +443,29 @@ checkFlags large' sweep co = [c1, c2, ell, arc1]
 quadExample :: ChartSvg
 quadExample =
   mempty
-    & #charts .~ named "quad" [path', curve, c0, bbox]
+    & #charts .~ named "quad" [path', curve, c0, c1, bbox]
     & #hudOptions .~ defaultHudOptions
-    & #hudOptions % #chartAspect .~ ChartAspect
+    & #hudOptions % #chartAspect .~ FixedAspect 1.5
+    & #hudOptions % #legends .~ [(10,defaultLegendOptions & #content .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
+    & #hudOptions % #titles .~ [(11,defaultTitle "QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))" & #style % #size .~ 0.08)]
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))
     ps = singletonQuad p
-    path' = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ transparent) ps
-    curve = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [quadBezier p . (/ 100.0) <$> [0 .. 100]]
-    c0 = GlyphChart defaultGlyphStyle [start, end, control]
-    bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [quadBox p]
+    path' = PathChart pathStyle ps
+    curve = LineChart curveStyle [quadBezier p . (/ 100.0) <$> [0 .. 100]]
+    curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
+    c0 = GlyphChart defaultGlyphStyle [start, end]
+    c1 = GlyphChart controlStyle [control]
+    bbox = RectChart bbs [quadBox p]
+    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1
+    pathStyle = defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ transparent
+    controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
+    lrows = [ ("Path Fill", PathChart pathStyle [StartP zero]),
+              ("Path Chord", LineChart curveStyle [[zero]]),
+              ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
+              ("Path Control Point", GlyphChart controlStyle [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
+            ]
 
 -- | cubic example
 --
@@ -447,16 +473,29 @@ quadExample =
 cubicExample :: ChartSvg
 cubicExample =
   mempty
-    & #charts .~ named "cubic" [path', curve, c0, bbox]
+    & #charts .~ named "cubic" [path', curve, c0, c1, bbox]
     & #hudOptions .~ mempty
-    & #hudOptions % #chartAspect .~ ChartAspect
+    & #hudOptions % #chartAspect .~ FixedAspect 1.5
+    & #hudOptions % #legends .~ [(10,defaultLegendOptions & #content .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
+    & #hudOptions % #titles .~ [(11,defaultTitle "CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)" & #style % #size .~ 0.08)]
   where
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
     ps = singletonCubic p
-    path' = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ transparent) ps
-    curve = LineChart (defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1) [cubicBezier p . (/ 100.0) <$> [0 .. 100]]
-    c0 = GlyphChart defaultGlyphStyle [start, end, control1, control2, cubicBezier p 0.8]
-    bbox = RectChart (defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1) [cubicBox p]
+    path' = PathChart pathStyle ps
+    curve = LineChart curveStyle [cubicBezier p . (/ 100.0) <$> [0 .. 100]]
+    c0 = GlyphChart defaultGlyphStyle [start, end]
+    c1 = GlyphChart controlStyle [control1, control2]
+    bbox = RectChart bbs [cubicBox p]
+    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ Colour 0.4 0.4 0.8 0.1 & #borderColor .~ Colour 0.5 0.5 0.5 1
+    pathStyle = defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ transparent
+    controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
+    curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
+    lrows = [ ("Path Fill", PathChart pathStyle [StartP zero]),
+              ("Path Chord", LineChart curveStyle [[zero]]),
+              ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
+              ("Path Control Point", GlyphChart controlStyle [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
+            ]
 
 -- | The common way to create a surface chart is usually a grid over a function.
 --
@@ -677,8 +716,8 @@ addLineX :: Double -> [Chart] -> [Chart]
 addLineX y cs = [l]
   where
     ls' = defaultLineStyle &
-     set #color (set opac' 0.3 (palette1 5)) &
-     set #dasharray (Just [0.04, 0.01])
+     set #color (set opac' 0.3 (palette1 8)) &
+     set #dasharray (Just [0.01])
     l = LineChart ls' [[Point lx y, Point ux y]]
     (Rect lx ux _ _) = boxes cs
 
@@ -737,7 +776,7 @@ blendExampleChart cl c2 n s gx' gy' hx' hy' = l
     g = zipWith Point gx gy
     h = zipWith Point h0 h1
     gh = zipWith (\p p' -> fromList [fromList [p,p']]) g h
-    c = blendMidLineStyles n s (palette1 cl, palette1 c2)
+    c = blendMidLineStyles (n+1) s (palette1 cl, palette1 c2)
     l = zipWith LineChart c gh
 
 -- | Adding reference points and bounding boxes to visualize chart alignment and debug.
@@ -767,9 +806,9 @@ pathChartSvg =
     ("other/wave.svg",waveExample),
     ("other/venn.svg",vennExample),
     ("other/path.svg",pathExample),
-    ("other/arc.svg",arcExample),
     ("other/arcflags.svg",arcFlagsExample),
-    ("other/ellipse.svg",ellipseExample),
+    ("other/ellipse.svg",ellipseExample (FixedAspect 1.7)),
+    ("other/ellipse2.svg",ellipseExample (FixedAspect 2)),
     ("other/quad.svg",quadExample),
     ("other/cubic.svg",cubicExample),
     ("other/arrow.svg",arrowExample),

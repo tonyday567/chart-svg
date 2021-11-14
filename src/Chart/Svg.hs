@@ -68,13 +68,15 @@ atts (GlyphChart s _) = attsGlyph s
 atts (PathChart s _) = attsPath s
 atts (BlankChart _) = mempty
 
-svgChartTree :: Charts -> Lucid.Html ()
-svgChartTree (Charts (Node (Nothing, []) xs)) = mconcat $ svgChartTree . Charts <$> xs
-svgChartTree (Charts (Node cn xs))
-  | renderText content' == mempty && isNothing (view _1 cn) = mempty
-  | otherwise = term "g" (foldMap (\x -> [term "class" x]) (view _1 cn)) content'
+svgChartTree :: Charts (Maybe Text) -> Lucid.Html ()
+svgChartTree cs
+  | isNothing label && null cs' = mconcat $ svgChartTree . Charts <$> xs
+  | otherwise = term "g" (foldMap (\x -> [term "class" x]) label) content'
     where
-      content' = (mconcat $ svg <$> view _2 cn) <> (mconcat $ svgChartTree . Charts <$> xs)
+      (Charts (Node (label, cs') xs)) = filterCharts notBlank cs
+      notBlank (BlankChart _) = False
+      notBlank _ = True
+      content' = (mconcat $ svg <$> cs') <> (mconcat $ svgChartTree . Charts <$> xs)
 
 -- ** ChartSvg
 
@@ -83,7 +85,7 @@ data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
     hudOptions :: HudOptions,
     extraHuds :: [Hud],
-    charts :: Charts
+    charts :: Charts (Maybe Text)
   }
   deriving (Generic)
 
@@ -107,7 +109,7 @@ svg2Tag m =
 renderToText :: Html () -> Text
 renderToText = Lazy.toStrict . renderText
 
-renderToSvg :: SvgOptions -> Charts -> Html ()
+renderToSvg :: SvgOptions -> Charts (Maybe Text) -> Html ()
 renderToSvg so cs =
   with
     (svg2Tag (cssText (view #cssOptions so) <> svgChartTree cs))
@@ -187,7 +189,7 @@ cssPreferColorScheme (_, bgdark) PreferDark =
   |] where c = hex bgdark
 cssPreferColorScheme _ PreferNormal = mempty
 
-toCharts :: ChartSvg -> Charts
+toCharts :: ChartSvg -> Charts (Maybe Text)
 toCharts cs =
   runHudWith
   (initialCanvas (view (#hudOptions % #chartAspect) cs) (view #charts cs))
@@ -204,7 +206,7 @@ toCharts cs =
 --
 -- >>> initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
 -- Rect -0.75 0.75 -0.5 0.5
-initialCanvas :: ChartAspect -> Charts -> CanvasBox
+initialCanvas :: ChartAspect -> Charts a -> CanvasBox
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
 initialCanvas ChartAspect cs = view box' cs
