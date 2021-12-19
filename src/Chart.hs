@@ -28,7 +28,6 @@ module Chart
   )
 where
 
-
 import Chart.Bar
 import Chart.Primitive
 import Chart.Style

@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -85,13 +86,15 @@ import Data.Bool
 -- >>> writeChartSvg "other/unit.hs" $ mempty & #charts .~ [r]
 --
 --
-data Chart =
-  RectChart RectStyle (NonEmpty (Rect Double)) |
-  LineChart LineStyle (NonEmpty (NonEmpty (Point Double))) |
-  GlyphChart GlyphStyle (NonEmpty (Point Double)) |
-  TextChart TextStyle (NonEmpty (Text, Point Double)) |
-  PathChart PathStyle (NonEmpty (PathData Double)) |
-  BlankChart (NonEmpty (Rect Double)) deriving (Eq, Show)
+data Chart
+  where
+    RectChart :: RectStyle -> NonEmpty (Rect Double) -> Chart
+    LineChart :: LineStyle -> NonEmpty (NonEmpty (Point Double)) -> Chart
+    GlyphChart :: GlyphStyle -> NonEmpty (Point Double) -> Chart
+    TextChart :: TextStyle -> NonEmpty (Text, Point Double) -> Chart
+    PathChart :: PathStyle -> NonEmpty (PathData Double) -> Chart
+    BlankChart :: NonEmpty (Rect Double) -> Chart
+    deriving (Eq, Show)
 
 newtype Charts a = Charts { tree :: Tree (a, [Chart]) } deriving (Eq, Show, Generic)
 
