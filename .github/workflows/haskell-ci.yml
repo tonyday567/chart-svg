@@ -14,6 +14,10 @@ jobs:
           - os: windows-latest
             ghc: '8.10.7'
             experimental: true
+        include:
+          - os: ubuntu-latest
+            ghc: '9.2.1'
+            experimental: true
     continue-on-error: ${{ matrix.experimental }}
     name: ghc ${{ matrix.ghc }} ${{ matrix.os }}
     steps:

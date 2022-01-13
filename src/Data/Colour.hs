@@ -34,7 +34,6 @@ import Data.FormatN
 import qualified Data.List as List
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model
 import Data.List.NonEmpty (NonEmpty(..))

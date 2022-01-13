@@ -1,4 +1,4 @@
-<svg width="316.4440150447401" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" viewBox="0.0 -4.854876632481659 9.0 8.532314948722489" height="300.0"><style>svg {
+<svg xmlns="http://www.w3.org/2000/svg" width="316.4440150447401" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0.0 -4.854876632481659 9.0 8.532314948722489" height="300.0"><style>svg {
   color-scheme: light dark;
 }
 {
@@ -31,7 +31,7 @@
   .chart g text {
     fill: #f0f0f0;
   }
-}</style><g class="chart"><g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.6" fill-opacity="1.0" text-anchor="middle"><text x="0.5" y="-0.0" transform="rotate(-90.0, 0.5, -0.0)">Sweep</text></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="1.5699999999999998" y="1.5099999999999998" transform="rotate(-90.0, 1.5699999999999998, 1.5099999999999998)">True</text></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="1.5699999999999998" y="-1.5099999999999998" transform="rotate(-90.0, 1.5699999999999998, -1.5099999999999998)">False</text></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="5.1499999999999995,1.6599999999999993
+}</style><g class="chart"><g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.6" fill-opacity="1.0" text-anchor="middle"><text x="0.5" y="-0.0" transform="rotate(-90.0, 0.5, -0.0)">Sweep</text></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="1.5699999999999998" y="1.5099999999999998" transform="rotate(-90.0, 1.5699999999999998, 1.5099999999999998)">True</text></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="1.5699999999999998" y="-1.5099999999999998" transform="rotate(-90.0, 1.5699999999999998, -1.5099999999999998)">False</text></g><g fill="none" stroke="#0d0d0d" stroke-width="2.0e-2" stroke-opacity="0.2"><polyline points="5.1499999999999995,1.6599999999999993
 5.148026728428272,1.5972094804706858
 5.142114701314479,1.534666766435695
 5.132287250728689,1.4726186854142749
@@ -131,7 +131,7 @@
 5.132287250728689,1.847381314585724
 5.142114701314478,1.785333233564304
 5.148026728428272,1.7227905195293125
-5.1499999999999995,1.6599999999999993"/></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="4.15,2.6599999999999993
+5.1499999999999995,1.6599999999999993"/></g><g fill="none" stroke="#0d0d0d" stroke-width="2.0e-2" stroke-opacity="0.2"><polyline points="4.15,2.6599999999999993
 4.148026728428272,2.597209480470686
 4.142114701314478,2.534666766435695
 4.132287250728689,2.4726186854142744
@@ -231,7 +231,7 @@
 4.132287250728689,2.847381314585724
 4.142114701314478,2.785333233564304
 4.148026728428272,2.7227905195293127
-4.15,2.6599999999999997"/></g><g stroke-opacity="0.5" fill="none" stroke="#0d0d0d" stroke-width="5.0e-2"><polyline points="3.15,1.6599999999999993
+4.15,2.6599999999999997"/></g><g fill="none" stroke="#0d0d0d" stroke-width="5.0e-2" stroke-opacity="0.5"><polyline points="3.15,1.6599999999999993
 3.1657073173118206,1.6601233675183389
 3.181410759078128,1.6604934396342674
 3.1971064507096427,1.6611101250380291
@@ -331,7 +331,7 @@
 4.14888987496197,2.6128935492903564
 4.149506560365732,2.6285892409218707
 4.149876632481661,2.6442926826881785
-4.15,2.6599999999999993"/></g><g stroke-opacity="0.5" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="1.0e-2" fill-opacity="0.3"><path d="M 4.15,1.6600 L 3.15,1.6600 A 1.0 1.0 -0.0 0 1 4.15,2.6600 L 4.15,1.6600"/></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="5.1499999999999995,-1.38
+4.15,2.6599999999999993"/></g><g fill="#0d0d0d" stroke="#0d0d0d" stroke-width="1.0e-2" fill-opacity="0.3" stroke-opacity="0.5"><path d="M 4.15,1.6600 L 3.15,1.6600 A 1.0 1.0 -0.0 0 1 4.15,2.6600 L 4.15,1.6600"/></g><g fill="none" stroke="#0d0d0d" stroke-width="2.0e-2" stroke-opacity="0.2"><polyline points="5.1499999999999995,-1.38
 5.148026728428272,-1.4427905195293134
 5.142114701314479,-1.505333233564305
 5.132287250728689,-1.5673813145857247
@@ -431,7 +431,7 @@
 5.132287250728689,-1.192618685414276
 5.142114701314478,-1.2546667664356956
 5.148026728428272,-1.3172094804706873
-5.1499999999999995,-1.38"/></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="4.15,-0.3800000000000008
+5.1499999999999995,-1.38"/></g><g fill="none" stroke="#0d0d0d" stroke-width="2.0e-2" stroke-opacity="0.2"><polyline points="4.15,-0.3800000000000008
 4.148026728428272,-0.44279051952931425
 4.142114701314478,-0.5053332335643042
 4.132287250728689,-0.5673813145857238
@@ -531,7 +531,7 @@
 4.132287250728689,-0.19261868541427551
 4.142114701314478,-0.25466676643569564
 4.148026728428272,-0.31720948047068687
-4.15,-0.3799999999999999"/></g><g stroke-opacity="0.5" fill="none" stroke="#0d0d0d" stroke-width="5.0e-2"><polyline points="3.15,-1.38
+4.15,-0.3799999999999999"/></g><g fill="none" stroke="#0d0d0d" stroke-width="5.0e-2" stroke-opacity="0.5"><polyline points="3.15,-1.38
 3.150123367518339,-1.3642926826881796
 3.1504934396342685,-1.3485892409218723
 3.15111012503803,-1.3328935492903575
@@ -631,7 +631,7 @@
 4.102893549290358,-0.3811101250380302
 4.118589240921872,-0.38049343963426896
 4.13429268268818,-0.3801233675183395
-4.15,-0.3800000000000008"/></g><g stroke-opacity="0.5" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="1.0e-2" fill-opacity="0.3"><path d="M 4.15,-1.38 L 3.15,-1.38 A 1.0 1.0 -0.0 0 0 4.15,-0.3800 L 4.15,-1.38"/></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="3.64" y="-3.3199999999999994">False</text></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="8.59,1.6674383162408297
+4.15,-0.3800000000000008"/></g><g fill="#0d0d0d" stroke="#0d0d0d" stroke-width="1.0e-2" fill-opacity="0.3" stroke-opacity="0.5"><path d="M 4.15,-1.38 L 3.15,-1.38 A 1.0 1.0 -0.0 0 0 4.15,-0.3800 L 4.15,-1.38"/></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="3.64" y="-3.3199999999999994">False</text></g><g fill="none" stroke="#0d0d0d" stroke-width="2.0e-2" stroke-opacity="0.2"><polyline points="8.59,1.6674383162408297
 8.588026728428272,1.6046477967115162
 8.58211470131448,1.5421050826765255
 8.572287250728689,1.480057001655105
@@ -731,7 +731,7 @@
 8.572287250728689,1.8548196308265548
 8.582114701314477,1.7927715498051344
 8.588026728428272,1.730228835770143
-8.59,1.66743831624083"/></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="7.59,2.6674383162408297
+8.59,1.66743831624083"/></g><g fill="none" stroke="#0d0d0d" stroke-width="2.0e-2" stroke-opacity="0.2"><polyline points="7.59,2.6674383162408297
 7.588026728428271,2.6046477967115162
 7.582114701314477,2.5421050826765255
 7.572287250728689,2.480057001655105
@@ -831,7 +831,7 @@
 7.572287250728689,2.8548196308265545
 7.582114701314477,2.7927715498051344
 7.588026728428271,2.730228835770143
-7.59,2.66743831624083"/></g><g stroke-opacity="0.5" fill="none" stroke="#0d0d0d" stroke-width="5.0e-2"><polyline points="6.59,1.6674383162408297
+7.59,2.66743831624083"/></g><g fill="none" stroke="#0d0d0d" stroke-width="5.0e-2" stroke-opacity="0.5"><polyline points="6.59,1.6674383162408297
 6.59111012503803,1.620331865531187
 6.594438035396919,1.5733300029223156
 6.599976342283441,1.5265370843032473
@@ -931,7 +931,7 @@
 7.730901231937583,2.6574619739573873
 7.684108313318514,2.6630002808439097
 7.637106450709643,2.6663281912028
-7.59,2.6674383162408297"/></g><g stroke-opacity="0.5" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="1.0e-2" fill-opacity="0.3"><path d="M 7.59,1.6674 L 6.59,1.6674 A 1.0 1.0 -0.0 1 1 7.59,2.6674 L 7.59,1.6674"/></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="8.60487663248166,-1.3874383162408304
+7.59,2.6674383162408297"/></g><g fill="#0d0d0d" stroke="#0d0d0d" stroke-width="1.0e-2" fill-opacity="0.3" stroke-opacity="0.5"><path d="M 7.59,1.6674 L 6.59,1.6674 A 1.0 1.0 -0.0 1 1 7.59,2.6674 L 7.59,1.6674"/></g><g fill="none" stroke="#0d0d0d" stroke-width="2.0e-2" stroke-opacity="0.2"><polyline points="8.60487663248166,-1.3874383162408304
 8.602903360909933,-1.450228835770143
 8.596991333796138,-1.5127715498051355
 8.58716388321035,-1.5748196308265552
@@ -1031,7 +1031,7 @@
 8.58716388321035,-1.2000570016551046
 8.596991333796138,-1.262105082676526
 8.602903360909933,-1.3246477967115178
-8.60487663248166,-1.3874383162408304"/></g><g stroke-opacity="0.2" fill="none" stroke="#0d0d0d" stroke-width="2.0e-2"><polyline points="7.604876632481661,-0.38743831624083036
+8.60487663248166,-1.3874383162408304"/></g><g fill="none" stroke="#0d0d0d" stroke-width="2.0e-2" stroke-opacity="0.2"><polyline points="7.604876632481661,-0.38743831624083036
 7.602903360909933,-0.45022883577014383
 7.5969913337961374,-0.5127715498051355
 7.587163883210349,-0.5748196308265552
@@ -1131,7 +1131,7 @@
 7.587163883210349,-0.20005700165510554
 7.5969913337961374,-0.2621050826765261
 7.602903360909933,-0.32464779671151733
-7.604876632481661,-0.38743831624083036"/></g><g stroke-opacity="0.5" fill="none" stroke="#0d0d0d" stroke-width="5.0e-2"><polyline points="6.604876632481661,-1.3874383162408304
+7.604876632481661,-0.38743831624083036"/></g><g fill="none" stroke="#0d0d0d" stroke-width="5.0e-2" stroke-opacity="0.5"><polyline points="6.604876632481661,-1.3874383162408304
 6.5577701817720175,-1.386328191202801
 6.510768319163146,-1.3830002808439108
 6.4639754005440775,-1.377461973957388
@@ -1231,4 +1231,4 @@
 7.594900290198218,-0.24653708430324794
 7.6004385970847395,-0.2933300029223167
 7.60376650744363,-0.340331865531188
-7.604876632481661,-0.38743831624083036"/></g><g stroke-opacity="0.5" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="1.0e-2" fill-opacity="0.3"><path d="M 7.6049,-1.3874 L 6.6049,-1.3874 A 1.0 1.0 -0.0 1 0 7.6049,-0.3874 L 7.6049,-1.3874"/></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="7.08" y="-3.32743831624083">True</text></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.6" fill-opacity="1.0" text-anchor="middle"><text x="5.499999999999999" y="-4.374876632481659">Large</text></g></g></g><g class="hud"></g></svg>
+7.604876632481661,-0.38743831624083036"/></g><g fill="#0d0d0d" stroke="#0d0d0d" stroke-width="1.0e-2" fill-opacity="0.3" stroke-opacity="0.5"><path d="M 7.6049,-1.3874 L 6.6049,-1.3874 A 1.0 1.0 -0.0 1 0 7.6049,-0.3874 L 7.6049,-1.3874"/></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.4" fill-opacity="1.0" text-anchor="middle"><text x="7.08" y="-3.32743831624083">True</text></g><g fill="#0d0d0d" stroke="none" stroke-width="0.0" font-size="0.6" fill-opacity="1.0" text-anchor="middle"><text x="5.499999999999999" y="-4.374876632481659">Large</text></g></g></g><g class="hud"></g></svg>

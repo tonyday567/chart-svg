@@ -1,1 +1,2 @@
-packages: chart-svg.cabal
+packages:
+  chart-svg.cabal
