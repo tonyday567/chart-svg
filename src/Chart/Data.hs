@@ -4,7 +4,7 @@
 -- | Data primitives and utilities
 module Chart.Data
   ( padRect,
-    padSingletons,
+    singletonGuard,
     one,
     zero,
     angle,
@@ -30,6 +30,9 @@ padSingletons (Rect x z y w)
       | x == z = Rect (x - 0.5) (x + 0.5) y w
       | y == w = Rect x z (y - 0.5) (y + 0.5)
       | otherwise = Rect x z y w
+
+singletonGuard :: Maybe (Rect Double ) -> Rect Double
+singletonGuard = maybe one padSingletons
 
 addp :: Point Double -> Point Double -> Point Double
 addp = (+)

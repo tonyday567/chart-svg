@@ -1,2 +1,7 @@
 packages:
   chart-svg.cabal
+
+source-repository-package
+  type: git
+  branch: main
+  location: https://github.com/tonyday567/numhask-space.git

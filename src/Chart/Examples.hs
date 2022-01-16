@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE TupleSections #-}
@@ -49,8 +48,6 @@ where
 import Chart
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
-import Data.List.NonEmpty (NonEmpty, fromList, toList)
-import qualified Data.List.NonEmpty as NonEmpty
 import Data.Time
 import Data.Bool
 import Prelude hiding (abs)
@@ -89,8 +86,8 @@ rectExample =
     [ (1, defaultAxisOptions & #ticks % #ltick .~ Nothing)]) &
   #charts .~ named "rect" (zipWith RectChart ropts rss)
 
-rss :: [NonEmpty (Rect Double)]
-rss = fmap fromList
+rss :: [[Rect Double]]
+rss =
   [ gridR (\x -> exp (-(x ** 2) / 2)) (Range (-5) 5) 50,
     gridR (\x -> 0.5 * exp (-(x ** 2) / 8)) (Range (-5) 5) 50
   ]
@@ -148,7 +145,7 @@ lineExample =
   where
     cs = zipWith (\s l -> LineChart s [l]) lopts ls
 
-ls :: [NonEmpty (Point Double)]
+ls :: [[Point Double]]
 ls =
   fmap (uncurry Point)
     <$> [ [(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)],
@@ -177,9 +174,9 @@ textExample =
     #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud &
     #svgOptions % #cssOptions % #cssExtra .~ textSwitch (light, dark)
   where
-    ts :: NonEmpty (Text, Point Double)
+    ts :: [(Text, Point Double)]
     ts =
-      NonEmpty.zip
+      zip
         (fmap Text.singleton ['a' .. 'z'])
         ((\x -> Point (sin (x * 0.1)) x) <$> [0 .. 25])
 
@@ -249,7 +246,7 @@ barExample = barChart defaultBarOptions barDataExample
 --
 -- ![wave example](other/wave.svg)
 waveExample :: ChartSvg
-waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ fromList $ gridP sin (Range 0 (2 * pi)) 30] & #hudOptions .~ defaultHudOptions
+waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ gridP sin (Range 0 (2 * pi)) 30] & #hudOptions .~ defaultHudOptions
 
 -- | venn diagram
 --
@@ -310,9 +307,9 @@ pathExample =
       ]
     path' = PathChart (defaultPathStyle & #color .~ set opac' 0.1 (palette1 2) & #borderColor .~ Colour 0.2 0.8 0.4 0.3) ps
     c0 = GlyphChart defaultGlyphStyle (pointPath <$> ps)
-    midp = Point 0 0:zipWith (\(Point x y) (Point x' y') -> Point ((x+x')/2) ((y+y')/2)) (drop 1 (pointPath <$> toList ps)) (pointPath <$> toList ps)
+    midp = Point 0 0:zipWith (\(Point x y) (Point x' y') -> Point ((x+x')/2) ((y+y')/2)) (drop 1 (pointPath <$> ps)) (pointPath <$> ps)
     offp = [Point 0 0.05, Point 0 0, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
-    t0 = TextChart (defaultTextStyle & set #size 0.05) (NonEmpty.zip ts (fromList $ zipWith addp offp midp))
+    t0 = TextChart (defaultTextStyle & set #size 0.05) (zip ts (zipWith addp offp midp))
 
 -- | ellipse example
 --
@@ -702,34 +699,36 @@ subChartExample =
 
 -- | convert from [a] to [Point a], by adding the index as the x axis
 --
-xify :: NonEmpty Double -> NonEmpty (Point Double)
+xify :: [Double] -> [Point Double]
 xify ys =
-  NonEmpty.zipWith Point [0 ..] ys
+  zipWith Point [0 ..] ys
 
 -- | convert from [a] to [Point a], by adding the index as the y axis
-yify :: NonEmpty Double -> NonEmpty (Point Double)
+yify :: [Double] -> [Point Double]
 yify xs =
-  NonEmpty.zipWith Point xs [0 ..]
+  zipWith Point xs [0 ..]
 
 -- | add a horizontal line at y
 addLineX :: Double -> [Chart] -> [Chart]
-addLineX y cs = [l]
-  where
-    ls' = defaultLineStyle &
-     set #color (set opac' 0.3 (palette1 8)) &
-     set #dasharray (Just [0.01])
-    l = LineChart ls' [[Point lx y, Point ux y]]
-    (Rect lx ux _ _) = boxes cs
+addLineX y cs = case boxes cs of
+  Nothing -> []
+  Just (Rect lx ux  _ _) ->
+    [LineChart ls' [[Point lx y, Point ux y]]]
+    where
+      ls' = defaultLineStyle &
+        set #color (set opac' 0.3 (palette1 8)) &
+        set #dasharray (Just [0.01])
 
 -- | add a verticle line at x
 addLineY :: Double -> [Chart] -> [Chart]
-addLineY x cs = [l]
-  where
-    ls' = defaultLineStyle &
-     set #color (set opac' 0.3 (palette1 5)) &
-     set #dasharray (Just [0.04, 0.01])
-    l = LineChart ls' [[Point x ly, Point x uy]]
-    (Rect _ _ ly uy) = boxes cs
+addLineY x cs = case boxes cs of
+  Nothing -> []
+  Just (Rect _ _ ly uy) ->
+    [LineChart ls' [[Point x ly, Point x uy]]]
+    where
+      ls' = defaultLineStyle &
+        set #color (set opac' 0.3 (palette1 5)) &
+        set #dasharray (Just [0.04, 0.01])
 
 -- | Legend template for a line chart.
 lineLegend :: Double -> [Text] -> [(Colour, Maybe [Double])] -> LegendOptions
@@ -775,7 +774,7 @@ blendExampleChart cl c2 n s gx' gy' hx' hy' = l
     h1 = reverse $ grid OuterPos hy' n
     g = zipWith Point gx gy
     h = zipWith Point h0 h1
-    gh = zipWith (\p p' -> fromList [fromList [p,p']]) g h
+    gh = zipWith (\p p' -> [[p,p']]) g h
     c = blendMidLineStyles (n+1) s (palette1 cl, palette1 c2)
     l = zipWith LineChart c gh
 

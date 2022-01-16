@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -39,24 +38,21 @@ import Data.Text (Text, pack, unpack)
 import qualified Data.Text as Text
 import Prelude
 import Lucid
-import Data.List.NonEmpty (NonEmpty(..))
 import Optics.Core
 import Lucid.Base
 import NeatInterpolation
 import qualified Data.Text.Lazy as Lazy
 import Chart.Data
 import GHC.Generics
-import Data.Semigroup
-import Data.Foldable
 import Data.Path.Parser
 import Data.Tree
 import Data.Maybe
 
 draw :: Chart -> Html ()
-draw (RectChart _ a) = sconcat $ svgRect_ <$> a
-draw (TextChart s a) = sconcat $ uncurry (svgText_ s) <$> a
+draw (RectChart _ a) = mconcat $ svgRect_ <$> a
+draw (TextChart s a) = mconcat $ uncurry (svgText_ s) <$> a
 draw (LineChart _ as) = svgLine_ as
-draw (GlyphChart s a) = sconcat $ svgGlyph_ s <$> a
+draw (GlyphChart s a) = mconcat $ svgGlyph_ s <$> a
 draw (PathChart _ a) = svgPath_ a
 draw (BlankChart _) = mempty
 
@@ -118,7 +114,7 @@ renderToSvg so cs =
       makeAttribute "viewBox" (pack $ show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
   where
-    r@(Rect x z y w) = view styleBox' cs
+    r@(Rect x z y w) = singletonGuard (view styleBox' cs)
     Point w' h' = width r
     Point w'' h'' = Point ((so ^. #svgHeight) / h' * w') (so ^. #svgHeight)
 
@@ -197,7 +193,7 @@ toCharts cs =
   hs'
   (view #charts cs <> blank db')
   where
-    (hs, db') = toHuds (view #hudOptions cs) (view (#charts % box') cs)
+    (hs, db') = toHuds (view #hudOptions cs) (singletonGuard $ view (#charts % box') cs)
     hs' =
       hs <>
       view #extraHuds cs
@@ -209,7 +205,7 @@ toCharts cs =
 initialCanvas :: ChartAspect -> Charts a -> CanvasBox
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = view box' cs
+initialCanvas ChartAspect cs = singletonGuard $ view box' cs
 
 -- | Render a chart using the supplied svg and hud config.
 --
@@ -254,9 +250,9 @@ svgText_ s t p@(Point x y) =
       Just f -> svg (RectChart (f & over #borderSize (*view #size s)) [styleBoxText s t p])
 
 -- | line svg
-svgLine_ :: NonEmpty (NonEmpty (Point Double)) -> Lucid.Html ()
-svgLine_ xss = sconcat $
-  (\xs -> terms "polyline" [term "points" (toPointsText (toList xs))]) <$> xss
+svgLine_ :: [[Point Double]] -> Lucid.Html ()
+svgLine_ xss = mconcat $
+  (\xs -> terms "polyline" [term "points" (toPointsText xs)]) <$> xss
   where
     toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs'
 
@@ -313,7 +309,7 @@ svgGlyph_ s p =
     & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
 
 -- | Path svg
-svgPath_ :: NonEmpty (PathData Double) -> Lucid.Html ()
+svgPath_ :: [PathData Double] -> Lucid.Html ()
 svgPath_ ps =
   terms "path" [term "d" (pathDataToSvg ps)]
 

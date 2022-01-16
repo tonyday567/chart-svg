@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -27,14 +26,11 @@ import Data.Bool
 import Data.Colour
 import Data.FormatN
 import Data.List (scanl', transpose)
-import qualified Data.List.NonEmpty as NonEmpty
-import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Data.Maybe
 import Data.Text (Text, pack)
 import GHC.Generics
 import Prelude hiding (abs)
 import Chart.Data
-import Data.Semigroup
 import Data.Foldable
 
 -- $setup
@@ -71,8 +67,8 @@ barChart bo bd =
     & set #hudOptions (barHudOptions bo bd)
     & set #charts
       (named "barchart"
-             (toList (bars bo bd) <>
-              bool [] (toList $ barTextCharts bo bd) (view #displayValues bo)))
+             (bars bo bd <>
+              bool [] (barTextCharts bo bd) (view #displayValues bo)))
 
 barHudOptions :: BarOptions -> BarData -> HudOptions
 barHudOptions bo bd =
@@ -116,7 +112,7 @@ defaultBarOptions =
 --
 -- - maybe some column names
 data BarData = BarData
-  { barData :: NonEmpty (NonEmpty Double),
+  { barData :: [[Double]],
     barRowLabels :: [Text],
     barColumnLabels :: [Text]
   }
@@ -128,16 +124,16 @@ data BarData = BarData
 -- [[Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],[Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0]]
 barRects ::
   BarOptions ->
-  NonEmpty (NonEmpty Double) ->
-  NonEmpty (NonEmpty (Rect Double))
+  [[Double]] ->
+  [[Rect Double]]
 barRects (BarOptions _ _ ogap igap _ _ _ _ add orient _) bs = rects'' orient
   where
     bs' = bool bs (appendZero bs) add
     rects'' Hori = rects'
     rects'' Vert = fmap (\(Rect x z y w) -> Rect y w x z) <$> rects'
-    rects' = NonEmpty.zipWith batSet [0 ..] (barDataLowerUpper add bs')
+    rects' = zipWith batSet [0 ..] (barDataLowerUpper add bs')
     batSet z ys =
-      NonEmpty.zipWith
+      zipWith
         ( \x (yl, yh) ->
             abs
               ( Rect
@@ -158,42 +154,43 @@ barRects (BarOptions _ _ ogap igap _ _ _ _ add orient _) bs = rects'' orient
 --
 -- >>> barDataLowerUpper False [[1,2],[2,3]]
 -- [[(0.0,1.0),(0.0,2.0)],[(0.0,2.0),(0.0,3.0)]]
-barDataLowerUpper :: Bool -> NonEmpty (NonEmpty Double) -> NonEmpty (NonEmpty (Double, Double))
+barDataLowerUpper :: Bool -> [[Double]] -> [[(Double, Double)]]
 barDataLowerUpper add bs =
   case add of
-    False -> fmap (0,) <$> bs
-    True -> fmap (0,) <$> accRows bs
+    False -> fmap (fmap (0,)) bs
+    True -> fmap (fmap (0,)) (accRows bs)
 
 -- | calculate the Rect range of a bar data set.
 --
+-- FIXME: [[]] is safe?
 -- >>> barRange [[1,2],[2,3]]
 -- Rect 0.0 2.0 0.0 3.0
 barRange ::
-  NonEmpty (NonEmpty Double) -> Rect Double
-barRange ys'@(y :| ys) = Rect 0 (fromIntegral $ maximum (length <$> ys')) (min 0 l) u
+  [[Double]] -> Rect Double
+barRange ys = Rect 0 (fromIntegral $ maximum (length <$> ys)) (min 0 l) u
   where
-    (Range l u) = sconcat $ space1 <$> (y :| ys)
+    (Range l u) = unsafeSpace1 $ mconcat ys
 
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] Nothing Nothing)
 -- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.69 0.35 0.16 1.00, color = Colour 0.69 0.35 0.16 1.00}), xys = [R 5.0e-2 0.45 0.0 1.0,R 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.65 0.81 0.89 1.00}), xys = [R 0.45 0.8500000000000001 0.0 2.0,R 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, xys = [R -5.0e-2 1.9500000000000002 0.0 3.0]}]
-bars :: BarOptions -> BarData -> NonEmpty Chart
+bars :: BarOptions -> BarData -> [Chart]
 bars bo bd =
-  NonEmpty.zipWith (\o d -> RectChart o d) (fromList (bo ^. #barRectStyles <> repeat defaultRectStyle)) (barRects bo (bd ^. #barData)) <> [BlankChart [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]
+  zipWith (\o d -> RectChart o d) (bo ^. #barRectStyles <> repeat defaultRectStyle) (barRects bo (bd ^. #barData)) <> [BlankChart [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]
   where
     (Rect x z y w) = foldRectUnsafe $ foldRectUnsafe <$> barRects bo (bd ^. #barData)
 
-maxRows :: NonEmpty (NonEmpty Double) -> Int
+maxRows :: [[Double]] -> Int
 maxRows xs = maximum $ length <$> xs
 
-appendZero :: NonEmpty (NonEmpty Double) -> NonEmpty (NonEmpty Double)
+appendZero :: [[Double]] -> [[Double]]
 appendZero xs =
-  (\x -> fromList $ NonEmpty.take (maxRows xs)
-    (x <> NonEmpty.repeat 0)) <$> xs
+  (\x -> take (maxRows xs)
+    (x <> repeat 0)) <$> xs
 
-accRows :: NonEmpty (NonEmpty Double) -> NonEmpty (NonEmpty Double)
-accRows xs = fmap fromList $ fromList $ transpose $ drop 1 . scanl' (+) 0 <$> transpose (fmap toList $ toList xs)
+accRows :: [[Double]] -> [[Double]]
+accRows xs = transpose $ drop 1 . scanl' (+) 0 <$> transpose (fmap toList $ toList xs)
 
 -- | sensible ticks
 barTicks :: BarData -> TickStyle
@@ -216,9 +213,9 @@ barLegendContent bo bd
     (view #barColumnLabels bd <> repeat "")
     ((\s -> RectChart s [one]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
 
-barDataTP :: Bool -> FormatN -> Double -> Double -> NonEmpty (NonEmpty Double) -> NonEmpty (NonEmpty (Text, Double))
+barDataTP :: Bool -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]
 barDataTP add fn d negd bs =
-  NonEmpty.zipWith (NonEmpty.zipWith (\x y' -> (formatN fn x, drop' y'))) bs' (bool bs' (accRows bs') add)
+  zipWith (zipWith (\x y' -> (formatN fn x, drop' y'))) bs' (bool bs' (accRows bs') add)
   where
     drop' x = bool (x - (negd * (w - y))) (x + (d * (w - y))) (x >= 0)
     bs' = appendZero bs
@@ -227,16 +224,17 @@ barDataTP add fn d negd bs =
 -- | Convert BarData to text
 barTexts ::
   BarOptions ->
-  NonEmpty (NonEmpty Double) ->
-  NonEmpty (NonEmpty (Text, Point Double))
-barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = NonEmpty.zipWith NonEmpty.zip (fmap fst <$> barDataTP add fn tgap tgapneg bs') (txs'' orient)
+  [[Double]] ->
+  [[(Text, Point Double)]]
+barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs =
+  zipWith zip (fmap fst <$> barDataTP add fn tgap tgapneg bs') (txs'' orient)
   where
     bs' = bool bs (appendZero bs) add
     txs'' Hori = txs'
     txs'' Vert = fmap (\(Point x y) -> Point y x) <$> txs'
-    txs' = NonEmpty.zipWith addX [0 ..] (fmap snd <$> barDataTP add fn tgap tgapneg bs')
+    txs' = zipWith addX [0 ..] (fmap snd <$> barDataTP add fn tgap tgapneg bs')
     addX z y =
-      NonEmpty.zipWith
+      zipWith
         ( \x y' ->
             Point
               (x + (ogap / 2) + z * bstep + bstep / 2 - igap' / 2)
@@ -249,6 +247,6 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs = NonEmpty
     igap' = igap * (1 - (1 + 1) * ogap)
 
 -- | text, hold the bars
-barTextCharts :: BarOptions -> BarData -> NonEmpty Chart
+barTextCharts :: BarOptions -> BarData -> [Chart]
 barTextCharts bo bd =
-  NonEmpty.zipWith TextChart (fromList $ bo ^. #barTextStyles <> repeat defaultTextStyle) (barTexts bo (bd ^. #barData))
+  zipWith TextChart (bo ^. #barTextStyles <> repeat defaultTextStyle) (barTexts bo (bd ^. #barData))

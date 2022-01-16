@@ -2,8 +2,8 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wall #-}
 
 -- | SVG path manipulation
 module Data.Path.Parser
@@ -23,15 +23,15 @@ import Data.FormatN
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics
-import NumHask.Prelude hiding (head, last, tail)
+import NumHask.Prelude
 import Chart.Data
 import Data.Functor
 import Control.Applicative
 import Data.Scientific (toRealFloat)
-import Data.List.NonEmpty (NonEmpty (..), last, head, tail, (<|))
 import GHC.OverloadedLabels
 import Control.Monad.State.Lazy
 import Data.Bifunctor
+-- import qualified Data.List as List
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -49,7 +49,7 @@ import Data.Bifunctor
 -- [MoveTo OriginAbsolute [V2 (-1.0) 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,V2 0.0 (-1.2320508075688774)),(1.0,1.0,0.0,False,False,V2 (-0.5) (-0.3660254037844387)),(1.0,1.0,0.0,False,False,V2 (-1.0) 0.5)],EndPath]
 --
 -- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
-parsePath :: Text -> Either String (NonEmpty PathCommand)
+parsePath :: Text -> Either String [PathCommand]
 parsePath t = A.parseOnly pathParser t
 
 commaWsp :: A.Parser ()
@@ -58,16 +58,16 @@ commaWsp = A.skipSpace *> A.option () (A.string "," $> ()) <* A.skipSpace
 point :: A.Parser (Point Double)
 point = Point <$> num <* commaWsp <*> num
 
-points :: A.Parser (NonEmpty (Point Double))
+points :: A.Parser [Point Double]
 points = fromList <$> point `A.sepBy1` commaWsp
 
 pointPair :: A.Parser (Point Double, Point Double)
 pointPair = (,) <$> point <* commaWsp <*> point
 
-pointPairs :: A.Parser (NonEmpty (Point Double, Point Double))
+pointPairs :: A.Parser [(Point Double, Point Double)]
 pointPairs = fromList <$> pointPair `A.sepBy1` commaWsp
 
-pathParser :: A.Parser (NonEmpty PathCommand)
+pathParser :: A.Parser [PathCommand]
 pathParser = fromList <$> (A.skipSpace *> A.many1 command)
 
 num :: A.Parser Double
@@ -82,8 +82,8 @@ num = realToFrac <$> (A.skipSpace *> plusMinus <* A.skipSpace)
         shorthand = process' <$> (A.string "." *> A.many1 A.digit)
         process' = fromRight 0 . A.parseOnly doubleNumber . pack . (++) "0."
 
-nums :: A.Parser (NonEmpty Double)
-nums = fromList <$> num `A.sepBy1` commaWsp
+nums :: A.Parser [Double]
+nums = num `A.sepBy1` commaWsp
 
 flag :: A.Parser Bool
 flag = fmap (/='0') A.digit
@@ -126,23 +126,23 @@ command =  (MoveTo OriginAbsolute <$ A.string "M" <*> points)
 -- | Path command definition (ripped from reanimate-svg).
 data PathCommand
   = -- | 'M' or 'm' command
-    MoveTo !Origin !(NonEmpty (Point Double))
+    MoveTo !Origin ![Point Double]
   | -- | Line to, 'L' or 'l' Svg path command.
-    LineTo !Origin !(NonEmpty (Point Double))
+    LineTo !Origin ![Point Double]
   | -- | Equivalent to the 'H' or 'h' svg path command.
-    HorizontalTo !Origin !(NonEmpty Double)
+    HorizontalTo !Origin ![Double]
   | -- | Equivalent to the 'V' or 'v' svg path command.
-    VerticalTo !Origin !(NonEmpty Double)
+    VerticalTo !Origin ![Double]
   | -- | Cubic bezier, 'C' or 'c' command
-    CurveTo !Origin !(NonEmpty (Point Double, Point Double, Point Double))
+    CurveTo !Origin ![(Point Double, Point Double, Point Double)]
   | -- | Smooth cubic bezier, equivalent to 'S' or 's' command
-    SmoothCurveTo !Origin !(NonEmpty (Point Double, Point Double))
+    SmoothCurveTo !Origin ![(Point Double, Point Double)]
   | -- | Quadratic bezier, 'Q' or 'q' command
-    QuadraticBezier !Origin !(NonEmpty (Point Double, Point Double))
+    QuadraticBezier !Origin ![(Point Double, Point Double)]
   | -- | Quadratic bezier, 'T' or 't' command
-    SmoothQuadraticBezierCurveTo !Origin !(NonEmpty (Point Double))
+    SmoothQuadraticBezierCurveTo !Origin ![Point Double]
   | -- | Elliptical arc, 'A' or 'a' command.
-    EllipticalArc !Origin !(NonEmpty (Double, Double, Double, Bool, Bool, Point Double))
+    EllipticalArc !Origin ![(Double, Double, Double, Bool, Bool, Point Double)]
   | -- | Close the path, 'Z' or 'z' svg path command.
     EndPath
   deriving (Eq, Show, Generic)
@@ -253,51 +253,55 @@ data PathCursor = PathCursor
 stateCur0 :: PathCursor
 stateCur0 = PathCursor zero zero Nothing
 
-svgToPathData :: Text -> NonEmpty (PathData Double)
+svgToPathData :: Text -> [PathData Double]
 svgToPathData = toPathDatas . either error id . parsePath
 
 -- | convert [PathData] to an svg d path text.
 --
-pathDataToSvg :: NonEmpty (PathData Double) -> Text
-pathDataToSvg xs = Text.intercalate " " $ toList $ fmap toPathAbsolute xs
+pathDataToSvg :: [PathData Double] -> Text
+pathDataToSvg xs = Text.intercalate " " $ fmap toPathAbsolute xs
 
 -- | Convert from a path command list to a PathA specification
-toPathDatas :: NonEmpty PathCommand -> NonEmpty (PathData Double)
-toPathDatas xs = fmap svgCoords $ sconcat $ flip evalState stateCur0 $ sequence $ toInfo <$> xs
+toPathDatas :: [PathCommand] -> [PathData Double]
+toPathDatas xs = fmap svgCoords $ mconcat $ flip evalState stateCur0 $ sequence $ toInfo <$> xs
 
 -- | Convert relative points to absolute points
-relToAbs :: (Additive a) => a -> NonEmpty a -> NonEmpty a
-relToAbs p (x:|xs) = fmap (p+) $ foldr (\a ps -> a+head ps<|ps) [x] xs
+-- FIXME: does this need reversing?
+relToAbs :: (Additive a) => a -> [a] -> [a]
+relToAbs _ [] = []
+relToAbs p (x:xs) = fmap (p+) $ foldr (\a ps -> a+head ps:ps) [x] xs
 
-moveTo :: NonEmpty (Point Double) -> State PathCursor (NonEmpty (PathData Double))
+moveTo :: [Point Double] -> State PathCursor [PathData Double]
 moveTo xs = do
   put (PathCursor (last xs) (head xs) Nothing)
-  pure (StartP (head xs) :| (LineP <$> tail xs))
+  pure (StartP (head xs) : (LineP <$> tail xs))
 
-lineTo :: NonEmpty (Point Double) -> State PathCursor (NonEmpty (PathData Double))
+lineTo :: [Point Double] -> State PathCursor [PathData Double]
 lineTo xs = do
   modify ((#curPrevious .~ last xs) . (#curControl .~ Nothing))
   pure $ LineP <$> xs
 
-horTo :: NonEmpty Double -> State PathCursor (NonEmpty (PathData Double))
+horTo :: [Double] -> State PathCursor [PathData Double]
 horTo xs = do
   (PathCursor (Point _ y) _ _) <- get
   lineTo (fmap (\x -> Point x y) xs)
 
-verTo :: NonEmpty Double -> State PathCursor (NonEmpty (PathData Double))
+verTo :: [Double] -> State PathCursor [PathData Double]
 verTo ys = do
   (PathCursor (Point x _) _ _) <- get
   lineTo (fmap (\y -> Point x y) ys)
 
-curveTo :: NonEmpty (Point Double, Point Double, Point Double) -> State PathCursor (NonEmpty (PathData Double))
+curveTo :: [(Point Double, Point Double, Point Double)] -> State PathCursor [PathData Double]
 curveTo xs = do
   modify ((#curPrevious .~ (\(_,_,p) -> p) (last xs)) .
           (#curControl .~ Just ((\(_,c2,_) -> c2) (last xs))))
   pure $ (\(c1, c2, x2) -> CubicP c1 c2 x2) <$> xs
 
 -- | Convert relative points to absolute points
-relToAbs3 :: Additive a => a -> NonEmpty (a,a,a) -> NonEmpty (a,a,a)
-relToAbs3 p (x:|xs) = fmap (\(y,z,w) -> (p+y,p+z,p+w)) $ foldr (\(a,a',a'') ps -> (\(q,q',q'') -> (q+a,q'+a',q''+a'')) (head ps)<|ps) [x] xs
+-- FIXME: needs reversing?
+relToAbs3 :: Additive a => a -> [(a,a,a)] -> [(a,a,a)]
+relToAbs3 _ [] = []
+relToAbs3 p (x:xs) = fmap (\(y,z,w) -> (p+y,p+z,p+w)) $ foldr (\(a,a',a'') ps -> (\(q,q',q'') -> (q+a,q'+a',q''+a'')) (head ps):ps) [x] xs
 
 reflControlPoint :: State PathCursor (Point Double)
 reflControlPoint = do
@@ -312,15 +316,16 @@ smoothCurveToStep (c2, x2) = do
   modify ((#curControl .~ Just c2) . (#curPrevious .~ x2))
   pure (CubicP c1 c2 x2)
 
-smoothCurveTo :: NonEmpty (Point Double, Point Double) -> State PathCursor (NonEmpty (PathData Double))
+smoothCurveTo :: [(Point Double, Point Double)] -> State PathCursor [PathData Double]
 smoothCurveTo xs = do
   sequence (smoothCurveToStep <$> xs)
 
 -- | Convert relative points to absolute points
-relToAbs2 :: Additive a => a -> NonEmpty (a,a) -> NonEmpty (a,a)
-relToAbs2 p (x:|xs) = fmap (bimap (p +) (p +)) $ foldr (\(a,a') ps -> (\(q,q') -> (q+a,q'+a')) (head ps)<|ps) [x] xs
+relToAbs2 :: Additive a => a -> [(a,a)] -> [(a,a)]
+relToAbs2 _ [] = []
+relToAbs2 p (x:xs) = fmap (bimap (p +) (p +)) $ foldr (\(a,a') ps -> (\(q,q') -> (q+a,q'+a')) (head ps):ps) [x] xs
 
-quad :: NonEmpty (Point Double, Point Double) -> State PathCursor (NonEmpty (PathData Double))
+quad :: [(Point Double, Point Double)] -> State PathCursor [PathData Double]
 quad xs = do
   modify ((#curPrevious .~ snd (last xs)) .
           (#curControl .~ Just (fst (last xs))))
@@ -332,11 +337,11 @@ smoothQuadStep x2 = do
   modify ((#curControl .~ Just c1) . (#curPrevious .~ x2))
   pure (QuadP c1 x2)
 
-smoothQuad :: NonEmpty (Point Double) -> State PathCursor (NonEmpty (PathData Double))
+smoothQuad :: [Point Double] -> State PathCursor [PathData Double]
 smoothQuad xs = do
   sequence (smoothQuadStep <$> xs)
 
-arcTo :: NonEmpty (Double, Double, Double, Bool, Bool, Point Double) -> State PathCursor (NonEmpty (PathData Double))
+arcTo :: [(Double, Double, Double, Bool, Bool, Point Double)] -> State PathCursor [PathData Double]
 arcTo xs = do
   modify ((#curPrevious .~ (\(_,_,_,_,_,p) -> p) (last xs)) . (#curControl .~ Nothing))
   pure $ fromPathEllipticalArc <$> xs
@@ -345,16 +350,17 @@ fromPathEllipticalArc :: (a, a, a, Bool, Bool, Point a) -> PathData a
 fromPathEllipticalArc (x, y, r, l, s, p) = ArcP (ArcInfo (Point x y) r l s) p
 
 -- | Convert relative points to absolute points
-relToAbsArc :: Additive a => Point a -> NonEmpty (a,a,a,Bool,Bool,Point a) -> NonEmpty (a,a,a,Bool,Bool,Point a)
-relToAbsArc p (x:|xs) =
+relToAbsArc :: Additive a => Point a -> [(a,a,a,Bool,Bool,Point a)] -> [(a,a,a,Bool,Bool,Point a)]
+relToAbsArc _ [] = []
+relToAbsArc p (x:xs) =
   fmap (\(y0,y1,y2,y3,y4,y5) -> (y0,y1,y2,y3,y4,p+y5)) $
-  foldr (\(_,_,_,_,_,a) ps -> (\(y0,y1,y2,y3,y4,y5) -> (y0,y1,y2,y3,y4,y5+a)) (head ps)<|ps) [x] xs
+  foldr (\(_,_,_,_,_,a) ps -> (\(y0,y1,y2,y3,y4,y5) -> (y0,y1,y2,y3,y4,y5+a)) (head ps):ps) [x] xs
 
 -- | Convert a path command fragment to PathData
 --
 -- flips the y-dimension of points.
 --
-toInfo :: PathCommand -> State PathCursor (NonEmpty (PathData Double))
+toInfo :: PathCommand -> State PathCursor [PathData Double]
 toInfo (MoveTo OriginAbsolute xs) = moveTo xs
 toInfo (MoveTo OriginRelative xs) = do
   (PathCursor p _ _) <- get

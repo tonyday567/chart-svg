@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Surface chart combinators.
@@ -35,7 +34,6 @@ import Data.FormatN
 import Data.Text (Text)
 import GHC.Generics
 import Prelude
-import Data.List.NonEmpty (NonEmpty(..))
 import Chart.Data
 import Data.Bool
 import Data.Foldable
@@ -64,7 +62,7 @@ defaultSurfaceOptions =
 -- ![surface example](other/surface.svg)
 data SurfaceStyle = SurfaceStyle
   { -- | list of colours to interpolate between.
-    surfaceColors :: NonEmpty Colour,
+    surfaceColors :: [Colour],
     surfaceRectStyle :: RectStyle
   }
   deriving (Show, Eq, Generic)
@@ -100,11 +98,11 @@ mkSurfaceData ::
   Grid (Rect Double) ->
   [Colour] ->
   ([SurfaceData], Range Double)
-mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (blends y cs)) <$> ps', space1 rs)
+mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (blends y cs)) <$> ps', unsafeSpace1 rs)
   where
     ps = gridF f r g
     rs = snd <$> ps
-    rs' = project (space1 rs :: Range Double) (Range 0 1) <$> rs
+    rs' = project (unsafeSpace1 rs :: Range Double) (Range 0 1) <$> rs
     ps' = zip (fst <$> ps) rs'
 
 -- | create a surface chart from a function.
@@ -214,9 +212,10 @@ isHori l =
     || l ^. #sloLegendOptions % #place == PlaceTop
 
 makeSurfaceTick :: SurfaceLegendOptions -> Charts (Maybe Text) -> Charts (Maybe Text)
-makeSurfaceTick l pchart = phud
-  where
-    r = view styleBox' pchart
-    r' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
-    (hs, db) = toHuds (mempty & set #chartAspect ChartAspect & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r
-    phud = runHudWith r' db hs pchart
+makeSurfaceTick l pchart = case view styleBox' pchart of
+  Nothing -> pchart
+  Just r' -> phud
+    where
+      r'' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
+      (hs, db) = toHuds (mempty & set #chartAspect ChartAspect & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r'
+      phud = runHudWith r'' db hs pchart

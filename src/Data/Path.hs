@@ -1,8 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | SVG path manipulation
@@ -51,9 +49,8 @@ where
 import qualified Control.Foldl as L
 import GHC.Generics
 import qualified Geom2D.CubicBezier as B
-import NumHask.Prelude hiding (head, last, tail)
+import NumHask.Prelude
 import Chart.Data
-import Data.List.NonEmpty (NonEmpty (..))
 import Control.Monad.State.Lazy
 
 -- $setup
@@ -104,7 +101,7 @@ scalePath x (CubicP c1 c2 p) = CubicP (fmap (x*) c1) (fmap (x*) c2) (fmap (x*) p
 scalePath x (QuadP c p) = QuadP (fmap (x*) c) (fmap (x*) p)
 scalePath x (ArcP i p) = ArcP i (fmap (x*) p)
 
-projectPaths :: Rect Double -> Rect Double -> NonEmpty (PathData Double) -> NonEmpty (PathData Double)
+projectPaths :: Rect Double -> Rect Double -> [PathData Double] -> [PathData Double]
 projectPaths new old ps =
   flip evalState zero $
   sequence $ (\p -> do
@@ -128,19 +125,19 @@ projectPath new old _ (LineP p) = LineP (projectOnP new old p)
 projectPath new old _ (StartP p) = StartP (projectOnP new old p)
 
 -- | convert cubic position to path data.
-singletonCubic :: CubicPosition Double -> NonEmpty (PathData Double)
+singletonCubic :: CubicPosition Double -> [PathData Double]
 singletonCubic (CubicPosition s e c1 c2) = [StartP s, CubicP c1 c2 e]
 
 -- | convert quad position to path data.
-singletonQuad :: QuadPosition Double -> NonEmpty (PathData Double)
+singletonQuad :: QuadPosition Double -> [PathData Double]
 singletonQuad (QuadPosition s e c) = [StartP s, QuadP c e]
 
 -- | convert arc position to path data.
-singletonArc :: ArcPosition Double -> NonEmpty (PathData Double)
+singletonArc :: ArcPosition Double -> [PathData Double]
 singletonArc (ArcPosition s e i) = [StartP s, ArcP i e]
 
 -- | convert arc position to a pie slice, with a specific center.
-singletonPie :: Point Double -> ArcPosition Double -> NonEmpty (PathData Double)
+singletonPie :: Point Double -> ArcPosition Double -> [PathData Double]
 singletonPie c (ArcPosition s e i) = [StartP c, LineP s, ArcP i e, LineP c]
 
 -- * Arc types
@@ -256,7 +253,7 @@ ellipse c r phi' theta = c + (rotate phi' |. (r * ray theta))
 -- > arcBox p
 -- Rect -8.326672684688674e-17 0.9999999999999998 -5.551115123125783e-17 0.30644649676616753
 arcBox :: ArcPosition Double -> Rect Double
-arcBox p = space1 pts
+arcBox p = unsafeSpace1 pts
   where
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
     (x', y') = arcDerivs r phi'
@@ -359,7 +356,7 @@ quadDerivs (QuadPosition start' end control) = [x', y']
 -- >>> quadBox (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
 -- Rect 0.0 1.3333333333333335 -0.33333333333333337 1.0
 quadBox :: QuadPosition Double -> Rect Double
-quadBox p = space1 pts
+quadBox p = unsafeSpace1 pts
   where
     ts = quadDerivs p
     pts = quadBezier p <$> ([0, 1] <> ts)
@@ -456,7 +453,7 @@ cubicDerivs
 -- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
 -- Rect 0.0 1.0 -0.20710678118654752 1.2071067811865475
 cubicBox :: CubicPosition Double -> Rect Double
-cubicBox p = space1 pts
+cubicBox p = unsafeSpace1 pts
   where
     ts = cubicDerivs p
     pts =
@@ -466,8 +463,9 @@ cubicBox p = space1 pts
           ([0, 1] <> ts)
 
 -- | Bounding box for a list of path XYs.
-pathBoxes :: NonEmpty (PathData Double) -> Rect Double
-pathBoxes (x :| xs) =
+pathBoxes :: [PathData Double] -> Maybe (Rect Double)
+pathBoxes [] = Nothing
+pathBoxes (x:xs) = Just $
   L.fold (L.Fold step begin snd) xs
   where
     begin :: (Point Double, Rect Double)
@@ -479,7 +477,7 @@ pathBox :: Point Double -> PathData Double -> Rect Double
 pathBox start' info =
   case info of
     StartP p -> singleton p
-    LineP p -> space1 ([start', p] :: NonEmpty (Point Double))
+    LineP p -> unsafeSpace1 [start', p]
     CubicP c1 c2 p -> cubicBox (CubicPosition start' p c1 c2)
     QuadP c p -> quadBox (QuadPosition start' p c)
     ArcP i p -> arcBox (ArcPosition start' p i)

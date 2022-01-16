@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -22,6 +21,7 @@ module Chart.Primitive
     box,
     sbox,
     projectWith,
+    maybeProjectWith,
     moveChart,
     scaleChart,
     scaleStyle,
@@ -29,10 +29,8 @@ module Chart.Primitive
     projectCharts,
     boxes,
     box',
-    unsafeBoxes,
     styleBoxes,
     styleBox',
-    unsafeStyleBoxes,
     vert,
     hori,
     stack,
@@ -50,11 +48,9 @@ import Data.Bifunctor
 import Data.Path
 import Data.Text (Text)
 import Prelude
-import Data.List.NonEmpty (NonEmpty(..))
 import Optics.Core
 import Chart.Data
 import Data.Foldable
-import Data.Semigroup
 import Data.Maybe
 import Data.Colour
 import GHC.Generics
@@ -88,12 +84,12 @@ import Data.Bool
 --
 data Chart
   where
-    RectChart :: RectStyle -> NonEmpty (Rect Double) -> Chart
-    LineChart :: LineStyle -> NonEmpty (NonEmpty (Point Double)) -> Chart
-    GlyphChart :: GlyphStyle -> NonEmpty (Point Double) -> Chart
-    TextChart :: TextStyle -> NonEmpty (Text, Point Double) -> Chart
-    PathChart :: PathStyle -> NonEmpty (PathData Double) -> Chart
-    BlankChart :: NonEmpty (Rect Double) -> Chart
+    RectChart :: RectStyle -> [Rect Double] -> Chart
+    LineChart :: LineStyle -> [[Point Double]] -> Chart
+    GlyphChart :: GlyphStyle -> [Point Double] -> Chart
+    TextChart :: TextStyle -> [(Text, Point Double)] -> Chart
+    PathChart :: PathStyle -> [PathData Double] -> Chart
+    BlankChart :: [Rect Double] -> Chart
     deriving (Eq, Show)
 
 newtype Charts a = Charts { tree :: Tree (a, [Chart]) } deriving (Eq, Show, Generic)
@@ -142,13 +138,13 @@ instance Monoid (Charts (Maybe Text)) where
 -- 'box' provides a 'Rect' which defines the rectangle that encloses the chart (the bounding box) of the data elements of the chart.
 -- >>> box r
 --
-box :: Chart -> Rect Double
-box (RectChart _ a) = foldRectUnsafe a
+box :: Chart -> Maybe (Rect Double)
+box (RectChart _ a) = foldRect a
 box (TextChart _ a) = space1 $ snd <$> a
-box (LineChart _ a) = space1 $ sconcat a
+box (LineChart _ a) = space1 $ mconcat a
 box (GlyphChart _ a) = space1 a
 box (PathChart _ a) = pathBoxes a
-box (BlankChart a) = foldRectUnsafe a
+box (BlankChart a) = foldRect a
 
 -- | the bounding box for a chart including both data and style elements.
 --
@@ -157,13 +153,13 @@ box (BlankChart a) = foldRectUnsafe a
 --
 -- In the above example, the border of the rectangle adds an extra 0.1 to the height and width of the bounding box enclosing the chart.
 --
-sbox :: Chart -> Rect Double
-sbox (RectChart s a) = foldRectUnsafe $ padRect (0.5 * view #borderSize s) <$> a
-sbox (TextChart s a) = foldRectUnsafe $ uncurry (styleBoxText s) <$> a
-sbox (LineChart s a) = padRect (0.5 * s ^. #size) $ space1 $ sconcat a
-sbox (GlyphChart s a) = foldRectUnsafe $ (\p -> addPoint p (styleBoxGlyph s)) <$> a
-sbox (PathChart s a) = padRect (0.5 * view #borderSize s) (pathBoxes a)
-sbox (BlankChart a) = foldRectUnsafe a
+sbox :: Chart -> Maybe (Rect Double)
+sbox (RectChart s a) = foldRect $ padRect (0.5 * view #borderSize s) <$> a
+sbox (TextChart s a) = foldRect $ uncurry (styleBoxText s) <$> a
+sbox (LineChart s a) = padRect (0.5 * s ^. #size) <$> (space1 $ mconcat a)
+sbox (GlyphChart s a) = foldRect $ (\p -> addPoint p (styleBoxGlyph s)) <$> a
+sbox (PathChart s a) = padRect (0.5 * view #borderSize s) <$> pathBoxes a
+sbox (BlankChart a) = foldRect a
 
 -- | projects a Chart to a new rectangular space from an old rectangular space, preserving linear metric structure.
 --
@@ -183,6 +179,9 @@ projectWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$>
 projectWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
 projectWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
 projectWith new old (PathChart s a) = PathChart s (projectPaths new old a)
+
+maybeProjectWith :: Maybe (Rect Double) -> Maybe (Rect Double) -> Chart -> Chart
+maybeProjectWith new old = fromMaybe id (projectWith <$> new <*> old)
 
 -- | move a chart
 moveChart :: Point Double -> Chart -> Chart
@@ -239,35 +238,37 @@ colourChart _ (BlankChart d) = BlankChart d
 
 -- | expands singleton dimensions, avoiding zero divides
 projectCharts :: Rect Double -> [Chart] -> [Chart]
-projectCharts new cs = projectWith new (styleBoxes cs) <$> cs
+projectCharts new cs = case styleBoxes cs of
+  Nothing -> cs
+  Just b -> projectWith new b <$> cs
 
-boxes :: (Foldable f, Functor f) => f Chart -> Rect Double
-boxes cs = fromMaybe one $ foldRect $ toList $ box <$> cs
+boxes :: [Chart] -> Maybe (Rect Double)
+boxes cs = foldRect $ mconcat $ maybeToList . box <$> cs
 
-box_ :: Charts a -> Rect Double
+box_ :: Charts a -> Maybe (Rect Double)
 box_ = boxes . foldOf charts'
 
-rebox_ :: Charts a -> Rect Double -> Charts a
+rebox_ :: Charts a -> Maybe (Rect Double) -> Charts a
 rebox_ cs r =
   cs &
-  over chart' (projectWith r (box_ cs))
+  over chart' (fromMaybe id $ projectWith <$> r <*> box_ cs)
 
-box' :: Lens' (Charts a) (Rect Double)
+box' :: Lens' (Charts a) (Maybe (Rect Double))
 box' =
   lens box_ rebox_
 
-styleBoxes :: (Foldable f, Functor f) => f Chart -> Rect Double
-styleBoxes cs = fromMaybe one $ foldRect $ toList $ sbox <$> cs
+styleBoxes :: [Chart] -> Maybe (Rect Double)
+styleBoxes cs = foldRect $ mconcat $ maybeToList . sbox <$> cs
 
-styleBox_ :: Charts a -> Rect Double
+styleBox_ :: Charts a -> Maybe (Rect Double)
 styleBox_ = styleBoxes . foldOf charts'
 
-styleRebox_ :: Charts a -> Rect Double -> Charts a
+styleRebox_ :: Charts a -> Maybe (Rect Double) -> Charts a
 styleRebox_ cs r =
   cs &
-  over chart' (projectWith r' (box_ cs))
+  over chart' (fromMaybe id $ projectWith <$> r' <*> box_ cs)
   where
-    r' = r NH.- (styleBox_ cs NH.- box_ cs)
+    r' = (NH.-) <$> r <*> ((NH.-) <$> styleBox_ cs <*> box_ cs)
 
 -- |
 --
@@ -306,27 +307,21 @@ styleRebox_ cs r =
 --
 -- >>> view styleBox' $ foldr ($) (x1 0.002) (replicate 10 (set styleBox' one))
 -- Rect -0.5 0.5000000000000001 -0.5 0.4999999999999999
-styleBox' :: Lens' (Charts a) (Rect Double)
+styleBox' :: Lens' (Charts a) (Maybe (Rect Double))
 styleBox' =
   lens styleBox_ styleRebox_
-
-unsafeBoxes :: (Foldable f, Functor f) => f Chart -> Rect Double
-unsafeBoxes cs = foldRectUnsafe $ box <$> cs
-
-unsafeStyleBoxes :: (Foldable f, Functor f) => f Chart -> Rect Double
-unsafeStyleBoxes cs = foldRectUnsafe $ sbox <$> cs
 
 -- | Create a frame over some charts with (additive) padding.
 --
 -- >>> frameChart defaultRectStyle 0.1 [Chart BlankA []]
 -- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = []},Chart {annotation = BlankA, xys = []}]
 frameChart :: RectStyle -> Double -> [Chart] -> Chart
-frameChart rs p cs = RectChart rs [padRect p (styleBoxes cs)]
+frameChart rs p cs = RectChart rs (maybeToList (padRect p <$> styleBoxes cs))
 
 -- | additively pad a [Chart]
 --
 padChart :: Double -> [Chart] -> Chart
-padChart p cs = BlankChart [padRect p (styleBoxes cs)]
+padChart p cs = BlankChart (maybeToList (padRect p <$> styleBoxes cs))
 
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: (Monoid (Charts a)) => Double -> [Charts a] -> Charts a
@@ -336,10 +331,10 @@ hori gap cs = foldl' step mempty cs
     step x c = x <> over chart' (moveChart (Point (widthx x) (aligny x - aligny c))) c
     widthx x = case foldOf charts' x of
       [] -> zero
-      xs -> (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
+      xs -> maybe zero (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
     aligny x = case foldOf charts' x of
       [] -> zero
-      xs -> (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
+      xs -> maybe zero (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
 
 -- | vertically stack a list of Charts (proceeding upwards), aligning them to the left
 vert :: (Monoid (Charts a)) => Double -> [Charts a] -> Charts a
@@ -349,10 +344,10 @@ vert gap cs = foldl' step mempty cs
     step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (widthy x))) c
     widthy x = case foldOf charts' x of
       [] -> zero
-      xs -> (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
+      xs -> maybe zero (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
     alignx x = case foldOf charts' x of
       [] -> zero
-      xs -> (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+      xs -> maybe zero (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
 -- | stack a list of charts horizontally, then vertically
 stack :: (Monoid (Charts a)) => Int -> Double -> [Charts a] -> Charts a
@@ -367,7 +362,7 @@ rectangularize r c = group (Just "rectangularize") [over chart' (rectangularize_
 
 rectangularize_ :: RectStyle -> Chart -> Chart
 rectangularize_ rs (TextChart s xs) = TextChart (s & #frame .~ Just rs) xs
-rectangularize_ rs c = RectChart rs [sbox c]
+rectangularize_ rs c = RectChart rs (maybeToList $ sbox c)
 
 glyphize :: GlyphStyle -> Charts (Maybe Text) -> Charts (Maybe Text)
 glyphize g c =
@@ -376,7 +371,7 @@ glyphize g c =
 glyphize_ :: GlyphStyle -> Chart -> Chart
 glyphize_ g (TextChart _ xs) = GlyphChart g (snd <$> xs)
 glyphize_ g (PathChart _ xs) = GlyphChart g (pointPath <$> xs)
-glyphize_ g (LineChart _ xs) = GlyphChart g (sconcat xs)
+glyphize_ g (LineChart _ xs) = GlyphChart g (mconcat xs)
 glyphize_ g (BlankChart xs) = GlyphChart g (mid <$> xs)
 glyphize_ g (RectChart _ xs) = GlyphChart g (mid <$> xs)
 glyphize_ g (GlyphChart _ xs) = GlyphChart g xs

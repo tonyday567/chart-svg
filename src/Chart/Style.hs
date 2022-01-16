@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -54,9 +53,7 @@ import Text.HTML.TagSoup (maybeTagText, parseTags)
 import Data.Path
 import Chart.Data
 import Data.Path.Parser
-import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List as List
-import Data.Foldable
 
 -- $setup
 --
@@ -243,8 +240,8 @@ styleBoxGlyph s = move p' $
     RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
     VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
     HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
-    TriangleGlyph a b c -> (sz *) <$> space1 ([a,b,c] :: NonEmpty (Point Double))
-    PathGlyph path' _ -> (sz *) <$> (pathBoxes . svgToPathData $ path')
+    TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 [a,b,c]
+    PathGlyph path' _ -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
   where
     sh = s ^. #shape
     sz = s ^. #size
@@ -257,10 +254,10 @@ styleBoxGlyph s = move p' $
 -- >>> gpalette1 0
 -- CircleGlyph
 gpalette1 :: Int -> GlyphShape
-gpalette1 x = cycle (toList gpalette1_) List.!! x
+gpalette1 x = cycle gpalette1_ List.!! x
 
 -- | finite list of glyphs
-gpalette1_ :: NonEmpty GlyphShape
+gpalette1_ :: [GlyphShape]
 gpalette1_ =
   [ CircleGlyph,
     SquareGlyph,
