@@ -37,6 +37,8 @@ module Chart.Hud
     AxisOptions (..),
     defaultAxisOptions,
     flipAxis,
+    FrameOptions (..),
+    defaultFrameOptions,
     Place (..),
     placeText,
     AxisBar (..),
@@ -249,7 +251,7 @@ defaultHudOptions =
       (5, defaultAxisOptions),
       (5, defaultAxisOptions & set #place PlaceLeft)
     ]
-    [(1, defaultCanvas)]
+    [(1, defaultFrameOptions)]
     []
     []
 
@@ -374,9 +376,6 @@ colourHudOptions f o =
       a &
        over #frame (fmap (over #color f . over #borderColor f))
 
--- | The official hud canvas
-defaultCanvas :: FrameOptions
-defaultCanvas = FrameOptions (Just (blob (Colour 1 1 1 0.02))) 0
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -592,6 +591,10 @@ data FrameOptions = FrameOptions
   { frame :: Maybe RectStyle,
     buffer :: Double
   } deriving (Eq, Show, Generic)
+
+-- | The official hud frame
+defaultFrameOptions :: FrameOptions
+defaultFrameOptions = FrameOptions (Just (blob (Colour 1 1 1 0.02))) 0
 
 -- | Make a frame hud transformation.
 frameHud :: FrameOptions -> State HudChart (Charts (Maybe Text))
