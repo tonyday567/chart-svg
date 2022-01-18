@@ -46,7 +46,6 @@ import Data.Path.Parser
 -- $setup
 --
 -- >>> :set -XOverloadedLabels
--- >>> :set -XOverloadedLists
 -- >>> import Chart
 -- >>> import Optics.Core
 
