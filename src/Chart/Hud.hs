@@ -23,6 +23,7 @@ module Chart.Hud
     hudBox',
     hudStyleBox',
     HudOptions (..),
+    Priority,
     defaultHudOptions,
     colourHudOptions,
     runHudWith,
