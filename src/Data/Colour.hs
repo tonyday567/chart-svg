@@ -3,17 +3,20 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 -- | Colour representations and combinations, based on <https://hackage.haskell.org/package/Color>
 module Data.Colour
   ( Colour,
     pattern Colour,
+    validColour,
+    validate,
+    showRGBA,
+    showRGB,
     opac,
     opac',
     hex,
     rgb,
-    blend,
-    blends,
     toHex,
     fromHex,
     unsafeFromHex,
@@ -37,6 +40,8 @@ import qualified Data.Text as Text
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model
 import Optics.Core
+import Data.Bool
+import NeatInterpolation
 
 -- | Wrapper for 'Color'.
 newtype Colour = Colour'
@@ -50,9 +55,10 @@ pattern Colour r g b a = Colour' (ColorRGBA r g b a)
 
 {-# COMPLETE Colour #-}
 
-instance Show Colour where
-  show (Colour r g b a) =
-    Text.unpack $
+instance Show Colour
+  where
+    show (Colour r g b a) =
+      Text.unpack $
       "Colour "
         <> fixed (Just 2) r
         <> " "
@@ -61,6 +67,37 @@ instance Show Colour where
         <> fixed (Just 2) b
         <> " "
         <> fixed (Just 2) a
+
+-- | css representation
+showRGBA :: Colour -> Text
+showRGBA (Colour r' g' b' a') =
+  [trimming|rgba($r, $g, $b, $a)|]
+    where
+      r = percent (fixed (Just 0)) r'
+      g = percent (fixed (Just 0)) g'
+      b = percent (fixed (Just 0)) b'
+      a = fixed (Just 2) a'
+
+-- | css representation
+showRGB :: Colour -> Text
+showRGB (Colour r' g' b' _) =
+  [trimming|rgb($r, $g, $b)|]
+    where
+      r = percent (fixed (Just 0)) r'
+      g = percent (fixed (Just 0)) g'
+      b = percent (fixed (Just 0)) b'
+
+-- >>> validColour (Colour 1 1 1.01 1)
+-- False
+validColour :: Colour -> Bool
+validColour (Colour r g b o) = r >= 0 && r <= 1 && g >= 0 && g <= 1 && b >= 0 && b <= 1 && o >= 0 && o <= 1
+
+-- | Validate that the Colout is in gamut
+--
+-- >>> validate (Colour 1 1 1.01 1)
+-- Nothing
+validate :: Colour -> Maybe Colour
+validate c = bool Nothing (Just c) (validColour c)
 
 -- | opac
 opac :: Colour -> Double
@@ -77,35 +114,6 @@ hex c = toHex c
 -- | resets RGB color but not opacity
 rgb :: Colour -> Colour -> Colour
 rgb (Colour r g b _) (Colour _ _ _ o) = Colour r g b o
-
--- | interpolate between 2 colors
-blend :: Double -> Colour -> Colour -> Colour
-blend c (Colour r g b a) (Colour r' g' b' a') = Colour r'' g'' b'' a''
-  where
-    r'' = r + c * (r' - r)
-    g'' = g + c * (g' - g)
-    b'' = b + c * (b' - b)
-    a'' = a + c * (a' - a)
-
--- | interpolate across a list of Colours, with input being in Range 0 1
---
--- >>> blends 0 [black, (Colour 0.2 0.6 0.8 0.5), white] == black
--- True
---
--- >>> blends 1 [black, (Colour 0.2 0.6 0.8 0.5), white] == white
--- True
---
--- >>> blends 0.6 [black, (Colour 0.2 0.6 0.8 0.5), white]
--- Colour 0.36 0.68 0.84 0.60
-blends :: Double -> [Colour] -> Colour
-blends _ [] = light
-blends _ [c] = c
-blends x cs = blend r (cs List.!! i) (cs List.!! (i + 1))
-  where
-    l = length cs - 1
-    x' = x * fromIntegral l
-    i = max 0 (min (floor x') (l - 1))
-    r = x' - fromIntegral i
 
 -- |
 parseHex :: A.Parser (Color RGB Double)

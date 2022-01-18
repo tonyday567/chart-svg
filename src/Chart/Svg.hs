@@ -317,9 +317,9 @@ svgPath_ ps =
 attsRect :: RectStyle -> [Lucid.Attribute]
 attsRect o =
   [ term "stroke-width" (pack $ show $ o ^. #borderSize),
-    term "stroke" (hex $ o ^. #borderColor),
+    term "stroke" (showRGB $ o ^. #borderColor),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
-    term "fill" (hex $ o ^. #color),
+    term "fill" (showRGB $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
 
@@ -328,7 +328,7 @@ attsText :: TextStyle -> [Lucid.Attribute]
 attsText o =
   [ term "stroke-width" "0.0",
     term "stroke" "none",
-    term "fill" (toHex $ o ^. #color),
+    term "fill" (showRGB $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color),
     term "font-size" (pack $ show $ o ^. #size),
     term "text-anchor" (toTextAnchor $ o ^. #anchor)
@@ -343,9 +343,9 @@ attsText o =
 attsGlyph :: GlyphStyle -> [Lucid.Attribute]
 attsGlyph o =
   [ term "stroke-width" (pack $ show sw),
-    term "stroke" (toHex $ o ^. #borderColor),
+    term "stroke" (showRGB $ o ^. #borderColor),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
-    term "fill" (toHex $ o ^. #color),
+    term "fill" (showRGB $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
     <> foldMap ((: []) . term "transform" . toTranslateText) (o ^. #translate)
@@ -360,7 +360,7 @@ attsGlyph o =
 attsLine :: LineStyle -> [Lucid.Attribute]
 attsLine o =
   [ term "stroke-width" (pack $ show $ o ^. #size),
-    term "stroke" (toHex $ o ^. #color),
+    term "stroke" (showRGB $ o ^. #color),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #color),
     term "fill" "none"
   ]
@@ -373,9 +373,9 @@ attsLine o =
 attsPath :: PathStyle -> [Lucid.Attribute]
 attsPath o =
   [ term "stroke-width" (pack $ show $ o ^. #borderSize),
-    term "stroke" (hex $ o ^. #borderColor),
+    term "stroke" (showRGB $ o ^. #borderColor),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
-    term "fill" (hex $ o ^. #color),
+    term "fill" (showRGB $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
 

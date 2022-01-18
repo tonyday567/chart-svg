@@ -50,23 +50,27 @@ library
     Chart.Examples
     Chart.Surface
     Data.Colour
+    Data.Colour.Mix
     Data.Path
     Data.Path.Parser
 
   hs-source-dirs:     src
   build-depends:
+    , adjunctions           ^>= 4.4
     , attoparsec            >=0.13.2 && < 0.15
     , base                  >=4.7 && <5
     , Color                 ^>=0.3
     , containers            ^>=0.6
     , cubicbezier           ^>=0.6
     , foldl                 ^>=1.4
-    , neat-interpolation    ^>= 0.5.1
+    , neat-interpolation    ^>=0.5.1
     , optics-core           ^>=0.4
     , lucid                 ^>=2.9
     , mtl                   ^>=2.2.2
     , numhask               ^>=0.8
+    , numhask-array         ^>=0.9.1
     , numhask-space         ^>=0.8.2
+    , random                ^>=1.2.1
     , scientific            ^>=0.3
     , tagsoup               ^>=0.14
     , text                  ^>=1.2

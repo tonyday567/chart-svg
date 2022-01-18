@@ -21,6 +21,7 @@ module Chart
     module Chart.Bar,
     module Chart.Surface,
     module Data.Colour,
+    module Data.Colour.Mix,
     module Data.FormatN,
     module Data.Path,
     module Data.Path.Parser,
@@ -35,6 +36,7 @@ import Chart.Hud
 import Chart.Svg
 import Chart.Surface
 import Data.Colour
+import Data.Colour.Mix
 import Data.FormatN
 import Data.Path
 import NumHask.Space hiding (singleton)

@@ -34,8 +34,8 @@ module Chart.Examples
     addLineY,
     lineLegend,
     titlesHud,
-    blendMidLineStyles,
-    blendExample,
+    mixMidLineStyles,
+    mixExample,
 
     -- * debugging
     debugExample,
@@ -748,25 +748,25 @@ titlesHud t x y =
       defaultTitle y & #place .~ PlaceLeft & #style % #size .~ 0.08
     ]
 
--- | /blendMidLineStyle n w/ produces n lines of size w interpolated between two colors.
-blendMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
-blendMidLineStyles l w (c1, c2) = lo
+-- | /mixMidLineStyle n w/ produces n lines of size w interpolated between two colors.
+mixMidLineStyles :: Int -> Double -> (Colour, Colour) -> [LineStyle]
+mixMidLineStyles l w (c1, c2) = lo
   where
     m = (fromIntegral l - 1) / 2 :: Double
     cs = (\x -> 1 - abs (fromIntegral x - m) / m) <$> [0 .. (l - 1)]
-    bs = (\x -> blend x c1 c2) <$> cs
+    bs = (\x -> mix x c1 c2) <$> cs
     lo = (\c -> defaultLineStyle & #size .~ w & #color .~ c) <$> bs
 
--- | blend example
+-- | mix example
 --
 -- Interpolation of colours and points.
 --
--- ![blend example](other/blend.svg)
-blendExample :: ChartSvg
-blendExample = mempty & #hudOptions .~ defaultHudOptions & #charts .~ named "blend" (blendExampleChart 8 5 100 0.005 (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 0))
+-- ![mix example](other/mix.svg)
+mixExample :: ChartSvg
+mixExample = mempty & #hudOptions .~ defaultHudOptions & #charts .~ named "mix" (mixExampleChart 8 5 100 0.005 (Range 0 1) (Range 0 1) (Range 0 1) (Range 0 0))
 
-blendExampleChart :: Int -> Int -> Int -> Double -> Range Double -> Range Double -> Range Double -> Range Double -> [Chart]
-blendExampleChart cl c2 n s gx' gy' hx' hy' = l
+mixExampleChart :: Int -> Int -> Int -> Double -> Range Double -> Range Double -> Range Double -> Range Double -> [Chart]
+mixExampleChart cl c2 n s gx' gy' hx' hy' = l
   where
     gx = grid OuterPos gx' n
     gy = grid OuterPos gy' n
@@ -775,7 +775,7 @@ blendExampleChart cl c2 n s gx' gy' hx' hy' = l
     g = zipWith Point gx gy
     h = zipWith Point h0 h1
     gh = zipWith (\p p' -> [[p,p']]) g h
-    c = blendMidLineStyles (n+1) s (palette1 cl, palette1 c2)
+    c = mixMidLineStyles (n+1) s (palette1 cl, palette1 c2)
     l = zipWith LineChart c gh
 
 -- | Adding reference points and bounding boxes to visualize chart alignment and debug.
@@ -813,7 +813,7 @@ pathChartSvg =
     ("other/arrow.svg",arrowExample),
     ("other/date.svg",dateExample),
     ("other/subchart.svg",subChartExample),
-    ("other/blend.svg",blendExample),
+    ("other/mix.svg",mixExample),
     ("other/debug.svg",debugExample lineExample)
   ]
 

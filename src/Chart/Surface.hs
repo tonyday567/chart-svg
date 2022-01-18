@@ -37,6 +37,7 @@ import Prelude
 import Chart.Data
 import Data.Bool
 import Data.Foldable
+import Data.Colour.Mix
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -98,7 +99,7 @@ mkSurfaceData ::
   Grid (Rect Double) ->
   [Colour] ->
   ([SurfaceData], Range Double)
-mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (blends y cs)) <$> ps', unsafeSpace1 rs)
+mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (mixes y cs)) <$> ps', unsafeSpace1 rs)
   where
     ps = gridF f r g
     rs = snd <$> ps
@@ -190,7 +191,7 @@ surfaceLegendChart dataRange l =
               dataRange
               (l ^. #sloResolution)
         )
-        ( (\x -> blends x (toList $ l ^. #sloStyle % #surfaceColors))
+        ( (\x -> mixes x (toList $ l ^. #sloStyle % #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
     horiGlyph :: [Chart]
@@ -202,7 +203,7 @@ surfaceLegendChart dataRange l =
               dataRange
               (l ^. #sloResolution)
         )
-        ( (\x -> blends x (toList $ l ^. #sloStyle % #surfaceColors))
+        ( (\x -> mixes x (toList $ l ^. #sloStyle % #surfaceColors))
             <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
         )
 
