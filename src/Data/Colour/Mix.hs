@@ -36,6 +36,13 @@ import GHC.Exts
 import Optics.Core
 import qualified Data.List as List
 
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
+
 -- | LCH colour representation
 --
 newtype LCH a = LCH' { lchArray :: Array '[3] a } deriving (Eq, Show, IsList, Functor)
@@ -220,14 +227,14 @@ mixLCHA x (LCHA l c h a) (LCHA l' c' h' a') = LCHA l'' c'' h'' a''
 
 -- | interpolate across a list of Colours, with input being in Range 0 1
 --
--- >>> mixes 0 [black, (Colour 0.2 0.6 0.8 0.5), white] == black
--- True
+-- >>> mixes 0 [black, (Colour 0.2 0.6 0.8 0.5), white]
+-- Colour 0.00 0.00 0.00 1.00
 --
--- >>> mixes 1 [black, (Colour 0.2 0.6 0.8 0.5), white] == white
--- True
+-- >>> mixes 1 [black, (Colour 0.2 0.6 0.8 0.5), white]
+-- Colour 0.99 0.99 0.99 1.00
 --
 -- >>> mixes 0.6 [black, (Colour 0.2 0.6 0.8 0.5), white]
--- Colour 0.36 0.68 0.84 0.60
+-- Colour 0.42 0.67 0.86 0.60
 mixes :: Double -> [Colour] -> Colour
 mixes _ [] = light
 mixes _ [c] = c

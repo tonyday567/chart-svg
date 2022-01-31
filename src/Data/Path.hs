@@ -54,7 +54,11 @@ import Chart.Data
 import Control.Monad.State.Lazy
 
 -- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
 -- >>> import Chart
+-- >>> import Optics.Core
 
 -- $path
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -310,7 +314,7 @@ data QuadPolar a = QuadPolar
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
--- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
 -- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {magnitude = 2.1213203435596424, direction = -0.7853981633974483}}
 quadPolar :: (Eq a, TrigField a, ExpField a) => QuadPosition a -> QuadPolar a
 quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
@@ -323,7 +327,7 @@ quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
 -- > quadPosition . quadPolar == id
 -- > quadPolar . quadPosition == id
 --
--- >>> quadPosition $ quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- >>> quadPosition $ quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
 -- QuadPosition {qposStart = Point 0.0 0.0, qposEnd = Point 1.0 1.0, qposControl = Point 2.0 -0.9999999999999998}
 quadPosition :: (TrigField a) => QuadPolar a -> QuadPosition a
 quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
@@ -332,7 +336,7 @@ quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
 
 -- | The quadratic bezier equation
 --
--- >>> quadBezier (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1)) 0.33333333
+-- >>> quadBezier (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))) 0.33333333
 -- Point 0.9999999933333332 -0.33333333333333326
 quadBezier :: (FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start' end control) theta =
@@ -342,7 +346,7 @@ quadBezier (QuadPosition start' end control) theta =
 
 -- | QuadPosition turning points.
 --
--- >>> quadDerivs (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- >>> quadDerivs (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
 -- [0.6666666666666666,0.3333333333333333]
 quadDerivs :: QuadPosition Double -> [Double]
 quadDerivs (QuadPosition start' end control) = [x', y']
@@ -353,7 +357,7 @@ quadDerivs (QuadPosition start' end control) = [x', y']
 
 -- | Bounding box for a QuadPosition
 --
--- >>> quadBox (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- >>> quadBox (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
 -- Rect 0.0 1.3333333333333335 -0.33333333333333337 1.0
 quadBox :: QuadPosition Double -> Rect Double
 quadBox p = unsafeSpace1 pts
@@ -394,7 +398,7 @@ data CubicPolar a = CubicPolar
 -- > cubicPosition . cubicPolar == id
 -- > cubicPolar . cubicPosition == id
 --
--- >>> cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
+-- >>> cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
 -- CubicPolar {cpolStart = Point 0.0 0.0, cpolEnd = Point 1.0 1.0, cpolControl1 = Polar {magnitude = 1.1180339887498947, direction = -1.2490457723982544}, cpolControl2 = Polar {magnitude = 1.1180339887498947, direction = 1.8925468811915387}}
 cubicPolar :: (Eq a, ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
 cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end control1' control2'
@@ -408,7 +412,7 @@ cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end 
 -- > cubicPosition . cubicPolar == id
 -- > cubicPolar . cubicPosition == id
 --
--- >>> cubicPosition $ cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
+-- >>> cubicPosition $ cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
 -- CubicPosition {cposStart = Point 0.0 0.0, cposEnd = Point 1.0 1.0, cposControl1 = Point 1.0 -1.0, cposControl2 = Point 1.6653345369377348e-16 2.0}
 cubicPosition :: (Eq a, TrigField a, ExpField a) => CubicPolar a -> CubicPosition a
 cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' end control1' control2'
@@ -418,7 +422,7 @@ cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' e
 
 -- | The cubic bezier equation
 --
--- >>> cubicBezier (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2)) 0.8535533905932737
+-- >>> cubicBezier (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2)) 0.8535533905932737
 -- Point 0.6767766952966369 1.2071067811865475
 cubicBezier :: (FromInteger a, TrigField a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start' end control1 control2) theta =
@@ -429,7 +433,7 @@ cubicBezier (CubicPosition start' end control1 control2) theta =
 
 -- | Turning point positions for a CubicPosition (0,1 or 2)
 --
--- >>> cubicDerivs (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
+-- >>> cubicDerivs (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
 -- [0.8535533905932737,0.14644660940672624,0.5]
 cubicDerivs :: CubicPosition Double -> [Double]
 cubicDerivs
@@ -450,7 +454,7 @@ cubicDerivs
 
 -- | Bounding box for a CubicPosition
 --
--- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
+-- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
 -- Rect 0.0 1.0 -0.20710678118654752 1.2071067811865475
 cubicBox :: CubicPosition Double -> Rect Double
 cubicBox p = unsafeSpace1 pts

@@ -42,6 +42,13 @@ import Optics.Core
 import Data.Bool
 import NeatInterpolation
 
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
+
 -- | Wrapper for 'Color'.
 newtype Colour = Colour'
   { color' :: Color (Alpha RGB) Double

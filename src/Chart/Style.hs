@@ -57,6 +57,10 @@ import qualified Data.List as List
 
 -- $setup
 --
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
 
 -- | Rectangle styling
 --
@@ -99,12 +103,8 @@ border s c = RectStyle s c transparent
 -- | Text styling
 --
 -- >>> defaultTextStyle
--- TextStyle {size = 8.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, vshift = -0.2, rotation = Nothing}
+-- TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}
 --
--- >>> import qualified Data.Text as Text
--- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
---
--- ![text example](other/text.svg)
 data TextStyle = TextStyle
   { size :: Double,
     color :: Colour,

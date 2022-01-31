@@ -58,6 +58,14 @@ import Data.Tree
 import qualified NumHask.Prelude as NH
 import Data.Bool
 
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
+-- >>> let r = RectChart defaultRectStyle [one]
+
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
 -- - 'RectChart': based on a rectangular space in the XY-domain. A 'Rect 0 1 0 1' is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on Rect Double's but the base types are polymorphic.
@@ -73,13 +81,13 @@ import Data.Bool
 --
 -- A simple example is:
 --
--- >>> let r = Chart defaultRectStyle [one]
+-- >>> let r = RectChart defaultRectStyle [one]
 -- >>> r
--- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}) (Rect -0.5 0.5 -0.5 0.5 :| [])
+-- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}) [Rect -0.5 0.5 -0.5 0.5]
 --
 -- Using the defaults, this chart is rendered as:
 --
--- >>> writeChartSvg "other/unit.hs" $ mempty & #charts .~ [r]
+-- > writeChartSvg "other/unit.hs" $ mempty & #charts .~ unnamed [r]
 --
 --
 data Chart
@@ -137,7 +145,7 @@ instance Monoid (Charts (Maybe Text)) where
 --
 -- 'box' provides a 'Rect' which defines the rectangle that encloses the chart (the bounding box) of the data elements of the chart.
 -- >>> box r
---
+-- Just Rect -0.5 0.5 -0.5 0.5
 box :: Chart -> Maybe (Rect Double)
 box (RectChart _ a) = foldRect a
 box (TextChart _ a) = space1 $ snd <$> a
@@ -149,7 +157,7 @@ box (BlankChart a) = foldRect a
 -- | the bounding box for a chart including both data and style elements.
 --
 -- >>> sbox r
--- Rect -0.505 0.505 -0.505 0.505
+-- Just Rect -0.505 0.505 -0.505 0.505
 --
 -- In the above example, the border of the rectangle adds an extra 0.1 to the height and width of the bounding box enclosing the chart.
 --
@@ -164,7 +172,7 @@ sbox (BlankChart a) = foldRect a
 -- | projects a Chart to a new rectangular space from an old rectangular space, preserving linear metric structure.
 --
 -- >>> projectWith (fmap (2*) one) one r
---
+-- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}) [Rect -1.0 1.0 -1.0 1.0]
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old (RectChart s a) = RectChart s (projectOnR new old <$> a)
 projectWith new old (TextChart s a) = TextChart (projectX s) (second (projectOnP new old) <$> a)
@@ -287,34 +295,34 @@ styleRebox_ cs r =
 -- >>> t1 = unnamed [RectChart defaultRectStyle [one]]
 -- >>> x1 h = toCharts $ mempty & set #charts t1 & set (#hudOptions % #chartAspect) (ChartAspect) & set (#hudOptions % #axes) [(1,defaultAxisOptions & over #bar (fmap (set #overhang h)) & set (#ticks % #ttick) Nothing & set (#ticks % #gtick) Nothing & set (#ticks % #ltick) Nothing)]
 --
--- WIth a significant overhang, the axis bar dominates the extrema:
+-- With a significant overhang, the axis bar dominates the extrema:
 --
--- >>> view styleBox' $ set styleBox' one (x1 0.1)
--- Rect -0.5 0.5 -0.5 0.5
+-- >>> view styleBox' $ set styleBox' (Just one) (x1 0.1)
+-- Just Rect -0.5 0.5 -0.5 0.5
 --
 -- With no overhang, the style additions caused by the chart dominates:
 --
--- >>> view styleBox' $ set styleBox' one (x1 0)
--- Rect -0.5 0.5 -0.5 0.5
+-- >>> view styleBox' $ set styleBox' (Just one) (x1 0)
+-- Just Rect -0.5 0.5 -0.5 0.5
 --
 -- In between:
 --
--- >>> view styleBox' $ set styleBox' one (x1 0.002)
--- Rect -0.5000199203187251 0.5000199203187251 -0.5 0.5
+-- >>> view styleBox' $ set styleBox' (Just one) (x1 0.002)
+-- Just Rect -0.5000199203187251 0.5000199203187251 -0.5 0.5
 --
 --
 -- If having an exact box is important, try running set styleBox' multiple times eg
 --
--- >>> view styleBox' $ foldr ($) (x1 0.002) (replicate 10 (set styleBox' one))
--- Rect -0.5 0.5000000000000001 -0.5 0.4999999999999999
+-- >>> view styleBox' $ foldr ($) (x1 0.002) (replicate 10 (set styleBox' (Just one)))
+-- Just Rect -0.5 0.5000000000000001 -0.5 0.4999999999999999
 styleBox' :: Lens' (Charts a) (Maybe (Rect Double))
 styleBox' =
   lens styleBox_ styleRebox_
 
 -- | Create a frame over some charts with (additive) padding.
 --
--- >>> frameChart defaultRectStyle 0.1 [Chart BlankA []]
--- [Chart {annotation = RectA (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}), xys = []},Chart {annotation = BlankA, xys = []}]
+-- >>> frameChart defaultRectStyle 0.1 [BlankChart []]
+-- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}) []
 frameChart :: RectStyle -> Double -> [Chart] -> Chart
 frameChart rs p cs = RectChart rs (maybeToList (padRect p <$> styleBoxes cs))
 

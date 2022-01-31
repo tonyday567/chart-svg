@@ -35,10 +35,15 @@ import Data.Foldable
 
 -- $setup
 --
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
+-- >>> import Data.Text (pack)
 
 -- | Typical bar chart options.
 --
--- >>> let barDataExample = BarData [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]] (Just (("row " <>) . pack . show <$> [1 .. 11])) (Just (("column " <>) . pack . show <$> [1 .. 2]))
+-- >>> let barDataExample = BarData [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]] (("row " <>) . pack . show <$> [1 .. 11]) (("column " <>) . pack . show <$> [1 .. 2])
 -- >>> let barExample = barChart defaultBarOptions barDataExample
 --
 -- > writeChartSvg "other/bar.svg" barExample
@@ -173,8 +178,8 @@ barRange ys = Rect 0 (fromIntegral $ maximum (length <$> ys)) (min 0 l) u
 
 -- | A bar chart without hud trimmings.
 --
--- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] Nothing Nothing)
--- [Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.69 0.35 0.16 1.00, color = Colour 0.69 0.35 0.16 1.00}), xys = [R 5.0e-2 0.45 0.0 1.0,R 1.05 1.4500000000000002 0.0 2.0]},Chart {annotation = RectA (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.65 0.81 0.89 1.00}), xys = [R 0.45 0.8500000000000001 0.0 2.0,R 1.4500000000000002 1.85 0.0 3.0]},Chart {annotation = BlankA, xys = [R -5.0e-2 1.9500000000000002 0.0 3.0]}]
+-- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] [] [])
+-- [RectChart (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.69 0.35 0.16 1.00, color = Colour 0.69 0.35 0.16 1.00}) [Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],RectChart (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.65 0.81 0.89 1.00}) [Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0],BlankChart [Rect -5.0e-2 1.9500000000000002 0.0 3.0]]
 bars :: BarOptions -> BarData -> [Chart]
 bars bo bd =
   zipWith (\o d -> RectChart o d) (bo ^. #barRectStyles <> repeat defaultRectStyle) (barRects bo (bd ^. #barData)) <> [BlankChart [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]

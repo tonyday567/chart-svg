@@ -46,6 +46,7 @@ import Data.Path.Parser
 -- $setup
 --
 -- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
 -- >>> import Chart
 -- >>> import Optics.Core
 
@@ -59,26 +60,27 @@ import Data.Path.Parser
 --
 -- == What is a 'Chart'?
 --
--- A 'Chart' in this library consists of a specification of the first two items in the above list; data and data annotation.
+-- A 'Chart' in this library consists of a specification of the first two items in the above list; data and data annotation. What exactly is annotation and what is data is highly variant by types of chart and within charting practice.
 --
--- - 'XY': a list of values, specified as either 2D points or rectangles.
+-- Here's some data; three lists of points that form lines to be charted:
 --
--- - 'Annotation': a description of how the data should be represented on the screen.
+-- >>> let lines = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
+-- >>> lines
+-- [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0],[Point 0.0 0.0,Point 3.2 3.0],[Point 0.5 4.0,Point 0.5 0.0]]
 --
--- What exactly is annotation and what is data is highly variant within charting practice. This construction treats position on the XY plane differently from other quantitative manifests such as color and size. The chief advantage of priveliging XY position is that scaling and integrating data with other chart elements becomes much easier. The disadvantage is that, to use quantitative tools such as size, data needs to be consciously separated into that which is position-orientated, and that which is defined as 'Annotation'.
+-- and some line styles with different colors and widths in order to distinguish the data:
 --
+-- >>> let styles = zipWith (\s c -> defaultLineStyle & #color .~ palette1 c & #size .~ s) [0.015, 0.03, 0.01] [0..2]
+-- >>> styles
+-- [LineStyle {size = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}]
 --
--- Here's some data; three lists of points that will form a line:
+-- This is enough to create the charts.
 --
--- >>> let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
+-- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
+-- >>> cs
+-- [LineChart (LineStyle {size = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0]],LineChart (LineStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.0 0.0,Point 3.2 3.0]],LineChart (LineStyle {size = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.5 4.0,Point 0.5 0.0]]]
 --
--- and an Annotation to describe representation of this data; three line styles with different colors and widths:
---
--- >>> let anns = zipWith (\w (palette1 c) -> LineA (LineStyle w c Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] [0..2]
---
--- and this is enough to create a Chart.
---
--- >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
+-- >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
 -- >>> :t lineExample
 -- lineExample :: ChartSvg
 --

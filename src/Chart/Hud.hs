@@ -82,6 +82,13 @@ import qualified Data.List as List
 import Data.Tuple
 import qualified NumHask.Prelude as NH
 
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
+
 -- * Hud
 
 -- | Type for splitting Chart elements into Hud and Canvas
@@ -209,8 +216,6 @@ runHudWith cb db hs cs =
 -- | Combine huds and charts to form a new Charts with an optional supplied initial canvas dimension.
 --
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
---
--- >>> runHud (Just one) (fromHudOptions defaultHudOptions) [RectChart defaultRectStyle [one]]
 --
 runHud ::
   -- | initial canvas dimension
@@ -413,7 +418,7 @@ defaultAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments)
 -- | The bar on an axis representing the x or y plane.
 --
 -- >>> defaultAxisBar
--- AxisBar {style = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 0.40}, size = 4.0e-3, buffer = 1.0e-2}
+-- AxisBar {style = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 0.40}, size = 4.0e-3, buffer = 1.0e-2, overhang = 2.0e-3}
 data AxisBar = AxisBar
   { style :: RectStyle,
     size :: Double,
@@ -430,7 +435,7 @@ defaultAxisBar = AxisBar (RectStyle 0 transparent (set opac' 0.4 dark)) 0.004 0.
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
 -- >>> defaultTitle "title"
--- Title {text = "title", style = TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, vshift = -0.2, rotation = Nothing}, place = PlaceTop, anchor = AnchorMiddle, buffer = 4.0e-2}
+-- Title {text = "title", style = TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}, place = PlaceTop, anchor = AnchorMiddle, buffer = 4.0e-2}
 data Title = Title
   { text :: Text,
     style :: TextStyle,
@@ -455,7 +460,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTicks
--- Ticks {style = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 2.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},1.25e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, vshift = -0.2, rotation = Nothing},1.5e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
+-- Ticks {style = TickRound (FormatComma (Just 2)) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
 data Ticks = Ticks
   { style :: TickStyle,
     gtick :: Maybe (GlyphStyle, Double),
@@ -543,7 +548,7 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- | Legend options
 --
 -- >>> defaultLegendOptions
--- LegendOptions {size = 0.3, vgap = 0.2, hgap = 0.1, style = TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, vshift = -0.2, rotation = Nothing}, lmax = 10, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.05 0.05 0.05 1.00, color = Colour 0.05 0.05 0.05 0.00}), place = PlaceRight, overallScale = 0.25}
+-- LegendOptions {size = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.05 0.05 0.05 1.00, color = Colour 0.05 0.05 0.05 0.00}), place = PlaceRight, overallScale = 0.25, content = []}
 --
 -- ![legend example](other/legend.svg)
 data LegendOptions = LegendOptions
@@ -753,8 +758,6 @@ placeGridLines pl (Rect x z y w) a b
 
 -- | compute tick values and labels given options, ranges and formatting
 --
--- >>> ticksR (TickRound (FormatFixed (Just 1)) 6 TickExtend) (Range (-0.5) 0.5) (Range 0 0.77)
--- [(-0.5,"0.0"),(-0.3701298701298701,"0.1"),(-0.24025974025974023,"0.2"),(-0.11038961038961032,"0.3"),(1.9480519480519543e-2,"0.4"),(0.14935064935064934,"0.5"),(0.27922077922077937,"0.6"),(0.40909090909090917,"0.7"),(0.5389610389610391,"0.8")]
 ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
 ticksR s d r =
   case s of
