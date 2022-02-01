@@ -52,14 +52,14 @@ pattern LCH l c h <- LCH' [l,c,h] where
   LCH l c h = LCH' [l,c,h]
 {-# COMPLETE LCH #-}
 
-l' :: Lens' (LCH Double) Double
-l' = lens (\(LCH l _ _) -> l) (\(LCH _ c h) l -> LCH l c h)
+lLCH' :: Lens' (LCH Double) Double
+lLCH' = lens (\(LCH l _ _) -> l) (\(LCH _ c h) l -> LCH l c h)
 
-c' :: Lens' (LCH Double) Double
-c' = lens (\(LCH _ c _) -> c) (\(LCH l _ h) c -> LCH l c h)
+cLCH' :: Lens' (LCH Double) Double
+cLCH' = lens (\(LCH _ c _) -> c) (\(LCH l _ h) c -> LCH l c h)
 
-h' :: Lens' (LCH Double) Double
-h' = lens (\(LCH _ _ h) -> h) (\(LCH l c _) h -> LCH l c h)
+hLCH' :: Lens' (LCH Double) Double
+hLCH' = lens (\(LCH _ _ h) -> h) (\(LCH l c _) h -> LCH l c h)
 
 -- | LCHA representation
 data LCHA = LCHA' { _lch :: LCH Double, _alpha :: Double } deriving (Eq, Show)
@@ -259,21 +259,21 @@ greyed = over chroma' (const 0)
 -- >>> over lightness' (*0.8) (Colour 0.4 0.7 0.8 0.4)
 -- Colour 0.22 0.52 0.62 0.40
 lightness' :: Lens' Colour Double
-lightness' = re lcha2colour' % lch' % l'
+lightness' = re lcha2colour' % lch' % lLCH'
 
 -- | chroma lens
 --
 -- >>> over chroma' (*0.8) (Colour 0.4 0.7 0.8 0.4)
 -- Colour 0.46 0.69 0.77 0.40
 chroma' :: Lens' Colour Double
-chroma' = re lcha2colour' % lch' % c'
+chroma' = re lcha2colour' % lch' % cLCH'
 
 -- | hue lens
 --
 -- >>> over hue' (+180) (Colour 0.4 0.7 0.8 0.4)
 -- Colour 0.83 0.58 0.49 0.40
 hue' :: Lens' Colour Double
-hue' = re lcha2colour' % lch' % h'
+hue' = re lcha2colour' % lch' % hLCH'
 
 -- | html element to display colours
 --
