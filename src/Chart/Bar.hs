@@ -66,6 +66,9 @@ data BarOptions = BarOptions
 
 -- | A bar chart.
 --
+-- >>> emptyBar = barChart defaultBarOptions (BarData [] [] [])
+-- >>> foldOf (#charts % charts') emptyBar
+-- []
 barChart :: BarOptions -> BarData -> ChartSvg
 barChart bo bd =
   mempty
@@ -111,7 +114,7 @@ defaultBarOptions =
 
 -- | imagine a dataframe you get in other languages:
 --
--- - definitely some [[Double]]
+-- - some [[Double]]
 --
 -- - maybe some row names
 --
@@ -127,6 +130,9 @@ data BarData = BarData
 --
 -- >>> barRects defaultBarOptions [[1,2],[2,3]]
 -- [[Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],[Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0]]
+--
+-- >>> barRects defaultBarOptions [[]]
+-- [[]]
 barRects ::
   BarOptions ->
   [[Double]] ->
@@ -167,24 +173,29 @@ barDataLowerUpper add bs =
 
 -- | calculate the Rect range of a bar data set.
 --
--- FIXME: [[]] is safe?
 -- >>> barRange [[1,2],[2,3]]
 -- Rect 0.0 2.0 0.0 3.0
+--
+-- >>> barRange [[]]
+-- Rect -0.5 0.5 -0.5 0.5
 barRange ::
   [[Double]] -> Rect Double
-barRange ys = Rect 0 (fromIntegral $ maximum (length <$> ys)) (min 0 l) u
+barRange ys = singletonGuard $ Just $ Rect 0 (fromIntegral $ maximum (length <$> ys)) (min 0 l) u
   where
-    (Range l u) = unsafeSpace1 $ mconcat ys
+    (Range l u) = fromMaybe one $ space1 $ mconcat ys
 
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] [] [])
 -- [RectChart (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.69 0.35 0.16 1.00, color = Colour 0.69 0.35 0.16 1.00}) [Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],RectChart (RectStyle {borderSize = 2.0e-3, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.65 0.81 0.89 1.00}) [Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0],BlankChart [Rect -5.0e-2 1.9500000000000002 0.0 3.0]]
+--
+-- >>> bars defaultBarOptions (BarData [[]] [] [])
+-- []
 bars :: BarOptions -> BarData -> [Chart]
-bars bo bd =
-  zipWith (\o d -> RectChart o d) (bo ^. #barRectStyles <> repeat defaultRectStyle) (barRects bo (bd ^. #barData)) <> [BlankChart [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]
+bars bo bd = bool cs [] (null $ mconcat $ view #barData bd)
   where
-    (Rect x z y w) = foldRectUnsafe $ foldRectUnsafe <$> barRects bo (bd ^. #barData)
+    cs = zipWith (\o d -> RectChart o d) (bo ^. #barRectStyles <> repeat defaultRectStyle) (barRects bo (bd ^. #barData)) <> [BlankChart [Rect (x - (bo ^. #outerGap)) (z + (bo ^. #outerGap)) y w]]
+    (Rect x z y w) = fromMaybe one $ foldRect $ mconcat $ barRects bo (bd ^. #barData)
 
 maxRows :: [[Double]] -> Int
 maxRows xs = maximum $ length <$> xs

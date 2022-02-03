@@ -254,9 +254,10 @@ ellipse c r phi' theta = c + (rotate phi' |. (r * ray theta))
 
 -- | compute the bounding box for an arcBox
 --
--- > let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
--- > arcBox p
--- Rect -8.326672684688674e-17 0.9999999999999998 -5.551115123125783e-17 0.30644649676616753
+-- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
+-- >>> import Data.FormatN
+-- >>> fmap (fixed (Just 3)) (arcBox p)
+-- Rect "-0.000" "1.000" "-0.000" "0.306"
 arcBox :: ArcPosition Double -> Rect Double
 arcBox p = unsafeSpace1 pts
   where
