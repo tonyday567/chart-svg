@@ -102,8 +102,8 @@ lineExample =
   #hudOptions .~
   ( mempty &
     #axes .~
-    [(2, defaultAxisOptions & #ticks % #style .~ TickRound (FormatFixed (Just 1)) 8 TickExtend),
-     (2, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatFixed (Just 1)) 8 TickExtend)
+    [(2, defaultAxisOptions & #ticks % #style .~ TickRound (FormatN (FSFixed 1) Nothing True) 8 TickExtend),
+     (2, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickRound (FormatN (FSFixed 1) Nothing True) 8 TickExtend)
     ] &
     #titles .~
     [ (6, defaultTitle "Line Chart" & #style % #size .~ 0.08 ),
@@ -659,8 +659,8 @@ subChartExample =
   set #hudOptions
     (titlesHud "subchart example" "x axis title" "y axis title") &
   set (#hudOptions % #axes)
-      [ (1, defaultAxisOptions & set (#ticks % #style) (TickRound (FormatFixed (Just 1)) 8 TickExtend)),
-        (1, defaultAxisOptions & set #place PlaceLeft & set (#ticks % #style) (TickRound (FormatFixed (Just 1)) 8 TickExtend))] &
+      [ (1, defaultAxisOptions & set (#ticks % #style) (TickRound (FormatN (FSFixed 1) Nothing True) 8 TickExtend)),
+        (1, defaultAxisOptions & set #place PlaceLeft & set (#ticks % #style) (TickRound (FormatN (FSFixed 1) Nothing True) 8 TickExtend))] &
   set (#hudOptions % #legends)
     [(8000, lineLegend 0.01
      ["xify", "yify", "addLineX", "addLineY"]

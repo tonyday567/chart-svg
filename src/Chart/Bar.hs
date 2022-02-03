@@ -101,7 +101,7 @@ defaultBarOptions =
     0.04
     0.1
     True
-    (FormatComma (Just 2))
+    (FormatN FSCommaPrec (Just 2) True)
     False
     Hori
     defaultLegendOptions

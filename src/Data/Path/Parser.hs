@@ -237,8 +237,8 @@ toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
 -- | Render a point (including conversion to SVG Coordinates).
 pp :: Point Double -> Text
 pp (Point x y) =
-  showOr (FormatFixed (Just 4)) x <> ","
-    <> showOr (FormatFixed (Just 4)) (bool (-y) y (y == zero))
+  formatOrShow (FixedStyle 4) Nothing x <> ","
+    <> formatOrShow (FixedStyle 4) Nothing (bool (-y) y (y == zero))
 
 data PathCursor = PathCursor
   { -- | previous position

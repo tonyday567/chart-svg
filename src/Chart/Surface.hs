@@ -143,7 +143,7 @@ surfaceAxisOptions c =
     Nothing
     Nothing
     ( Ticks
-        (TickRound (FormatPrec (Just 3)) 4 NoTickExtend)
+        (TickRound (FormatN FSPrec (Just 3) True) 4 NoTickExtend)
         (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c & #shape .~ VLineGlyph, 0.01))
         (Just (defaultTextTick & #color .~ c, 0.03))
         Nothing

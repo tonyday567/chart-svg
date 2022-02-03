@@ -79,9 +79,9 @@ showRGBA :: Colour -> Text
 showRGBA (Colour r' g' b' a') =
   [trimming|rgba($r, $g, $b, $a)|]
     where
-      r = percent (fixed (Just 0)) r'
-      g = percent (fixed (Just 0)) g'
-      b = percent (fixed (Just 0)) b'
+      r = percent (fixedSF (Just 0)) (Just 2) r'
+      g = percent (fixedSF (Just 0)) (Just 2) g'
+      b = percent (fixedSF (Just 0)) (Just 2) b'
       a = fixed (Just 2) a'
 
 -- | css representation
@@ -89,9 +89,9 @@ showRGB :: Colour -> Text
 showRGB (Colour r' g' b' _) =
   [trimming|rgb($r, $g, $b)|]
     where
-      r = percent (fixed (Just 0)) r'
-      g = percent (fixed (Just 0)) g'
-      b = percent (fixed (Just 0)) b'
+      r = percent (fixedSF (Just 0)) (Just 2) r'
+      g = percent (fixedSF (Just 0)) (Just 2) g'
+      b = percent (fixedSF (Just 0)) (Just 2) b'
 
 -- >>> validColour (Colour 1 1 1.01 1)
 -- False
