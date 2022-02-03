@@ -37,9 +37,9 @@ wave
 ---
 ![](other/wave.svg)
 
-blend
+mix
 ---
-![](other/blend.svg)
+![](other/mix.svg)
 
 bar
 ---

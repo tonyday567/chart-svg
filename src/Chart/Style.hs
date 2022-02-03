@@ -240,7 +240,7 @@ styleBoxGlyph s = move p' $
     RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
     VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
     HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
-    TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 [a,b,c]
+    TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 ([a,b,c] :: [Point Double])
     PathGlyph path' _ -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
   where
     sh = s ^. #shape
