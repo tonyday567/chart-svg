@@ -1,10 +1,22 @@
 packages:
   chart-svg.cabal
-  ../numhask-space/numhask-space.cabal
-  ../numhask/numhask.cabal
-  ../numhask-array/numhask-array.cabal
 
 source-repository-package
     type: git
     location: https://github.com/tonyday567/formatn
     tag: 8a80261944dc70b10e96a473d8a9f0556e2faf53
+
+source-repository-package
+    type: git
+    location: https://github.com/tonyday567/numhask
+    tag: 61a5ab83a74ff3e7f8dfdf9a3092a4e8d5a77d8f
+
+source-repository-package
+    type: git
+    location: https://github.com/tonyday567/numhask-space
+    tag: 0cfa17fce2d48d9c25b609c78ba38db0fb9465a7
+
+source-repository-package
+    type: git
+    location: https://github.com/tonyday567/numhask-array
+    tag: 759dda0d03d2bbbd64159434790b6a23c7d94d92
