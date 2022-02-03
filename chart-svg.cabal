@@ -67,8 +67,8 @@ library
     , lucid                 ^>=2.9
     , mtl                   ^>=2.2.2
     , numhask               ^>=0.10
-    , numhask-array         ^>=0.9.2
-    , numhask-space         ^>=0.9
+    , numhask-array         ^>=0.10
+    , numhask-space         ^>=0.10
     , random                ^>=1.2.1
     , scientific            ^>=0.3
     , tagsoup               ^>=0.14
