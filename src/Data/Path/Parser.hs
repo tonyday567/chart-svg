@@ -19,7 +19,6 @@ import Chart.Data
 import Control.Applicative
 import Control.Monad.State.Lazy
 import qualified Data.Attoparsec.Text as A
-import Data.Bifunctor
 import Data.Either
 import Data.FormatN
 import Data.Functor
@@ -51,7 +50,7 @@ import Optics.Core hiding ((<|))
 --
 -- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 parsePath :: Text -> Either String [PathCommand]
-parsePath t = A.parseOnly pathParser t
+parsePath = A.parseOnly pathParser
 
 commaWsp :: A.Parser ()
 commaWsp = A.skipSpace *> A.option () (A.string "," $> ()) <* A.skipSpace
@@ -93,26 +92,26 @@ flag = fmap (/= '0') A.digit
 
 command :: A.Parser PathCommand
 command =
-  (MoveTo OriginAbsolute <$ A.string "M" <*> points)
-    <|> (MoveTo OriginRelative <$ A.string "m" <*> points)
-    <|> (LineTo OriginAbsolute <$ A.string "L" <*> points)
-    <|> (LineTo OriginRelative <$ A.string "l" <*> points)
-    <|> (HorizontalTo OriginAbsolute <$ A.string "H" <*> nums)
-    <|> (HorizontalTo OriginRelative <$ A.string "h" <*> nums)
-    <|> (VerticalTo OriginAbsolute <$ A.string "V" <*> nums)
-    <|> (VerticalTo OriginRelative <$ A.string "v" <*> nums)
-    <|> (CurveTo OriginAbsolute <$ A.string "C" <*> fmap fromList (manyComma curveToArgs))
-    <|> (CurveTo OriginRelative <$ A.string "c" <*> fmap fromList (manyComma curveToArgs))
-    <|> (SmoothCurveTo OriginAbsolute <$ A.string "S" <*> pointPairs)
-    <|> (SmoothCurveTo OriginRelative <$ A.string "s" <*> pointPairs)
-    <|> (QuadraticBezier OriginAbsolute <$ A.string "Q" <*> pointPairs)
-    <|> (QuadraticBezier OriginRelative <$ A.string "q" <*> pointPairs)
-    <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ A.string "T" <*> points)
-    <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ A.string "t" <*> points)
-    <|> (EllipticalArc OriginAbsolute <$ A.string "A" <*> manyComma ellipticalArgs)
-    <|> (EllipticalArc OriginRelative <$ A.string "a" <*> manyComma ellipticalArgs)
-    <|> (EndPath <$ A.string "Z" <* commaWsp)
-    <|> (EndPath <$ A.string "z" <* commaWsp)
+  MoveTo OriginAbsolute <$ A.string "M" <*> points
+    <|> MoveTo OriginRelative <$ A.string "m" <*> points
+    <|> LineTo OriginAbsolute <$ A.string "L" <*> points
+    <|> LineTo OriginRelative <$ A.string "l" <*> points
+    <|> HorizontalTo OriginAbsolute <$ A.string "H" <*> nums
+    <|> HorizontalTo OriginRelative <$ A.string "h" <*> nums
+    <|> VerticalTo OriginAbsolute <$ A.string "V" <*> nums
+    <|> VerticalTo OriginRelative <$ A.string "v" <*> nums
+    <|> CurveTo OriginAbsolute <$ A.string "C" <*> fmap fromList (manyComma curveToArgs)
+    <|> CurveTo OriginRelative <$ A.string "c" <*> fmap fromList (manyComma curveToArgs)
+    <|> SmoothCurveTo OriginAbsolute <$ A.string "S" <*> pointPairs
+    <|> SmoothCurveTo OriginRelative <$ A.string "s" <*> pointPairs
+    <|> QuadraticBezier OriginAbsolute <$ A.string "Q" <*> pointPairs
+    <|> QuadraticBezier OriginRelative <$ A.string "q" <*> pointPairs
+    <|> SmoothQuadraticBezierCurveTo OriginAbsolute <$ A.string "T" <*> points
+    <|> SmoothQuadraticBezierCurveTo OriginRelative <$ A.string "t" <*> points
+    <|> EllipticalArc OriginAbsolute <$ A.string "A" <*> manyComma ellipticalArgs
+    <|> EllipticalArc OriginRelative <$ A.string "a" <*> manyComma ellipticalArgs
+    <|> EndPath <$ A.string "Z" <* commaWsp
+    <|> EndPath <$ A.string "z" <* commaWsp
   where
     curveToArgs =
       (,,) <$> (point <* commaWsp)
@@ -274,10 +273,8 @@ toPathDatas :: [PathCommand] -> [PathData Double]
 toPathDatas xs = fmap svgCoords $ mconcat $ flip evalState stateCur0 $ sequence $ toInfo <$> xs
 
 -- | Convert relative points to absolute points
--- FIXME: does this need reversing?
 relToAbs :: (Additive a) => a -> [a] -> [a]
-relToAbs _ [] = []
-relToAbs p (x : xs) = fmap (p +) $ foldr (\a ps -> a + head ps : ps) [x] xs
+relToAbs p xs = accsum (p:xs)
 
 moveTo :: [Point Double] -> State PathCursor [PathData Double]
 moveTo xs = do
@@ -292,26 +289,32 @@ lineTo xs = do
 horTo :: [Double] -> State PathCursor [PathData Double]
 horTo xs = do
   (PathCursor (Point _ y) _ _) <- get
-  lineTo (fmap (\x -> Point x y) xs)
+  lineTo (fmap (`Point` y) xs)
 
 verTo :: [Double] -> State PathCursor [PathData Double]
 verTo ys = do
   (PathCursor (Point x _) _ _) <- get
-  lineTo (fmap (\y -> Point x y) ys)
+  lineTo (fmap (Point x) ys)
 
 curveTo :: [(Point Double, Point Double, Point Double)] -> State PathCursor [PathData Double]
 curveTo xs = do
   modify
     ( (#curPrevious .~ (\(_, _, p) -> p) (last xs))
-        . (#curControl .~ Just ((\(_, c2, _) -> c2) (last xs)))
+        . (#curControl ?~ (\(_, c2, _) -> c2) (last xs))
     )
   pure $ (\(c1, c2, x2) -> CubicP c1 c2 x2) <$> xs
 
 -- | Convert relative points to absolute points
--- FIXME: needs reversing?
 relToAbs3 :: Additive a => a -> [(a, a, a)] -> [(a, a, a)]
-relToAbs3 _ [] = []
-relToAbs3 p (x : xs) = fmap (\(y, z, w) -> (p + y, p + z, p + w)) $ foldr (\(a, a', a'') ps -> (\(q, q', q'') -> (q + a, q' + a', q'' + a'')) (head ps) : ps) [x] xs
+relToAbs3 p xs = xs'
+  where
+    x1 = (\(x,_,_) -> x) <$> xs
+    x2 = (\(_,x,_) -> x) <$> xs
+    x3 = (\(_,_,x) -> x) <$> xs
+    x1' = fmap (p+) (accsum x1)
+    x2' = fmap (p+) (accsum x2)
+    x3' = fmap (p+) (accsum x3)
+    xs' = zip3 x1' x2' x3'
 
 reflControlPoint :: State PathCursor (Point Double)
 reflControlPoint = do
@@ -323,34 +326,39 @@ reflControlPoint = do
 smoothCurveToStep :: (Point Double, Point Double) -> State PathCursor (PathData Double)
 smoothCurveToStep (c2, x2) = do
   c1 <- reflControlPoint
-  modify ((#curControl .~ Just c2) . (#curPrevious .~ x2))
+  modify ((#curControl ?~ c2) . (#curPrevious .~ x2))
   pure (CubicP c1 c2 x2)
 
 smoothCurveTo :: [(Point Double, Point Double)] -> State PathCursor [PathData Double]
-smoothCurveTo xs = do
+smoothCurveTo xs =
   sequence (smoothCurveToStep <$> xs)
 
 -- | Convert relative points to absolute points
 relToAbs2 :: Additive a => a -> [(a, a)] -> [(a, a)]
-relToAbs2 _ [] = []
-relToAbs2 p (x : xs) = fmap (bimap (p +) (p +)) $ foldr (\(a, a') ps -> (\(q, q') -> (q + a, q' + a')) (head ps) : ps) [x] xs
+relToAbs2 p xs = xs'
+  where
+    x1 = fst <$> xs
+    x2 = snd <$> xs
+    x1' = fmap (p+) (accsum x1)
+    x2' = fmap (p+) (accsum x2)
+    xs' = zip x1' x2'
 
 quad :: [(Point Double, Point Double)] -> State PathCursor [PathData Double]
 quad xs = do
   modify
     ( (#curPrevious .~ snd (last xs))
-        . (#curControl .~ Just (fst (last xs)))
+        . (#curControl ?~ fst (last xs))
     )
   pure $ uncurry QuadP <$> xs
 
 smoothQuadStep :: Point Double -> State PathCursor (PathData Double)
 smoothQuadStep x2 = do
   c1 <- reflControlPoint
-  modify ((#curControl .~ Just c1) . (#curPrevious .~ x2))
+  modify ((#curControl ?~ c1) . (#curPrevious .~ x2))
   pure (QuadP c1 x2)
 
 smoothQuad :: [Point Double] -> State PathCursor [PathData Double]
-smoothQuad xs = do
+smoothQuad xs =
   sequence (smoothQuadStep <$> xs)
 
 arcTo :: [(Double, Double, Double, Bool, Bool, Point Double)] -> State PathCursor [PathData Double]
@@ -363,10 +371,11 @@ fromPathEllipticalArc (x, y, r, l, s, p) = ArcP (ArcInfo (Point x y) r l s) p
 
 -- | Convert relative points to absolute points
 relToAbsArc :: Additive a => Point a -> [(a, a, a, Bool, Bool, Point a)] -> [(a, a, a, Bool, Bool, Point a)]
-relToAbsArc _ [] = []
-relToAbsArc p (x : xs) =
-  fmap (\(y0, y1, y2, y3, y4, y5) -> (y0, y1, y2, y3, y4, p + y5)) $
-    foldr (\(_, _, _, _, _, a) ps -> (\(y0, y1, y2, y3, y4, y5) -> (y0, y1, y2, y3, y4, y5 + a)) (head ps) : ps) [x] xs
+relToAbsArc p xs = xs'
+  where
+    ps = (\(_,_,_,_,_,pt) -> pt) <$> xs
+    ps' = fmap (p+) (accsum ps)
+    xs' = zipWith (\(x0,x1,x2,x3,x4,_) pt -> (x0,x1,x2,x3,x4,pt)) xs ps'
 
 -- | Convert a path command fragment to PathData
 --
