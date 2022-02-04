@@ -48,6 +48,19 @@ import NumHask.Space hiding (singleton)
 -- >>> import Chart
 -- >>> import Optics.Core
 
+-- $usage
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
+-- >>>
+-- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
+-- >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
+-- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
+-- >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
+-- > writeChartSvg "other/line.svg" lineExample
+
 -- $overview
 --
 -- Charting consists of three highly-coupled conceptual layers:
@@ -62,22 +75,17 @@ import NumHask.Space hiding (singleton)
 --
 -- Here's some data; three lists of points that form lines to be charted:
 --
--- >>> let lines = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
--- >>> lines
--- [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0],[Point 0.0 0.0,Point 3.2 3.0],[Point 0.5 4.0,Point 0.5 0.0]]
+-- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
 --
 -- and some line styles with different colors and widths in order to distinguish the data:
 --
--- >>> let styles = zipWith (\s c -> defaultLineStyle & #color .~ palette1 c & #size .~ s) [0.015, 0.03, 0.01] [0..2]
+-- >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
 -- >>> styles
--- [LineStyle {size = 1.5e-2, color = Colour 0.02 0.73 0.80 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 3.0e-2, color = Colour 0.02 0.29 0.48 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 1.0e-2, color = Colour 0.66 0.07 0.55 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}]
+-- [LineStyle {size = 1.5e-2, color = Colour 0.02 0.73 0.80 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 1.5e-2, color = Colour 0.02 0.29 0.48 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 1.5e-2, color = Colour 0.66 0.07 0.55 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}]
 --
 -- This is enough to create the charts.
 --
 -- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
--- >>> cs
--- [LineChart (LineStyle {size = 1.5e-2, color = Colour 0.02 0.73 0.80 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0]],LineChart (LineStyle {size = 3.0e-2, color = Colour 0.02 0.29 0.48 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.0 0.0,Point 3.2 3.0]],LineChart (LineStyle {size = 1.0e-2, color = Colour 0.66 0.07 0.55 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.5 4.0,Point 0.5 0.0]]]
---
 -- >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
 -- >>> :t lineExample
 -- lineExample :: ChartSvg
