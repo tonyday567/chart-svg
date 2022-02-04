@@ -65,7 +65,7 @@ import qualified Data.List as List
 -- | Rectangle styling
 --
 -- >>> defaultRectStyle
--- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}
+-- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}
 --
 -- ![unit example](other/unit.svg)
 data RectStyle = RectStyle
@@ -169,7 +169,7 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
 -- | Glyph styling
 --
 -- >>> defaultGlyphStyle
--- GlyphStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, borderColor = Colour 0.12 0.47 0.71 1.00, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
+-- GlyphStyle {size = 3.0e-2, color = Colour 0.02 0.73 0.80 0.20, borderColor = Colour 0.02 0.29 0.48 1.00, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
 --
 -- ![glyph example](other/glyphs.svg)
 data GlyphStyle = GlyphStyle
@@ -331,7 +331,7 @@ defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
 -- | Path styling
 --
 -- >>> defaultPathStyle
--- PathStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}
+-- PathStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.66 0.07 0.55 1.00}
 data PathStyle = PathStyle
   { borderSize :: Double,
     borderColor :: Colour,

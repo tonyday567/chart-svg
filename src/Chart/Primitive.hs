@@ -84,13 +84,13 @@ import Data.Bool
 --
 -- >>> let r = RectChart defaultRectStyle [one]
 -- >>> r
--- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}) [Rect -0.5 0.5 -0.5 0.5]
+-- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -0.5 0.5 -0.5 0.5]
 --
 -- Using the defaults, this chart is rendered as:
 --
--- > writeChartSvg "other/unit.hs" $ mempty & #charts .~ unnamed [r]
+-- > writeChartSvg "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #charts .~ unnamed [r]
 --
---
+-- ![unit example](other/unit.svg)
 data Chart
   where
     RectChart :: RectStyle -> [Rect Double] -> Chart
@@ -182,7 +182,7 @@ sbox (BlankChart a) = foldRect a
 -- | projects a Chart to a new rectangular space from an old rectangular space, preserving linear metric structure.
 --
 -- >>> projectWith (fmap (2*) one) one r
--- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}) [Rect -1.0 1.0 -1.0 1.0]
+-- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -1.0 1.0 -1.0 1.0]
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old (RectChart s a) = RectChart s (projectOnR new old <$> a)
 projectWith new old (TextChart s a) = TextChart (projectX s) (second (projectOnP new old) <$> a)
@@ -332,7 +332,7 @@ styleBox' =
 -- | Create a frame over some charts with (additive) padding.
 --
 -- >>> frameChart defaultRectStyle 0.1 [BlankChart []]
--- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}) []
+-- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) []
 frameChart :: RectStyle -> Double -> [Chart] -> Chart
 frameChart rs p cs = RectChart rs (maybeToList (padRect p <$> styleBoxes cs))
 

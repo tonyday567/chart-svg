@@ -151,7 +151,7 @@ validColour (Colour r g b o) = r >= 0 && r <= 1 && g >= 0 && g <= 1 && b >= 0 &&
 
 -- | trim colour back to gamut
 -- >>> trimColour (Colour 1 1 1.01 1)
--- Color 1.00 1.00 1.00 1.00
+-- Colour 1.00 1.00 1.00 1.00
 trimColour :: Colour -> Colour
 trimColour (Colour r g b a) = Colour (trim r) (trim g) (trim b) (trim a)
   where
@@ -232,7 +232,7 @@ i2d i = chr (ord '0' + i)
 -- | select a Colour from the palette
 --
 -- >>> palette1 0
--- Colour 0.69 0.35 0.16 1.00
+-- Colour 0.02 0.73 0.80 1.00
 --
 -- ![palette1](other/palette1.svg)
 palette1 :: Int -> Colour
@@ -252,7 +252,7 @@ palette1_ = trimColour . view lcha2colour' <$> palette1LCHA_
 -- | select a Colour from the palette with a specified opacity
 --
 -- >>> palette1a 0 0.5
--- Colour 0.69 0.35 0.16 0.50
+-- Colour 0.02 0.73 0.80 0.50
 palette1a :: Int -> Double -> Colour
 palette1a x a = set opac' a $ cycle palette1_ List.!! x
 
@@ -293,7 +293,7 @@ dark = Colour 0.05 0.05 0.05 1
 -- | grey(scale)
 --
 -- >>> grey 0.5 0.4
--- Colour 0.5 0.5 0.5 0.40
+-- Colour 0.50 0.50 0.50 0.40
 grey :: Double -> Double -> Colour
 grey g a = Colour g g g a
 

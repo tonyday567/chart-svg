@@ -57,7 +57,7 @@ defaultSurfaceOptions =
 -- | A surface chart is a specialization of a 'RectChart'
 --
 -- >>> defaultSurfaceStyle
--- SurfaceStyle {surfaceColors = [Colour 0.69 0.35 0.16 1.00,Colour 0.65 0.81 0.89 1.00], surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 1.00}}
+-- SurfaceStyle {surfaceColors = [Colour 0.02 0.73 0.80 1.00,Colour 0.02 0.29 0.48 1.00], surfaceRectStyle = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 1.00}}
 --
 -- ![surface example](other/surface.svg)
 data SurfaceStyle = SurfaceStyle

@@ -70,13 +70,13 @@ import Data.Path.Parser
 --
 -- >>> let styles = zipWith (\s c -> defaultLineStyle & #color .~ palette1 c & #size .~ s) [0.015, 0.03, 0.01] [0..2]
 -- >>> styles
--- [LineStyle {size = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}]
+-- [LineStyle {size = 1.5e-2, color = Colour 0.02 0.73 0.80 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 3.0e-2, color = Colour 0.02 0.29 0.48 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 1.0e-2, color = Colour 0.66 0.07 0.55 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}]
 --
 -- This is enough to create the charts.
 --
 -- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
 -- >>> cs
--- [LineChart (LineStyle {size = 1.5e-2, color = Colour 0.69 0.35 0.16 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0]],LineChart (LineStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.0 0.0,Point 3.2 3.0]],LineChart (LineStyle {size = 1.0e-2, color = Colour 0.12 0.47 0.71 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.5 4.0,Point 0.5 0.0]]]
+-- [LineChart (LineStyle {size = 1.5e-2, color = Colour 0.02 0.73 0.80 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.0 1.0,Point 1.0 1.0,Point 2.0 5.0]],LineChart (LineStyle {size = 3.0e-2, color = Colour 0.02 0.29 0.48 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.0 0.0,Point 3.2 3.0]],LineChart (LineStyle {size = 1.0e-2, color = Colour 0.66 0.07 0.55 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}) [[Point 0.5 4.0,Point 0.5 0.0]]]
 --
 -- >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
 -- >>> :t lineExample
