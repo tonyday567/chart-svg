@@ -29,17 +29,17 @@ module Chart
 where
 
 import Chart.Bar
+import Chart.Data
+import Chart.Hud
 import Chart.Primitive
 import Chart.Style
-import Chart.Hud
-import Chart.Svg
 import Chart.Surface
+import Chart.Svg
 import Data.Colour
 import Data.FormatN
 import Data.Path
-import NumHask.Space hiding (singleton)
-import Chart.Data
 import Data.Path.Parser
+import NumHask.Space hiding (singleton)
 
 -- $setup
 --

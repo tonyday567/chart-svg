@@ -1,15 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 -- | SVG path manipulation
 module Data.Path
   ( -- * Svg Paths
-
     -- $path
-    PathData(..),
+    PathData (..),
     pointPath,
     movePath,
     scalePath,
@@ -47,12 +46,12 @@ module Data.Path
   )
 where
 
+import Chart.Data
 import qualified Control.Foldl as L
+import Control.Monad.State.Lazy
 import GHC.Generics
 import qualified Geom2D.CubicBezier as B
 import NumHask.Prelude
-import Chart.Data
-import Control.Monad.State.Lazy
 
 -- $setup
 --
@@ -70,19 +69,18 @@ import Control.Monad.State.Lazy
 --
 -- [SVG path](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
 
-
 -- | Representation of a single SVG path data point
 data PathData a
-  -- | Starting position
-  = StartP (Point a)
-  -- | line (from previous position)
-  | LineP (Point a)
-  -- | cubic bezier curve
-  | CubicP (Point a) (Point a) (Point a)
-  -- | quad bezier curve
-  | QuadP (Point a) (Point a)
-  -- arc
-  | ArcP (ArcInfo a) (Point a)
+  = -- | Starting position
+    StartP (Point a)
+  | -- | line (from previous position)
+    LineP (Point a)
+  | -- | cubic bezier curve
+    CubicP (Point a) (Point a) (Point a)
+  | -- | quad bezier curve
+    QuadP (Point a) (Point a)
+  | -- arc
+    ArcP (ArcInfo a) (Point a)
   deriving (Show, Eq, Generic)
 
 pointPath :: PathData a -> Point a
@@ -93,38 +91,41 @@ pointPath (QuadP _ p) = p
 pointPath (ArcP _ p) = p
 
 movePath :: (Additive a) => Point a -> PathData a -> PathData a
-movePath x (StartP p) = StartP (p+x)
-movePath x (LineP p) = LineP (p+x)
-movePath x (CubicP c1 c2 p) = CubicP (c1+x) (c2+x) (p+x)
-movePath x (QuadP c p) = QuadP (c+x) (p+x)
-movePath x (ArcP i p) = ArcP i (p+x)
+movePath x (StartP p) = StartP (p + x)
+movePath x (LineP p) = LineP (p + x)
+movePath x (CubicP c1 c2 p) = CubicP (c1 + x) (c2 + x) (p + x)
+movePath x (QuadP c p) = QuadP (c + x) (p + x)
+movePath x (ArcP i p) = ArcP i (p + x)
 
 scalePath :: (Multiplicative a) => a -> PathData a -> PathData a
-scalePath x (StartP p) = StartP (fmap (x*) p)
-scalePath x (LineP p) = LineP (fmap (x*) p)
-scalePath x (CubicP c1 c2 p) = CubicP (fmap (x*) c1) (fmap (x*) c2) (fmap (x*) p)
-scalePath x (QuadP c p) = QuadP (fmap (x*) c) (fmap (x*) p)
-scalePath x (ArcP i p) = ArcP i (fmap (x*) p)
+scalePath x (StartP p) = StartP (fmap (x *) p)
+scalePath x (LineP p) = LineP (fmap (x *) p)
+scalePath x (CubicP c1 c2 p) = CubicP (fmap (x *) c1) (fmap (x *) c2) (fmap (x *) p)
+scalePath x (QuadP c p) = QuadP (fmap (x *) c) (fmap (x *) p)
+scalePath x (ArcP i p) = ArcP i (fmap (x *) p)
 
 projectPaths :: Rect Double -> Rect Double -> [PathData Double] -> [PathData Double]
 projectPaths new old ps =
   flip evalState zero $
-  sequence $ (\p -> do
-  x <- get
-  let d = projectPath new old x p
-  put (pointPath d)
-  pure d) <$> ps
+    sequence $
+      ( \p -> do
+          x <- get
+          let d = projectPath new old x p
+          put (pointPath d)
+          pure d
+      )
+        <$> ps
 
-projectPath
-  :: Rect Double
-  -> Rect Double
-  -> Point Double
-  -> PathData Double
-  -> PathData Double
+projectPath ::
+  Rect Double ->
+  Rect Double ->
+  Point Double ->
+  PathData Double ->
+  PathData Double
 projectPath new old _ (CubicP c1 c2 p) =
-      CubicP (projectOnP new old c1) (projectOnP new old c2) (projectOnP new old p)
+  CubicP (projectOnP new old c1) (projectOnP new old c2) (projectOnP new old p)
 projectPath new old _ (QuadP c p) =
-      QuadP (projectOnP new old c) (projectOnP new old p)
+  QuadP (projectOnP new old c) (projectOnP new old p)
 projectPath new old p1 (ArcP ai p2) = ArcP (projectArcPosition new old (ArcPosition p1 p2 ai)) (projectOnP new old p2)
 projectPath new old _ (LineP p) = LineP (projectOnP new old p)
 projectPath new old _ (StartP p) = StartP (projectOnP new old p)
@@ -471,8 +472,9 @@ cubicBox p = unsafeSpace1 pts
 -- | Bounding box for a list of path XYs.
 pathBoxes :: [PathData Double] -> Maybe (Rect Double)
 pathBoxes [] = Nothing
-pathBoxes (x:xs) = Just $
-  L.fold (L.Fold step begin snd) xs
+pathBoxes (x : xs) =
+  Just $
+    L.fold (L.Fold step begin snd) xs
   where
     begin :: (Point Double, Rect Double)
     begin = (pointPath x, singleton (pointPath x))

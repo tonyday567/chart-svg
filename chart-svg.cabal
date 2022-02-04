@@ -29,10 +29,8 @@ license:         BSD-3-Clause
 license-file:    LICENSE
 build-type:      Simple
 extra-doc-files: other/*.svg
-tested-with:
-  GHC ==8.8.4
-   || ==8.10.7
-   || ==9.2.1
+tested-with:     GHC ==8.8.4 || ==8.10.7 || ==9.2.1
+
 source-repository head
   type:     git
   location: https://github.com/tonyday567/chart-svg
@@ -40,34 +38,35 @@ source-repository head
 library
   exposed-modules:
     Chart
-    Chart.Primitive
-    Chart.Data
-    Chart.Style
-    Chart.Hud
-    Chart.Svg
     Chart.Bar
+    Chart.Data
     Chart.Examples
+    Chart.Hud
+    Chart.Primitive
+    Chart.Style
     Chart.Surface
+    Chart.Svg
     Data.Colour
     Data.Path
     Data.Path.Parser
 
   hs-source-dirs:     src
   build-depends:
-    , adjunctions           ^>= 4.4
-    , attoparsec            >=0.13.2 && < 0.15
-    , base                  >=4.7 && <5
+    , adjunctions           ^>=4.4
+    , attoparsec            >=0.13.2 && <0.15
+    , base                  >=4.7    && <5
     , Color                 ^>=0.3
     , containers            ^>=0.6
     , cubicbezier           ^>=0.6
     , foldl                 ^>=1.4
-    , neat-interpolation    ^>=0.5.1
-    , optics-core           ^>=0.4
+    , formatn               ^>=0.2
     , lucid                 ^>=2.9
     , mtl                   ^>=2.2.2
+    , neat-interpolation    ^>=0.5.1
     , numhask               ^>=0.10
     , numhask-array         ^>=0.10
     , numhask-space         ^>=0.10
+    , optics-core           ^>=0.4
     , random                ^>=1.2.1
     , scientific            ^>=0.3
     , tagsoup               ^>=0.14
@@ -75,7 +74,6 @@ library
     , time                  ^>=1.9
     , transformers          ^>=0.5
     , unordered-containers  ^>=0.2
-    , formatn               ^>=0.2
 
   default-language:   Haskell2010
   default-extensions: StrictData

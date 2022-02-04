@@ -17,21 +17,21 @@ module Chart.Bar
   )
 where
 
-import Chart.Svg
+import Chart.Data
+import Chart.Hud
 import Chart.Primitive
 import Chart.Style
-import Chart.Hud
-import Optics.Core
+import Chart.Svg
 import Data.Bool
 import Data.Colour
+import Data.Foldable
 import Data.FormatN
 import Data.List (scanl', transpose)
 import Data.Maybe
 import Data.Text (Text, pack)
 import GHC.Generics
+import Optics.Core
 import Prelude hiding (abs)
-import Chart.Data
-import Data.Foldable
 
 -- $setup
 --
@@ -73,25 +73,29 @@ barChart :: BarOptions -> BarData -> ChartSvg
 barChart bo bd =
   mempty
     & set #hudOptions (barHudOptions bo bd)
-    & set #charts
-      (named "barchart"
-             (bars bo bd <>
-              bool [] (barTextCharts bo bd) (view #displayValues bo)))
+    & set
+      #charts
+      ( named
+          "barchart"
+          ( bars bo bd
+              <> bool [] (barTextCharts bo bd) (view #displayValues bo)
+          )
+      )
 
 barHudOptions :: BarOptions -> BarData -> HudOptions
 barHudOptions bo bd =
-    mempty &
-    #axes .~
-      [ (1, axis1),
-        (1, axis2)
-      ] &
-    #legends .~
-      [ (10, o & #content .~ barLegendContent bo bd)
-      ]
-      where
-        o = view #barLegendOptions bo
-        axis1 = bool id flipAxis (barOrientation bo == Vert) (defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
-        axis2 = bool id flipAxis (barOrientation bo == Hori) defaultAxisOptions
+  mempty
+    & #axes
+    .~ [ (1, axis1),
+         (1, axis2)
+       ]
+    & #legends
+    .~ [ (10, o & #content .~ barLegendContent bo bd)
+       ]
+  where
+    o = view #barLegendOptions bo
+    axis1 = bool id flipAxis (barOrientation bo == Vert) (defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
+    axis2 = bool id flipAxis (barOrientation bo == Hori) defaultAxisOptions
 
 -- | The official bar options.
 defaultBarOptions :: BarOptions
@@ -109,8 +113,8 @@ defaultBarOptions =
     Hori
     defaultLegendOptions
   where
-    gs = (\x -> RectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1,2,6,7,5,3,4,0]
-    ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1,2,6,7,5,3,4,0]
+    gs = (\x -> RectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | imagine a dataframe you get in other languages:
 --
@@ -202,8 +206,12 @@ maxRows xs = maximum $ length <$> xs
 
 appendZero :: [[Double]] -> [[Double]]
 appendZero xs =
-  (\x -> take (maxRows xs)
-    (x <> repeat 0)) <$> xs
+  ( \x ->
+      take
+        (maxRows xs)
+        (x <> repeat 0)
+  )
+    <$> xs
 
 accRows :: [[Double]] -> [[Double]]
 accRows xs = transpose $ drop 1 . scanl' (+) 0 <$> transpose (fmap toList $ toList xs)
@@ -226,8 +234,8 @@ barLegendContent bo bd
   | null (bd ^. #barColumnLabels) = []
   | otherwise =
     zip
-    (view #barColumnLabels bd <> repeat "")
-    ((\s -> RectChart s [one]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
+      (view #barColumnLabels bd <> repeat "")
+      ((\s -> RectChart s [one]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
 
 barDataTP :: Bool -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]
 barDataTP add fn d negd bs =

@@ -1,16 +1,16 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | The primitive 'Chart' Type and support
 module Chart.Primitive
-  ( Chart(..),
+  ( Chart (..),
     hasNoData,
-    Charts(..),
+    Charts (..),
     filterCharts,
     chart',
     charts',
@@ -41,23 +41,24 @@ module Chart.Primitive
     glyphize,
     overText,
     Orientation (..),
-    ChartAspect(..),
-  ) where
+    ChartAspect (..),
+  )
+where
 
+import Chart.Data
 import Chart.Style
 import Data.Bifunctor
-import Data.Path
-import Data.Text (Text)
-import Prelude
-import Optics.Core
-import Chart.Data
+import Data.Bool
+import Data.Colour
 import Data.Foldable
 import Data.Maybe
-import Data.Colour
-import GHC.Generics
+import Data.Path
+import Data.Text (Text)
 import Data.Tree
+import GHC.Generics
 import qualified NumHask.Prelude as NH
-import Data.Bool
+import Optics.Core
+import Prelude
 
 -- $setup
 --
@@ -91,15 +92,14 @@ import Data.Bool
 -- > writeChartSvg "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #charts .~ unnamed [r]
 --
 -- ![unit example](other/unit.svg)
-data Chart
-  where
-    RectChart :: RectStyle -> [Rect Double] -> Chart
-    LineChart :: LineStyle -> [[Point Double]] -> Chart
-    GlyphChart :: GlyphStyle -> [Point Double] -> Chart
-    TextChart :: TextStyle -> [(Text, Point Double)] -> Chart
-    PathChart :: PathStyle -> [PathData Double] -> Chart
-    BlankChart :: [Rect Double] -> Chart
-    deriving (Eq, Show)
+data Chart where
+  RectChart :: RectStyle -> [Rect Double] -> Chart
+  LineChart :: LineStyle -> [[Point Double]] -> Chart
+  GlyphChart :: GlyphStyle -> [Point Double] -> Chart
+  TextChart :: TextStyle -> [(Text, Point Double)] -> Chart
+  PathChart :: PathStyle -> [PathData Double] -> Chart
+  BlankChart :: [Rect Double] -> Chart
+  deriving (Eq, Show)
 
 hasNoData :: Chart -> Bool
 hasNoData (RectChart _ []) = True
@@ -110,7 +110,7 @@ hasNoData (PathChart _ []) = True
 hasNoData (BlankChart _) = True
 hasNoData _ = False
 
-newtype Charts a = Charts { tree :: Tree (a, [Chart]) } deriving (Eq, Show, Generic)
+newtype Charts a = Charts {tree :: Tree (a, [Chart])} deriving (Eq, Show, Generic)
 
 filterCharts :: (Chart -> Bool) -> Charts a -> Charts a
 filterCharts p (Charts (Node (a, cs) xs)) =
@@ -128,13 +128,13 @@ chart' :: Traversal' (Charts a) Chart
 chart' = tree' % traversed % _2 % traversed
 
 named :: Text -> [Chart] -> Charts (Maybe Text)
-named l cs = Charts $ Node (Just l,cs) []
+named l cs = Charts $ Node (Just l, cs) []
 
 unnamed :: [Chart] -> Charts (Maybe Text)
-unnamed cs = Charts $ Node (Nothing,cs) []
+unnamed cs = Charts $ Node (Nothing, cs) []
 
 rename :: Maybe Text -> Charts (Maybe Text) -> Charts (Maybe Text)
-rename l (Charts (Node (_,cs) xs)) = Charts (Node (l,cs) xs)
+rename l (Charts (Node (_, cs) xs)) = Charts (Node (l, cs) xs)
 
 blank :: Rect Double -> Charts (Maybe Text)
 blank r = unnamed [BlankChart [r]]
@@ -144,7 +144,7 @@ group name cs = Charts $ Node (name, []) (tree <$> cs)
 
 instance Semigroup (Charts (Maybe Text)) where
   (<>) (Charts x@(Node (n, cs) xs)) (Charts x'@(Node (n', cs') xs')) =
-    case (n,n') of
+    case (n, n') of
       (Nothing, Nothing) -> Charts $ Node (Nothing, cs <> cs') (xs <> xs')
       _ -> Charts $ Node (Nothing, []) [x, x']
 
@@ -170,7 +170,6 @@ box (BlankChart a) = foldRect a
 -- Just Rect -0.505 0.505 -0.505 0.505
 --
 -- In the above example, the border of the rectangle adds an extra 0.1 to the height and width of the bounding box enclosing the chart.
---
 sbox :: Chart -> Maybe (Rect Double)
 sbox (RectChart s a) = foldRect $ padRect (0.5 * view #borderSize s) <$> a
 sbox (TextChart s a) = foldRect $ uncurry (styleBoxText s) <$> a
@@ -189,8 +188,8 @@ projectWith new old (TextChart s a) = TextChart (projectX s) (second (projectOnP
   where
     projectX :: TextStyle -> TextStyle
     projectX s' = case view #scalex s' of
-      NoScaleX -> s' & over #hsize (*(width ox/width nx)) & over #vsize (*(width ox/width nx))
-      ScaleX -> s' & over #size (*(width nx/width ox))
+      NoScaleX -> s' & over #hsize (* (width ox / width nx)) & over #vsize (* (width ox / width nx))
+      ScaleX -> s' & over #size (* (width nx / width ox))
     (Ranges nx _) = new
     (Ranges ox _) = old
 projectWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$> a)
@@ -211,20 +210,19 @@ moveChart p (PathChart s a) = PathChart s (movePath p <$> a)
 moveChart p (BlankChart a) = BlankChart (addPoint p <$> a)
 
 -- | Scale a chart (effecting both the chart data and the style)
---
 scaleChart :: Double -> Chart -> Chart
 scaleChart p (RectChart s a) =
-  RectChart (s & #borderSize %~ (* p)) (fmap (fmap (*p)) a)
+  RectChart (s & #borderSize %~ (* p)) (fmap (fmap (* p)) a)
 scaleChart p (LineChart s a) =
-  LineChart (s & #size %~ (* p)) (fmap (fmap (fmap (*p))) a)
+  LineChart (s & #size %~ (* p)) (fmap (fmap (fmap (* p))) a)
 scaleChart p (TextChart s a) =
-  TextChart (s & #size %~ (* p)) (fmap (second (fmap (*p))) a)
+  TextChart (s & #size %~ (* p)) (fmap (second (fmap (* p))) a)
 scaleChart p (GlyphChart s a) =
-  GlyphChart (s & #size %~ (* p)) (fmap (fmap (*p)) a)
+  GlyphChart (s & #size %~ (* p)) (fmap (fmap (* p)) a)
 scaleChart p (PathChart s a) =
   PathChart (s & #borderSize %~ (* p)) (scalePath p <$> a)
 scaleChart p (BlankChart a) =
-  BlankChart (fmap (fmap (*p)) a)
+  BlankChart (fmap (fmap (* p)) a)
 
 -- | Scale just the chart style
 scaleStyle :: Double -> Chart -> Chart
@@ -268,8 +266,8 @@ box_ = boxes . foldOf charts'
 
 rebox_ :: Charts a -> Maybe (Rect Double) -> Charts a
 rebox_ cs r =
-  cs &
-  over chart' (fromMaybe id $ projectWith <$> r <*> box_ cs)
+  cs
+    & over chart' (fromMaybe id $ projectWith <$> r <*> box_ cs)
 
 box' :: Lens' (Charts a) (Maybe (Rect Double))
 box' =
@@ -283,8 +281,8 @@ styleBox_ = styleBoxes . foldOf charts'
 
 styleRebox_ :: Charts a -> Maybe (Rect Double) -> Charts a
 styleRebox_ cs r =
-  cs &
-  over chart' (fromMaybe id $ projectWith <$> r' <*> box_ cs)
+  cs
+    & over chart' (fromMaybe id $ projectWith <$> r' <*> box_ cs)
   where
     r' = (NH.-) <$> r <*> ((NH.-) <$> styleBox_ cs <*> box_ cs)
 
@@ -337,7 +335,6 @@ frameChart :: RectStyle -> Double -> [Chart] -> Chart
 frameChart rs p cs = RectChart rs (maybeToList (padRect p <$> styleBoxes cs))
 
 -- | additively pad a [Chart]
---
 padChart :: Double -> [Chart] -> Chart
 padChart p cs = BlankChart (maybeToList (padRect p <$> styleBoxes cs))
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Surface chart combinators.
@@ -24,19 +24,19 @@ module Chart.Surface
   )
 where
 
+import Chart.Data
+import Chart.Hud
 import Chart.Primitive
 import Chart.Style
-import Chart.Hud
-import Optics.Core
 import Data.Bifunctor
+import Data.Bool
 import Data.Colour
+import Data.Foldable
 import Data.FormatN
 import Data.Text (Text)
 import GHC.Generics
+import Optics.Core
 import Prelude
-import Chart.Data
-import Data.Bool
-import Data.Foldable
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -70,7 +70,7 @@ data SurfaceStyle = SurfaceStyle
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
 defaultSurfaceStyle =
-  SurfaceStyle (palette1 <$> [0..1]) (blob dark)
+  SurfaceStyle (palette1 <$> [0 .. 1]) (blob dark)
 
 -- | Main surface data elements
 data SurfaceData = SurfaceData
@@ -118,8 +118,9 @@ surfacef f cfg =
 -- | Create a surface chart and accompanying legend from a function.
 surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart], [Hud])
 surfacefl f po slo =
-  (cs,
-   [Hud 10 (legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo))])
+  ( cs,
+    [Hud 10 (legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo))]
+  )
   where
     (cs, dr) = surfacef f po
 

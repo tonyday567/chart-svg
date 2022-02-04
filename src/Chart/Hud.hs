@@ -2,8 +2,8 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE TupleSections #-}
+{-# OPTIONS_GHC -Wall #-}
 
 -- | Chart API
 module Chart.Hud
@@ -63,7 +63,7 @@ module Chart.Hud
   )
 where
 
-import Optics.Core
+import Chart.Data
 import Chart.Primitive
 import Chart.Style
 import Control.Monad.State.Lazy
@@ -72,15 +72,15 @@ import Data.Bool
 import Data.Colour
 import Data.Foldable hiding (sum)
 import Data.FormatN
-import Data.Maybe
-import Data.Text (Text)
-import GHC.Generics hiding (to)
-import Prelude
-import Data.Path
-import Chart.Data
 import qualified Data.List as List
+import Data.Maybe
+import Data.Path
+import Data.Text (Text)
 import Data.Tuple
+import GHC.Generics hiding (to)
 import qualified NumHask.Prelude as NH
+import Optics.Core
+import Prelude
 
 -- $setup
 --
@@ -106,7 +106,9 @@ data HudChart = HudChart
   deriving (Eq, Show, Generic)
 
 type HudBox = Rect Double
+
 type CanvasBox = Rect Double
+
 type DataBox = Rect Double
 
 canvasBox_ :: HudChart -> Maybe CanvasBox
@@ -114,9 +116,9 @@ canvasBox_ = boxes . foldOf (#chart % charts')
 
 canvasRebox_ :: HudChart -> Maybe (Rect Double) -> HudChart
 canvasRebox_ cs r =
-  cs &
-  over (#chart % chart') (maybeProjectWith r (canvasBox_ cs)) &
-  over (#hud % chart') (maybeProjectWith r (canvasBox_ cs))
+  cs
+    & over (#chart % chart') (maybeProjectWith r (canvasBox_ cs))
+    & over (#hud % chart') (maybeProjectWith r (canvasBox_ cs))
 
 canvasBox' :: Lens' HudChart (Maybe CanvasBox)
 canvasBox' =
@@ -136,9 +138,9 @@ hudBox_ = boxes . (\x -> foldOf (#chart % charts') x <> foldOf (#hud % charts') 
 
 hudRebox_ :: HudChart -> Maybe HudBox -> HudChart
 hudRebox_ cs r =
-  cs &
-  over #chart (over chart' (maybeProjectWith r' (hudBox_ cs))) &
-  over #hud (over chart' (maybeProjectWith r' (hudBox_ cs)))
+  cs
+    & over #chart (over chart' (maybeProjectWith r' (hudBox_ cs)))
+    & over #hud (over chart' (maybeProjectWith r' (hudBox_ cs)))
   where
     r' = (NH.-) <$> r <*> ((NH.-) <$> hudStyleBox_ cs <*> hudBox_ cs)
 
@@ -154,13 +156,13 @@ appendHud cs x =
 type Priority = Double
 
 -- | Heads-up-display additions to charts
-data Hud =
-  Hud {
-    -- | priority for ordering of transformations
+data Hud = Hud
+  { -- | priority for ordering of transformations
     priority :: Priority,
     -- | additional charts
     hud :: State HudChart (Charts (Maybe Text))
-  } deriving (Generic)
+  }
+  deriving (Generic)
 
 closes :: (Traversable f) => f (State HudChart (Charts (Maybe Text))) -> State HudChart ()
 closes xs = do
@@ -183,12 +185,12 @@ applyChartAspect fa x = do
 getHudBox :: ChartAspect -> Scale -> HudChart -> Maybe HudBox
 getHudBox fa x c =
   case fa of
-    FixedAspect a -> Just (fmap (x*) (aspect a))
+    FixedAspect a -> Just (fmap (x *) (aspect a))
     CanvasAspect a ->
       case (view hudBox' c, view canvasBox' c) of
         (Nothing, _) -> Nothing
         (_, Nothing) -> Nothing
-        (Just hb,Just cb) -> Just (fmap (x*) (aspect (a * ratio hb / ratio cb)))
+        (Just hb, Just cb) -> Just (fmap (x *) (aspect (a * ratio hb / ratio cb)))
     ChartAspect -> view hudBox' c
 
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (a linear type might be useful here).
@@ -204,19 +206,22 @@ runHudWith ::
   -- | integrated chart tree
   Charts (Maybe Text)
 runHudWith cb db hs cs =
-   hs &
-   List.sortOn (view #priority) &
-   List.groupBy (\a b-> view #priority a == view #priority b) &
-   mapM_ (closes . fmap (view #hud)) &
-   flip execState
-   (HudChart (cs & over chart' (projectWith cb db))
-    mempty db) &
-   (\x -> group (Just "chart") [view #chart x] <> group (Just "hud") [view #hud x])
+  hs
+    & List.sortOn (view #priority)
+    & List.groupBy (\a b -> view #priority a == view #priority b)
+    & mapM_ (closes . fmap (view #hud))
+    & flip
+      execState
+      ( HudChart
+          (cs & over chart' (projectWith cb db))
+          mempty
+          db
+      )
+    & (\x -> group (Just "chart") [view #chart x] <> group (Just "hud") [view #hud x])
 
 -- | Combine huds and charts to form a new Charts with an optional supplied initial canvas dimension.
 --
 -- Note that the original chart data are transformed and irrevocably lost by this computation.
---
 runHud ::
   -- | initial canvas dimension
   CanvasBox ->
@@ -238,7 +243,8 @@ data HudOptions = HudOptions
     frames :: [(Priority, FrameOptions)],
     legends :: [(Priority, LegendOptions)],
     titles :: [(Priority, Title)]
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 instance Semigroup HudOptions where
   (<>) (HudOptions _ _ a c l t) (HudOptions asp sc a' c' l' t') =
@@ -253,8 +259,7 @@ defaultHudOptions =
   HudOptions
     (FixedAspect 1.5)
     1
-    [
-      (5, defaultAxisOptions),
+    [ (5, defaultAxisOptions),
       (5, defaultAxisOptions & set #place PlaceLeft)
     ]
     [(1, defaultFrameOptions)]
@@ -263,10 +268,10 @@ defaultHudOptions =
 
 priorities :: HudOptions -> [Priority]
 priorities o =
-  (fst <$> view #axes o) <>
-  (fst <$> view #frames o) <>
-  (fst <$> view #legends o) <>
-  (fst <$> view #titles o)
+  (fst <$> view #axes o)
+    <> (fst <$> view #frames o)
+    <> (fst <$> view #legends o)
+    <> (fst <$> view #titles o)
 
 lastPriority :: HudOptions -> Priority
 lastPriority o = case priorities o of
@@ -274,61 +279,64 @@ lastPriority o = case priorities o of
   xs -> maximum xs
 
 -- | Make Huds and potential data box extension; from a HudOption and an initial data box.
---
 toHuds :: HudOptions -> DataBox -> ([Hud], DataBox)
 toHuds o db =
   (,db''') $
-  (as' & fmap (uncurry Hud . second axis)) <>
-  (view #frames o & fmap (uncurry Hud . second frameHud)) <>
-  (view #legends o & fmap (uncurry Hud . second legend)) <>
-  (view #titles o & fmap (uncurry Hud . second title)) <>
-  [ fromEffect (lastPriority o + 1) $
-        applyChartAspect (view #chartAspect o) (view #chartScale o)
-  ]
+    (as' & fmap (uncurry Hud . second axis))
+      <> (view #frames o & fmap (uncurry Hud . second frameHud))
+      <> (view #legends o & fmap (uncurry Hud . second legend))
+      <> (view #titles o & fmap (uncurry Hud . second title))
+      <> [ fromEffect (lastPriority o + 1) $
+             applyChartAspect (view #chartAspect o) (view #chartScale o)
+         ]
   where
     (as', db''') =
-      foldr (\a (as,db') ->
-               let (db'', a') = freezeTicks db' (snd a) in
-                 (as <> [(fst a, a')], db''))
-      ([], db)
-      (view #axes o)
+      foldr
+        ( \a (as, db') ->
+            let (db'', a') = freezeTicks db' (snd a)
+             in (as <> [(fst a, a')], db'')
+        )
+        ([], db)
+        (view #axes o)
 
 freezeTicks :: DataBox -> AxisOptions -> (DataBox, AxisOptions)
 freezeTicks db a =
   bimap
-  (\x -> placeRect (view #place a) x db)
-  (\x -> a & set (#ticks % #style) x)
-  (toTickPlaced (placeRange (view #place a) db) (view (#ticks % #style) a))
+    (\x -> placeRect (view #place a) x db)
+    (\x -> a & set (#ticks % #style) x)
+    (toTickPlaced (placeRange (view #place a) db) (view (#ticks % #style) a))
 
 -- | compute tick components given style, ranges and formatting
 makePlacedTicks :: TickStyle -> Range Double -> ([(Double, Text)], Maybe (Range Double))
 makePlacedTicks s r =
   case s of
-    TickNone -> ([],Nothing)
+    TickNone -> ([], Nothing)
     TickRound f n e ->
-      (zip
-        ticks0
-        (formatNs 4 f ticks0),
-        bool (space1 ticks0) Nothing (e == NoTickExtend))
+      ( zip
+          ticks0
+          (formatNs 4 f ticks0),
+        bool (space1 ticks0) Nothing (e == NoTickExtend)
+      )
       where
         ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
     TickExact f n -> (zip ticks0 (formatNs 4 f ticks0), Nothing)
       where
         ticks0 = grid OuterPos r n
     TickLabels ls ->
-      (zip
-        ( project (Range 0 (fromIntegral $ length ls)) r
-            <$> ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])
-        )
-        ls,
-        Nothing)
+      ( zip
+          ( project (Range 0 (fromIntegral $ length ls)) r
+              <$> ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])
+          )
+          ls,
+        Nothing
+      )
     TickPlaced xs -> (xs, Nothing)
 
 toTickPlaced :: Range Double -> TickStyle -> (Range Double, TickStyle)
 toTickPlaced r t@TickRound {} = (fromMaybe r ext, TickPlaced ts)
   where
     (ts, ext) = makePlacedTicks t r
-toTickPlaced r t = (r,t)
+toTickPlaced r t = (r, t)
 
 placeRect :: Place -> Range Double -> Rect Double -> Rect Double
 placeRect pl' (Range a0 a1) (Rect x z y w) = case pl' of
@@ -351,37 +359,39 @@ axis :: AxisOptions -> State HudChart (Charts (Maybe Text))
 axis a = do
   t <- makeTick a
   b <- maybe (pure mempty) (makeAxisBar (view #place a)) (view #bar a)
-  pure (group (Just "axis") [t,b])
+  pure (group (Just "axis") [t, b])
 
 -- | alter a colour with a function
 colourHudOptions :: (Colour -> Colour) -> HudOptions -> HudOptions
 colourHudOptions f o =
-  o &
-  over #frames (fmap (second fFrame)) &
-  over #titles (fmap (second (over (#style % #color) f))) &
-  over #axes (fmap (second fAxis)) &
-  over #legends (fmap (second fLegend))
+  o
+    & over #frames (fmap (second fFrame))
+    & over #titles (fmap (second (over (#style % #color) f)))
+    & over #axes (fmap (second fAxis))
+    & over #legends (fmap (second fLegend))
   where
     fAxis :: AxisOptions -> AxisOptions
     fAxis a =
-      a &
-       over #bar (fmap (over (#style % #color) f)) &
-       over (#ticks % #gtick)
-         (fmap (first (over #color f . over #borderColor f))) &
-       over (#ticks % #ttick)
-         (fmap (first (over #color f))) &
-       over (#ticks % #ltick)
-         (fmap (first (over #color f)))
+      a
+        & over #bar (fmap (over (#style % #color) f))
+        & over
+          (#ticks % #gtick)
+          (fmap (first (over #color f . over #borderColor f)))
+        & over
+          (#ticks % #ttick)
+          (fmap (first (over #color f)))
+        & over
+          (#ticks % #ltick)
+          (fmap (first (over #color f)))
     fLegend :: LegendOptions -> LegendOptions
     fLegend a =
-      a &
-       over #textStyle (over #color f) &
-       over #frame (fmap (over #color f . over #borderColor f))
+      a
+        & over #textStyle (over #color f)
+        & over #frame (fmap (over #color f . over #borderColor f))
     fFrame :: FrameOptions -> FrameOptions
     fFrame a =
-      a &
-       over #frame (fmap (over #color f . over #borderColor f))
-
+      a
+        & over #frame (fmap (over #color f . over #borderColor f))
 
 -- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
 data Place
@@ -499,7 +509,6 @@ defaultTicks =
     (Just (defaultTextTick, 0.033))
     (Just (defaultLineTick, 0))
 
-
 -- | Style of tick marks on an axis.
 data TickStyle
   = -- | no ticks on axis
@@ -596,7 +605,8 @@ flipAxis ac = case ac ^. #place of
 data FrameOptions = FrameOptions
   { frame :: Maybe RectStyle,
     buffer :: Double
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 -- | The official hud frame
 defaultFrameOptions :: FrameOptions
@@ -616,36 +626,36 @@ frameHud o = do
 bar_ :: Place -> AxisBar -> CanvasBox -> HudBox -> Chart
 bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
   RectChart (view #style b) $
-  case pl of
-    PlaceTop ->
+    case pl of
+      PlaceTop ->
         [ Rect
             (x - b ^. #overhang)
             (z + b ^. #overhang)
             (w' + b ^. #buffer)
             (w' + b ^. #buffer + b ^. #size)
         ]
-    PlaceBottom ->
+      PlaceBottom ->
         [ Rect
             (x - b ^. #overhang)
             (z + b ^. #overhang)
             (y' - b ^. #size - b ^. #buffer)
             (y' - b ^. #buffer)
         ]
-    PlaceLeft ->
+      PlaceLeft ->
         [ Rect
             (x' - b ^. #size - b ^. #buffer)
             (x' - b ^. #buffer)
             (y - b ^. #overhang)
             (w + b ^. #overhang)
         ]
-    PlaceRight ->
+      PlaceRight ->
         [ Rect
             (z' + (b ^. #buffer))
             (z' + (b ^. #buffer) + (b ^. #size))
             (y - b ^. #overhang)
             (w + b ^. #overhang)
         ]
-    PlaceAbsolute (Point x'' _) ->
+      PlaceAbsolute (Point x'' _) ->
         [ Rect
             (x'' + (b ^. #buffer))
             (x'' + (b ^. #buffer) + (b ^. #size))
@@ -663,7 +673,7 @@ makeAxisBar pl b = do
 title_ :: Title -> HudBox -> Chart
 title_ t hb =
   TextChart
-    ( style' & #rotation .~ bool (Just rot) Nothing (rot == 0))
+    (style' & #rotation .~ bool (Just rot) Nothing (rot == 0))
     [(t ^. #text, addp (placePosTitle t hb) (alignPosTitle t hb))]
   where
     style'
@@ -681,35 +691,35 @@ title_ t hb =
 placePosTitle :: Title -> HudBox -> Point Double
 placePosTitle t (Rect x z y w) =
   case t ^. #place of
-      PlaceTop -> Point ((x + z) / 2.0) (w - y' + (t ^. #buffer))
-      PlaceBottom -> Point ((x + z) / 2.0) (y - w' - (t ^. #buffer))
-      PlaceLeft -> Point (x + y' - (t ^. #buffer)) ((y + w) / 2.0)
-      PlaceRight -> Point (z + w' + (t ^. #buffer)) ((y + w) / 2.0)
-      PlaceAbsolute p -> p
+    PlaceTop -> Point ((x + z) / 2.0) (w - y' + (t ^. #buffer))
+    PlaceBottom -> Point ((x + z) / 2.0) (y - w' - (t ^. #buffer))
+    PlaceLeft -> Point (x + y' - (t ^. #buffer)) ((y + w) / 2.0)
+    PlaceRight -> Point (z + w' + (t ^. #buffer)) ((y + w) / 2.0)
+    PlaceAbsolute p -> p
   where
     (Rect _ _ y' w') = styleBoxText (view #style t) (view #text t) zero
 
 alignPosTitle :: Title -> HudBox -> Point Double
 alignPosTitle t (Rect x z y w)
-      | t ^. #anchor == AnchorStart
-          && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
-        Point ((x - z) / 2.0) 0.0
-      | t ^. #anchor == AnchorStart
-          && t ^. #place == PlaceLeft =
-        Point 0.0 ((y - w) / 2.0)
-      | t ^. #anchor == AnchorStart
-          && t ^. #place == PlaceRight =
-        Point 0.0 ((y - w) / 2.0)
-      | t ^. #anchor == AnchorEnd
-          && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
-        Point ((-x + z) / 2.0) 0.0
-      | t ^. #anchor == AnchorEnd
-          && t ^. #place == PlaceLeft =
-        Point 0.0 ((-y + w) / 2.0)
-      | t ^. #anchor == AnchorEnd
-          && t ^. #place == PlaceRight =
-        Point 0.0 ((-y + w) / 2.0)
-      | otherwise = Point 0.0 0.0
+  | t ^. #anchor == AnchorStart
+      && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
+    Point ((x - z) / 2.0) 0.0
+  | t ^. #anchor == AnchorStart
+      && t ^. #place == PlaceLeft =
+    Point 0.0 ((y - w) / 2.0)
+  | t ^. #anchor == AnchorStart
+      && t ^. #place == PlaceRight =
+    Point 0.0 ((y - w) / 2.0)
+  | t ^. #anchor == AnchorEnd
+      && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
+    Point ((-x + z) / 2.0) 0.0
+  | t ^. #anchor == AnchorEnd
+      && t ^. #place == PlaceLeft =
+    Point 0.0 ((-y + w) / 2.0)
+  | t ^. #anchor == AnchorEnd
+      && t ^. #place == PlaceRight =
+    Point 0.0 ((-y + w) / 2.0)
+  | otherwise = Point 0.0 0.0
 
 -- | title append transformation.
 title :: Title -> State HudChart (Charts (Maybe Text))
@@ -757,7 +767,6 @@ placeGridLines pl (Rect x z y w) a b
   | otherwise = [Point (x - b) a, Point (z + b) a]
 
 -- | compute tick values and labels given options, ranges and formatting
---
 ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
 ticksR s d r =
   case s of
@@ -777,19 +786,19 @@ ticksR s d r =
     TickPlaced xs -> zip (project r d . fst <$> xs) (snd <$> xs)
 
 -- | compute tick values in canvas space given placement, canvas box & data box
---
 ticksPlacedCanvas :: TickStyle -> Place -> CanvasBox -> DataBox -> [(Double, Text)]
 ticksPlacedCanvas ts pl cb db =
-  first (project (placeRange pl db) (placeRange pl cb)) <$>
-  fst (makePlacedTicks ts (placeRange pl db))
+  first (project (placeRange pl db) (placeRange pl cb))
+    <$> fst (makePlacedTicks ts (placeRange pl db))
 
 tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> CanvasBox -> CanvasBox -> DataBox -> Maybe Chart
 tickGlyph_ pl (g, b) ts sb cb db =
   case l of
     [] -> Nothing
     l' -> Just $ GlyphChart (g & #rotation .~ placeRot pl) l'
-    where
-      l = addp (placePos pl b sb) . placeOrigin pl
+  where
+    l =
+      addp (placePos pl b sb) . placeOrigin pl
         <$> fmap fst (ticksPlacedCanvas ts pl cb db)
 
 -- | aka marks
@@ -937,8 +946,6 @@ legend :: LegendOptions -> State HudChart (Charts (Maybe Text))
 legend o = legendHud o (legendChart o)
 
 -- | Make a legend hud element, from a bespoke Charts.
---
---
 legendHud :: LegendOptions -> Charts (Maybe Text) -> State HudChart (Charts (Maybe Text))
 legendHud o lcs = do
   sb <- gets (view hudStyleBox')
@@ -954,12 +961,12 @@ placeLegend o hb t =
 
 placeBeside_ :: Place -> Double -> Rect Double -> Rect Double -> Point Double
 placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
-      case pl of
-        PlaceTop -> Point ((x + z) / 2.0) (buff + w + (w' - y') / 2.0)
-        PlaceBottom -> Point ((x + z) / 2.0) (y - buff - (w' - y'))
-        PlaceLeft -> Point (x - buff - (z' - x')) ((y + w) / 2.0)
-        PlaceRight -> Point (z + buff) ((y + w) / 2.0)
-        PlaceAbsolute p -> p
+  case pl of
+    PlaceTop -> Point ((x + z) / 2.0) (buff + w + (w' - y') / 2.0)
+    PlaceBottom -> Point ((x + z) / 2.0) (y - buff - (w' - y'))
+    PlaceLeft -> Point (x - buff - (z' - x')) ((y + w) / 2.0)
+    PlaceRight -> Point (z + buff) ((y + w) / 2.0)
+    PlaceAbsolute p -> p
 
 legendFrame :: LegendOptions -> Charts (Maybe Text) -> Charts (Maybe Text)
 legendFrame l content' =
@@ -974,9 +981,15 @@ legendChart :: LegendOptions -> Charts (Maybe Text)
 legendChart l = legendFrame l content'
   where
     content' =
-      vert (l ^. #hgap)
-      ((\(a, t) -> hori ((l ^. #vgap) + twidth - gapwidth t)
-         (fmap unnamed [[t], [a]])) <$> es)
+      vert
+        (l ^. #hgap)
+        ( ( \(a, t) ->
+              hori
+                ((l ^. #vgap) + twidth - gapwidth t)
+                (fmap unnamed [[t], [a]])
+          )
+            <$> es
+        )
     es = reverse $ uncurry (legendEntry l) <$> view #content l
     twidth = maybe zero (\(Rect _ z _ _) -> z) (styleBoxes (snd <$> es))
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (sbox t)
@@ -986,7 +999,7 @@ legendText ::
   Text ->
   Chart
 legendText l t =
-    TextChart (l ^. #textStyle & #anchor .~ AnchorStart) [(t, zero)]
+  TextChart (l ^. #textStyle & #anchor .~ AnchorStart) [(t, zero)]
 
 legendizeChart ::
   LegendOptions ->
@@ -995,19 +1008,22 @@ legendizeChart ::
 legendizeChart l c =
   case c of
     (RectChart rs _) -> RectChart rs [Rect 0 (l ^. #size) 0 (l ^. #size)]
-    (TextChart ts _) -> TextChart (ts & #size .~ (l ^. #size)) [("text",zero)]
+    (TextChart ts _) -> TextChart (ts & #size .~ (l ^. #size)) [("text", zero)]
     (GlyphChart gs _) -> GlyphChart (gs & #size .~ (l ^. #size)) [Point (0.5 * l ^. #size) (0.33 * l ^. #size)]
-    (LineChart ls _) -> LineChart (ls & #size %~ (/ (l ^. #overallScale)))
-          [[Point 0 (1 * l ^. #size), Point (2 * l ^. #size) (1 * l ^. #size)]]
+    (LineChart ls _) ->
+      LineChart
+        (ls & #size %~ (/ (l ^. #overallScale)))
+        [[Point 0 (1 * l ^. #size), Point (2 * l ^. #size) (1 * l ^. #size)]]
     (PathChart ps _) ->
-        ( let cs =
-                singletonQuad
-                  ( QuadPosition
-                      (Point 0 0)
-                      (Point (l ^. #size) (l ^. #size))
-                      (Point (2 * l ^. #size) ((-1) * l ^. #size))
-                  )
-           in PathChart (ps & #borderSize .~ (l ^. #size)) cs)
+      ( let cs =
+              singletonQuad
+                ( QuadPosition
+                    (Point 0 0)
+                    (Point (l ^. #size) (l ^. #size))
+                    (Point (2 * l ^. #size) ((-1) * l ^. #size))
+                )
+         in PathChart (ps & #borderSize .~ (l ^. #size)) cs
+      )
     (BlankChart _) -> BlankChart [Rect 0 (l ^. #size) 0 (l ^. #size)]
 
 legendEntry ::

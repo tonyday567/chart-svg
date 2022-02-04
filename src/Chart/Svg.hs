@@ -1,15 +1,14 @@
-{-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Chart API
 module Chart.Svg
-  (
-    ChartSvg(..),
+  ( ChartSvg (..),
     charts',
     toCharts,
     writeChartSvg,
@@ -27,26 +26,27 @@ module Chart.Svg
     CssPreferColorScheme (..),
     cssShapeRendering,
     cssPreferColorScheme,
-  ) where
+  )
+where
 
-import Chart.Primitive
-import Data.Colour
-import Chart.Style
+import Chart.Data
 import Chart.Hud
+import Chart.Primitive
+import Chart.Style
+import Data.Colour
+import Data.Maybe
 import Data.Path
+import Data.Path.Parser
 import Data.Text (Text, pack, unpack)
 import qualified Data.Text as Text
-import Prelude
+import qualified Data.Text.Lazy as Lazy
+import Data.Tree
+import GHC.Generics
 import Lucid
-import Optics.Core
 import Lucid.Base
 import NeatInterpolation
-import qualified Data.Text.Lazy as Lazy
-import Chart.Data
-import GHC.Generics
-import Data.Path.Parser
-import Data.Tree
-import Data.Maybe
+import Optics.Core
+import Prelude
 
 -- $setup
 --
@@ -75,11 +75,12 @@ svgChartTree :: Charts (Maybe Text) -> Lucid.Html ()
 svgChartTree cs
   | isNothing label && null cs' = mconcat $ svgChartTree . Charts <$> xs
   | otherwise = term "g" (foldMap (\x -> [term "class" x]) label) content'
-    where
-      (Charts (Node (label, cs') xs)) = filterCharts (not . hasNoData) cs
-      content' = (mconcat $ svg <$> cs') <> (mconcat $ svgChartTree . Charts <$> xs)
+  where
+    (Charts (Node (label, cs') xs)) = filterCharts (not . hasNoData) cs
+    content' = (mconcat $ svg <$> cs') <> (mconcat $ svgChartTree . Charts <$> xs)
 
 -- ** ChartSvg
+
 -- | Specification of a chart for rendering to SVG
 data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
@@ -97,6 +98,7 @@ instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty mempty mempty
 
 -- * rendering
+
 -- | @svg@ element + svg 2 attributes
 svg2Tag :: Term [Attribute] (s -> t) => s -> t
 svg2Tag m =
@@ -128,10 +130,11 @@ svg (BlankChart _) = mempty
 svg c = term "g" (atts c) (draw c)
 
 cssText :: CssOptions -> Html ()
-cssText csso = style_ [] $
-  cssShapeRendering (csso ^. #shapeRendering) <>
-  cssPreferColorScheme (light, dark) (csso ^. #preferColorScheme) <>
-  csso ^. #cssExtra
+cssText csso =
+  style_ [] $
+    cssShapeRendering (csso ^. #shapeRendering)
+      <> cssPreferColorScheme (light, dark) (csso ^. #preferColorScheme)
+      <> csso ^. #cssExtra
 
 cssShapeRendering :: CssShapeRendering -> Text
 cssShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPrecision; }"
@@ -167,9 +170,9 @@ svg {
   }
 }
 |]
-    where
-      hexLight = hex cl
-      hexDark = hex cd
+  where
+    hexLight = hex cl
+    hexDark = hex cd
 cssPreferColorScheme (bglight, _) PreferLight =
   [trimming|
     svg {
@@ -181,7 +184,8 @@ cssPreferColorScheme (bglight, _) PreferLight =
       }
     }
   |]
-    where c = hex bglight
+  where
+    c = hex bglight
 cssPreferColorScheme (_, bgdark) PreferDark =
   [trimming|
     svg {
@@ -192,21 +196,23 @@ cssPreferColorScheme (_, bgdark) PreferDark =
         background-color: $c;
       }
     }
-  |] where c = hex bgdark
+  |]
+  where
+    c = hex bgdark
 cssPreferColorScheme _ PreferNormal = mempty
 
 toCharts :: ChartSvg -> Charts (Maybe Text)
 toCharts cs =
   runHudWith
-  (initialCanvas (view (#hudOptions % #chartAspect) cs) (view #charts cs))
-  db'
-  hs'
-  (view #charts cs <> blank db')
+    (initialCanvas (view (#hudOptions % #chartAspect) cs) (view #charts cs))
+    db'
+    hs'
+    (view #charts cs <> blank db')
   where
     (hs, db') = toHuds (view #hudOptions cs) (singletonGuard $ view (#charts % box') cs)
     hs' =
-      hs <>
-      view #extraHuds cs
+      hs
+        <> view #extraHuds cs
 
 -- | The initial canvas before applying Huds
 --
@@ -254,15 +260,16 @@ svgText_ s t p@(Point x y) =
       ]
         <> foldMap (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
     )
-    (toHtmlRaw t) <>
-    case view #frame s of
+    (toHtmlRaw t)
+    <> case view #frame s of
       Nothing -> mempty
-      Just f -> svg (RectChart (f & over #borderSize (*view #size s)) [styleBoxText s t p])
+      Just f -> svg (RectChart (f & over #borderSize (* view #size s)) [styleBoxText s t p])
 
 -- | line svg
 svgLine_ :: [[Point Double]] -> Lucid.Html ()
-svgLine_ xss = mconcat $
-  (\xs -> terms "polyline" [term "points" (toPointsText xs)]) <$> xss
+svgLine_ xss =
+  mconcat $
+    (\xs -> terms "polyline" [term "points" (toPointsText xs)]) <$> xss
   where
     toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs'
 
@@ -359,7 +366,6 @@ attsGlyph o =
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
     <> foldMap ((: []) . term "transform" . toTranslateText) (o ^. #translate)
-
   where
     sw = case o ^. #shape of
       PathGlyph _ NoScaleBorder -> o ^. #borderSize
@@ -433,7 +439,7 @@ data CssPreferColorScheme = PreferHud | PreferDark | PreferLight | PreferNormal 
 -- | css options
 -- >>> defaultCssOptions
 -- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}
-data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: Text } deriving (Show, Eq, Generic)
+data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: Text} deriving (Show, Eq, Generic)
 
 -- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions

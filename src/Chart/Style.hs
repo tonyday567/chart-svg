@@ -20,7 +20,7 @@ module Chart.Style
     defaultGlyphStyle,
     styleBoxGlyph,
     gpalette1,
-    ScaleBorder(..),
+    ScaleBorder (..),
     GlyphShape (..),
     glyphText,
     LineStyle (..),
@@ -37,23 +37,22 @@ module Chart.Style
     toAnchor,
     PathStyle (..),
     defaultPathStyle,
-
   )
 where
 
+import Chart.Data
 import Data.Colour
+import qualified Data.List as List
 import Data.Maybe
+import Data.Path
+import Data.Path.Parser
 import Data.String
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics
-import Prelude
 import Optics.Core
 import Text.HTML.TagSoup (maybeTagText, parseTags)
-import Data.Path
-import Chart.Data
-import Data.Path.Parser
-import qualified Data.List as List
+import Prelude
 
 -- $setup
 --
@@ -104,7 +103,6 @@ border s c = RectStyle s c transparent
 --
 -- >>> defaultTextStyle
 -- TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}
---
 data TextStyle = TextStyle
   { size :: Double,
     color :: Colour,
@@ -208,8 +206,8 @@ data GlyphShape
   | EllipseGlyph Double
   | RectSharpGlyph Double
   | RectRoundedGlyph Double Double Double
-  | TriangleGlyph (Point Double) (Point Double) (Point Double)
-  -- ^ line width is determined by borderSize
+  | -- | line width is determined by borderSize
+    TriangleGlyph (Point Double) (Point Double) (Point Double)
   | VLineGlyph
   | HLineGlyph
   | PathGlyph Text ScaleBorder
@@ -232,16 +230,17 @@ glyphText sh =
 -- | the extra area from glyph styling
 styleBoxGlyph :: GlyphStyle -> Rect Double
 styleBoxGlyph s = move p' $
-  rot' $ sw $ case sh of
-    CircleGlyph -> (sz *) <$> one
-    SquareGlyph -> (sz *) <$> one
-    EllipseGlyph a -> scale (Point sz (a * sz)) one
-    RectSharpGlyph a -> scale (Point sz (a * sz)) one
-    RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
-    VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
-    HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
-    TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 ([a,b,c] :: [Point Double])
-    PathGlyph path' _ -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
+  rot' $
+    sw $ case sh of
+      CircleGlyph -> (sz *) <$> one
+      SquareGlyph -> (sz *) <$> one
+      EllipseGlyph a -> scale (Point sz (a * sz)) one
+      RectSharpGlyph a -> scale (Point sz (a * sz)) one
+      RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
+      VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
+      HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
+      TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 ([a, b, c] :: [Point Double])
+      PathGlyph path' _ -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
   where
     sh = s ^. #shape
     sz = s ^. #size

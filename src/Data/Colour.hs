@@ -1,14 +1,14 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wall #-}
 
 -- | Colour representations and combinations, based on <https://hackage.haskell.org/package/Color>
 module Data.Colour
@@ -68,30 +68,30 @@ module Data.Colour
     rvRGB3,
     rvColour,
     paletteR,
-    )
+  )
 where
 
+import Chart.Data
 import qualified Data.Attoparsec.Text as A
 import Data.Bifunctor
+import Data.Bool (bool)
 import Data.Char
 import Data.Either
 import Data.FormatN
+import Data.Functor.Rep
+import qualified Data.List as List
+import Data.Text (Text, pack)
+import qualified Data.Text as Text
+import GHC.Exts
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model as M hiding (LCH)
 import qualified Graphics.Color.Space as S
-import System.Random
-import System.Random.Stateful
-import Data.Bool (bool)
-import Data.Text (Text, pack)
 import NeatInterpolation
-import qualified Data.Text as Text
-import Chart.Data
 import NumHask.Algebra.Metric
 import NumHask.Array.Fixed
-import Data.Functor.Rep
-import GHC.Exts
 import Optics.Core
-import qualified Data.List as List
+import System.Random
+import System.Random.Stateful
 
 -- $setup
 --
@@ -112,10 +112,9 @@ pattern Colour r g b a = Colour' (ColorRGBA r g b a)
 
 {-# COMPLETE Colour #-}
 
-instance Show Colour
-  where
-    show (Colour r g b a) =
-      Text.unpack $
+instance Show Colour where
+  show (Colour r g b a) =
+    Text.unpack $
       "Colour "
         <> fixed (Just 2) r
         <> " "
@@ -129,20 +128,20 @@ instance Show Colour
 showRGBA :: Colour -> Text
 showRGBA (Colour r' g' b' a') =
   [trimming|rgba($r, $g, $b, $a)|]
-    where
-      r = percent (fixedSF (Just 0)) (Just 2) r'
-      g = percent (fixedSF (Just 0)) (Just 2) g'
-      b = percent (fixedSF (Just 0)) (Just 2) b'
-      a = fixed (Just 2) a'
+  where
+    r = percent (fixedSF (Just 0)) (Just 2) r'
+    g = percent (fixedSF (Just 0)) (Just 2) g'
+    b = percent (fixedSF (Just 0)) (Just 2) b'
+    a = fixed (Just 2) a'
 
 -- | css representation
 showRGB :: Colour -> Text
 showRGB (Colour r' g' b' _) =
   [trimming|rgb($r, $g, $b)|]
-    where
-      r = percent (fixedSF (Just 0)) (Just 2) r'
-      g = percent (fixedSF (Just 0)) (Just 2) g'
-      b = percent (fixedSF (Just 0)) (Just 2) b'
+  where
+    r = percent (fixedSF (Just 0)) (Just 2) r'
+    g = percent (fixedSF (Just 0)) (Just 2) g'
+    b = percent (fixedSF (Just 0)) (Just 2) b'
 
 -- >>> validColour (Colour 1 1 1.01 1)
 -- False
@@ -305,12 +304,14 @@ transparent :: Colour
 transparent = Colour 0 0 0 0
 
 -- | LCH colour representation
---
-newtype LCH a = LCH' { lchArray :: Array '[3] a } deriving (Eq, Show, IsList, Functor)
+newtype LCH a = LCH' {lchArray :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
 
 pattern LCH :: a -> a -> a -> LCH a
-pattern LCH l c h <- LCH' [l,c,h] where
-  LCH l c h = LCH' [l,c,h]
+pattern LCH l c h <-
+  LCH' [l, c, h]
+  where
+    LCH l c h = LCH' [l, c, h]
+
 {-# COMPLETE LCH #-}
 
 lLCH' :: Lens' (LCH Double) Double
@@ -323,7 +324,7 @@ hLCH' :: Lens' (LCH Double) Double
 hLCH' = lens (\(LCH _ _ h) -> h) (\(LCH l c _) h -> LCH l c h)
 
 -- | LCHA representation
-data LCHA = LCHA' { _lch :: LCH Double, _alpha :: Double } deriving (Eq, Show)
+data LCHA = LCHA' {_lch :: LCH Double, _alpha :: Double} deriving (Eq, Show)
 
 lch' :: Lens' LCHA (LCH Double)
 lch' = lens (\(LCHA' lch _) -> lch) (\(LCHA' _ a) lch -> LCHA' lch a)
@@ -332,30 +333,41 @@ alpha' :: Lens' LCHA Double
 alpha' = lens (\(LCHA' _ a) -> a) (\(LCHA' lch _) a -> LCHA' lch a)
 
 pattern LCHA :: Double -> Double -> Double -> Double -> LCHA
-pattern LCHA l c h a <- LCHA' (LCH' [l,c,h]) a where
-  LCHA l c h a = LCHA' (LCH' [l,c,h]) a
+pattern LCHA l c h a <-
+  LCHA' (LCH' [l, c, h]) a
+  where
+    LCHA l c h a = LCHA' (LCH' [l, c, h]) a
+
 {-# COMPLETE LCHA #-}
 
 -- * RGB colour representation
-newtype RGB3 a = RGB3' { rgb3Array :: Array '[3] a } deriving (Eq, Show, IsList, Functor)
+
+newtype RGB3 a = RGB3' {rgb3Array :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
 
 pattern RGB3 :: a -> a -> a -> RGB3 a
-pattern RGB3 r g b <- RGB3' [r,g,b] where
-  RGB3 r g b = RGB3' [r,g,b]
+pattern RGB3 r g b <-
+  RGB3' [r, g, b]
+  where
+    RGB3 r g b = RGB3' [r, g, b]
+
 {-# COMPLETE RGB3 #-}
 
 rgbd' :: Iso' (RGB3 Double) (RGB3 Word8)
-rgbd' = iso (fmap (floor . (*256))) (fmap (\x -> fromIntegral x / 256.0))
+rgbd' = iso (fmap (floor . (* 256))) (fmap (\x -> fromIntegral x / 256.0))
 
 rgb32colour' :: Iso' (RGB3 Double, Double) Colour
 rgb32colour' = iso (\(RGB3 r g b, a) -> Colour r g b a) (\(Colour r g b a) -> (RGB3 r g b, a))
 
 -- * LAB colour representation
-newtype LAB a = LAB' { labArray :: Array '[3] a } deriving (Eq, Show, IsList, Functor)
+
+newtype LAB a = LAB' {labArray :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
 
 pattern LAB :: a -> a -> a -> LAB a
-pattern LAB l a b <- LAB' [l,a,b] where
-  LAB l a b = LAB' [l,a,b]
+pattern LAB l a b <-
+  LAB' [l, a, b]
+  where
+    LAB l a b = LAB' [l, a, b]
+
 {-# COMPLETE LAB #-}
 
 -- * Colour conversions
@@ -380,15 +392,16 @@ pattern LAB l a b <- LAB' [l,a,b] where
 lcha2colour' :: Iso' LCHA Colour
 lcha2colour' =
   iso
-  (\(LCHA' lch a) -> let (RGB3 r g b) = view (re lab2lch' % re rgb2lab') lch in Colour r g b a)
-  (\c@(Colour _ _ _ a) -> LCHA' (view (re rgb32colour' % _1 % rgb2lab' % lab2lch') c) a)
+    (\(LCHA' lch a) -> let (RGB3 r g b) = view (re lab2lch' % re rgb2lab') lch in Colour r g b a)
+    (\c@(Colour _ _ _ a) -> LCHA' (view (re rgb32colour' % _1 % rgb2lab' % lab2lch') c) a)
 
 -- * lab to lch
+
 xy2ch' :: Iso' (Double, Double) (Double, Double)
 xy2ch' =
   iso
-  (\(x,y) -> (norm (Point x y), 180 / pi * mod_ (angle (Point x y)) (2 * pi)))
-  (\(c,h) -> let (Point x y) = coord (Polar c (pi / 180 * h)) in (x,y))
+    (\(x, y) -> (norm (Point x y), 180 / pi * mod_ (angle (Point x y)) (2 * pi)))
+    (\(c, h) -> let (Point x y) = coord (Polar c (pi / 180 * h)) in (x, y))
 
 mod_ :: Double -> Double -> Double
 mod_ x d = x - fromIntegral (floor (x / d) :: Integer) * d
@@ -396,10 +409,11 @@ mod_ x d = x - fromIntegral (floor (x / d) :: Integer) * d
 lab2lch' :: Iso' (LAB Double) (LCH Double)
 lab2lch' =
   iso
-    (\(LAB l a b) -> let (c,h) = view xy2ch' (a,b) in LCH l c h)
-    (\(LCH l c h) -> let (a,b) = view (re xy2ch') (c,h) in LAB l a b)
+    (\(LAB l a b) -> let (c, h) = view xy2ch' (a, b) in LCH l c h)
+    (\(LCH l c h) -> let (a, b) = view (re xy2ch') (c, h) in LAB l a b)
 
 -- * rgb to lab
+
 rgb2lab' :: Iso' (RGB3 Double) (LAB Double)
 rgb2lab' =
   iso
@@ -407,36 +421,49 @@ rgb2lab' =
     (\(LAB' a) -> RGB3' . xyz2rgb_ . lab2xyz_ $ a)
 
 -- * rgb to xyz
+
 xyz2rgb_ :: Array '[3] Double -> Array '[3] Double
-xyz2rgb_ a = fromList [r,g,b]
+xyz2rgb_ a = fromList [r, g, b]
   where
     (S.ColorSRGB r g b) = S.xyz2rgb (S.ColorXYZ (a `index` [0]) (a `index` [1]) (a `index` [2])) :: Color (S.SRGB 'S.NonLinear) Double
 
 -- >>> rgb2xyz_ [1,1,1]
 -- [0.9505, 1.0, 1.089]
 rgb2xyz_ :: Array '[3] Double -> Array '[3] Double
-rgb2xyz_ a = fromList [x,y,z]
+rgb2xyz_ a = fromList [x, y, z]
   where
     (S.ColorXYZ x y z) = S.rgb2xyz (S.ColorSRGB (a `index` [0]) (a `index` [1]) (a `index` [2])) :: Color (S.XYZ S.D65) Double
 
 -- * xyz to lab
 
-m1 :: Array '[3,3] Double
+m1 :: Array '[3, 3] Double
 m1 =
-  [ 0.8189330101,0.3618667424,-0.1288597137,
-    0.0329845436,0.9293118715,0.0361456387,
-    0.0482003018,0.2643662691,0.6338517070
+  [ 0.8189330101,
+    0.3618667424,
+    -0.1288597137,
+    0.0329845436,
+    0.9293118715,
+    0.0361456387,
+    0.0482003018,
+    0.2643662691,
+    0.6338517070
   ]
 
-m2 :: Array '[3,3] Double
+m2 :: Array '[3, 3] Double
 m2 =
-  [ 0.2104542553,0.7936177850,-0.0040720468,
-    1.9779984951,-2.4285922050,0.4505937099,
-    0.0259040371,0.7827717662,-0.8086757660
+  [ 0.2104542553,
+    0.7936177850,
+    -0.0040720468,
+    1.9779984951,
+    -2.4285922050,
+    0.4505937099,
+    0.0259040371,
+    0.7827717662,
+    -0.8086757660
   ]
 
 cubicroot :: (Floating a, Ord a) => a -> a
-cubicroot x = bool (-1*(-x)**(1/3.0)) (x**(1/3.0)) (x>=0)
+cubicroot x = bool (-1 * (-x) ** (1 / 3.0)) (x ** (1 / 3.0)) (x >= 0)
 
 -- >>> xyz2lab_ [0.95, 1, 1.089]
 -- [0.9999686754143632, -2.580058168537569e-4, -1.1499756458199784e-4]
@@ -456,21 +483,35 @@ xyz2lab_ :: Array '[3] Double -> Array '[3] Double
 xyz2lab_ xyz =
   dot sum (*) m2 (cubicroot <$> dot sum (*) m1 xyz)
 
-m1' :: Array '[3,3] Double
-m1' = [ 1.227013851103521026, -0.5577999806518222383, 0.28125614896646780758,
-        -0.040580178423280593977, 1.1122568696168301049, -0.071676678665601200577,
-        -0.076381284505706892869, -0.42148197841801273055, 1.5861632204407947575
-      ]
+m1' :: Array '[3, 3] Double
+m1' =
+  [ 1.227013851103521026,
+    -0.5577999806518222383,
+    0.28125614896646780758,
+    -0.040580178423280593977,
+    1.1122568696168301049,
+    -0.071676678665601200577,
+    -0.076381284505706892869,
+    -0.42148197841801273055,
+    1.5861632204407947575
+  ]
 
-m2' :: Array '[3,3] Double
-m2' = [ 0.99999999845051981432, 0.39633779217376785678, 0.21580375806075880339,
-        1.0000000088817607767, -0.1055613423236563494, -0.063854174771705903402,
-        1.0000000546724109177, -0.089484182094965759684, -1.2914855378640917399
-      ]
+m2' :: Array '[3, 3] Double
+m2' =
+  [ 0.99999999845051981432,
+    0.39633779217376785678,
+    0.21580375806075880339,
+    1.0000000088817607767,
+    -0.1055613423236563494,
+    -0.063854174771705903402,
+    1.0000000546724109177,
+    -0.089484182094965759684,
+    -1.2914855378640917399
+  ]
 
 lab2xyz_ :: Array '[3] Double -> Array '[3] Double
 lab2xyz_ lab =
-  dot sum (*) m1' ((**3.0) <$> dot sum (*) m2' lab)
+  dot sum (*) m1' ((** 3.0) <$> dot sum (*) m2' lab)
 
 -- * mixins
 
@@ -560,11 +601,11 @@ hue' = re lcha2colour' % lch' % hLCH'
 --
 -- >>> showSwatch "swatch" dark
 -- "<div class=swatch style=\"background:rgba(5%, 5%, 5%, 1.00);\">swatch</div>"
-showSwatch:: Text -> Colour -> Text
+showSwatch :: Text -> Colour -> Text
 showSwatch label c =
-      [trimming|<div class=swatch style="background:$rgba;">$label</div>|]
-        where
-          rgba = showRGBA c
+  [trimming|<div class=swatch style="background:$rgba;">$label</div>|]
+  where
+    rgba = showRGBA c
 
 -- | show multiple colors with embedded text.
 showSwatches :: Text -> Text -> [(Text, Colour)] -> Text
@@ -575,33 +616,32 @@ $divs
 $suff
 </div>
 |]
-    where
-      divs = Text.intercalate "\n" (uncurry showSwatch <$> hs)
+  where
+    divs = Text.intercalate "\n" (uncurry showSwatch <$> hs)
 
 -- * random colors
-instance Uniform (RGB3 Double)
-  where
-    uniformM gen = do
-      r <- uniformRM (0,1) gen
-      g <- uniformRM (0,1) gen
-      b <- uniformRM (0,1) gen
-      pure (RGB3 r g b)
 
-instance Uniform Colour
-  where
-    uniformM gen = do
-      r <- uniformRM (0,1) gen
-      g <- uniformRM (0,1) gen
-      b <- uniformRM (0,1) gen
-      a <- uniformRM (0,1) gen
-      pure (Colour r g b a)
+instance Uniform (RGB3 Double) where
+  uniformM gen = do
+    r <- uniformRM (0, 1) gen
+    g <- uniformRM (0, 1) gen
+    b <- uniformRM (0, 1) gen
+    pure (RGB3 r g b)
+
+instance Uniform Colour where
+  uniformM gen = do
+    r <- uniformRM (0, 1) gen
+    g <- uniformRM (0, 1) gen
+    b <- uniformRM (0, 1) gen
+    a <- uniformRM (0, 1) gen
+    pure (Colour r g b a)
 
 -- | random variates of a uniform
 rvs :: (Uniform a) => [a]
 rvs = go g0
   where
     g0 = mkStdGen 42
-    go g = let (x,g') = uniform g in x:go g'
+    go g = let (x, g') = uniform g in x : go g'
 
 rvRGB3 :: [RGB3 Double]
 rvRGB3 = rvs
@@ -614,13 +654,13 @@ paletteR :: [Colour]
 paletteR = go g0
   where
     g0 = mkStdGen 42
-    go g = let (x,g') = runStateGen g rvSensible in x:go g'
+    go g = let (x, g') = runStateGen g rvSensible in x : go g'
 
 rvSensible :: StatefulGen g m => g -> m Colour
 rvSensible gen = do
-      l <- uniformRM (0.3,0.75) gen
-      c <- uniformRM (0.05,0.24) gen
-      h <- uniformRM (0,360) gen
-      pure ((trimColour . view lcha2colour') (LCHA l c h 1))
+  l <- uniformRM (0.3, 0.75) gen
+  c <- uniformRM (0.05, 0.24) gen
+  h <- uniformRM (0, 360) gen
+  pure ((trimColour . view lcha2colour') (LCHA l c h 1))
 
 --[LCHA 0.72 0.123 207 1, LCHA 0.40 0.10 246 1, LCHA 0.50 0.21 338 1, LCHA 0.8 0.15 331 1, LCHA 0.83 0.14 69 1, LCHA 0.57 0.15 50 1, LCHA 0.38 0.085 128 1, LCHA 0.60 0.08 104 1]
