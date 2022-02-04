@@ -7,17 +7,19 @@ description:
   .
   == Usage
   .
-  >>> import Chart
   >>> :set -XOverloadedLabels
-  >>>let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
-  >>> let anns = zipWith (\w c -> LineA (LineStyle w (palette1 c) Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] [0..2]
-  >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
+  >>> :set -XOverloadedStrings
+  >>> import Chart
+  >>> import Optics.Core
+  >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
+  >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
+  >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
+  >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
+  >>> writeChartSvg "other/usage.svg" lineExample
   .
-  > writeChartSvg "other/line.svg" lineExample
+  ![usage example](docs/other/usage.svg)
   .
-  ![main example](docs/other/line.svg)
-  .
-  See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
+  See "Chart" for a broad overview of concepts, and "Chart.Examples" for practical examples.
 
 category:        charts
 homepage:        https://github.com/tonyday567/chart-svg#readme
@@ -73,7 +75,6 @@ library
     , text                  ^>=1.2
     , time                  ^>=1.9
     , transformers          ^>=0.5
-    , unordered-containers  ^>=0.2
 
   default-language:   Haskell2010
   default-extensions: StrictData

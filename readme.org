@@ -6,7 +6,7 @@ A charting library targetting SVG.
 
 * Usage
 
-#+begin_src haskell :file other/line.svg :results output graphics file :exports both
+#+begin_src haskell :file other/usage.svg :results output graphics file :exports both
 :set prompt "> "
 :set -XOverloadedLabels
 :set -XOverloadedStrings
@@ -16,10 +16,10 @@ lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8
 styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
 cs = zipWith (\s x -> LineChart s [x]) styles lines
 lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
-writeChartSvg "other/line.svg" lineExample
+writeChartSvg "other/usage.svg" lineExample
 #+end_src
 
 #+RESULTS:
-[[file:other/line.svg]]
+[[file:other/usage.svg]]
 
 See the haddock documentation for a detailed overview and [[file:gallery.md][the gallery]] for some potential inspiration.
