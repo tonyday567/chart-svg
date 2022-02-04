@@ -647,7 +647,7 @@ dot_ x = (\(p,c) -> GlyphChart (defaultGlyphStyle & #size .~ 0.08 & #color .~ c 
 
 wheelPoints :: Int -> Double -> Double -> [(Point Double, Colour)]
 wheelPoints grain l maxchroma =
-  (\(Point c h) -> (uncurry Point $ view (re xy2ch') (c,h), view lcha2colour' (LCHA' [l,c,h] 1))) <$>
+  (\(Point c h) -> (uncurry Point $ view (re xy2ch') (c,h), view lcha2colour' (LCHA l c h 1))) <$>
     grid LowerPos (Rect 0 maxchroma 0 360) (Point grain grain)
 
 -- | Adding reference points and bounding boxes to visualize chart alignment and debug.
