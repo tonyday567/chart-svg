@@ -83,6 +83,7 @@ data PathData a
     ArcP (ArcInfo a) (Point a)
   deriving (Show, Eq, Generic)
 
+-- | view the Point part of a PathData
 pointPath :: PathData a -> Point a
 pointPath (StartP p) = p
 pointPath (LineP p) = p
@@ -90,6 +91,7 @@ pointPath (CubicP _ _ p) = p
 pointPath (QuadP _ p) = p
 pointPath (ArcP _ p) = p
 
+-- | move the Point part of a PathData
 movePath :: (Additive a) => Point a -> PathData a -> PathData a
 movePath x (StartP p) = StartP (p + x)
 movePath x (LineP p) = LineP (p + x)
@@ -97,6 +99,7 @@ movePath x (CubicP c1 c2 p) = CubicP (c1 + x) (c2 + x) (p + x)
 movePath x (QuadP c p) = QuadP (c + x) (p + x)
 movePath x (ArcP i p) = ArcP i (p + x)
 
+-- | Multiplicatively scale a PathData
 scalePath :: (Multiplicative a) => a -> PathData a -> PathData a
 scalePath x (StartP p) = StartP (fmap (x *) p)
 scalePath x (LineP p) = LineP (fmap (x *) p)
@@ -104,6 +107,7 @@ scalePath x (CubicP c1 c2 p) = CubicP (fmap (x *) c1) (fmap (x *) c2) (fmap (x *
 scalePath x (QuadP c p) = QuadP (fmap (x *) c) (fmap (x *) p)
 scalePath x (ArcP i p) = ArcP i (fmap (x *) p)
 
+-- | project a list of connected PathDatas from one Rect (XY plave) to a new one.
 projectPaths :: Rect Double -> Rect Double -> [PathData Double] -> [PathData Double]
 projectPaths new old ps =
   flip evalState zero $
@@ -116,6 +120,7 @@ projectPaths new old ps =
       )
         <$> ps
 
+-- | project a PathData from one Rect (XY plave) to a new one.
 projectPath ::
   Rect Double ->
   Rect Double ->

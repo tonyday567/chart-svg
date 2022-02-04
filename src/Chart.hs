@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_HADDOCK prune #-}
 
 -- | A haskell Charting library targetting SVGs
 module Chart
@@ -12,6 +13,16 @@ module Chart
     --
     -- $overview
 
+    -- * Hud
+
+    --
+    -- $hud
+
+    -- * Optics Usage
+
+    --
+    -- $optics
+
     -- * Re-exports
     module Chart.Primitive,
     module Chart.Data,
@@ -24,7 +35,6 @@ module Chart
     module Data.FormatN,
     module Data.Path,
     module Data.Path.Parser,
-    module NumHask.Space,
   )
 where
 
@@ -39,7 +49,6 @@ import Data.Colour
 import Data.FormatN
 import Data.Path
 import Data.Path.Parser
-import NumHask.Space hiding (singleton)
 
 -- $setup
 --
@@ -65,18 +74,18 @@ import NumHask.Space hiding (singleton)
 -- Charting consists of three highly-coupled conceptual layers:
 --
 -- 1. the data to be represented.
--- 2. how the data will be represented on a screen, and.
+-- 2. how the data is to be represented on a screen, and.
 -- 3. the creation of visual aids that help interpret the data; such as axes, gridlines and titles.
 --
 -- == What is a 'Chart'?
 --
--- A 'Chart' in this library consists of a specification of the first two items in the above list; data and data annotation. What exactly is annotation and what is data is highly variant by types of chart and within charting practice.
+-- A 'Chart' in this library consists of a specification of the first two items in the above list; data and representation.
 --
 -- Here's some data; three lists of points that form lines to be charted:
 --
 -- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
 --
--- and some line styles with different colors and widths in order to distinguish the data:
+-- and some line styles with different colors in order to distinguish the data:
 --
 -- >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
 -- >>> styles
@@ -89,15 +98,15 @@ import NumHask.Space hiding (singleton)
 -- >>> :t lineExample
 -- lineExample :: ChartSvg
 --
--- > writeChartSvg "other/line.svg" lineExample
+-- > writeChartSvg "other/usage.svg" lineExample
 --
--- ![lines example](other/line.svg)
+-- ![usage example](other/usage.svg)
 
 -- $hud
 --
--- Axes, titles, tick marks, grid lines and legends are chart elements that exist to provide references for the viewer that helps explain the data that is being represented by the chart. They can be clearly distinguished from data representations such as a mark where a value is.
+-- Axes, titles, tick marks, grid lines and legends are chart elements that exist to provide references for the viewer that helps explain the data that is being represented by the chart. They can usually be distinguished from data representations such as a mark where a value is.
 --
--- Apart from this, hud elements are pretty much the same as data elements. They simulateously have two reference frames: a data domain (tick values reference the data value range) and a page domain (a title needs to be placed on the left say, and has a size of 0.1 versus the page size). They are also typically composed of the same sorts of primitives as data elements, such as rectangles and lines and text and colors.
+-- Apart from this representational aspect, hud elements are pretty much the same as data elements. They simulateously have two reference frames: a data domain (tick values reference the data value range) and a page domain (a title needs to be placed on the left say, and has a size of 0.1 versus the page size). They are also typically composed of the same sorts of primitives as data elements, such as rectangles and lines and text and colors.
 --
 -- Given this similarity, an efficient process for chart creation is roughly:
 --
@@ -105,8 +114,16 @@ import NumHask.Space hiding (singleton)
 --
 -- - measure the range of the data values
 --
--- - begin a process of folding a [Hud ()] in with the charts, supplying the the data values to the hud elements if needed, and keeping track of the overall page size of the chart.
+-- - begin a process of folding hud elements in, supplying the the data values to the hud elements as needed, and keep track of the overall page size of the chart.
 --
--- This process is encapsulated in 'runHud'.
+-- This process is encapsulated in 'Chart.Hud'.
 --
--- An important quality of 'runHud' (and conversion of charts to svg in general)is that this is the point at which the 'XY's of the chart are converted from the data domain to the page domain. Once the hud and the chart has been integrated there is no going back and the original data is forgotten. This is an opinionated aspect of chart-svg. A counter-example is d3 which stores the raw data in the svg element it represents.
+-- An important quality of 'runHud' (and conversion of charts to svg in general) is that this is the point at which chart data is converted from the data domain to the page domain.
+--
+-- The most common Hud concepts, such as axes and titles, have been collected into the 'HudOptions' type.
+
+-- $optics
+--
+-- Usage suggests the use of optics-core and OverloadedLabels, but this is not required. 'Chart', 'HudOptions' and associated chart configuration types are big and sometimes deep syntax trees, and simple optics getting, setting and modding makes manipulation more pleasant. Lens works as well, and the library is perfectly capable of being used with records.
+--
+-- Lenses are supplied, for the optics-core library, but can be easily modified for lens. The chart-svg convention is that lenses are either OverloadedLabels, or suffixed with '.

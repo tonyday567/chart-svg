@@ -9,7 +9,7 @@
 -- | The primitive 'Chart' Type and support
 module Chart.Primitive
   ( Chart (..),
-    hasNoData,
+    isEmptyChart,
     Charts (..),
     filterCharts,
     chart',
@@ -71,7 +71,7 @@ import Prelude
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
 -- - 'RectChart': based on a rectangular space in the XY-domain. A 'Rect 0 1 0 1' is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on Rect Double's but the base types are polymorphic.
--- - 'LineChart': based on a 'NonEmpty' 'Point' a - A non-empty list of connected straight lines. [Point 0 0, Point 1 1, Point 2 2, Point 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
+-- - 'LineChart': based on a ['Point' a] - A list of connected straight lines. [Point 0 0, Point 1 1, Point 2 2, Point 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
 -- - 'GlyphChart': based on 'GlyphShape' which is a predefined shaped centered at a Point in XY space.
 -- - 'TextChart': text centered at a point in XY space.
 -- - 'PathChart': based on curvilinear paths using the SVG standards.
@@ -79,7 +79,7 @@ import Prelude
 --
 -- What is a Chart is usually a combination of these primitives into a tree or list of Chart
 --
--- Each Chart primitive is a product of a (single) style and a NonEmpty list of data with the appropriate type.
+-- Each Chart primitive is a product of a (single) style and a list of data with the appropriate type.
 --
 -- A simple example is:
 --
@@ -101,44 +101,47 @@ data Chart where
   BlankChart :: [Rect Double] -> Chart
   deriving (Eq, Show)
 
-hasNoData :: Chart -> Bool
-hasNoData (RectChart _ []) = True
-hasNoData (LineChart _ []) = True
-hasNoData (GlyphChart _ []) = True
-hasNoData (TextChart _ []) = True
-hasNoData (PathChart _ []) = True
-hasNoData (BlankChart _) = True
-hasNoData _ = False
-
+-- | A group of charts can usefully be regarded and manipulated as a 'Tree' (with labelled branches).
+--
+-- This is particularly useful downstream, when chart groupings become SVG elements with classes or ids.
 newtype Charts a = Charts {tree :: Tree (a, [Chart])} deriving (Eq, Show, Generic)
 
+-- | apply a filter to Charts
 filterCharts :: (Chart -> Bool) -> Charts a -> Charts a
 filterCharts p (Charts (Node (a, cs) xs)) =
   Charts (Node (a, catMaybes (rem' <$> cs)) (tree . filterCharts p . Charts <$> xs))
   where
     rem' x = bool Nothing (Just x) (p x)
 
+-- | lens between Charts and the underlying Tree representation
 tree' :: Iso' (Charts a) (Tree (a, [Chart]))
 tree' = iso tree Charts
 
+-- | A traversal of the chart lists in the Charts (tree).
 charts' :: Traversal' (Charts a) [Chart]
 charts' = tree' % traversed % _2
 
+-- | A traversal of each chart in the Charts tree.
 chart' :: Traversal' (Charts a) Chart
 chart' = tree' % traversed % _2 % traversed
 
+-- | Convert a chart list to a Charts, adding a specific Text label.
 named :: Text -> [Chart] -> Charts (Maybe Text)
 named l cs = Charts $ Node (Just l, cs) []
 
+-- | Convert a chart list to a (single branch) Charts, with no Text label.
 unnamed :: [Chart] -> Charts (Maybe Text)
 unnamed cs = Charts $ Node (Nothing, cs) []
 
+-- | add a top-level label to a Charts
 rename :: Maybe Text -> Charts (Maybe Text) -> Charts (Maybe Text)
 rename l (Charts (Node (_, cs) xs)) = Charts (Node (l, cs) xs)
 
+-- | a Charts with no charts.
 blank :: Rect Double -> Charts (Maybe Text)
 blank r = unnamed [BlankChart [r]]
 
+-- | group a list of Charts as a new Charts
 group :: Maybe Text -> [Charts (Maybe Text)] -> Charts (Maybe Text)
 group name cs = Charts $ Node (name, []) (tree <$> cs)
 
@@ -197,6 +200,7 @@ projectWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
 projectWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
 projectWith new old (PathChart s a) = PathChart s (projectPaths new old a)
 
+-- | maybe projects a Chart to a new rectangular space from an old rectangular space, if both Rects exist.
 maybeProjectWith :: Maybe (Rect Double) -> Maybe (Rect Double) -> Chart -> Chart
 maybeProjectWith new old = fromMaybe id (projectWith <$> new <*> old)
 
@@ -258,6 +262,7 @@ projectCharts new cs = case styleBoxes cs of
   Nothing -> cs
   Just b -> projectWith new b <$> cs
 
+-- | compute the bounding box of the data contained in a list of charts.
 boxes :: [Chart] -> Maybe (Rect Double)
 boxes cs = foldRect $ mconcat $ maybeToList . box <$> cs
 
@@ -269,10 +274,12 @@ rebox_ cs r =
   cs
     & over chart' (fromMaybe id $ projectWith <$> r <*> box_ cs)
 
+-- | lens between a Charts and its rectangular range
 box' :: Lens' (Charts a) (Maybe (Rect Double))
 box' =
   lens box_ rebox_
 
+-- | compute the bounding box of the data and style elements contained in a list of charts.
 styleBoxes :: [Chart] -> Maybe (Rect Double)
 styleBoxes cs = foldRect $ mconcat $ maybeToList . sbox <$> cs
 
@@ -286,7 +293,7 @@ styleRebox_ cs r =
   where
     r' = (NH.-) <$> r <*> ((NH.-) <$> styleBox_ cs <*> box_ cs)
 
--- |
+-- | Lens between a style bounding box and a Charts tree.
 --
 -- Note that a round trip may be only approximately isomorphic ie
 --
@@ -338,6 +345,16 @@ frameChart rs p cs = RectChart rs (maybeToList (padRect p <$> styleBoxes cs))
 padChart :: Double -> [Chart] -> Chart
 padChart p cs = BlankChart (maybeToList (padRect p <$> styleBoxes cs))
 
+-- | Whether a chart contains data
+isEmptyChart :: Chart -> Bool
+isEmptyChart (RectChart _ []) = True
+isEmptyChart (LineChart _ []) = True
+isEmptyChart (GlyphChart _ []) = True
+isEmptyChart (TextChart _ []) = True
+isEmptyChart (PathChart _ []) = True
+isEmptyChart (BlankChart _) = True
+isEmptyChart _ = False
+
 -- | horizontally stack a list of list of charts (proceeding to the right) with a gap between
 hori :: (Monoid (Charts a)) => Double -> [Charts a] -> Charts a
 hori _ [] = mempty
@@ -372,6 +389,7 @@ stack n gap cs = vert gap (hori gap <$> group' cs [])
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
 
+-- | Make a new chart tree out of the bounding boxes of a chart tree.
 rectangularize :: RectStyle -> Charts (Maybe Text) -> Charts (Maybe Text)
 rectangularize r c = group (Just "rectangularize") [over chart' (rectangularize_ r) c]
 
@@ -379,6 +397,7 @@ rectangularize_ :: RectStyle -> Chart -> Chart
 rectangularize_ rs (TextChart s xs) = TextChart (s & #frame .~ Just rs) xs
 rectangularize_ rs c = RectChart rs (maybeToList $ sbox c)
 
+-- | Make a new chart tree out of the data points of a chart tree, using the supplied glyphs.
 glyphize :: GlyphStyle -> Charts (Maybe Text) -> Charts (Maybe Text)
 glyphize g c =
   group (Just "glyphize") [over chart' (glyphize_ g) c]
@@ -391,6 +410,7 @@ glyphize_ g (BlankChart xs) = GlyphChart g (mid <$> xs)
 glyphize_ g (RectChart _ xs) = GlyphChart g (mid <$> xs)
 glyphize_ g (GlyphChart _ xs) = GlyphChart g xs
 
+-- | modify the text in a text chart.
 overText :: (TextStyle -> TextStyle) -> Chart -> Chart
 overText f (TextChart s xs) = TextChart (f s) xs
 overText _ x = x

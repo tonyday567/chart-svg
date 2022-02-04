@@ -12,6 +12,8 @@ module Data.Path.Parser
     parsePath,
     svgToPathData,
     pathDataToSvg,
+    PathCommand (..),
+    Origin (..),
   )
 where
 
@@ -131,25 +133,25 @@ command =
 
 -- | Path command definition (ripped from reanimate-svg).
 data PathCommand
-  = -- | 'M' or 'm' command
+  = -- | M or m command
     MoveTo !Origin ![Point Double]
-  | -- | Line to, 'L' or 'l' Svg path command.
+  | -- | Line to, L or l Svg path command.
     LineTo !Origin ![Point Double]
-  | -- | Equivalent to the 'H' or 'h' svg path command.
+  | -- | Equivalent to the H or h svg path command.
     HorizontalTo !Origin ![Double]
-  | -- | Equivalent to the 'V' or 'v' svg path command.
+  | -- | Equivalent to the V or v svg path command.
     VerticalTo !Origin ![Double]
-  | -- | Cubic bezier, 'C' or 'c' command
+  | -- | Cubic bezier, C or c command
     CurveTo !Origin ![(Point Double, Point Double, Point Double)]
-  | -- | Smooth cubic bezier, equivalent to 'S' or 's' command
+  | -- | Smooth cubic bezier, equivalent to S or s command
     SmoothCurveTo !Origin ![(Point Double, Point Double)]
-  | -- | Quadratic bezier, 'Q' or 'q' command
+  | -- | Quadratic bezier, Q or q command
     QuadraticBezier !Origin ![(Point Double, Point Double)]
-  | -- | Quadratic bezier, 'T' or 't' command
+  | -- | Quadratic bezier, T or t command
     SmoothQuadraticBezierCurveTo !Origin ![Point Double]
-  | -- | Elliptical arc, 'A' or 'a' command.
+  | -- | Elliptical arc, A or a command.
     EllipticalArc !Origin ![(Double, Double, Double, Bool, Bool, Point Double)]
-  | -- | Close the path, 'Z' or 'z' svg path command.
+  | -- | Close the path, Z or z svg path command.
     EndPath
   deriving (Eq, Show, Generic)
 
@@ -261,6 +263,7 @@ data PathCursor = PathCursor
 stateCur0 :: PathCursor
 stateCur0 = PathCursor zero zero Nothing
 
+-- | convert an svd d path text snippet to a [PathData Double]
 svgToPathData :: Text -> [PathData Double]
 svgToPathData = toPathDatas . either error id . parsePath
 
@@ -274,7 +277,7 @@ toPathDatas xs = fmap svgCoords $ mconcat $ flip evalState stateCur0 $ sequence 
 
 -- | Convert relative points to absolute points
 relToAbs :: (Additive a) => a -> [a] -> [a]
-relToAbs p xs = accsum (p:xs)
+relToAbs p xs = accsum (p : xs)
 
 moveTo :: [Point Double] -> State PathCursor [PathData Double]
 moveTo xs = do
@@ -308,12 +311,12 @@ curveTo xs = do
 relToAbs3 :: Additive a => a -> [(a, a, a)] -> [(a, a, a)]
 relToAbs3 p xs = xs'
   where
-    x1 = (\(x,_,_) -> x) <$> xs
-    x2 = (\(_,x,_) -> x) <$> xs
-    x3 = (\(_,_,x) -> x) <$> xs
-    x1' = fmap (p+) (accsum x1)
-    x2' = fmap (p+) (accsum x2)
-    x3' = fmap (p+) (accsum x3)
+    x1 = (\(x, _, _) -> x) <$> xs
+    x2 = (\(_, x, _) -> x) <$> xs
+    x3 = (\(_, _, x) -> x) <$> xs
+    x1' = fmap (p +) (accsum x1)
+    x2' = fmap (p +) (accsum x2)
+    x3' = fmap (p +) (accsum x3)
     xs' = zip3 x1' x2' x3'
 
 reflControlPoint :: State PathCursor (Point Double)
@@ -339,8 +342,8 @@ relToAbs2 p xs = xs'
   where
     x1 = fst <$> xs
     x2 = snd <$> xs
-    x1' = fmap (p+) (accsum x1)
-    x2' = fmap (p+) (accsum x2)
+    x1' = fmap (p +) (accsum x1)
+    x2' = fmap (p +) (accsum x2)
     xs' = zip x1' x2'
 
 quad :: [(Point Double, Point Double)] -> State PathCursor [PathData Double]
@@ -373,9 +376,9 @@ fromPathEllipticalArc (x, y, r, l, s, p) = ArcP (ArcInfo (Point x y) r l s) p
 relToAbsArc :: Additive a => Point a -> [(a, a, a, Bool, Bool, Point a)] -> [(a, a, a, Bool, Bool, Point a)]
 relToAbsArc p xs = xs'
   where
-    ps = (\(_,_,_,_,_,pt) -> pt) <$> xs
-    ps' = fmap (p+) (accsum ps)
-    xs' = zipWith (\(x0,x1,x2,x3,x4,_) pt -> (x0,x1,x2,x3,x4,pt)) xs ps'
+    ps = (\(_, _, _, _, _, pt) -> pt) <$> xs
+    ps' = fmap (p +) (accsum ps)
+    xs' = zipWith (\(x0, x1, x2, x3, x4, _) pt -> (x0, x1, x2, x3, x4, pt)) xs ps'
 
 -- | Convert a path command fragment to PathData
 --

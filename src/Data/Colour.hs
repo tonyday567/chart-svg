@@ -143,6 +143,8 @@ showRGB (Colour r' g' b' _) =
     g = percent (fixedSF (Just 0)) (Just 2) g'
     b = percent (fixedSF (Just 0)) (Just 2) b'
 
+-- | is a Colour in Gamut?
+--
 -- >>> validColour (Colour 1 1 1.01 1)
 -- False
 validColour :: Colour -> Bool
@@ -304,8 +306,23 @@ transparent :: Colour
 transparent = Colour 0 0 0 0
 
 -- | LCH colour representation
+--
+-- oklab is a colour space being written into CSS specifications, that attempts to be ok at human-consistent colour representation. See:
+--
+-- - <https://bottosson.github.io/posts/oklab/ A perceptual color space for image processing>
+-- - <https://www.w3.org/TR/css-color-5/#colorcontrast CSS Color Module Level 5>
+-- - <https://www.w3.org/TR/css-color-4/#rgb-functions CSS Color Module Level 4>
+--
+-- The type is represented by three elements:
+--
+-- L: lightness ranging from 0 (LCH 0 _ _ is black) to 1 (LCH 1 _ _ is white)
+--
+-- C: Chromacity, which ranges from 0 to around 0.32 or so.
+--
+-- H: Hue, which ranges from 0 to 360
 newtype LCH a = LCH' {lchArray :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
 
+-- | LCH colour pattern
 pattern LCH :: a -> a -> a -> LCH a
 pattern LCH l c h <-
   LCH' [l, c, h]
@@ -314,24 +331,30 @@ pattern LCH l c h <-
 
 {-# COMPLETE LCH #-}
 
+-- | lightness lens for LCH
 lLCH' :: Lens' (LCH Double) Double
 lLCH' = lens (\(LCH l _ _) -> l) (\(LCH _ c h) l -> LCH l c h)
 
+-- | chromacity lens for LCH
 cLCH' :: Lens' (LCH Double) Double
 cLCH' = lens (\(LCH _ c _) -> c) (\(LCH l _ h) c -> LCH l c h)
 
+-- | hue lens for LCH
 hLCH' :: Lens' (LCH Double) Double
 hLCH' = lens (\(LCH _ _ h) -> h) (\(LCH l c _) h -> LCH l c h)
 
--- | LCHA representation
+-- | LCHA representation, including an alpha channel.
 data LCHA = LCHA' {_lch :: LCH Double, _alpha :: Double} deriving (Eq, Show)
 
+-- | LCH lens for LCHA
 lch' :: Lens' LCHA (LCH Double)
 lch' = lens (\(LCHA' lch _) -> lch) (\(LCHA' _ a) lch -> LCHA' lch a)
 
+-- | alpha lens for LCHA
 alpha' :: Lens' LCHA Double
 alpha' = lens (\(LCHA' _ a) -> a) (\(LCHA' lch _) a -> LCHA' lch a)
 
+-- | LCHA pattern
 pattern LCHA :: Double -> Double -> Double -> Double -> LCHA
 pattern LCHA l c h a <-
   LCHA' (LCH' [l, c, h]) a
@@ -342,8 +365,10 @@ pattern LCHA l c h a <-
 
 -- * RGB colour representation
 
+-- | A type to represent the RGB triple, useful as an intermediary between 'Colour' and 'LCHA'
 newtype RGB3 a = RGB3' {rgb3Array :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
 
+-- | the RGB3 pattern
 pattern RGB3 :: a -> a -> a -> RGB3 a
 pattern RGB3 r g b <-
   RGB3' [r, g, b]
@@ -352,16 +377,20 @@ pattern RGB3 r g b <-
 
 {-# COMPLETE RGB3 #-}
 
+-- | lens for conversion between Double and Word8 RGB triples.
 rgbd' :: Iso' (RGB3 Double) (RGB3 Word8)
 rgbd' = iso (fmap (floor . (* 256))) (fmap (\x -> fromIntegral x / 256.0))
 
+-- | lens for conversion between an (RGB3, alpha) pair and Colour
 rgb32colour' :: Iso' (RGB3 Double, Double) Colour
 rgb32colour' = iso (\(RGB3 r g b, a) -> Colour r g b a) (\(Colour r g b a) -> (RGB3 r g b, a))
 
 -- * LAB colour representation
 
+-- | LAB colour representation. a is green-red and b is blue-yellow
 newtype LAB a = LAB' {labArray :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
 
+-- | LAB pattern
 pattern LAB :: a -> a -> a -> LAB a
 pattern LAB l a b <-
   LAB' [l, a, b]
@@ -397,6 +426,7 @@ lcha2colour' =
 
 -- * lab to lch
 
+-- | lens between generic XY color representations and CH ones, which are polar version of the XY.
 xy2ch' :: Iso' (Double, Double) (Double, Double)
 xy2ch' =
   iso
@@ -406,6 +436,7 @@ xy2ch' =
 mod_ :: Double -> Double -> Double
 mod_ x d = x - fromIntegral (floor (x / d) :: Integer) * d
 
+-- | lens between LAB and LCH
 lab2lch' :: Iso' (LAB Double) (LCH Double)
 lab2lch' =
   iso
@@ -414,6 +445,7 @@ lab2lch' =
 
 -- * rgb to lab
 
+-- | lens between RGB3 and LAB
 rgb2lab' :: Iso' (RGB3 Double) (LAB Double)
 rgb2lab' =
   iso
@@ -643,9 +675,11 @@ rvs = go g0
     g0 = mkStdGen 42
     go g = let (x, g') = uniform g in x : go g'
 
+-- | random list of RGB3s
 rvRGB3 :: [RGB3 Double]
 rvRGB3 = rvs
 
+-- | random list of Colours
 rvColour :: [Colour]
 rvColour = rvs
 
@@ -656,11 +690,10 @@ paletteR = go g0
     g0 = mkStdGen 42
     go g = let (x, g') = runStateGen g rvSensible in x : go g'
 
+-- | A random Colour generator that provides a (hopefully) pleasant colour not too light, dark, over-saturated or dull.
 rvSensible :: StatefulGen g m => g -> m Colour
 rvSensible gen = do
   l <- uniformRM (0.3, 0.75) gen
   c <- uniformRM (0.05, 0.24) gen
   h <- uniformRM (0, 360) gen
   pure ((trimColour . view lcha2colour') (LCHA l c h 1))
-
---[LCHA 0.72 0.123 207 1, LCHA 0.40 0.10 246 1, LCHA 0.50 0.21 338 1, LCHA 0.8 0.15 331 1, LCHA 0.83 0.14 69 1, LCHA 0.57 0.15 50 1, LCHA 0.38 0.085 128 1, LCHA 0.60 0.08 104 1]

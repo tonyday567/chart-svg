@@ -105,10 +105,13 @@ data HudChart = HudChart
   }
   deriving (Eq, Show, Generic)
 
+-- | A type for Rect to represent the entire bounding box of a chart, including the Hud
 type HudBox = Rect Double
 
+-- | A type for Rect to represent the bounding box of the canvas portion of a chart, excluding Hud elements
 type CanvasBox = Rect Double
 
+-- | A type for Rect to represent the bounding box of the data elements a chart, which can be a different metric to Canvas and Hud Rects
 type DataBox = Rect Double
 
 canvasBox_ :: HudChart -> Maybe CanvasBox
@@ -120,16 +123,19 @@ canvasRebox_ cs r =
     & over (#chart % chart') (maybeProjectWith r (canvasBox_ cs))
     & over (#hud % chart') (maybeProjectWith r (canvasBox_ cs))
 
+-- | a lens between a HudChart and the bounding box of the canvas
 canvasBox' :: Lens' HudChart (Maybe CanvasBox)
 canvasBox' =
   lens canvasBox_ canvasRebox_
 
+-- | a lens between a HudChart and the bounding box of the canvas, including style extensions.
 canvasStyleBox' :: Getter HudChart (Maybe HudBox)
 canvasStyleBox' = to (styleBoxes . foldOf (#chart % charts'))
 
 hudStyleBox_ :: HudChart -> Maybe HudBox
 hudStyleBox_ = styleBoxes . (\x -> foldOf (#chart % charts') x <> foldOf (#hud % charts') x)
 
+-- | a lens between a HudChart and the bounding box of the hud.
 hudStyleBox' :: Getter HudChart (Maybe HudBox)
 hudStyleBox' = to hudStyleBox_
 
@@ -144,6 +150,7 @@ hudRebox_ cs r =
   where
     r' = (NH.-) <$> r <*> ((NH.-) <$> hudStyleBox_ cs <*> hudBox_ cs)
 
+-- | lens between a HudChart and its hud bounding box, not including style.
 hudBox' :: Lens' HudChart (Maybe HudBox)
 hudBox' =
   lens hudBox_ hudRebox_
@@ -164,11 +171,13 @@ data Hud = Hud
   }
   deriving (Generic)
 
+-- | close off a series of Charts to a State HudChart
 closes :: (Traversable f) => f (State HudChart (Charts (Maybe Text))) -> State HudChart ()
 closes xs = do
   xs' <- fmap (mconcat . toList) $ sequence xs
   modify (appendHud xs')
 
+-- | include a pure an effect in a Hud
 fromEffect :: Priority -> State HudChart () -> Hud
 fromEffect p s = Hud p (s >> pure mempty)
 
@@ -180,6 +189,7 @@ applyChartAspect fa = do
     ChartAspect -> pure ()
     _ -> modify (set hudBox' (getHudBox fa hc))
 
+-- | supply the bounding box that applies the desired chart aspect with the HudChart.
 getHudBox :: ChartAspect -> HudChart -> Maybe HudBox
 getHudBox fa c =
   case fa of
@@ -598,6 +608,10 @@ flipAxis ac = case ac ^. #place of
   PlaceRight -> ac & #place .~ PlaceTop
   PlaceAbsolute _ -> ac
 
+-- | Options for hud frames
+--
+-- >>> defaultFrameOptions
+-- FrameOptions {frame = Just (RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 1.00 1.00 1.00 0.02}), buffer = 0.0}
 data FrameOptions = FrameOptions
   { frame :: Maybe RectStyle,
     buffer :: Double
@@ -938,6 +952,7 @@ makeTick c = do
       let adjTick = maybe (c ^. #ticks) (\x -> adjustTicks x hb' db (c ^. #place) (c ^. #ticks)) (c ^. #adjust)
       applyTicks (c ^. #place) adjTick
 
+-- | Make a legend from 'LegendOptions'
 legend :: LegendOptions -> State HudChart (Charts (Maybe Text))
 legend o = legendHud o (legendChart o)
 
@@ -964,6 +979,7 @@ placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
     PlaceRight -> Point (z + buff) ((y + w) / 2.0)
     PlaceAbsolute p -> p
 
+-- | frame a legend
 legendFrame :: LegendOptions -> Charts (Maybe Text) -> Charts (Maybe Text)
 legendFrame l content' =
   group (Just "legend") [named "legendBorder" borders, rename (Just "legendContent") content']
@@ -973,6 +989,7 @@ legendFrame l content' =
     frame' = foldMap (\r -> [frameChart r 0 [inner]]) (view #frame l)
     inner = padChart (view #innerPad l) (foldOf charts' content')
 
+-- | Make the contents portion of a legend
 legendChart :: LegendOptions -> Charts (Maybe Text)
 legendChart l = legendFrame l content'
   where

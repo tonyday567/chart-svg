@@ -197,6 +197,7 @@ defaultGlyphStyle =
     Nothing
     Nothing
 
+-- | Should glyph borders be scaled?
 data ScaleBorder = ScaleBorder | NoScaleBorder deriving (Show, Eq, Generic)
 
 -- | glyph shapes

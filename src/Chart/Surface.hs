@@ -137,6 +137,7 @@ data SurfaceLegendOptions = SurfaceLegendOptions
   }
   deriving (Eq, Show, Generic)
 
+-- | 'AxisOptions' for a surface chart.
 surfaceAxisOptions :: Colour -> AxisOptions
 surfaceAxisOptions c =
   AxisOptions

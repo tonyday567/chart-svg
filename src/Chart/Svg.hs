@@ -76,7 +76,7 @@ svgChartTree cs
   | isNothing label && null cs' = mconcat $ svgChartTree . Charts <$> xs
   | otherwise = term "g" (foldMap (\x -> [term "class" x]) label) content'
   where
-    (Charts (Node (label, cs') xs)) = filterCharts (not . hasNoData) cs
+    (Charts (Node (label, cs') xs)) = filterCharts (not . isEmptyChart) cs
     content' = (mconcat $ svg <$> cs') <> (mconcat $ svgChartTree . Charts <$> xs)
 
 -- ** ChartSvg
@@ -136,11 +136,13 @@ cssText csso =
       <> cssPreferColorScheme (light, dark) (csso ^. #preferColorScheme)
       <> csso ^. #cssExtra
 
+-- | CSS shape rendering text snippet
 cssShapeRendering :: CssShapeRendering -> Text
 cssShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPrecision; }"
 cssShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 cssShapeRendering NoShapeRendering = mempty
 
+-- | CSS prefer-color-scheme text snippet
 cssPreferColorScheme :: (Colour, Colour) -> CssPreferColorScheme -> Text
 cssPreferColorScheme (cl, cd) PreferHud =
   [trimming|
@@ -201,6 +203,7 @@ cssPreferColorScheme (_, bgdark) PreferDark =
     c = hex bgdark
 cssPreferColorScheme _ PreferNormal = mempty
 
+-- | consume the huds transforming a 'ChartSvg' to a 'Charts'
 toCharts :: ChartSvg -> Charts (Maybe Text)
 toCharts cs =
   runHudWith
@@ -432,9 +435,17 @@ data SvgOptions = SvgOptions
 defaultSvgOptions :: SvgOptions
 defaultSvgOptions = SvgOptions 300 defaultCssOptions
 
+-- | CSS shape rendering options
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
 
-data CssPreferColorScheme = PreferHud | PreferDark | PreferLight | PreferNormal deriving (Show, Eq, Generic)
+-- | CSS prefer-color-scheme options
+data CssPreferColorScheme
+  = -- | includes css that switches approriate hud elements between light and dark.
+    PreferHud
+  | PreferDark
+  | PreferLight
+  | PreferNormal
+  deriving (Show, Eq, Generic)
 
 -- | css options
 -- >>> defaultCssOptions
