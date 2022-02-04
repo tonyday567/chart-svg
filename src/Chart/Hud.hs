@@ -172,25 +172,23 @@ closes xs = do
 fromEffect :: Priority -> State HudChart () -> Hud
 fromEffect p s = Hud p (s >> pure mempty)
 
-type Scale = Double
-
 -- | Apply a ChartAspect
-applyChartAspect :: ChartAspect -> Scale -> State HudChart ()
-applyChartAspect fa x = do
+applyChartAspect :: ChartAspect -> State HudChart ()
+applyChartAspect fa = do
   hc <- get
   case fa of
     ChartAspect -> pure ()
-    _ -> modify (set hudBox' (getHudBox fa x hc))
+    _ -> modify (set hudBox' (getHudBox fa hc))
 
-getHudBox :: ChartAspect -> Scale -> HudChart -> Maybe HudBox
-getHudBox fa x c =
+getHudBox :: ChartAspect -> HudChart -> Maybe HudBox
+getHudBox fa c =
   case fa of
-    FixedAspect a -> Just (fmap (x *) (aspect a))
+    FixedAspect a -> Just (aspect a)
     CanvasAspect a ->
       case (view hudBox' c, view canvasBox' c) of
         (Nothing, _) -> Nothing
         (_, Nothing) -> Nothing
-        (Just hb, Just cb) -> Just (fmap (x *) (aspect (a * ratio hb / ratio cb)))
+        (Just hb, Just cb) -> Just (aspect (a * ratio hb / ratio cb))
     ChartAspect -> view hudBox' c
 
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (a linear type might be useful here).
@@ -238,7 +236,6 @@ runHud ca hs cs = runHudWith ca (singletonGuard $ boxes (foldOf charts' cs)) hs 
 -- ![hud example](other/hudoptions.svg)
 data HudOptions = HudOptions
   { chartAspect :: ChartAspect,
-    chartScale :: Double,
     axes :: [(Priority, AxisOptions)],
     frames :: [(Priority, FrameOptions)],
     legends :: [(Priority, LegendOptions)],
@@ -247,18 +244,17 @@ data HudOptions = HudOptions
   deriving (Eq, Show, Generic)
 
 instance Semigroup HudOptions where
-  (<>) (HudOptions _ _ a c l t) (HudOptions asp sc a' c' l' t') =
-    HudOptions asp sc (a <> a') (c <> c') (l <> l') (t <> t')
+  (<>) (HudOptions _ a c l t) (HudOptions asp a' c' l' t') =
+    HudOptions asp (a <> a') (c <> c') (l <> l') (t <> t')
 
 instance Monoid HudOptions where
-  mempty = HudOptions (FixedAspect 1.5) 1 [] [] [] []
+  mempty = HudOptions (FixedAspect 1.5) [] [] [] []
 
 -- | The official hud options.
 defaultHudOptions :: HudOptions
 defaultHudOptions =
   HudOptions
     (FixedAspect 1.5)
-    1
     [ (5, defaultAxisOptions),
       (5, defaultAxisOptions & set #place PlaceLeft)
     ]
@@ -287,7 +283,7 @@ toHuds o db =
       <> (view #legends o & fmap (uncurry Hud . second legend))
       <> (view #titles o & fmap (uncurry Hud . second title))
       <> [ fromEffect (lastPriority o + 1) $
-             applyChartAspect (view #chartAspect o) (view #chartScale o)
+             applyChartAspect (view #chartAspect o)
          ]
   where
     (as', db''') =
