@@ -1,7 +1,8 @@
 #+TITLE: chart-svg
 
-[[https://hackage.haskell.org/package/numhask][[https://img.shields.io/hackage/v/chart-svg.svg]​]]
-[[https://github.com/tonyday567/numhask/actions?query=workflow%3Ahaskell-ci][[https://github.com/tonyday567/chart-svg/workflows/haskell-ci/badge.svg]​]]
+[[https://hackage.haskell.org/package/numhask][file:https://img.shields.io/hackage/v/chart-svg.svg]]
+
+[[https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci][file:https://github.com/tonyday567/chart-svg/workflows/haskell-ci/badge.svg]]
 
 
 
