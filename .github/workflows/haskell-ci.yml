@@ -22,10 +22,6 @@ jobs:
           - os: ubuntu-latest
             ghc: '8.10.7'
             experimental: true
-            manager: 'stack'
-          - os: ubuntu-latest
-            ghc: '8.10.7'
-            experimental: true
             manager: 'cabal'
             docspec: true
     continue-on-error: true
