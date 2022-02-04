@@ -9,9 +9,13 @@ debug
 ---
 ![](other/debug.svg)
 
-subchart
+gradient
 ---
-![](other/subchart.svg)
+![](other/gradient.svg)
+
+wheel
+---
+![](other/wheel.svg)
 
 unit
 ---
@@ -36,10 +40,6 @@ text
 wave
 ---
 ![](other/wave.svg)
-
-mix
----
-![](other/mix.svg)
 
 bar
 ---

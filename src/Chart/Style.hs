@@ -77,7 +77,7 @@ data RectStyle = RectStyle
 
 -- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (palette1 1) (palette1 2)
+defaultRectStyle = RectStyle 0.01 (palette1a 1 1) (palette1a 0 0.1)
 
 -- | solid rectangle, no border
 --
@@ -192,8 +192,8 @@ defaultGlyphStyle :: GlyphStyle
 defaultGlyphStyle =
   GlyphStyle
     0.03
-    (palette1 1)
-    (palette1 2)
+    (palette1a 0 0.2)
+    (set lightness' 0.4 $ palette1a 1 1)
     0.003
     SquareGlyph
     Nothing

@@ -9,6 +9,7 @@
 -- | The primitive 'Chart' Type and support
 module Chart.Primitive
   ( Chart(..),
+    hasNoData,
     Charts(..),
     filterCharts,
     chart',
@@ -99,6 +100,15 @@ data Chart
     PathChart :: PathStyle -> [PathData Double] -> Chart
     BlankChart :: [Rect Double] -> Chart
     deriving (Eq, Show)
+
+hasNoData :: Chart -> Bool
+hasNoData (RectChart _ []) = True
+hasNoData (LineChart _ []) = True
+hasNoData (GlyphChart _ []) = True
+hasNoData (TextChart _ []) = True
+hasNoData (PathChart _ []) = True
+hasNoData (BlankChart _) = True
+hasNoData _ = False
 
 newtype Charts a = Charts { tree :: Tree (a, [Chart]) } deriving (Eq, Show, Generic)
 

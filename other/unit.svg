@@ -8,6 +8,9 @@
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: #0d0d0d;
   }
+  .legendBorder g {
+    fill: #f0f0f0;
+  }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
@@ -16,7 +19,10 @@
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: #f0f0f0;
   }
-}</style><g class="chart"><g class="unit"><g fill="rgb(12%, 47%, 71%)" stroke="rgb(65%, 81%, 89%)" stroke-width="1.0e-2" fill-opacity="1.0" stroke-opacity="1.0"><rect x="-0.5773009200507613" width="1.2718115482233503" y="-0.47438321250566384" height="0.8733574988672406"/></g></g></g><g class="hud"><g class="frame"><g fill="rgb(100%, 100%, 100%)" stroke="rgb(0%, 0%, 0%)" stroke-width="0.0" fill-opacity="2.0e-2" stroke-opacity="0.0"><rect x="-0.5815402918781725" width="1.2802902918781724" y="-0.47875" height="0.8820910738559129"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgb(5%, 5%, 5%)" stroke="rgb(5%, 5%, 5%)" stroke-width="4.0e-3" fill-opacity="0.4" stroke-opacity="0.4"><g transform="rotate(-90.0, -0.6069765228426395, 0.3989742863615767)"><polyline points="-0.6069765228426395,0.41397428636157674
+  .legendBorder g {
+    fill: #0d0d0d;
+  }
+}</style><g class="chart"><g class="unit"><g fill="rgb(2%, 73%, 80%)" stroke="rgb(2%, 29%, 48%)" stroke-width="1.0e-2" fill-opacity="0.1" stroke-opacity="1.0"><rect x="-0.5773009200507613" width="1.2718115482233503" y="-0.47438321250566384" height="0.8733574988672406"/></g></g></g><g class="hud"><g class="frame"><g fill="rgb(100%, 100%, 100%)" stroke="rgb(0%, 0%, 0%)" stroke-width="0.0" fill-opacity="2.0e-2" stroke-opacity="0.0"><rect x="-0.5815402918781725" width="1.2802902918781724" y="-0.47875" height="0.8820910738559129"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgb(5%, 5%, 5%)" stroke="rgb(5%, 5%, 5%)" stroke-width="4.0e-3" fill-opacity="0.4" stroke-opacity="0.4"><g transform="rotate(-90.0, -0.6069765228426395, 0.3989742863615767)"><polyline points="-0.6069765228426395,0.41397428636157674
 -0.6069765228426395,0.3839742863615767"/></g><g transform="rotate(-90.0, -0.6069765228426395, 0.31163853647485273)"><polyline points="-0.6069765228426395,0.32663853647485275
 -0.6069765228426395,0.2966385364748527"/></g><g transform="rotate(-90.0, -0.6069765228426395, 0.22430278658812863)"><polyline points="-0.6069765228426395,0.23930278658812865
 -0.6069765228426395,0.20930278658812862"/></g><g transform="rotate(-90.0, -0.6069765228426395, 0.13696703670140453)"><polyline points="-0.6069765228426395,0.15196703670140455

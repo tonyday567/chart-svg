@@ -49,7 +49,6 @@ library
     Chart.Examples
     Chart.Surface
     Data.Colour
-    Data.Colour.Mix
     Data.Path
     Data.Path.Parser
 

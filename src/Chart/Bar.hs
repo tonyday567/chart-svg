@@ -109,8 +109,8 @@ defaultBarOptions =
     Hori
     defaultLegendOptions
   where
-    gs = (\x -> RectStyle 0.002 (palette1 x) (palette1 x)) <$> [0..9]
-    ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.04) <$> [0..9]
+    gs = (\x -> RectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1,2,6,7,5,3,4,0]
+    ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1,2,6,7,5,3,4,0]
 
 -- | imagine a dataframe you get in other languages:
 --

@@ -575,7 +575,7 @@ defaultLegendOptions =
     0.2
     0.1
     ( defaultTextStyle
-        & #size .~ 0.12
+        & #size .~ 0.18
     )
     0.1
     0.02
@@ -600,7 +600,7 @@ data FrameOptions = FrameOptions
 
 -- | The official hud frame
 defaultFrameOptions :: FrameOptions
-defaultFrameOptions = FrameOptions (Just (blob (Colour 1 1 1 0.02))) 0
+defaultFrameOptions = FrameOptions (Just (blob (grey 1 0.02))) 0
 
 -- | Make a frame hud transformation.
 frameHud :: FrameOptions -> State HudChart (Charts (Maybe Text))

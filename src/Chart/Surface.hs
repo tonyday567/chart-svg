@@ -37,7 +37,6 @@ import Prelude
 import Chart.Data
 import Data.Bool
 import Data.Foldable
-import Data.Colour.Mix
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -159,7 +158,7 @@ surfaceLegendOptions :: LegendOptions
 surfaceLegendOptions =
   defaultLegendOptions
     & #place .~ PlaceRight
-    & #overallScale .~ 0.7
+    & #overallScale .~ 0.9
     & #size .~ 0.5
     & #vgap .~ 0.05
     & #hgap .~ 0.01

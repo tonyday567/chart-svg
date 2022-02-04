@@ -8,6 +8,9 @@
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: #0d0d0d;
   }
+  .legendBorder g {
+    fill: #f0f0f0;
+  }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
@@ -15,6 +18,9 @@
   }
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: #f0f0f0;
+  }
+  .legendBorder g {
+    fill: #0d0d0d;
   }
 }{
   .chart g {

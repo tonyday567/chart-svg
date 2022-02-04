@@ -76,13 +76,10 @@ svgChartTree cs
   | isNothing label && null cs' = mconcat $ svgChartTree . Charts <$> xs
   | otherwise = term "g" (foldMap (\x -> [term "class" x]) label) content'
     where
-      (Charts (Node (label, cs') xs)) = filterCharts notBlank cs
-      notBlank (BlankChart _) = False
-      notBlank _ = True
+      (Charts (Node (label, cs') xs)) = filterCharts (not . hasNoData) cs
       content' = (mconcat $ svg <$> cs') <> (mconcat $ svgChartTree . Charts <$> xs)
 
 -- ** ChartSvg
-
 -- | Specification of a chart for rendering to SVG
 data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
@@ -154,6 +151,9 @@ svg {
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: $hexDark;
   }
+  .legendBorder g {
+    fill: $hexLight;
+  }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
@@ -161,6 +161,9 @@ svg {
   }
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: $hexLight;
+  }
+  .legendBorder g {
+    fill: $hexDark;
   }
 }
 |]
