@@ -6,12 +6,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | The primitive 'Chart' Type and support
+-- | Base 'Chart' and 'Charts' types and support
 module Chart.Primitive
   ( Chart (..),
     isEmptyChart,
     Charts (..),
-    filterCharts,
+    tree',
     chart',
     charts',
     named,
@@ -19,6 +19,7 @@ module Chart.Primitive
     rename,
     blank,
     group,
+    filterCharts,
     box,
     sbox,
     projectWith,
@@ -70,16 +71,16 @@ import Prelude
 
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
--- - 'RectChart': based on a rectangular space in the XY-domain. A 'Rect 0 1 0 1' is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on Rect Double's but the base types are polymorphic.
--- - 'LineChart': based on a ['Point' a] - A list of connected straight lines. [Point 0 0, Point 1 1, Point 2 2, Point 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
--- - 'GlyphChart': based on 'GlyphShape' which is a predefined shaped centered at a Point in XY space.
--- - 'TextChart': text centered at a point in XY space.
--- - 'PathChart': based on curvilinear paths using the SVG standards.
+-- - 'RectChart': a rectangle in the XY-domain. For example, a @Rect 0 1 0 1@ is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on Rect Double's but the base types are polymorphic.
+-- - 'LineChart': a list of points which represent connected straight lines. [Point 0 0, Point 1 1, Point 2 2, Point 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
+-- - 'GlyphChart': a 'GlyphShape' which is a predefined shaped centered at a 'Point' in XY space.
+-- - 'TextChart': text centered at a 'Point' in XY space.
+-- - 'PathChart': specification of curvilinear paths using the SVG standards.
 -- - 'BlankChart': a rectangular space that has no visual representation.
 --
--- What is a Chart is usually a combination of these primitives into a tree or list of Chart
+-- What is a Chart is usually a combination of these primitives into a tree or list of charts.
 --
--- Each Chart primitive is a product of a (single) style and a list of data with the appropriate type.
+-- Each Chart primitive is a product of a style (the syntactic representation of the data) and a list of data.
 --
 -- A simple example is:
 --
@@ -101,47 +102,45 @@ data Chart where
   BlankChart :: [Rect Double] -> Chart
   deriving (Eq, Show)
 
--- | A group of charts can usefully be regarded and manipulated as a 'Tree' (with labelled branches).
---
--- This is particularly useful downstream, when chart groupings become SVG elements with classes or ids.
+-- | A group of charts represented as a 'Tree' od chart lists with labelled branches. The labelling is particularly useful downstream, when groupings become grouped SVG elements with classes or ids.
 newtype Charts a = Charts {tree :: Tree (a, [Chart])} deriving (Eq, Show, Generic)
 
--- | apply a filter to Charts
+-- | Apply a filter to Charts
 filterCharts :: (Chart -> Bool) -> Charts a -> Charts a
 filterCharts p (Charts (Node (a, cs) xs)) =
   Charts (Node (a, catMaybes (rem' <$> cs)) (tree . filterCharts p . Charts <$> xs))
   where
     rem' x = bool Nothing (Just x) (p x)
 
--- | lens between Charts and the underlying Tree representation
+-- | Lens between Charts and the underlying Tree representation
 tree' :: Iso' (Charts a) (Tree (a, [Chart]))
 tree' = iso tree Charts
 
--- | A traversal of the chart lists in the Charts (tree).
+-- | A traversal of each chart list in a tree.
 charts' :: Traversal' (Charts a) [Chart]
 charts' = tree' % traversed % _2
 
--- | A traversal of each chart in the Charts tree.
+-- | A traversal of each chart in a tree.
 chart' :: Traversal' (Charts a) Chart
 chart' = tree' % traversed % _2 % traversed
 
--- | Convert a chart list to a Charts, adding a specific Text label.
+-- | Convert a chart list to a tree, adding a specific text label.
 named :: Text -> [Chart] -> Charts (Maybe Text)
 named l cs = Charts $ Node (Just l, cs) []
 
--- | Convert a chart list to a (single branch) Charts, with no Text label.
+-- | Convert a chart list to a tree, with no text label.
 unnamed :: [Chart] -> Charts (Maybe Text)
 unnamed cs = Charts $ Node (Nothing, cs) []
 
--- | add a top-level label to a Charts
+-- | Add a top-level label to a tree.
 rename :: Maybe Text -> Charts (Maybe Text) -> Charts (Maybe Text)
 rename l (Charts (Node (_, cs) xs)) = Charts (Node (l, cs) xs)
 
--- | a Charts with no charts.
+-- | A tree with no charts.
 blank :: Rect Double -> Charts (Maybe Text)
 blank r = unnamed [BlankChart [r]]
 
--- | group a list of Charts as a new Charts
+-- | Group a list of Charts as a new tree.
 group :: Maybe Text -> [Charts (Maybe Text)] -> Charts (Maybe Text)
 group name cs = Charts $ Node (name, []) (tree <$> cs)
 
@@ -345,7 +344,7 @@ frameChart rs p cs = RectChart rs (maybeToList (padRect p <$> styleBoxes cs))
 padChart :: Double -> [Chart] -> Chart
 padChart p cs = BlankChart (maybeToList (padRect p <$> styleBoxes cs))
 
--- | Whether a chart contains data
+-- | Whether a chart is empty of data to be represented.
 isEmptyChart :: Chart -> Bool
 isEmptyChart (RectChart _ []) = True
 isEmptyChart (LineChart _ []) = True

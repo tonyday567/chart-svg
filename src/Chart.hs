@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_HADDOCK prune #-}
 
--- | A haskell Charting library targetting SVGs
+-- | A haskell Charting library targetting SVG.
 module Chart
   ( -- * Usage
 
@@ -71,15 +71,15 @@ import Data.Path.Parser
 
 -- $overview
 --
--- Charting consists of three highly-coupled conceptual layers:
+-- Charting consists of three tightly-coupled domains:
 --
--- 1. the data to be represented.
--- 2. how the data is to be represented on a screen, and.
--- 3. the creation of visual aids that help interpret the data; such as axes, gridlines and titles.
+-- 1. /data domain/: the data to be represented.
+-- 2. /screen syntax/: the syntactics of the data. How and where data is to be represented on a screen (or page), and.
+-- 3. /the hud/: visual aids that help interpret the screened data; such as axes, gridlines and titles.
 --
 -- == What is a 'Chart'?
 --
--- A 'Chart' in this library consists of a specification of the first two items in the above list; data and representation.
+-- A 'Chart' in this library consists of a specification of the first two items in the above list; data and its syntax.
 --
 -- Here's some data; three lists of points that form lines to be charted:
 --
@@ -104,26 +104,31 @@ import Data.Path.Parser
 
 -- $hud
 --
--- Axes, titles, tick marks, grid lines and legends are chart elements that exist to provide references for the viewer that helps explain the data that is being represented by the chart. They can usually be distinguished from data representations such as a mark where a value is.
+-- Axes, titles, tick marks, grid lines and legends are chart elements that exist to provide references to help explain the data being represented. The collective noun used by the library for these elements is /hud/. Hud elements can usually be distinguished from data syntax, but need information from the chart domain (data domain and style domain) to function. A tick mark and tick value on an axis need to know the range of the data to be placed properly on the screen. A chart border needs to know the syntactic range of the entire data representation inclusive of representational artifacts that might extend beyond the data domain (A circle glyph representing a point has dimension).
 --
--- Apart from this representational aspect, hud elements are pretty much the same as data elements. They simulateously have two reference frames: a data domain (tick values reference the data value range) and a page domain (a title needs to be placed on the left say, and has a size of 0.1 versus the page size). They are also typically composed of the same sorts of primitives as data elements, such as rectangles and lines and text and colors.
+-- Apart from this functional usage, however, hud elements are pretty much the same as data elements. They are typically composed of the same stuff; rectangles and lines and text and colors.
 --
--- Given this similarity, an efficient process for chart creation is roughly:
+-- Given this similarity, the library process for chart creation is roughly:
 --
--- - collect the chart data and data annotations into a [Chart]
+-- - collect the chart data and syntax (or style) into a collection of charts (a list or a tree). See 'Chart' and 'Charts'
 --
 -- - measure the range of the data values
 --
--- - begin a process of folding hud elements in, supplying the the data values to the hud elements as needed, and keep track of the overall page size of the chart.
+-- - fold hud elements into a chart, /creating new 'Charts' from the hud/, keeping track of chart dimensions across three domains:
 --
--- This process is encapsulated in 'Chart.Hud'.
+--   - The domain of the underlying data
+--
+--   - The domain of the canvas where the data is being represented
+--
+--   - The domain of the chart, inclusive of Hud or decorative elements.
+--
+-- This process is reified in 'runHudWith'. The most common Hud concepts, such as axes and titles, have been collected into the 'HudOptions' type.
 --
 -- An important quality of 'runHud' (and conversion of charts to svg in general) is that this is the point at which chart data is converted from the data domain to the page domain.
 --
--- The most common Hud concepts, such as axes and titles, have been collected into the 'HudOptions' type.
 
 -- $optics
 --
 -- Usage suggests the use of optics-core and OverloadedLabels, but this is not required. 'Chart', 'HudOptions' and associated chart configuration types are big and sometimes deep syntax trees, and simple optics getting, setting and modding makes manipulation more pleasant. Lens works as well, and the library is perfectly capable of being used with records.
 --
--- Lenses are supplied, for the optics-core library, but can be easily modified for lens. The chart-svg convention is that lenses are either OverloadedLabels, or suffixed with '.
+-- Lenses are supplied, for the optics-core library, but can be easily modified for lens. The chart-svg convention is that lenses are either OverloadedLabels, or suffixed with a single quote /'/.
