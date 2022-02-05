@@ -4,7 +4,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | bar charts
+-- | Bar charts
 module Chart.Bar
   ( BarOptions (..),
     defaultBarOptions,
@@ -116,13 +116,8 @@ defaultBarOptions =
     gs = (\x -> RectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
     ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
--- | imagine a dataframe you get in other languages:
+-- | Two dimensional data, maybe with row and column labels.
 --
--- - some [[Double]]
---
--- - maybe some row names
---
--- - maybe some column names
 data BarData = BarData
   { barData :: [[Double]],
     barRowLabels :: [Text],
@@ -130,7 +125,7 @@ data BarData = BarData
   }
   deriving (Show, Eq, Generic)
 
--- | Convert BarData to rectangles
+-- | Convert BarData to Rects
 --
 -- >>> barRects defaultBarOptions [[1,2],[2,3]]
 -- [[Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],[Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0]]
@@ -164,8 +159,7 @@ barRects (BarOptions _ _ ogap igap _ _ _ _ add orient _) bs = rects'' orient
     bstep = (1 - (1 + 1) * ogap + (n - 1) * igap') / n
     igap' = igap * (1 - (1 + 1) * ogap)
 
--- | convert data to a range assuming a zero bound
--- a very common but implicit assumption in a lot of bar charts
+-- | Convert data to a range assuming a zero bound (a very common but implicit assumption in a lot of bar charts)
 --
 -- >>> barDataLowerUpper False [[1,2],[2,3]]
 -- [[(0.0,1.0),(0.0,2.0)],[(0.0,2.0),(0.0,3.0)]]
@@ -175,7 +169,7 @@ barDataLowerUpper add bs =
     False -> fmap (fmap (0,)) bs
     True -> fmap (fmap (0,)) (accRows bs)
 
--- | calculate the Rect range of a bar data set.
+-- | Calculate the Rect range of a bar data set.
 --
 -- >>> barRange [[1,2],[2,3]]
 -- Rect 0.0 2.0 0.0 3.0
@@ -216,7 +210,7 @@ appendZero xs =
 accRows :: [[Double]] -> [[Double]]
 accRows xs = transpose $ drop 1 . scanl' (+) 0 <$> transpose (fmap toList $ toList xs)
 
--- | sensible ticks
+-- | Sensible ticks for a bar chart.
 barTicks :: BarData -> TickStyle
 barTicks bd
   | null (bd ^. #barData) = TickNone
@@ -227,7 +221,7 @@ barTicks bd
       take (maxRows (bd ^. #barData)) $
         (bd ^. #barRowLabels) <> repeat ""
 
--- | bar legend
+-- | A bar legend
 barLegendContent :: BarOptions -> BarData -> [(Text, Chart)]
 barLegendContent bo bd
   | null (bd ^. #barData) = []
@@ -245,7 +239,7 @@ barDataTP add fn d negd bs =
     bs' = appendZero bs
     (Rect _ _ y w) = barRange bs'
 
--- | Convert BarData to text
+-- | Convert BarData to text placed above (or below) the bars.
 barTexts ::
   BarOptions ->
   [[Double]] ->
@@ -270,7 +264,7 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs =
     bstep = (1 - (1 + 1) * ogap + (n - 1) * igap') / n
     igap' = igap * (1 - (1 + 1) * ogap)
 
--- | text, hold the bars
+-- | Placed text, hold the bars.
 barTextCharts :: BarOptions -> BarData -> [Chart]
 barTextCharts bo bd =
   zipWith TextChart (bo ^. #barTextStyles <> repeat defaultTextStyle) (barTexts bo (bd ^. #barData))

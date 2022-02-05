@@ -8,7 +8,7 @@
 - oklab usage as per emerging CSS standards
 - chart-reanimate is a separate library
 - formatn is a seprate library
-- introduced a Charts type as a tree of named charts to facilitate downstream usage of classes.
+- introduced a ChartTree type as a tree of named charts to facilitate downstream usage of classes.
 
 0.2.2
 ===

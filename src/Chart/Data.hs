@@ -3,8 +3,13 @@
 {-# OPTIONS_HADDOCK prune #-}
 
 -- | Data primitives and utilities
+--
+-- Whilst the library makes use of <https://hackage.haskell.org/package/numhask numhask>, it does not re-export, to avoid clashes with Prelude, with the exception of 'zero', 'one', 'angle', 'norm' & 'abs'.
+--
+-- 'Rect' and 'Point', from <https://hackage.haskell.org/package/numhask-space numhask-space>, make up the base elements of many chart primitives, and all of numhask-space is re-exported.
+--
 module Chart.Data
-  ( -- * data primitives
+  ( -- * Data Primitives
     Rect (..),
     padRect,
     padSingletons,
@@ -12,14 +17,16 @@ module Chart.Data
     Point (..),
     addp,
 
-    -- * exports from numhask
+    -- * NumHask Exports
+    --
+    -- | Note that (+) and (*) from numhask are not actually re-exported.
     Multiplicative (one),
     Additive (zero),
     Direction (..),
     Norm (..),
     Signed (..),
 
-    -- * reexports
+    -- * Re-exports
     module NumHask.Space,
   )
 where
@@ -27,18 +34,19 @@ where
 import NumHask.Prelude
 import NumHask.Space
 
--- | additive padding
+-- | Additive pad (or frame or buffer) a Rect.
 --
 -- >>> padRect 1 one
 -- Rect -1.5 1.5 -1.5 1.5
 padRect :: (Subtractive a) => a -> Rect a -> Rect a
 padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
 
--- | pad a Rect to remove singleton dimensions
+-- | Pad a Rect to remove singleton dimensions.
 --
 -- Attempting to scale a singleton dimension of a Rect is a common bug.
 --
--- Due to the use of scaling, this is a common
+-- Due to the use of scaling, and thus zero dividing, this is a common exception to guard against.
+--
 -- >>> project (Rect 0 0 0 1) one (Point 0 0)
 -- Point NaN -0.5
 --
@@ -51,7 +59,7 @@ padSingletons (Rect x z y w)
   | y == w = Rect x z (y - 0.5) (y + 0.5)
   | otherwise = Rect x z y w
 
--- | Guard against Nothing or a singleton dimension
+-- | Guard against an upstream Nothing or a singleton dimension
 singletonGuard :: Maybe (Rect Double) -> Rect Double
 singletonGuard = maybe one padSingletons
 

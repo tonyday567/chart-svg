@@ -61,7 +61,7 @@ import NumHask.Prelude
 -- >>> import Optics.Core
 
 -- $path
--- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
+-- Every element of an SVG path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style to deal with.
 --
 -- References:
 --
@@ -83,7 +83,7 @@ data PathData a
     ArcP (ArcInfo a) (Point a)
   deriving (Show, Eq, Generic)
 
--- | view the Point part of a PathData
+-- | View the Point part of a PathData
 pointPath :: PathData a -> Point a
 pointPath (StartP p) = p
 pointPath (LineP p) = p
@@ -91,7 +91,7 @@ pointPath (CubicP _ _ p) = p
 pointPath (QuadP _ p) = p
 pointPath (ArcP _ p) = p
 
--- | move the Point part of a PathData
+-- | Move the Point part of a PathData
 movePath :: (Additive a) => Point a -> PathData a -> PathData a
 movePath x (StartP p) = StartP (p + x)
 movePath x (LineP p) = LineP (p + x)
@@ -107,7 +107,7 @@ scalePath x (CubicP c1 c2 p) = CubicP (fmap (x *) c1) (fmap (x *) c2) (fmap (x *
 scalePath x (QuadP c p) = QuadP (fmap (x *) c) (fmap (x *) p)
 scalePath x (ArcP i p) = ArcP i (fmap (x *) p)
 
--- | project a list of connected PathDatas from one Rect (XY plave) to a new one.
+-- | Project a list of connected PathDatas from one Rect (XY plave) to a new one.
 projectPaths :: Rect Double -> Rect Double -> [PathData Double] -> [PathData Double]
 projectPaths new old ps =
   flip evalState zero $
@@ -120,7 +120,7 @@ projectPaths new old ps =
       )
         <$> ps
 
--- | project a PathData from one Rect (XY plave) to a new one.
+-- | Project a PathData from one Rect (XY plave) to a new one.
 projectPath ::
   Rect Double ->
   Rect Double ->
@@ -135,19 +135,19 @@ projectPath new old p1 (ArcP ai p2) = ArcP (projectArcPosition new old (ArcPosit
 projectPath new old _ (LineP p) = LineP (projectOnP new old p)
 projectPath new old _ (StartP p) = StartP (projectOnP new old p)
 
--- | convert cubic position to path data.
+-- | Convert cubic position to path data.
 singletonCubic :: CubicPosition Double -> [PathData Double]
 singletonCubic (CubicPosition s e c1 c2) = [StartP s, CubicP c1 c2 e]
 
--- | convert quad position to path data.
+-- | Convert quad position to path data.
 singletonQuad :: QuadPosition Double -> [PathData Double]
 singletonQuad (QuadPosition s e c) = [StartP s, QuadP c e]
 
--- | convert arc position to path data.
+-- | Convert arc position to path data.
 singletonArc :: ArcPosition Double -> [PathData Double]
 singletonArc (ArcPosition s e i) = [StartP s, ArcP i e]
 
--- | convert arc position to a pie slice, with a specific center.
+-- | Convert arc position to a pie slice, with a specific center.
 singletonPie :: Point Double -> ArcPosition Double -> [PathData Double]
 singletonPie c (ArcPosition s e i) = [StartP c, LineP s, ArcP i e, LineP c]
 
@@ -222,7 +222,7 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' lar
         + bool 0 (-2 * pi) (clockwise' && angd' > 0)
         + angd'
 
--- | convert from an ArcCentroid to an ArcPosition specification.
+-- | Convert from an ArcCentroid to an ArcPosition specification.
 --
 -- Morally,
 -- > arcPosition . arcCentroid == id
@@ -241,7 +241,7 @@ arcPosition (ArcCentroid c r phi' ang1 angd) =
     large' = abs angd > pi
     clockwise' = angd < zero
 
--- | ellipse formulae
+-- | Ellipse formulae
 --
 -- >>> ellipse zero (Point 1 2) (pi/6) pi
 -- Point -0.8660254037844388 -0.4999999999999997
@@ -286,7 +286,7 @@ arcBox p = unsafeSpace1 pts
         ]
     pts = ellipse c r phi' <$> angs
 
--- | potential arc turning points.
+-- | Potential arc turning points.
 --
 -- >>> arcDerivs (Point 1 0.5) (pi/4)
 -- (-0.4636476090008061,0.4636476090008062)
@@ -295,8 +295,6 @@ arcDerivs (Point rx ry) phi' = (thetax1, thetay1)
   where
     thetax1 = atan2 (-sin phi' * ry) (cos phi' * rx)
     thetay1 = atan2 (cos phi' * ry) (sin phi' * rx)
-
--- * bezier
 
 -- | Quadratic bezier curve expressed in positional terms.
 data QuadPosition a = QuadPosition
@@ -373,7 +371,7 @@ quadBox p = unsafeSpace1 pts
     ts = quadDerivs p
     pts = quadBezier p <$> ([0, 1] <> ts)
 
--- | cubic bezier curve
+-- | Cubic bezier curve
 --
 -- Note that the ordering is different to the svg standard.
 data CubicPosition a = CubicPosition

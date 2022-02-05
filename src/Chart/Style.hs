@@ -4,18 +4,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | Stylistic elements
+-- | Stylistic or syntactical options for chart elements.
+--
 module Chart.Style
-  ( -- * Styles
+  ( -- * RectStyle
     RectStyle (..),
     defaultRectStyle,
     blob,
     clear,
     border,
+
+    -- * TextStyle
     TextStyle (..),
     defaultTextStyle,
     styleBoxText,
     ScaleX (..),
+
+    -- * GlyphStyle
     GlyphStyle (..),
     defaultGlyphStyle,
     styleBoxGlyph,
@@ -23,6 +28,8 @@ module Chart.Style
     ScaleBorder (..),
     GlyphShape (..),
     glyphText,
+
+    -- * LineStyle
     LineStyle (..),
     defaultLineStyle,
     LineCap (..),
@@ -35,6 +42,8 @@ module Chart.Style
     Anchor (..),
     fromAnchor,
     toAnchor,
+
+    -- * PathStyle
     PathStyle (..),
     defaultPathStyle,
   )

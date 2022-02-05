@@ -10,22 +10,26 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | Colour representations and combinations, based on <https://hackage.haskell.org/package/Color>
+-- | Colour representations and combinations.
+--
 module Data.Colour
-  ( Colour,
+  ( -- * Colour
+    Colour,
     pattern Colour,
     validColour,
     validate,
     trimColour,
     showRGBA,
     showRGB,
-    opac,
     opac',
+    opac,
     hex,
     rgb,
     toHex,
     fromHex,
     unsafeFromHex,
+
+    -- * Palette colours
     palette1,
     palette1a,
     transparent,
@@ -35,7 +39,7 @@ module Data.Colour
     dark,
     grey,
 
-    -- * LCH colour modelling
+    -- * LCH model
     LCH (..),
     pattern LCH,
     lLCH',
@@ -100,13 +104,17 @@ import System.Random.Stateful
 -- >>> import Chart
 -- >>> import Optics.Core
 
--- | Wrapper for 'Color'.
+-- | Colour type for the library, wrapping 'Color'.
+--
 newtype Colour = Colour'
   { color' :: Color (Alpha RGB) Double
   }
   deriving (Eq, Generic)
 
 -- | Constructor pattern.
+--
+-- > Colour red green blue alpha
+--
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
 pattern Colour r g b a = Colour' (ColorRGBA r g b a)
 
@@ -124,7 +132,7 @@ instance Show Colour where
         <> " "
         <> fixed (Just 2) a
 
--- | css representation
+-- | CSS-style representation
 showRGBA :: Colour -> Text
 showRGBA (Colour r' g' b' a') =
   [trimming|rgba($r, $g, $b, $a)|]
@@ -134,7 +142,7 @@ showRGBA (Colour r' g' b' a') =
     b = percent (fixedSF (Just 0)) (Just 2) b'
     a = fixed (Just 2) a'
 
--- | css representation
+-- | CSS-style representation
 showRGB :: Colour -> Text
 showRGB (Colour r' g' b' _) =
   [trimming|rgb($r, $g, $b)|]
@@ -143,14 +151,15 @@ showRGB (Colour r' g' b' _) =
     g = percent (fixedSF (Just 0)) (Just 2) g'
     b = percent (fixedSF (Just 0)) (Just 2) b'
 
--- | is a Colour in Gamut?
+-- | Is Colour in-gamut?
 --
 -- >>> validColour (Colour 1 1 1.01 1)
 -- False
 validColour :: Colour -> Bool
 validColour (Colour r g b o) = r >= 0 && r <= 1 && g >= 0 && g <= 1 && b >= 0 && b <= 1 && o >= 0 && o <= 1
 
--- | trim colour back to gamut
+-- | Trim colour back to gamut.
+--
 -- >>> trimColour (Colour 1 1 1.01 1)
 -- Colour 1.00 1.00 1.00 1.00
 trimColour :: Colour -> Colour
@@ -158,30 +167,30 @@ trimColour (Colour r g b a) = Colour (trim r) (trim g) (trim b) (trim a)
   where
     trim x = max 0 $ min 1 x
 
--- | Validate that the Colout is in gamut
+-- | Validate that the Colout is in-gamut.
 --
 -- >>> validate (Colour 1 1 1.01 1)
 -- Nothing
 validate :: Colour -> Maybe Colour
 validate c = bool Nothing (Just c) (validColour c)
 
--- | opac
+-- | Opacity or alpha
 opac :: Colour -> Double
 opac (Colour _ _ _ o) = o
 
--- | lens for opacity
+-- | lens for opacity (or alpha channel)
 opac' :: Lens' Colour Double
 opac' = lens opac (\(Colour r g b _) o -> Colour r g b o)
 
--- |
+-- | Convert to CSS hex representation.
 hex :: Colour -> Text
 hex c = toHex c
 
--- | resets RGB color but not opacity
+-- | Sets RGB color but not opacity
 rgb :: Colour -> Colour -> Colour
 rgb (Colour r g b _) (Colour _ _ _ o) = Colour r g b o
 
--- |
+-- | Parse CSS hex text.
 parseHex :: A.Parser (Color RGB Double)
 parseHex =
   fmap toDouble
@@ -192,15 +201,15 @@ parseHex =
     . (`divMod` 256)
     <$> (A.string "#" *> A.hexadecimal)
 
--- |
+-- | Convert CSS hex to Colour
 fromHex :: Text -> Either Text (Color RGB Double)
 fromHex = first pack . A.parseOnly parseHex
 
--- |
+-- | Convert CSS hex to Colour, unsafely.
 unsafeFromHex :: Text -> Color RGB Double
 unsafeFromHex t = fromRight (ColorRGB 0 0 0) $ A.parseOnly parseHex t
 
--- | convert from 'Colour' to #xxxxxx
+-- | Convert from 'Colour' to CSS hex (#xxxxxx)
 toHex :: Colour -> Text
 toHex c =
   "#"
@@ -230,19 +239,19 @@ hexDigit n
 i2d :: Int -> Char
 i2d i = chr (ord '0' + i)
 
--- | select a Colour from the palette
+-- | Select a Colour from the palette
 --
 -- >>> palette1 0
 -- Colour 0.02 0.73 0.80 1.00
 --
--- ![palette1](other/palette1.svg)
+-- ![wheel](other/wheel.svg)
 palette1 :: Int -> Colour
 palette1 x = cycle palette1_ List.!! x
 
 palette1LCHA_ :: [LCHA]
 palette1LCHA_ = [LCHA 0.72 0.123 207 1, LCHA 0.40 0.10 246 1, LCHA 0.50 0.21 338 1, LCHA 0.8 0.15 331 1, LCHA 0.83 0.14 69 1, LCHA 0.57 0.15 50 1, LCHA 0.38 0.085 128 1, LCHA 0.60 0.08 104 1]
 
--- | finite list of Colours
+-- | Finite list of Colours
 --
 -- Swatched to the oklab color model:
 --
@@ -250,28 +259,28 @@ palette1LCHA_ = [LCHA 0.72 0.123 207 1, LCHA 0.40 0.10 246 1, LCHA 0.50 0.21 338
 palette1_ :: [Colour]
 palette1_ = trimColour . view lcha2colour' <$> palette1LCHA_
 
--- | select a Colour from the palette with a specified opacity
+-- | Select a Colour from the palette with a specified opacity
 --
 -- >>> palette1a 0 0.5
 -- Colour 0.02 0.73 0.80 0.50
 palette1a :: Int -> Double -> Colour
 palette1a x a = set opac' a $ cycle palette1_ List.!! x
 
--- |
+-- | black
 --
 -- >>> black
 -- Colour 0.00 0.00 0.00 1.00
 black :: Colour
 black = Colour 0 0 0 1
 
--- |
+-- | white
 --
 -- >>> white
 -- Colour 0.99 0.99 0.99 1.00
 white :: Colour
 white = Colour 0.99 0.99 0.99 1
 
--- |
+-- | light
 --
 -- For lighter huds against a dark background ...
 --
@@ -282,7 +291,7 @@ white = Colour 0.99 0.99 0.99 1
 light :: Colour
 light = Colour 0.94 0.94 0.94 1
 
--- |
+-- | dark
 --
 -- dark is hardcoded in most of the default options.
 --
@@ -291,14 +300,14 @@ light = Colour 0.94 0.94 0.94 1
 dark :: Colour
 dark = Colour 0.05 0.05 0.05 1
 
--- | grey(scale)
+-- | Grey(scale) colour inputting lightness and opacity.
 --
 -- >>> grey 0.5 0.4
 -- Colour 0.50 0.50 0.50 0.40
 grey :: Double -> Double -> Colour
 grey g a = Colour g g g a
 
--- | zero opacity black
+-- | Zero-opacity black
 --
 -- >>> transparent
 -- Colour 0.00 0.00 0.00 0.00
@@ -315,7 +324,7 @@ transparent = Colour 0 0 0 0
 --
 -- The type is represented by three elements:
 --
--- L: lightness ranging from 0 (LCH 0 _ _ is black) to 1 (LCH 1 _ _ is white)
+-- L: Lightness ranging from 0 (@LCH 0 _ _@ is black) to 1 (@LCH 1 _ _@ is white)
 --
 -- C: Chromacity, which ranges from 0 to around 0.32 or so.
 --
@@ -331,15 +340,15 @@ pattern LCH l c h <-
 
 {-# COMPLETE LCH #-}
 
--- | lightness lens for LCH
+-- | Lightness lens for LCH
 lLCH' :: Lens' (LCH Double) Double
 lLCH' = lens (\(LCH l _ _) -> l) (\(LCH _ c h) l -> LCH l c h)
 
--- | chromacity lens for LCH
+-- | Chromacity lens for LCH
 cLCH' :: Lens' (LCH Double) Double
 cLCH' = lens (\(LCH _ c _) -> c) (\(LCH l _ h) c -> LCH l c h)
 
--- | hue lens for LCH
+-- | Hue lens for LCH
 hLCH' :: Lens' (LCH Double) Double
 hLCH' = lens (\(LCH _ _ h) -> h) (\(LCH l c _) h -> LCH l c h)
 
@@ -350,7 +359,7 @@ data LCHA = LCHA' {_lch :: LCH Double, _alpha :: Double} deriving (Eq, Show)
 lch' :: Lens' LCHA (LCH Double)
 lch' = lens (\(LCHA' lch _) -> lch) (\(LCHA' _ a) lch -> LCHA' lch a)
 
--- | alpha lens for LCHA
+-- | Alpha lens for LCHA
 alpha' :: Lens' LCHA Double
 alpha' = lens (\(LCHA' _ a) -> a) (\(LCHA' lch _) a -> LCHA' lch a)
 
@@ -368,7 +377,7 @@ pattern LCHA l c h a <-
 -- | A type to represent the RGB triple, useful as an intermediary between 'Colour' and 'LCHA'
 newtype RGB3 a = RGB3' {rgb3Array :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
 
--- | the RGB3 pattern
+-- | The RGB3 pattern
 pattern RGB3 :: a -> a -> a -> RGB3 a
 pattern RGB3 r g b <-
   RGB3' [r, g, b]
@@ -377,11 +386,11 @@ pattern RGB3 r g b <-
 
 {-# COMPLETE RGB3 #-}
 
--- | lens for conversion between Double and Word8 RGB triples.
+-- | Lens for conversion between Double and Word8 RGB triples.
 rgbd' :: Iso' (RGB3 Double) (RGB3 Word8)
 rgbd' = iso (fmap (floor . (* 256))) (fmap (\x -> fromIntegral x / 256.0))
 
--- | lens for conversion between an (RGB3, alpha) pair and Colour
+-- | Lens for conversion between an (RGB3, alpha) pair and Colour
 rgb32colour' :: Iso' (RGB3 Double, Double) Colour
 rgb32colour' = iso (\(RGB3 r g b, a) -> Colour r g b a) (\(Colour r g b a) -> (RGB3 r g b, a))
 
@@ -426,7 +435,7 @@ lcha2colour' =
 
 -- * lab to lch
 
--- | lens between generic XY color representations and CH ones, which are polar version of the XY.
+-- | Lens between generic XY color representations and CH ones, which are polar version of the XY.
 xy2ch' :: Iso' (Double, Double) (Double, Double)
 xy2ch' =
   iso
@@ -436,7 +445,7 @@ xy2ch' =
 mod_ :: Double -> Double -> Double
 mod_ x d = x - fromIntegral (floor (x / d) :: Integer) * d
 
--- | lens between LAB and LCH
+-- | Lens between LAB and LCH
 lab2lch' :: Iso' (LAB Double) (LCH Double)
 lab2lch' =
   iso
@@ -445,7 +454,7 @@ lab2lch' =
 
 -- * rgb to lab
 
--- | lens between RGB3 and LAB
+-- | Lens between RGB3 and LAB
 rgb2lab' :: Iso' (RGB3 Double) (LAB Double)
 rgb2lab' =
   iso
@@ -547,7 +556,7 @@ lab2xyz_ lab =
 
 -- * mixins
 
--- | mix 2 colours, using the oklch model.
+-- | Mix 2 colours, using the oklch model.
 --
 -- This may not always be what you expect. One example is mixing black and another colour:
 --
@@ -563,14 +572,14 @@ lab2xyz_ lab =
 mix :: Double -> Colour -> Colour -> Colour
 mix x c0 c1 = view lcha2colour' (mixLCHA x (review lcha2colour' c0) (review lcha2colour' c1))
 
--- | mix 2 colours, using the oklch model, trimming the reult back to in-gamut.
+-- | Mix 2 colours, using the oklch model, trimming the reult back to in-gamut.
 --
 -- >>> mixTrim 0.8 (Colour 0 0 0 1) (Colour 0.2 0.6 0.8 0.5)
 -- Colour 0.00 0.48 0.45 0.60
 mixTrim :: Double -> Colour -> Colour -> Colour
 mixTrim x c0 c1 = trimColour (mix x c0 c1)
 
--- | mix two LCHA specified colours.
+-- | Mix two LCHA specified colours.
 mixLCHA :: Double -> LCHA -> LCHA -> LCHA
 mixLCHA x (LCHA l c h a) (LCHA l' c' h' a') = LCHA l'' c'' h'' a''
   where
@@ -579,7 +588,7 @@ mixLCHA x (LCHA l c h a) (LCHA l' c' h' a') = LCHA l'' c'' h'' a''
     h'' = h + x * (h' - h)
     a'' = a + x * (a' - a)
 
--- | interpolate across a list of Colours, with input being in Range 0 1
+-- | Interpolate across a list of Colours, with input being in Range 0 1
 --
 -- >>> mixes 0 [black, (Colour 0.2 0.6 0.8 0.5), white]
 -- Colour 0.00 0.00 0.00 1.00
@@ -601,35 +610,35 @@ mixes x cs = mix r (cs List.!! i) (cs List.!! (i + 1))
 
 -- * Colour manipulation
 
--- | convert a colour to grayscale with the same lightness.
+-- | Convert a colour to grayscale with the same lightness.
 --
 -- >>> greyed (Colour 0.4 0.7 0.8 0.4)
 -- Colour 0.65 0.65 0.65 0.40
 greyed :: Colour -> Colour
 greyed = over chroma' (const 0)
 
--- | lightness lens
+-- | Lightness lens
 --
 -- >>> over lightness' (*0.8) (Colour 0.4 0.7 0.8 0.4)
 -- Colour 0.22 0.52 0.62 0.40
 lightness' :: Lens' Colour Double
 lightness' = re lcha2colour' % lch' % lLCH'
 
--- | chroma lens
+-- | Chromacity lens
 --
 -- >>> over chroma' (*0.8) (Colour 0.4 0.7 0.8 0.4)
 -- Colour 0.46 0.69 0.77 0.40
 chroma' :: Lens' Colour Double
 chroma' = re lcha2colour' % lch' % cLCH'
 
--- | hue lens
+-- | Hue lens
 --
 -- >>> over hue' (+180) (Colour 0.4 0.7 0.8 0.4)
 -- Colour 0.83 0.58 0.49 0.40
 hue' :: Lens' Colour Double
 hue' = re lcha2colour' % lch' % hLCH'
 
--- | html element to display colours
+-- | Html element to display colours
 --
 -- >>> showSwatch "swatch" dark
 -- "<div class=swatch style=\"background:rgba(5%, 5%, 5%, 1.00);\">swatch</div>"
@@ -639,7 +648,7 @@ showSwatch label c =
   where
     rgba = showRGBA c
 
--- | show multiple colors with embedded text.
+-- | Show multiple colors with embedded text.
 showSwatches :: Text -> Text -> [(Text, Colour)] -> Text
 showSwatches pref suff hs =
   [trimming|<div>
@@ -668,22 +677,22 @@ instance Uniform Colour where
     a <- uniformRM (0, 1) gen
     pure (Colour r g b a)
 
--- | random variates of a uniform
+-- | Random variates of a uniform
 rvs :: (Uniform a) => [a]
 rvs = go g0
   where
     g0 = mkStdGen 42
     go g = let (x, g') = uniform g in x : go g'
 
--- | random list of RGB3s
+-- | Random list of RGB3s
 rvRGB3 :: [RGB3 Double]
 rvRGB3 = rvs
 
--- | random list of Colours
+-- | Random list of Colours
 rvColour :: [Colour]
 rvColour = rvs
 
--- | random Colours with an opacity of 1 that are not too extreme in terms of lightness or chromacity.
+-- | Random Colours with an opacity of 1 that are not too extreme in terms of lightness or chromacity.
 paletteR :: [Colour]
 paletteR = go g0
   where

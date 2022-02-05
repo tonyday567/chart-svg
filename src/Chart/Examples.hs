@@ -6,12 +6,19 @@
 
 -- | Examples of chart construction.
 module Chart.Examples
-  ( unitExample,
-    lineExample,
+  (
+    -- * Unit & Hud
+    unitExample,
     hudOptionsExample,
+
+    -- * Iconic primitives.
+    lineExample,
     rectExample,
     textExample,
     glyphsExample,
+    pathExample,
+
+    -- * Compounds
     barExample,
     waveExample,
     surfaceExample,
@@ -20,16 +27,15 @@ module Chart.Examples
     ellipseExample,
     quadExample,
     cubicExample,
-    pathExample,
     vennExample,
     arrowExample,
     dateExample,
 
-    -- * Colour manipulation
+    -- * Colour
     gradientExample,
     wheelExample,
 
-    -- * debugging
+    -- * Debugging
     debugExample,
     writeAllExamples,
     writeAllExamplesDark,
@@ -53,7 +59,7 @@ import Prelude hiding (abs)
 unitExample :: ChartSvg
 unitExample = mempty & #charts .~ named "unit" [RectChart defaultRectStyle [one]] & #hudOptions .~ defaultHudOptions
 
--- | 'HudOptions' example
+-- | A 'BlankChart', 'defaultHudOptions' example.
 --
 -- ![hudoptions example](other/hudoptions.svg)
 hudOptionsExample :: ChartSvg
@@ -518,7 +524,9 @@ cubicExample =
         ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
       ]
 
--- | The common way to create a surface chart is usually a grid over a function.
+-- | The common way to create a surface chart (or contour chart or heat map) is usually a grid over a function, a process reified in 'surfacef'.
+--
+-- This is also an example of 'mix' and 'mixes'. In this example, colors with the same lightness have been chosen in the gradient and the result should appear a fairly uniform lightness across the surface.
 --
 -- ![surface example](other/surface.svg)
 surfaceExample :: ChartSvg
@@ -606,7 +614,7 @@ rosenbrock a b (Point x y) = (a ** 2 - 2 * a * x + x ** 2 + b * y ** 2 - b * 2 *
 
 -- | date example
 --
--- A hud that has date as the x-axis, and times as the y-axis. See 'placedTimeLabelContinuous'.
+-- A hud that has date as the x-axis, and time as the y-axis. See 'placedTimeLabelContinuous'.
 --
 -- ![date example](other/date.svg)
 dateExample :: ChartSvg
@@ -625,7 +633,7 @@ dateExample =
 
 -- | gradient example
 --
--- Mixing Colours using the oklch color model.
+-- Mixing Colours using the <https://bottosson.github.io/posts/oklab/ oklch> color model.
 --
 -- ![gradient example](other/gradient.svg)
 gradientExample :: ChartSvg
@@ -709,7 +717,7 @@ wheelPoints grain l maxchroma =
   (\(Point c h) -> (uncurry Point $ view (re xy2ch') (c, h), view lcha2colour' (LCHA l c h 1)))
     <$> grid LowerPos (Rect 0 maxchroma 0 360) (Point grain grain)
 
--- | Adding reference points and bounding boxes to visualize chart alignment and debug.
+-- | Adding reference points and bounding boxes to visualize chart alignment for use in debugging charts.
 --
 -- -- ![debug example](other/debug.svg)
 debugExample :: ChartSvg -> ChartSvg
@@ -717,7 +725,7 @@ debugExample cs =
   mempty
     & set #charts (e1 <> e2 <> e3)
   where
-    e1 = toCharts cs
+    e1 = toChartTree cs
     e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 
@@ -746,7 +754,7 @@ pathChartSvg =
     ("other/debug.svg", debugExample lineExample)
   ]
 
--- | Run this to refresh haddock example SVGs.
+-- | Run this to refresh example SVG's.
 writeAllExamples :: IO ()
 writeAllExamples = do
   sequence_ $ uncurry writeChartSvg <$> pathChartSvg

@@ -110,11 +110,11 @@ import Data.Path.Parser
 --
 -- Given this similarity, the library process for chart creation is roughly:
 --
--- - collect the chart data and syntax (or style) into a collection of charts (a list or a tree). See 'Chart' and 'Charts'
+-- - collect the chart data and syntax (or style) into a collection of charts (a list or a tree). See 'Chart' and 'ChartTree'
 --
 -- - measure the range of the data values
 --
--- - fold hud elements into a chart, /creating new 'Charts' from the hud/, keeping track of chart dimensions across three domains:
+-- - fold hud elements into a chart, /creating new 'ChartTree' from the hud/, keeping track of chart dimensions across three domains:
 --
 --   - The domain of the underlying data
 --

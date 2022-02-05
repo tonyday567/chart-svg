@@ -6,11 +6,12 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | Chart API
+-- | Conversion from a chart to SVG.
+--
 module Chart.Svg
-  ( ChartSvg (..),
-    charts',
-    toCharts,
+  ( -- * ChartSvg
+    ChartSvg (..),
+    toChartTree,
     writeChartSvg,
     chartSvg,
     initialCanvas,
@@ -55,6 +56,8 @@ import Prelude
 -- >>> import Chart
 -- >>> import Optics.Core
 
+-- helpers
+--
 draw :: Chart -> Html ()
 draw (RectChart _ a) = mconcat $ svgRect_ <$> a
 draw (TextChart s a) = mconcat $ uncurry (svgText_ s) <$> a
@@ -71,22 +74,32 @@ atts (GlyphChart s _) = attsGlyph s
 atts (PathChart s _) = attsPath s
 atts (BlankChart _) = mempty
 
-svgChartTree :: Charts (Maybe Text) -> Lucid.Html ()
+svgChartTree :: ChartTree -> Lucid.Html ()
 svgChartTree cs
-  | isNothing label && null cs' = mconcat $ svgChartTree . Charts <$> xs
+  | isNothing label && null cs' = mconcat $ svgChartTree . ChartTree <$> xs
   | otherwise = term "g" (foldMap (\x -> [term "class" x]) label) content'
   where
-    (Charts (Node (label, cs') xs)) = filterCharts (not . isEmptyChart) cs
-    content' = (mconcat $ svg <$> cs') <> (mconcat $ svgChartTree . Charts <$> xs)
+    (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
+    content' = (mconcat $ svg <$> cs') <> (mconcat $ svgChartTree . ChartTree <$> xs)
 
 -- ** ChartSvg
 
--- | Specification of a chart for rendering to SVG
+-- | Specification of a chart ready to be rendered to SVG includes:
+--
+-- - svg options
+--
+-- - hud options
+--
+-- - any extra hud elements beyond the usual options
+--
+-- - an underlying chart tree.
+--
+-- See Data.Examples for usage.
 data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
     hudOptions :: HudOptions,
     extraHuds :: [Hud],
-    charts :: Charts (Maybe Text)
+    charts :: ChartTree
   }
   deriving (Generic)
 
@@ -111,7 +124,7 @@ svg2Tag m =
 renderToText :: Html () -> Text
 renderToText = Lazy.toStrict . renderText
 
-renderToSvg :: SvgOptions -> Charts (Maybe Text) -> Html ()
+renderToSvg :: SvgOptions -> ChartTree -> Html ()
 renderToSvg so cs =
   with
     (svg2Tag (cssText (view #cssOptions so) <> svgChartTree cs))
@@ -203,9 +216,9 @@ cssPreferColorScheme (_, bgdark) PreferDark =
     c = hex bgdark
 cssPreferColorScheme _ PreferNormal = mempty
 
--- | consume the huds transforming a 'ChartSvg' to a 'Charts'
-toCharts :: ChartSvg -> Charts (Maybe Text)
-toCharts cs =
+-- | consume the huds transforming a 'ChartSvg' to a 'ChartTree'
+toChartTree :: ChartSvg -> ChartTree
+toChartTree cs =
   runHudWith
     (initialCanvas (view (#hudOptions % #chartAspect) cs) (view #charts cs))
     db'
@@ -221,7 +234,7 @@ toCharts cs =
 --
 -- >>> initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
 -- Rect -0.75 0.75 -0.5 0.5
-initialCanvas :: ChartAspect -> Charts a -> CanvasBox
+initialCanvas :: ChartAspect -> ChartTree -> CanvasBox
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
 initialCanvas ChartAspect cs = singletonGuard $ view box' cs
@@ -231,7 +244,7 @@ initialCanvas ChartAspect cs = singletonGuard $ view box' cs
 -- >>> chartSvg mempty
 -- "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"450.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"-0.75 -0.5 1.5 1.0\" height=\"300.0\"><style>svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #0d0d0d;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #0d0d0d;\n  }\n  .legendBorder g {\n    fill: #f0f0f0;\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #f0f0f0;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #f0f0f0;\n  }\n  .legendBorder g {\n    fill: #0d0d0d;\n  }\n}</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 chartSvg :: ChartSvg -> Text
-chartSvg cs = renderToText (renderToSvg (view #svgOptions cs) (toCharts cs))
+chartSvg cs = renderToText (renderToSvg (view #svgOptions cs) (toChartTree cs))
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()
@@ -448,6 +461,7 @@ data CssPreferColorScheme
   deriving (Show, Eq, Generic)
 
 -- | css options
+--
 -- >>> defaultCssOptions
 -- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}
 data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: Text} deriving (Show, Eq, Generic)

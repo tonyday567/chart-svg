@@ -5,30 +5,34 @@
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | Chart API
+-- | A hud stands for <https://en.wikipedia.org/wiki/Head-up_display head-up display>, and is a collective noun used to name chart elements that assist in data interpretation or otherwise annotate and decorate data.
+--
+-- This includes axes, titles, borders, frames, background canvaii, tick marks and tick value labels.
+--
 module Chart.Hud
-  ( -- * Hud types
+  ( -- * Hud
     Hud (..),
+    Priority,
     HudBox,
     CanvasBox,
     DataBox,
-    frameHud,
-    legend,
-    legendHud,
-    legendChart,
-    legendFrame,
     HudChart (..),
     canvasBox',
     canvasStyleBox',
     hudBox',
     hudStyleBox',
-    HudOptions (..),
-    Priority,
-    defaultHudOptions,
-    colourHudOptions,
+
+    -- * Hud Processing
     runHudWith,
     runHud,
+
+    -- * HudOptions
+    HudOptions (..),
+    defaultHudOptions,
+    colourHudOptions,
     toHuds,
+
+    -- * Hud Effects
     closes,
     fromEffect,
     applyChartAspect,
@@ -60,6 +64,12 @@ module Chart.Hud
     defaultAdjustments,
     LegendOptions (..),
     defaultLegendOptions,
+
+    -- * Option to Hud
+    frameHud,
+    legend,
+    legendHud,
+    legendFrame,
   )
 where
 
@@ -91,16 +101,40 @@ import Prelude
 
 -- * Hud
 
--- | Type for splitting Chart elements into Hud and Canvas
+-- | The priority of a Hud element or transformation, lower value means higher priority.
 --
--- - hudCharts: charts that form the hud.
+-- Lower priority (higher values) huds will tend to be placed on the outside of a chart.
 --
--- - canvasCharts: charts that form the canvas; the rectangular dimension which is considered to be the data representation space.
+-- Equal priority values will be placed in the same process step.
+type Priority = Double
+
+-- | Heads-up display additions to charts
+--
+-- A Hud is composed of:
+--
+-- - A priority for the hud element in the chart folding process.
+--
+-- - A chart tree with a state dependency on the chart being created.
+data Hud = Hud
+  { -- | priority for ordering of transformations
+    priority :: Priority,
+    -- | additional charts
+    hud :: State HudChart ChartTree
+  }
+  deriving (Generic)
+
+-- | Type to track the split of Chart elements into Hud and Canvas
+--
+-- - charts: charts that form the canvas or data elements of the chart; the rectangular dimension which is considered to be the data representation space.
+--
+-- - hud: charts that form the Hud.
+--
+-- - dataBox: The bounding box of the underlying data domain.
 --
 -- This is done to support functionality where we can choose whether to normalise the chart aspect based on the entire chart (FixedAspect) or on just the data visualisation space (CanvasAspect).
 data HudChart = HudChart
-  { chart :: Charts (Maybe Text),
-    hud :: Charts (Maybe Text),
+  { chart :: ChartTree,
+    hud :: ChartTree,
     dataBox :: DataBox
   }
   deriving (Eq, Show, Generic)
@@ -123,13 +157,13 @@ canvasRebox_ cs r =
     & over (#chart % chart') (maybeProjectWith r (canvasBox_ cs))
     & over (#hud % chart') (maybeProjectWith r (canvasBox_ cs))
 
--- | a lens between a HudChart and the bounding box of the canvas
+-- | A lens between a HudChart and the bounding box of the canvas
 canvasBox' :: Lens' HudChart (Maybe CanvasBox)
 canvasBox' =
   lens canvasBox_ canvasRebox_
 
--- | a lens between a HudChart and the bounding box of the canvas, including style extensions.
-canvasStyleBox' :: Getter HudChart (Maybe HudBox)
+-- | A lens between a HudChart and the bounding box of the canvas, including style extensions.
+canvasStyleBox' :: Getter HudChart (Maybe CanvasBox)
 canvasStyleBox' = to (styleBoxes . foldOf (#chart % charts'))
 
 hudStyleBox_ :: HudChart -> Maybe HudBox
@@ -155,29 +189,17 @@ hudBox' :: Lens' HudChart (Maybe HudBox)
 hudBox' =
   lens hudBox_ hudRebox_
 
-appendHud :: Charts (Maybe Text) -> HudChart -> HudChart
+appendHud :: ChartTree -> HudChart -> HudChart
 appendHud cs x =
   x & over #hud (<> cs)
 
--- | The priority of a Hud element or transformation
-type Priority = Double
-
--- | Heads-up-display additions to charts
-data Hud = Hud
-  { -- | priority for ordering of transformations
-    priority :: Priority,
-    -- | additional charts
-    hud :: State HudChart (Charts (Maybe Text))
-  }
-  deriving (Generic)
-
--- | close off a series of Charts to a State HudChart
-closes :: (Traversable f) => f (State HudChart (Charts (Maybe Text))) -> State HudChart ()
+-- | Absorb a series of state-dependent tress into state.
+closes :: (Traversable f) => f (State HudChart ChartTree) -> State HudChart ()
 closes xs = do
   xs' <- fmap (mconcat . toList) $ sequence xs
   modify (appendHud xs')
 
--- | include a pure an effect in a Hud
+-- | Wrap a state effect into a Hud
 fromEffect :: Priority -> State HudChart () -> Hud
 fromEffect p s = Hud p (s >> pure mempty)
 
@@ -189,7 +211,7 @@ applyChartAspect fa = do
     ChartAspect -> pure ()
     _ -> modify (set hudBox' (getHudBox fa hc))
 
--- | supply the bounding box that applies the desired chart aspect with the HudChart.
+-- | Supply the bounding box of the HudChart given a ChartAspect.
 getHudBox :: ChartAspect -> HudChart -> Maybe HudBox
 getHudBox fa c =
   case fa of
@@ -210,9 +232,9 @@ runHudWith ::
   -- | huds to add
   [Hud] ->
   -- | underlying chart
-  Charts (Maybe Text) ->
+  ChartTree ->
   -- | integrated chart tree
-  Charts (Maybe Text)
+  ChartTree
 runHudWith cb db hs cs =
   hs
     & List.sortOn (view #priority)
@@ -227,21 +249,21 @@ runHudWith cb db hs cs =
       )
     & (\x -> group (Just "chart") [view #chart x] <> group (Just "hud") [view #hud x])
 
--- | Combine huds and charts to form a new Charts with an optional supplied initial canvas dimension.
+-- | Combine huds and charts to form a new ChartTree with a supplied initial canvas dimension.
 --
--- Note that the original chart data are transformed and irrevocably lost by this computation.
+-- Note that the original chart data are transformed and irrevocably forgotten by this computation.
 runHud ::
   -- | initial canvas dimension
   CanvasBox ->
   -- | huds
   [Hud] ->
   -- | underlying charts
-  Charts (Maybe Text) ->
+  ChartTree ->
   -- | integrated chart list
-  Charts (Maybe Text)
+  ChartTree
 runHud ca hs cs = runHudWith ca (singletonGuard $ boxes (foldOf charts' cs)) hs cs
 
--- | Typical configurable hud elements. Anything else can be hand-coded as a 'Hud'.
+-- | Typical, configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
 -- ![hud example](other/hudoptions.svg)
 data HudOptions = HudOptions
@@ -361,7 +383,7 @@ placeOrigin pl x
   | pl == PlaceTop || pl == PlaceBottom = Point x 0
   | otherwise = Point 0 x
 
-axis :: AxisOptions -> State HudChart (Charts (Maybe Text))
+axis :: AxisOptions -> State HudChart ChartTree
 axis a = do
   t <- makeTick a
   b <- maybe (pure mempty) (makeAxisBar (view #place a)) (view #bar a)
@@ -565,7 +587,6 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- >>> defaultLegendOptions
 -- LegendOptions {size = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = TextStyle {size = 0.18, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.05 0.05 0.05 1.00, color = Colour 0.05 0.05 0.05 0.00}), place = PlaceRight, overallScale = 0.25, content = []}
 --
--- ![legend example](other/legend.svg)
 data LegendOptions = LegendOptions
   { size :: Double,
     buffer :: Double,
@@ -623,7 +644,7 @@ defaultFrameOptions :: FrameOptions
 defaultFrameOptions = FrameOptions (Just (blob (grey 1 0.02))) 0
 
 -- | Make a frame hud transformation.
-frameHud :: FrameOptions -> State HudChart (Charts (Maybe Text))
+frameHud :: FrameOptions -> State HudChart ChartTree
 frameHud o = do
   hc <- get
   let r = padRect (view #buffer o) <$> view hudStyleBox' hc
@@ -673,7 +694,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
             (w + b ^. #overhang)
         ]
 
-makeAxisBar :: Place -> AxisBar -> State HudChart (Charts (Maybe Text))
+makeAxisBar :: Place -> AxisBar -> State HudChart ChartTree
 makeAxisBar pl b = do
   cb <- gets (view canvasBox')
   hb <- gets (view hudStyleBox')
@@ -732,7 +753,7 @@ alignPosTitle t (Rect x z y w)
   | otherwise = Point 0.0 0.0
 
 -- | title append transformation.
-title :: Title -> State HudChart (Charts (Maybe Text))
+title :: Title -> State HudChart ChartTree
 title t = do
   hb <- gets (view hudStyleBox')
   pure $ named "title" (maybeToList $ title_ t <$> hb)
@@ -816,7 +837,7 @@ tickGlyph ::
   Place ->
   (GlyphStyle, Double) ->
   TickStyle ->
-  State HudChart (Charts (Maybe Text))
+  State HudChart ChartTree
 tickGlyph pl (g, b) ts = do
   sb <- gets (view canvasStyleBox')
   cb <- gets (view canvasBox')
@@ -846,7 +867,7 @@ tickText ::
   Place ->
   (TextStyle, Double) ->
   TickStyle ->
-  State HudChart (Charts (Maybe Text))
+  State HudChart ChartTree
 tickText pl (txts, b) ts = do
   sb <- gets (view canvasStyleBox')
   cb <- gets (view canvasBox')
@@ -859,7 +880,7 @@ tickLine ::
   Place ->
   (LineStyle, Double) ->
   TickStyle ->
-  State HudChart (Charts (Maybe Text))
+  State HudChart ChartTree
 tickLine pl (ls, b) ts = do
   cb <- gets (view canvasBox')
   db <- gets (view #dataBox)
@@ -873,7 +894,7 @@ tickLine pl (ls, b) ts = do
 applyTicks ::
   Place ->
   Ticks ->
-  State HudChart (Charts (Maybe Text))
+  State HudChart ChartTree
 applyTicks pl t = do
   g <- maybe (pure mempty) (\x -> tickGlyph pl x (t ^. #style)) (t ^. #gtick)
   l <- maybe (pure mempty) (\x -> tickText pl x (t ^. #style)) (t ^. #ttick)
@@ -942,7 +963,7 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
     adjustSizeY = max ((maxHeight / (upper asp - lower asp)) / mry) 1
     adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
 
-makeTick :: AxisOptions -> State HudChart (Charts (Maybe Text))
+makeTick :: AxisOptions -> State HudChart ChartTree
 makeTick c = do
   hb <- gets (view hudBox')
   db <- gets (view #dataBox)
@@ -953,18 +974,18 @@ makeTick c = do
       applyTicks (c ^. #place) adjTick
 
 -- | Make a legend from 'LegendOptions'
-legend :: LegendOptions -> State HudChart (Charts (Maybe Text))
+legend :: LegendOptions -> State HudChart ChartTree
 legend o = legendHud o (legendChart o)
 
--- | Make a legend hud element, from a bespoke Charts.
-legendHud :: LegendOptions -> Charts (Maybe Text) -> State HudChart (Charts (Maybe Text))
+-- | Make a legend hud element, from a bespoke ChartTree.
+legendHud :: LegendOptions -> ChartTree -> State HudChart ChartTree
 legendHud o lcs = do
   sb <- gets (view hudStyleBox')
   case sb of
     Nothing -> pure (named "legend" [])
     Just sb' -> pure $ placeLegend o sb' (over chart' (scaleChart (o ^. #overallScale)) lcs)
 
-placeLegend :: LegendOptions -> HudBox -> Charts (Maybe Text) -> Charts (Maybe Text)
+placeLegend :: LegendOptions -> HudBox -> ChartTree -> ChartTree
 placeLegend o hb t =
   case view styleBox' t of
     Nothing -> named "legend" []
@@ -980,7 +1001,7 @@ placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
     PlaceAbsolute p -> p
 
 -- | frame a legend
-legendFrame :: LegendOptions -> Charts (Maybe Text) -> Charts (Maybe Text)
+legendFrame :: LegendOptions -> ChartTree -> ChartTree
 legendFrame l content' =
   group (Just "legend") [named "legendBorder" borders, rename (Just "legendContent") content']
   where
@@ -990,7 +1011,7 @@ legendFrame l content' =
     inner = padChart (view #innerPad l) (foldOf charts' content')
 
 -- | Make the contents portion of a legend
-legendChart :: LegendOptions -> Charts (Maybe Text)
+legendChart :: LegendOptions -> ChartTree
 legendChart l = legendFrame l content'
   where
     content' =

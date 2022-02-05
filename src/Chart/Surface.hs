@@ -5,9 +5,8 @@
 
 -- | Surface chart combinators.
 --
--- A common chart is to present a set of rectangles on the XY plane with colour representing values of the underlying data; a surface chart (often called a heatmap).
+-- A common chart is to present a set of rectangles on the XY plane with colour representing values of the underlying data. This library uses the term /surface/ chart but it is often referred to as a heatmap.
 --
--- 'SurfaceData', the rectangle and the color value, is a different shape to the usual data elements of a chart, so there is a bit more wrangling to do compared with other chart types.
 module Chart.Surface
   ( SurfaceData (..),
     SurfaceOptions (..),
@@ -91,7 +90,7 @@ surfaces rs ps =
   )
     <$> ps
 
--- | create surface data from a function on a Point
+-- | Create surface data from a function on a Point
 mkSurfaceData ::
   (Point Double -> Double) ->
   Rect Double ->
@@ -105,7 +104,7 @@ mkSurfaceData f r g cs = ((\(x, y) -> SurfaceData x (mixes y cs)) <$> ps', unsaf
     rs' = project (unsafeSpace1 rs :: Range Double) (Range 0 1) <$> rs
     ps' = zip (fst <$> ps) rs'
 
--- | create a surface chart from a function.
+-- | Create a surface chart from a function.
 surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart], Range Double)
 surfacef f cfg =
   first (surfaces (cfg ^. #soStyle % #surfaceRectStyle)) $
@@ -171,7 +170,7 @@ surfaceLegendOptions =
     & #frame .~ Nothing
 
 -- | Creation of the classical heatmap glyph within a legend context.
-surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> Charts (Maybe Text)
+surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> ChartTree
 surfaceLegendChart dataRange l =
   legendFrame (view #sloLegendOptions l) hs
   where
@@ -213,7 +212,7 @@ isHori l =
   l ^. #sloLegendOptions % #place == PlaceBottom
     || l ^. #sloLegendOptions % #place == PlaceTop
 
-makeSurfaceTick :: SurfaceLegendOptions -> Charts (Maybe Text) -> Charts (Maybe Text)
+makeSurfaceTick :: SurfaceLegendOptions -> ChartTree -> ChartTree
 makeSurfaceTick l pchart = case view styleBox' pchart of
   Nothing -> pchart
   Just r' -> phud

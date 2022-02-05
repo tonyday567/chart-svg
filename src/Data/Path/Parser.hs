@@ -44,7 +44,7 @@ import Optics.Core hiding ((<|))
 --
 -- [SVG path](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
 
--- | parse a raw path string
+-- | Parse a raw path string.
 --
 -- >>> let outerseg1 = "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"
 -- >>> parsePath outerseg1
@@ -189,7 +189,7 @@ svgCoords (StartP p) = StartP (pointToSvgCoords p)
 svgCoords (LineP p) = LineP (pointToSvgCoords p)
 svgCoords (ArcP i p) = ArcP i (pointToSvgCoords p)
 
--- | convert from a path info, start point, end point triple to a path text clause.
+-- | Convert from a path info, start point, end point triple to a path text clause.
 --
 -- Note that morally,
 --
@@ -263,11 +263,11 @@ data PathCursor = PathCursor
 stateCur0 :: PathCursor
 stateCur0 = PathCursor zero zero Nothing
 
--- | convert an svd d path text snippet to a [PathData Double]
+-- | Convert an SVG d path text snippet to a [PathData Double]
 svgToPathData :: Text -> [PathData Double]
 svgToPathData = toPathDatas . either error id . parsePath
 
--- | convert [PathData] to an svg d path text.
+-- | Convert [PathData] to an SVG d path text.
 pathDataToSvg :: [PathData Double] -> Text
 pathDataToSvg xs = Text.intercalate " " $ fmap toPathAbsolute xs
 
