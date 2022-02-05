@@ -1,18 +1,17 @@
-{-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | Chart API
+-- | Conversion from a chart to SVG.
+--
 module Chart.Svg
-  (
-    ChartSvg(..),
-    charts',
-    toCharts,
+  ( -- * ChartSvg
+    ChartSvg (..),
+    toChartTree,
     writeChartSvg,
     chartSvg,
     initialCanvas,
@@ -28,35 +27,42 @@ module Chart.Svg
     CssPreferColorScheme (..),
     cssShapeRendering,
     cssPreferColorScheme,
-  ) where
+  )
+where
 
-import Chart.Primitive
-import Data.Colour
-import Chart.Style
+import Chart.Data
 import Chart.Hud
+import Chart.Primitive
+import Chart.Style
+import Data.Colour
+import Data.Maybe
 import Data.Path
+import Data.Path.Parser
 import Data.Text (Text, pack, unpack)
 import qualified Data.Text as Text
-import Prelude
+import qualified Data.Text.Lazy as Lazy
+import Data.Tree
+import GHC.Generics
 import Lucid
-import Data.List.NonEmpty (NonEmpty(..))
-import Optics.Core
 import Lucid.Base
 import NeatInterpolation
-import qualified Data.Text.Lazy as Lazy
-import Chart.Data
-import GHC.Generics
-import Data.Semigroup
-import Data.Foldable
-import Data.Path.Parser
-import Data.Tree
-import Data.Maybe
+import Optics.Core
+import Prelude
 
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
+
+-- helpers
+--
 draw :: Chart -> Html ()
-draw (RectChart _ a) = sconcat $ svgRect_ <$> a
-draw (TextChart s a) = sconcat $ uncurry (svgText_ s) <$> a
+draw (RectChart _ a) = mconcat $ svgRect_ <$> a
+draw (TextChart s a) = mconcat $ uncurry (svgText_ s) <$> a
 draw (LineChart _ as) = svgLine_ as
-draw (GlyphChart s a) = sconcat $ svgGlyph_ s <$> a
+draw (GlyphChart s a) = mconcat $ svgGlyph_ s <$> a
 draw (PathChart _ a) = svgPath_ a
 draw (BlankChart _) = mempty
 
@@ -68,22 +74,32 @@ atts (GlyphChart s _) = attsGlyph s
 atts (PathChart s _) = attsPath s
 atts (BlankChart _) = mempty
 
-svgChartTree :: Charts -> Lucid.Html ()
-svgChartTree (Charts (Node (Nothing, []) xs)) = mconcat $ svgChartTree . Charts <$> xs
-svgChartTree (Charts (Node cn xs))
-  | renderText content' == mempty && isNothing (view _1 cn) = mempty
-  | otherwise = term "g" (foldMap (\x -> [term "class" x]) (view _1 cn)) content'
-    where
-      content' = (mconcat $ svg <$> view _2 cn) <> (mconcat $ svgChartTree . Charts <$> xs)
+svgChartTree :: ChartTree -> Lucid.Html ()
+svgChartTree cs
+  | isNothing label && null cs' = mconcat $ svgChartTree . ChartTree <$> xs
+  | otherwise = term "g" (foldMap (\x -> [term "class" x]) label) content'
+  where
+    (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
+    content' = (mconcat $ svg <$> cs') <> (mconcat $ svgChartTree . ChartTree <$> xs)
 
 -- ** ChartSvg
 
--- | Specification of a chart for rendering to SVG
+-- | Specification of a chart ready to be rendered to SVG includes:
+--
+-- - svg options
+--
+-- - hud options
+--
+-- - any extra hud elements beyond the usual options
+--
+-- - an underlying chart tree.
+--
+-- See Data.Examples for usage.
 data ChartSvg = ChartSvg
   { svgOptions :: SvgOptions,
     hudOptions :: HudOptions,
     extraHuds :: [Hud],
-    charts :: Charts
+    charts :: ChartTree
   }
   deriving (Generic)
 
@@ -95,6 +111,7 @@ instance Monoid ChartSvg where
   mempty = ChartSvg defaultSvgOptions mempty mempty mempty
 
 -- * rendering
+
 -- | @svg@ element + svg 2 attributes
 svg2Tag :: Term [Attribute] (s -> t) => s -> t
 svg2Tag m =
@@ -107,7 +124,7 @@ svg2Tag m =
 renderToText :: Html () -> Text
 renderToText = Lazy.toStrict . renderText
 
-renderToSvg :: SvgOptions -> Charts -> Html ()
+renderToSvg :: SvgOptions -> ChartTree -> Html ()
 renderToSvg so cs =
   with
     (svg2Tag (cssText (view #cssOptions so) <> svgChartTree cs))
@@ -116,7 +133,7 @@ renderToSvg so cs =
       makeAttribute "viewBox" (pack $ show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
     ]
   where
-    r@(Rect x z y w) = view styleBox' cs
+    r@(Rect x z y w) = singletonGuard (view styleBox' cs)
     Point w' h' = width r
     Point w'' h'' = Point ((so ^. #svgHeight) / h' * w') (so ^. #svgHeight)
 
@@ -126,16 +143,19 @@ svg (BlankChart _) = mempty
 svg c = term "g" (atts c) (draw c)
 
 cssText :: CssOptions -> Html ()
-cssText csso = style_ [] $
-  cssShapeRendering (csso ^. #shapeRendering) <>
-  cssPreferColorScheme (light, dark) (csso ^. #preferColorScheme) <>
-  csso ^. #cssExtra
+cssText csso =
+  style_ [] $
+    cssShapeRendering (csso ^. #shapeRendering)
+      <> cssPreferColorScheme (light, dark) (csso ^. #preferColorScheme)
+      <> csso ^. #cssExtra
 
+-- | CSS shape rendering text snippet
 cssShapeRendering :: CssShapeRendering -> Text
 cssShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPrecision; }"
 cssShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 cssShapeRendering NoShapeRendering = mempty
 
+-- | CSS prefer-color-scheme text snippet
 cssPreferColorScheme :: (Colour, Colour) -> CssPreferColorScheme -> Text
 cssPreferColorScheme (cl, cd) PreferHud =
   [trimming|
@@ -149,6 +169,9 @@ svg {
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: $hexDark;
   }
+  .legendBorder g {
+    fill: $hexLight;
+  }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
@@ -157,11 +180,14 @@ svg {
   .ticklines g, .tickglyph g, .legendBorder g {
     stroke: $hexLight;
   }
+  .legendBorder g {
+    fill: $hexDark;
+  }
 }
 |]
-    where
-      hexLight = hex cl
-      hexDark = hex cd
+  where
+    hexLight = hex cl
+    hexDark = hex cd
 cssPreferColorScheme (bglight, _) PreferLight =
   [trimming|
     svg {
@@ -173,7 +199,8 @@ cssPreferColorScheme (bglight, _) PreferLight =
       }
     }
   |]
-    where c = hex bglight
+  where
+    c = hex bglight
 cssPreferColorScheme (_, bgdark) PreferDark =
   [trimming|
     svg {
@@ -184,37 +211,40 @@ cssPreferColorScheme (_, bgdark) PreferDark =
         background-color: $c;
       }
     }
-  |] where c = hex bgdark
+  |]
+  where
+    c = hex bgdark
 cssPreferColorScheme _ PreferNormal = mempty
 
-toCharts :: ChartSvg -> Charts
-toCharts cs =
+-- | consume the huds transforming a 'ChartSvg' to a 'ChartTree'
+toChartTree :: ChartSvg -> ChartTree
+toChartTree cs =
   runHudWith
-  (initialCanvas (view (#hudOptions % #chartAspect) cs) (view #charts cs))
-  db'
-  hs'
-  (view #charts cs <> blank db')
+    (initialCanvas (view (#hudOptions % #chartAspect) cs) (view #charts cs))
+    db'
+    hs'
+    (view #charts cs <> blank db')
   where
-    (hs, db') = toHuds (view #hudOptions cs) (view (#charts % box') cs)
+    (hs, db') = toHuds (view #hudOptions cs) (singletonGuard $ view (#charts % box') cs)
     hs' =
-      hs <>
-      view #extraHuds cs
+      hs
+        <> view #extraHuds cs
 
 -- | The initial canvas before applying Huds
 --
 -- >>> initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
 -- Rect -0.75 0.75 -0.5 0.5
-initialCanvas :: ChartAspect -> Charts -> CanvasBox
+initialCanvas :: ChartAspect -> ChartTree -> CanvasBox
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = view box' cs
+initialCanvas ChartAspect cs = singletonGuard $ view box' cs
 
 -- | Render a chart using the supplied svg and hud config.
 --
 -- >>> chartSvg mempty
--- "<svg height=\"300.0\" width=\"300.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-0.52 -0.52 1.04 1.04\"></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"450.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"-0.75 -0.5 1.5 1.0\" height=\"300.0\"><style>svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #0d0d0d;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #0d0d0d;\n  }\n  .legendBorder g {\n    fill: #f0f0f0;\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #f0f0f0;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #f0f0f0;\n  }\n  .legendBorder g {\n    fill: #0d0d0d;\n  }\n}</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 chartSvg :: ChartSvg -> Text
-chartSvg cs = renderToText (renderToSvg (view #svgOptions cs) (toCharts cs))
+chartSvg cs = renderToText (renderToSvg (view #svgOptions cs) (toChartTree cs))
 
 -- | Write to a file.
 writeChartSvg :: FilePath -> ChartSvg -> IO ()
@@ -246,15 +276,16 @@ svgText_ s t p@(Point x y) =
       ]
         <> foldMap (\x' -> [term "transform" (toRotateText x' p)]) (s ^. #rotation)
     )
-    (toHtmlRaw t) <>
-    case view #frame s of
+    (toHtmlRaw t)
+    <> case view #frame s of
       Nothing -> mempty
-      Just f -> svg (RectChart (f & over #borderSize (*view #size s)) [styleBoxText s t p])
+      Just f -> svg (RectChart (f & over #borderSize (* view #size s)) [styleBoxText s t p])
 
 -- | line svg
-svgLine_ :: NonEmpty (NonEmpty (Point Double)) -> Lucid.Html ()
-svgLine_ xss = sconcat $
-  (\xs -> terms "polyline" [term "points" (toPointsText (toList xs))]) <$> xss
+svgLine_ :: [[Point Double]] -> Lucid.Html ()
+svgLine_ xss =
+  mconcat $
+    (\xs -> terms "polyline" [term "points" (toPointsText xs)]) <$> xss
   where
     toPointsText xs' = Text.intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs'
 
@@ -311,7 +342,7 @@ svgGlyph_ s p =
     & maybe id (\r -> term "g" [term "transform" (toRotateText r p)]) (s ^. #rotation)
 
 -- | Path svg
-svgPath_ :: NonEmpty (PathData Double) -> Lucid.Html ()
+svgPath_ :: [PathData Double] -> Lucid.Html ()
 svgPath_ ps =
   terms "path" [term "d" (pathDataToSvg ps)]
 
@@ -319,9 +350,9 @@ svgPath_ ps =
 attsRect :: RectStyle -> [Lucid.Attribute]
 attsRect o =
   [ term "stroke-width" (pack $ show $ o ^. #borderSize),
-    term "stroke" (hex $ o ^. #borderColor),
+    term "stroke" (showRGB $ o ^. #borderColor),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
-    term "fill" (hex $ o ^. #color),
+    term "fill" (showRGB $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
 
@@ -330,7 +361,7 @@ attsText :: TextStyle -> [Lucid.Attribute]
 attsText o =
   [ term "stroke-width" "0.0",
     term "stroke" "none",
-    term "fill" (toHex $ o ^. #color),
+    term "fill" (showRGB $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color),
     term "font-size" (pack $ show $ o ^. #size),
     term "text-anchor" (toTextAnchor $ o ^. #anchor)
@@ -345,13 +376,12 @@ attsText o =
 attsGlyph :: GlyphStyle -> [Lucid.Attribute]
 attsGlyph o =
   [ term "stroke-width" (pack $ show sw),
-    term "stroke" (toHex $ o ^. #borderColor),
+    term "stroke" (showRGB $ o ^. #borderColor),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
-    term "fill" (toHex $ o ^. #color),
+    term "fill" (showRGB $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
     <> foldMap ((: []) . term "transform" . toTranslateText) (o ^. #translate)
-
   where
     sw = case o ^. #shape of
       PathGlyph _ NoScaleBorder -> o ^. #borderSize
@@ -362,7 +392,7 @@ attsGlyph o =
 attsLine :: LineStyle -> [Lucid.Attribute]
 attsLine o =
   [ term "stroke-width" (pack $ show $ o ^. #size),
-    term "stroke" (toHex $ o ^. #color),
+    term "stroke" (showRGB $ o ^. #color),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #color),
     term "fill" "none"
   ]
@@ -375,9 +405,9 @@ attsLine o =
 attsPath :: PathStyle -> [Lucid.Attribute]
 attsPath o =
   [ term "stroke-width" (pack $ show $ o ^. #borderSize),
-    term "stroke" (hex $ o ^. #borderColor),
+    term "stroke" (showRGB $ o ^. #borderColor),
     term "stroke-opacity" (pack $ show $ opac $ o ^. #borderColor),
-    term "fill" (hex $ o ^. #color),
+    term "fill" (showRGB $ o ^. #color),
     term "fill-opacity" (pack $ show $ opac $ o ^. #color)
   ]
 
@@ -407,8 +437,7 @@ toScaleText x =
 -- | SVG tag options.
 --
 -- >>> defaultSvgOptions
---
--- ![svgoptions example](other/svgoptions.svg)
+-- SvgOptions {svgHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}}
 data SvgOptions = SvgOptions
   { svgHeight :: Double,
     cssOptions :: CssOptions
@@ -419,13 +448,23 @@ data SvgOptions = SvgOptions
 defaultSvgOptions :: SvgOptions
 defaultSvgOptions = SvgOptions 300 defaultCssOptions
 
+-- | CSS shape rendering options
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
 
-data CssPreferColorScheme = PreferHud | PreferDark | PreferLight | PreferNormal deriving (Show, Eq, Generic)
+-- | CSS prefer-color-scheme options
+data CssPreferColorScheme
+  = -- | includes css that switches approriate hud elements between light and dark.
+    PreferHud
+  | PreferDark
+  | PreferLight
+  | PreferNormal
+  deriving (Show, Eq, Generic)
 
 -- | css options
+--
 -- >>> defaultCssOptions
-data CssOptions = CssOptions { shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: Text } deriving (Show, Eq, Generic)
+-- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}
+data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: Text} deriving (Show, Eq, Generic)
 
 -- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions

@@ -1,6 +1,0 @@
-cradle:
-  cabal:
-    - path: "src"
-      component: "chart-svg:lib:chart-svg"
-    - path: "app/reanimate-example.hs"
-      component: "chart-svg:exe:reanimate-example"

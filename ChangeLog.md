@@ -1,3 +1,15 @@
+0.3.0
+===
+
+- Chart type rewritten
+  - Chart data is no longer a separate element
+  - charts are monomorphic (underlying data is Double)
+- Aligned with prefer-color-scheme usage
+- oklab usage as per emerging CSS standards
+- chart-reanimate is a separate library
+- formatn is a seprate library
+- introduced a ChartTree type as a tree of named charts to facilitate downstream usage of classes.
+
 0.2.2
 ===
 

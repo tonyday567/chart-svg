@@ -7,17 +7,19 @@ description:
   .
   == Usage
   .
-  >>> import Chart
   >>> :set -XOverloadedLabels
-  >>>let xs = fmap (fmap (uncurry Point)) [[(0.0, 1.0), (1.0, 1.0), (2.0, 5.0)], [(0.0, 0.0), (3.2, 3.0)], [(0.5, 4.0), (0.5, 0)]] :: [[Point Double]]
-  >>> let anns = zipWith (\w c -> LineA (LineStyle w (palette1 c) Nothing Nothing Nothing Nothing)) [0.015, 0.03, 0.01] [0..2]
-  >>> let lineExample = mempty & (#chartList .~ zipWith Chart anns (fmap (fmap PointXY) xs)) & #hudOptions .~ defaultHudOptions & #svgOptions .~ defaultSvgOptions :: ChartSvg
+  >>> :set -XOverloadedStrings
+  >>> import Chart
+  >>> import Optics.Core
+  >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
+  >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
+  >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
+  >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
+  >>> writeChartSvg "other/usage.svg" lineExample
   .
-  > writeChartSvg "other/line.svg" lineExample
+  ![usage example](docs/other/usage.svg)
   .
-  ![main example](docs/other/line.svg)
-  .
-  See "Chart" for a broad overview of concepts, and "Chart.Examples" for a variety of practical examples.
+  See "Chart" for a broad overview of concepts, and "Chart.Examples" for practical examples.
 
 category:        charts
 homepage:        https://github.com/tonyday567/chart-svg#readme
@@ -29,11 +31,8 @@ license:         BSD-3-Clause
 license-file:    LICENSE
 build-type:      Simple
 extra-doc-files: other/*.svg
-tested-with:
-  GHC ==8.8.4
-   || ==8.10.7
-   || ==9.0.1
-   || ==9.2.1
+tested-with:     GHC ==8.8.4 || ==8.10.7 || ==9.2.1
+
 source-repository head
   type:     git
   location: https://github.com/tonyday567/chart-svg
@@ -41,39 +40,41 @@ source-repository head
 library
   exposed-modules:
     Chart
-    Chart.Primitive
-    Chart.Data
-    Chart.Style
-    Chart.Hud
-    Chart.Svg
     Chart.Bar
+    Chart.Data
     Chart.Examples
+    Chart.Hud
+    Chart.Primitive
+    Chart.Style
     Chart.Surface
+    Chart.Svg
     Data.Colour
-    Data.FormatN
     Data.Path
     Data.Path.Parser
 
   hs-source-dirs:     src
   build-depends:
-    , attoparsec            >=0.13.2 && < 0.15
-    , base                  >=4.7 && <5
-    , Color                 ^>=0.3
-    , containers            ^>=0.6
-    , cubicbezier           ^>=0.6
-    , foldl                 ^>=1.4
-    , neat-interpolation    ^>= 0.5.1
-    , optics-core           ^>=0.4
-    , lucid                 ^>=2.9
-    , mtl                   ^>=2.2.2
-    , numhask               ^>=0.8
-    , numhask-space         ^>=0.8
-    , scientific            ^>=0.3
-    , tagsoup               ^>=0.14
-    , text                  ^>=1.2
-    , time                  ^>=1.9
-    , transformers          ^>=0.5
-    , unordered-containers  ^>=0.2
+    , adjunctions         ^>=4.4
+    , attoparsec          >=0.13.2 && <0.15
+    , base                >=4.7    && <5
+    , Color               ^>=0.3
+    , containers          ^>=0.6
+    , cubicbezier         ^>=0.6
+    , foldl               ^>=1.4
+    , formatn             ^>=0.2
+    , lucid               ^>=2.9
+    , mtl                 ^>=2.2.2
+    , neat-interpolation  ^>=0.5.1
+    , numhask             ^>=0.10
+    , numhask-array       ^>=0.10
+    , numhask-space       ^>=0.10
+    , optics-core         ^>=0.4
+    , random              ^>=1.2.1
+    , scientific          ^>=0.3
+    , tagsoup             ^>=0.14
+    , text                ^>=1.2
+    , time                ^>=1.9
+    , transformers        ^>=0.5
 
   default-language:   Haskell2010
   default-extensions: StrictData

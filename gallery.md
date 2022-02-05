@@ -9,57 +9,21 @@ debug
 ---
 ![](other/debug.svg)
 
-subchart
+gradient
 ---
-![](other/subchart.svg)
+![](other/gradient.svg)
 
-blend
+wheel
 ---
-![](other/blend.svg)
+![](other/wheel.svg)
 
-arc
+unit
 ---
-![](other/arc.svg)
-
-arcflags
----
-![](other/arcflags.svg)
-
-arrow
----
-![](other/arrow.svg)
-
-bar
----
-![](other/bar.svg)
-
-cubic
----
-![](other/cubic.svg)
-
-date
----
-![](other/date.svg)
-
-ellipse
----
-![](other/ellipse.svg)
-
-glyphs
----
-![](other/glyphs.svg)
+![](other/unit.svg)
 
 hudoptions
 ---
 ![](other/hudoptions.svg)
-
-path
----
-![](other/path.svg)
-
-quad
----
-![](other/quad.svg)
 
 rect
 ---
@@ -73,18 +37,49 @@ text
 ---
 ![](other/text.svg)
 
-unit
----
-![](other/unit.svg)
-
-venn
----
-![](other/venn.svg)
-
 wave
 ---
 ![](other/wave.svg)
 
+bar
+---
+![](other/bar.svg)
 
+date
+---
+![](other/date.svg)
 
+arrow
+---
+![](other/arrow.svg)
+
+glyphs
+---
+![](other/glyphs.svg)
+
+arcflags
+---
+![](other/arcflags.svg)
+
+ellipse
+---
+![](other/ellipse.svg)
+
+![](other/ellipse2.svg)
+
+path
+---
+![](other/path.svg)
+
+quad
+---
+![](other/quad.svg)
+
+cubic
+---
+![](other/cubic.svg)
+
+venn
+---
+![](other/venn.svg)
 

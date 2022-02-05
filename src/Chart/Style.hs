@@ -1,29 +1,35 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | Stylistic elements
+-- | Stylistic or syntactical options for chart elements.
+--
 module Chart.Style
-  ( -- * Styles
+  ( -- * RectStyle
     RectStyle (..),
     defaultRectStyle,
     blob,
     clear,
     border,
+
+    -- * TextStyle
     TextStyle (..),
     defaultTextStyle,
     styleBoxText,
     ScaleX (..),
+
+    -- * GlyphStyle
     GlyphStyle (..),
     defaultGlyphStyle,
     styleBoxGlyph,
     gpalette1,
-    ScaleBorder(..),
+    ScaleBorder (..),
     GlyphShape (..),
     glyphText,
+
+    -- * LineStyle
     LineStyle (..),
     defaultLineStyle,
     LineCap (..),
@@ -36,35 +42,38 @@ module Chart.Style
     Anchor (..),
     fromAnchor,
     toAnchor,
+
+    -- * PathStyle
     PathStyle (..),
     defaultPathStyle,
-
   )
 where
 
+import Chart.Data
 import Data.Colour
+import qualified Data.List as List
 import Data.Maybe
+import Data.Path
+import Data.Path.Parser
 import Data.String
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Generics
-import Prelude
 import Optics.Core
 import Text.HTML.TagSoup (maybeTagText, parseTags)
-import Data.Path
-import Chart.Data
-import Data.Path.Parser
-import Data.List.NonEmpty (NonEmpty(..))
-import qualified Data.List as List
-import Data.Foldable
+import Prelude
 
 -- $setup
 --
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
 
 -- | Rectangle styling
 --
 -- >>> defaultRectStyle
--- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}
+-- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}
 --
 -- ![unit example](other/unit.svg)
 data RectStyle = RectStyle
@@ -76,7 +85,7 @@ data RectStyle = RectStyle
 
 -- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (palette1 1) (palette1 2)
+defaultRectStyle = RectStyle 0.01 (palette1a 1 1) (palette1a 0 0.1)
 
 -- | solid rectangle, no border
 --
@@ -102,12 +111,7 @@ border s c = RectStyle s c transparent
 -- | Text styling
 --
 -- >>> defaultTextStyle
--- TextStyle {size = 8.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.5, vsize = 1.45, vshift = -0.2, rotation = Nothing}
---
--- >>> import qualified Data.Text as Text
--- >>> let t = zipWith (\x y -> Chart (TextA (defaultTextStyle & (#size .~ (0.05 :: Double))) [x]) [PointXY y]) (fmap Text.singleton ['a' .. 'y']) [Point (sin (x * 0.1)) x | x <- [0 .. 25]]
---
--- ![text example](other/text.svg)
+-- TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}
 data TextStyle = TextStyle
   { size :: Double,
     color :: Colour,
@@ -172,7 +176,7 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
 -- | Glyph styling
 --
 -- >>> defaultGlyphStyle
--- GlyphStyle {size = 3.0e-2, color = Colour 0.65 0.81 0.89 1.00, borderColor = Colour 0.12 0.47 0.71 1.00, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
+-- GlyphStyle {size = 3.0e-2, color = Colour 0.02 0.73 0.80 0.20, borderColor = Colour 0.02 0.29 0.48 1.00, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
 --
 -- ![glyph example](other/glyphs.svg)
 data GlyphStyle = GlyphStyle
@@ -195,13 +199,14 @@ defaultGlyphStyle :: GlyphStyle
 defaultGlyphStyle =
   GlyphStyle
     0.03
-    (palette1 1)
-    (palette1 2)
+    (palette1a 0 0.2)
+    (set lightness' 0.4 $ palette1a 1 1)
     0.003
     SquareGlyph
     Nothing
     Nothing
 
+-- | Should glyph borders be scaled?
 data ScaleBorder = ScaleBorder | NoScaleBorder deriving (Show, Eq, Generic)
 
 -- | glyph shapes
@@ -211,8 +216,8 @@ data GlyphShape
   | EllipseGlyph Double
   | RectSharpGlyph Double
   | RectRoundedGlyph Double Double Double
-  | TriangleGlyph (Point Double) (Point Double) (Point Double)
-  -- ^ line width is determined by borderSize
+  | -- | line width is determined by borderSize
+    TriangleGlyph (Point Double) (Point Double) (Point Double)
   | VLineGlyph
   | HLineGlyph
   | PathGlyph Text ScaleBorder
@@ -235,16 +240,17 @@ glyphText sh =
 -- | the extra area from glyph styling
 styleBoxGlyph :: GlyphStyle -> Rect Double
 styleBoxGlyph s = move p' $
-  rot' $ sw $ case sh of
-    CircleGlyph -> (sz *) <$> one
-    SquareGlyph -> (sz *) <$> one
-    EllipseGlyph a -> scale (Point sz (a * sz)) one
-    RectSharpGlyph a -> scale (Point sz (a * sz)) one
-    RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
-    VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
-    HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
-    TriangleGlyph a b c -> (sz *) <$> space1 ([a,b,c] :: NonEmpty (Point Double))
-    PathGlyph path' _ -> (sz *) <$> (pathBoxes . svgToPathData $ path')
+  rot' $
+    sw $ case sh of
+      CircleGlyph -> (sz *) <$> one
+      SquareGlyph -> (sz *) <$> one
+      EllipseGlyph a -> scale (Point sz (a * sz)) one
+      RectSharpGlyph a -> scale (Point sz (a * sz)) one
+      RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
+      VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
+      HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
+      TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 ([a, b, c] :: [Point Double])
+      PathGlyph path' _ -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
   where
     sh = s ^. #shape
     sz = s ^. #size
@@ -257,10 +263,10 @@ styleBoxGlyph s = move p' $
 -- >>> gpalette1 0
 -- CircleGlyph
 gpalette1 :: Int -> GlyphShape
-gpalette1 x = cycle (toList gpalette1_) List.!! x
+gpalette1 x = cycle gpalette1_ List.!! x
 
 -- | finite list of glyphs
-gpalette1_ :: NonEmpty GlyphShape
+gpalette1_ :: [GlyphShape]
 gpalette1_ =
   [ CircleGlyph,
     SquareGlyph,
@@ -334,7 +340,7 @@ defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
 -- | Path styling
 --
 -- >>> defaultPathStyle
--- PathStyle {borderSize = 1.0e-2, borderColor = Colour 0.65 0.81 0.89 1.00, color = Colour 0.12 0.47 0.71 1.00}
+-- PathStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.66 0.07 0.55 1.00}
 data PathStyle = PathStyle
   { borderSize :: Double,
     borderColor :: Colour,

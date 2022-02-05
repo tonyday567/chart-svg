@@ -1,16 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RebindableSyntax #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 -- | SVG path manipulation
 module Data.Path
   ( -- * Svg Paths
-
     -- $path
-    PathData(..),
+    PathData (..),
     pointPath,
     movePath,
     scalePath,
@@ -48,19 +46,22 @@ module Data.Path
   )
 where
 
+import Chart.Data
 import qualified Control.Foldl as L
+import Control.Monad.State.Lazy
 import GHC.Generics
 import qualified Geom2D.CubicBezier as B
-import NumHask.Prelude hiding (head, last, tail)
-import Chart.Data
-import Data.List.NonEmpty (NonEmpty (..))
-import Control.Monad.State.Lazy
+import NumHask.Prelude
 
 -- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
 -- >>> import Chart
+-- >>> import Optics.Core
 
 -- $path
--- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
+-- Every element of an SVG path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style to deal with.
 --
 -- References:
 --
@@ -68,21 +69,21 @@ import Control.Monad.State.Lazy
 --
 -- [SVG path](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
 
-
 -- | Representation of a single SVG path data point
 data PathData a
-  -- | Starting position
-  = StartP (Point a)
-  -- | line (from previous position)
-  | LineP (Point a)
-  -- | cubic bezier curve
-  | CubicP (Point a) (Point a) (Point a)
-  -- | quad bezier curve
-  | QuadP (Point a) (Point a)
-  -- arc
-  | ArcP (ArcInfo a) (Point a)
+  = -- | Starting position
+    StartP (Point a)
+  | -- | line (from previous position)
+    LineP (Point a)
+  | -- | cubic bezier curve
+    CubicP (Point a) (Point a) (Point a)
+  | -- | quad bezier curve
+    QuadP (Point a) (Point a)
+  | -- arc
+    ArcP (ArcInfo a) (Point a)
   deriving (Show, Eq, Generic)
 
+-- | View the Point part of a PathData
 pointPath :: PathData a -> Point a
 pointPath (StartP p) = p
 pointPath (LineP p) = p
@@ -90,57 +91,64 @@ pointPath (CubicP _ _ p) = p
 pointPath (QuadP _ p) = p
 pointPath (ArcP _ p) = p
 
+-- | Move the Point part of a PathData
 movePath :: (Additive a) => Point a -> PathData a -> PathData a
-movePath x (StartP p) = StartP (p+x)
-movePath x (LineP p) = LineP (p+x)
-movePath x (CubicP c1 c2 p) = CubicP (c1+x) (c2+x) (p+x)
-movePath x (QuadP c p) = QuadP (c+x) (p+x)
-movePath x (ArcP i p) = ArcP i (p+x)
+movePath x (StartP p) = StartP (p + x)
+movePath x (LineP p) = LineP (p + x)
+movePath x (CubicP c1 c2 p) = CubicP (c1 + x) (c2 + x) (p + x)
+movePath x (QuadP c p) = QuadP (c + x) (p + x)
+movePath x (ArcP i p) = ArcP i (p + x)
 
+-- | Multiplicatively scale a PathData
 scalePath :: (Multiplicative a) => a -> PathData a -> PathData a
-scalePath x (StartP p) = StartP (fmap (x*) p)
-scalePath x (LineP p) = LineP (fmap (x*) p)
-scalePath x (CubicP c1 c2 p) = CubicP (fmap (x*) c1) (fmap (x*) c2) (fmap (x*) p)
-scalePath x (QuadP c p) = QuadP (fmap (x*) c) (fmap (x*) p)
-scalePath x (ArcP i p) = ArcP i (fmap (x*) p)
+scalePath x (StartP p) = StartP (fmap (x *) p)
+scalePath x (LineP p) = LineP (fmap (x *) p)
+scalePath x (CubicP c1 c2 p) = CubicP (fmap (x *) c1) (fmap (x *) c2) (fmap (x *) p)
+scalePath x (QuadP c p) = QuadP (fmap (x *) c) (fmap (x *) p)
+scalePath x (ArcP i p) = ArcP i (fmap (x *) p)
 
-projectPaths :: Rect Double -> Rect Double -> NonEmpty (PathData Double) -> NonEmpty (PathData Double)
+-- | Project a list of connected PathDatas from one Rect (XY plave) to a new one.
+projectPaths :: Rect Double -> Rect Double -> [PathData Double] -> [PathData Double]
 projectPaths new old ps =
   flip evalState zero $
-  sequence $ (\p -> do
-  x <- get
-  let d = projectPath new old x p
-  put (pointPath d)
-  pure d) <$> ps
+    sequence $
+      ( \p -> do
+          x <- get
+          let d = projectPath new old x p
+          put (pointPath d)
+          pure d
+      )
+        <$> ps
 
-projectPath
-  :: Rect Double
-  -> Rect Double
-  -> Point Double
-  -> PathData Double
-  -> PathData Double
+-- | Project a PathData from one Rect (XY plave) to a new one.
+projectPath ::
+  Rect Double ->
+  Rect Double ->
+  Point Double ->
+  PathData Double ->
+  PathData Double
 projectPath new old _ (CubicP c1 c2 p) =
-      CubicP (projectOnP new old c1) (projectOnP new old c2) (projectOnP new old p)
+  CubicP (projectOnP new old c1) (projectOnP new old c2) (projectOnP new old p)
 projectPath new old _ (QuadP c p) =
-      QuadP (projectOnP new old c) (projectOnP new old p)
+  QuadP (projectOnP new old c) (projectOnP new old p)
 projectPath new old p1 (ArcP ai p2) = ArcP (projectArcPosition new old (ArcPosition p1 p2 ai)) (projectOnP new old p2)
 projectPath new old _ (LineP p) = LineP (projectOnP new old p)
 projectPath new old _ (StartP p) = StartP (projectOnP new old p)
 
--- | convert cubic position to path data.
-singletonCubic :: CubicPosition Double -> NonEmpty (PathData Double)
+-- | Convert cubic position to path data.
+singletonCubic :: CubicPosition Double -> [PathData Double]
 singletonCubic (CubicPosition s e c1 c2) = [StartP s, CubicP c1 c2 e]
 
--- | convert quad position to path data.
-singletonQuad :: QuadPosition Double -> NonEmpty (PathData Double)
+-- | Convert quad position to path data.
+singletonQuad :: QuadPosition Double -> [PathData Double]
 singletonQuad (QuadPosition s e c) = [StartP s, QuadP c e]
 
--- | convert arc position to path data.
-singletonArc :: ArcPosition Double -> NonEmpty (PathData Double)
+-- | Convert arc position to path data.
+singletonArc :: ArcPosition Double -> [PathData Double]
 singletonArc (ArcPosition s e i) = [StartP s, ArcP i e]
 
--- | convert arc position to a pie slice, with a specific center.
-singletonPie :: Point Double -> ArcPosition Double -> NonEmpty (PathData Double)
+-- | Convert arc position to a pie slice, with a specific center.
+singletonPie :: Point Double -> ArcPosition Double -> [PathData Double]
 singletonPie c (ArcPosition s e i) = [StartP c, LineP s, ArcP i e, LineP c]
 
 -- * Arc types
@@ -214,7 +222,7 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' lar
         + bool 0 (-2 * pi) (clockwise' && angd' > 0)
         + angd'
 
--- | convert from an ArcCentroid to an ArcPosition specification.
+-- | Convert from an ArcCentroid to an ArcPosition specification.
 --
 -- Morally,
 -- > arcPosition . arcCentroid == id
@@ -233,7 +241,7 @@ arcPosition (ArcCentroid c r phi' ang1 angd) =
     large' = abs angd > pi
     clockwise' = angd < zero
 
--- | ellipse formulae
+-- | Ellipse formulae
 --
 -- >>> ellipse zero (Point 1 2) (pi/6) pi
 -- Point -0.8660254037844388 -0.4999999999999997
@@ -252,11 +260,12 @@ ellipse c r phi' theta = c + (rotate phi' |. (r * ray theta))
 
 -- | compute the bounding box for an arcBox
 --
--- > let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
--- > arcBox p
--- Rect -8.326672684688674e-17 0.9999999999999998 -5.551115123125783e-17 0.30644649676616753
+-- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
+-- >>> import Data.FormatN
+-- >>> fmap (fixed (Just 3)) (arcBox p)
+-- Rect "-0.000" "1.000" "-0.000" "0.306"
 arcBox :: ArcPosition Double -> Rect Double
-arcBox p = space1 pts
+arcBox p = unsafeSpace1 pts
   where
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
     (x', y') = arcDerivs r phi'
@@ -277,7 +286,7 @@ arcBox p = space1 pts
         ]
     pts = ellipse c r phi' <$> angs
 
--- | potential arc turning points.
+-- | Potential arc turning points.
 --
 -- >>> arcDerivs (Point 1 0.5) (pi/4)
 -- (-0.4636476090008061,0.4636476090008062)
@@ -286,8 +295,6 @@ arcDerivs (Point rx ry) phi' = (thetax1, thetay1)
   where
     thetax1 = atan2 (-sin phi' * ry) (cos phi' * rx)
     thetay1 = atan2 (cos phi' * ry) (sin phi' * rx)
-
--- * bezier
 
 -- | Quadratic bezier curve expressed in positional terms.
 data QuadPosition a = QuadPosition
@@ -313,7 +320,7 @@ data QuadPolar a = QuadPolar
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
--- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
 -- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {magnitude = 2.1213203435596424, direction = -0.7853981633974483}}
 quadPolar :: (Eq a, TrigField a, ExpField a) => QuadPosition a -> QuadPolar a
 quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
@@ -326,7 +333,7 @@ quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
 -- > quadPosition . quadPolar == id
 -- > quadPolar . quadPosition == id
 --
--- >>> quadPosition $ quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- >>> quadPosition $ quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
 -- QuadPosition {qposStart = Point 0.0 0.0, qposEnd = Point 1.0 1.0, qposControl = Point 2.0 -0.9999999999999998}
 quadPosition :: (TrigField a) => QuadPolar a -> QuadPosition a
 quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
@@ -335,7 +342,7 @@ quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
 
 -- | The quadratic bezier equation
 --
--- >>> quadBezier (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1)) 0.33333333
+-- >>> quadBezier (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))) 0.33333333
 -- Point 0.9999999933333332 -0.33333333333333326
 quadBezier :: (FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start' end control) theta =
@@ -345,7 +352,7 @@ quadBezier (QuadPosition start' end control) theta =
 
 -- | QuadPosition turning points.
 --
--- >>> quadDerivs (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- >>> quadDerivs (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
 -- [0.6666666666666666,0.3333333333333333]
 quadDerivs :: QuadPosition Double -> [Double]
 quadDerivs (QuadPosition start' end control) = [x', y']
@@ -356,15 +363,15 @@ quadDerivs (QuadPosition start' end control) = [x', y']
 
 -- | Bounding box for a QuadPosition
 --
--- >>> quadBox (QuadPosition (Point 0 0) (Point 1 1) (Point 2 -1))
+-- >>> quadBox (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
 -- Rect 0.0 1.3333333333333335 -0.33333333333333337 1.0
 quadBox :: QuadPosition Double -> Rect Double
-quadBox p = space1 pts
+quadBox p = unsafeSpace1 pts
   where
     ts = quadDerivs p
     pts = quadBezier p <$> ([0, 1] <> ts)
 
--- | cubic bezier curve
+-- | Cubic bezier curve
 --
 -- Note that the ordering is different to the svg standard.
 data CubicPosition a = CubicPosition
@@ -397,7 +404,7 @@ data CubicPolar a = CubicPolar
 -- > cubicPosition . cubicPolar == id
 -- > cubicPolar . cubicPosition == id
 --
--- >>> cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
+-- >>> cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
 -- CubicPolar {cpolStart = Point 0.0 0.0, cpolEnd = Point 1.0 1.0, cpolControl1 = Polar {magnitude = 1.1180339887498947, direction = -1.2490457723982544}, cpolControl2 = Polar {magnitude = 1.1180339887498947, direction = 1.8925468811915387}}
 cubicPolar :: (Eq a, ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
 cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end control1' control2'
@@ -411,7 +418,7 @@ cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end 
 -- > cubicPosition . cubicPolar == id
 -- > cubicPolar . cubicPosition == id
 --
--- >>> cubicPosition $ cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
+-- >>> cubicPosition $ cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
 -- CubicPosition {cposStart = Point 0.0 0.0, cposEnd = Point 1.0 1.0, cposControl1 = Point 1.0 -1.0, cposControl2 = Point 1.6653345369377348e-16 2.0}
 cubicPosition :: (Eq a, TrigField a, ExpField a) => CubicPolar a -> CubicPosition a
 cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' end control1' control2'
@@ -421,7 +428,7 @@ cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' e
 
 -- | The cubic bezier equation
 --
--- >>> cubicBezier (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2)) 0.8535533905932737
+-- >>> cubicBezier (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2)) 0.8535533905932737
 -- Point 0.6767766952966369 1.2071067811865475
 cubicBezier :: (FromInteger a, TrigField a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start' end control1 control2) theta =
@@ -432,7 +439,7 @@ cubicBezier (CubicPosition start' end control1 control2) theta =
 
 -- | Turning point positions for a CubicPosition (0,1 or 2)
 --
--- >>> cubicDerivs (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
+-- >>> cubicDerivs (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
 -- [0.8535533905932737,0.14644660940672624,0.5]
 cubicDerivs :: CubicPosition Double -> [Double]
 cubicDerivs
@@ -453,10 +460,10 @@ cubicDerivs
 
 -- | Bounding box for a CubicPosition
 --
--- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 -1) (Point 0 2))
+-- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
 -- Rect 0.0 1.0 -0.20710678118654752 1.2071067811865475
 cubicBox :: CubicPosition Double -> Rect Double
-cubicBox p = space1 pts
+cubicBox p = unsafeSpace1 pts
   where
     ts = cubicDerivs p
     pts =
@@ -466,9 +473,11 @@ cubicBox p = space1 pts
           ([0, 1] <> ts)
 
 -- | Bounding box for a list of path XYs.
-pathBoxes :: NonEmpty (PathData Double) -> Rect Double
-pathBoxes (x :| xs) =
-  L.fold (L.Fold step begin snd) xs
+pathBoxes :: [PathData Double] -> Maybe (Rect Double)
+pathBoxes [] = Nothing
+pathBoxes (x : xs) =
+  Just $
+    L.fold (L.Fold step begin snd) xs
   where
     begin :: (Point Double, Rect Double)
     begin = (pointPath x, singleton (pointPath x))
@@ -479,7 +488,7 @@ pathBox :: Point Double -> PathData Double -> Rect Double
 pathBox start' info =
   case info of
     StartP p -> singleton p
-    LineP p -> space1 ([start', p] :: NonEmpty (Point Double))
+    LineP p -> unsafeSpace1 [start', p]
     CubicP c1 c2 p -> cubicBox (CubicPosition start' p c1 c2)
     QuadP c p -> quadBox (QuadPosition start' p c)
     ArcP i p -> arcBox (ArcPosition start' p i)
