@@ -3,8 +3,10 @@
 * Chart Gallery
 :PROPERTIES:
 :EXPORT_FILE_NAME: chart-gallery
-:export_date: 2022-2-3
+:export_date: 2022-2-9
 :END:
+
+All the haddock charts in [[https://github.com/tonyday567/chart-svg][chart-svg]].
 
 ** line
    :PROPERTIES:
