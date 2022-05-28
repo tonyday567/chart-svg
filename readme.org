@@ -23,3 +23,106 @@ writeChartSvg "other/usage.svg" lineExample
 [[file:other/usage.svg]]
 
 See the haddock documentation for a detailed overview and [[file:gallery.md][the gallery]] for some potential inspiration.
+
+
+* chart-svg changelog
+:PROPERTIES:
+:EXPORT_FILE_NAME: chart-svg-changelog
+:END:
+
+[[file:other/banner.svg]]
+
+[[https://hackage.haskell.org/package/chart-svg][chart-svg-0.3]] is a major rewrite of a library I've had in the toolkit for a while. This has been a major refactoring and I'd like to share a few highlights.
+
+** Monomorphic primitives
+
+Chart primitives boil down to a very short list. Charts consist of:
+
+- Rectangles
+- Lines
+- Glyphs (Geometric Shapes such as circles and arrows)
+- Text (specifically positioned on a page) &
+- Paths (curves)
+
+The core ~Chart~ type now reflects this and looks like:
+
+#+begin_src haskell
+data Chart where
+  RectChart :: RectStyle -> [Rect Double] -> Chart
+  LineChart :: LineStyle -> [[Point Double]] -> Chart
+  GlyphChart :: GlyphStyle -> [Point Double] -> Chart
+  TextChart :: TextStyle -> [(Text, Point Double)] -> Chart
+  PathChart :: PathStyle -> [PathData Double] -> Chart
+  BlankChart :: [Rect Double] -> Chart
+  deriving (Eq, Show)
+
+newtype ChartTree = ChartTree {tree :: Tree (Maybe Text, [Chart])} deriving (Eq, Show, Generic)
+#+end_src
+
+You can find examples of all of these in Chart.Examples.
+
+Compared to 0.2.3 ...
+
+#+begin_src haskell
+data Chart a = Chart
+  { -- | annotation style for the data
+    annotation :: Annotation,
+    -- | list of data elements, either points or rectangles.
+    xys :: [XY a]
+  }
+
+data Annotation
+  = RectA RectStyle
+  | TextA TextStyle [Text]
+  | GlyphA GlyphStyle
+  | LineA LineStyle
+  | PathA PathStyle [PathInfo Double]
+  | BlankA
+
+data XY a
+  = PointXY (Point a)
+  | RectXY (Rect a)
+#+end_src
+
+... the unification of style via Annotation and data via XY has been ditched, and there is now a simple and tight coupling between style, data type and primitive.
+
+I originally tried for user extensibility of what a Chart was but, in the course of refactoring, the complexity cost started to weigh pretty heavily on the code base. In this particular case, working with a concrete, serializable representation, amenable to optics and pattern matching trumped higher-kinded flexibility.
+
+The new Chart sum type may not cover a useful primitive, or there may be ideas that fall between the GADT definition, but allowing for this just wasn't worth it versus accepting future refactoring costs.
+
+~ChartTree~ is in constrast to the prior usage of a ~[Chart]~ as the basic chart type, and fits in well with the notion of chart as svg, and thus xml tree. The rose-tree bundling and naming of chart components enables easy downstream manipulation with tools like reanimate and CSS.
+
+** Browser-centric
+
+#+attr_html: :width 400
+#+caption: A LineChart
+[[file:other/line.svg]]
+
+Existing chart ecosystems, such as excel, [[https://d3js.org/][d3js]] or [[https://github.com/plotly/plotly.js][plotly]], were built in earlier times and don't tend to have regard for modern browser conventions. One addition to the library is to try and fit in with user color scheme preferences. ~Chart-svg~ charts can respect [[https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme][prefers-color-scheme]] and once [[https://github.com/haskell-infra/www.haskell.org/issues/8][this Hackage ticket]] gets done, should look superb in a haddock.
+
+The design flexibility you get from thinking of a chart as primitive shapes to be rendered in a browser also helps expand any definition of what a chart is. A recent example of this can be found in the [[https://hackage.haskell.org/package/dotparse][dotparse]] library which includes production of a [[https://hackage.haskell.org/package/numhask-0.10.1.0][chart]] I added to the numhask docs. Given the constraints of Haddock, the chart is not (yet) clickable, but is clickable in the [[https://hackage.haskell.org/package/numhask-0.10.1.0/docs/other/nh.svg][docs]] ...
+
+This is very difficult to do in other chart libraries outside of direct javascript hacking. Imagine a future where visualisations of class hierarchies help us to tooltip, backlink and navigate complex code bases such as lens.
+
+** Better Colors
+
+#+caption: Default palette experiments from color-adjust
+#+attr_html: :width 400
+[[file:other/wheel.svg]]
+
+Default colors have been modified with the help of the [[https://bottosson.github.io/posts/oklab/][oklab color space]]. oklab has recently been introduced to the CSS standards and will become important in the coming years. You can read more about the development of this in a [recent]({{< relref "color-adjust" >}}) post, but I'm more than happy with the look and feel improvements you get from better lumination and saturation scaling.
+
+** Future development
+
+#+attr_html: :width 200
+#+caption: An example from dotparse
+[[file:other/ex.svg]]
+
+
+[[https://hackage.haskell.org/package/dotparse][Dotparse]] has been a useful test of interoperability, utilising a centuries-old schema and the wonderful new parsing paradigm that is [[https://hackage.haskell.org/package/flatparse][flatparse]], to create a modern web page artifact. If the ideas there are combined with the direction [[https://jonascarpay.com/posts/2022-04-26-calligraphy-tutorial.html][calligraphy]] is taking, we could make clickable visualizations of module, class and call graph heirarchies. That could take performance benchmarking, testing, Haddocks and Hackage to another level, and a unique one compared with other languages.
+
+Some [[https://hackage.haskell.org/package/reanimate][reanimate]] experiments have been carved out of the project in the interests of complexity management, but can still be found in [[https://github.com/tonyday567/chart-reanimate][chart-reanimate]]. ~chart-svg~ handles text well, and the gap between what is a chart and what is text rendering is getting smaller. I'm personally string diagram blind (a rare but real affliction), but animation of string diagrams would look good on the page and be very benficial to documentation.
+
+I'm pretty happy with the recent refactorings and I suspect the integration of visualization with documentation will remain a weird hobby of mine for a good while. The library is nine parts aesthetics and zero parts commercial, but if it ever gets sponsorship it could be an interesting alternative to Excel, d3js and their clones.
+
+Any ideas or criticisms are gratefully appreciated.
