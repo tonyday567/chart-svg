@@ -20,6 +20,7 @@ module Chart.Examples
 
     -- * Compounds
     barExample,
+    sbarExample,
     waveExample,
     surfaceExample,
     rosenbrock,
@@ -229,6 +230,12 @@ barDataExample =
 -- ![bar example](other/bar.svg)
 barExample :: ChartSvg
 barExample = barChart defaultBarOptions barDataExample
+
+-- | Stacked bar chart example.
+--
+-- ![sbar example](other/sbar.svg)
+sbarExample :: ChartSvg
+sbarExample = barChart (defaultBarOptions & set #barOrientation Vert & set #barStacked Stacked & #displayValues .~ False & #barRectStyles %~ fmap (#borderSize .~ 0)) barDataExample
 
 -- | wave example
 --
@@ -738,6 +745,7 @@ pathChartSvg =
     ("other/line.svg", lineExample),
     ("other/hudoptions.svg", hudOptionsExample),
     ("other/bar.svg", barExample),
+    ("other/sbar.svg", sbarExample),
     ("other/surface.svg", surfaceExample),
     ("other/wave.svg", waveExample),
     ("other/venn.svg", vennExample),

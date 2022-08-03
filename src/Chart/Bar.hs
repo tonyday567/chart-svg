@@ -58,8 +58,8 @@ data BarOptions = BarOptions
     textGapNegative :: Double,
     displayValues :: Bool,
     valueFormatN :: FormatN,
-    accumulateValues :: Bool,
     barOrientation :: Orientation,
+    barStacked :: Stacked,
     barLegendOptions :: LegendOptions
   }
   deriving (Show, Eq, Generic)
@@ -109,8 +109,8 @@ defaultBarOptions =
     0.1
     True
     (FormatN FSCommaPrec (Just 2) True)
-    False
     Hori
+    NonStacked
     defaultLegendOptions
   where
     gs = (\x -> RectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
@@ -136,12 +136,12 @@ barRects ::
   BarOptions ->
   [[Double]] ->
   [[Rect Double]]
-barRects (BarOptions _ _ ogap igap _ _ _ _ add orient _) bs = rects'' orient
+barRects (BarOptions _ _ ogap igap _ _ _ _ orient stacked _) bs = rects'' orient
   where
-    bs' = bool bs (appendZero bs) add
+    bs' = appendZero bs
     rects'' Hori = rects'
     rects'' Vert = fmap (\(Rect x z y w) -> Rect y w x z) <$> rects'
-    rects' = zipWith batSet [0 ..] (barDataLowerUpper add bs')
+    rects' = zipWith batSet (bool [0 ..] (repeat 0) (stacked == Stacked)) (barDataLowerUpper stacked bs')
     batSet z ys =
       zipWith
         ( \x (yl, yh) ->
@@ -156,18 +156,22 @@ barRects (BarOptions _ _ ogap igap _ _ _ _ add orient _) bs = rects'' orient
         [0 ..]
         ys
     n = fromIntegral (length bs')
-    bstep = (1 - (1 + 1) * ogap + (n - 1) * igap') / n
-    igap' = igap * (1 - (1 + 1) * ogap)
+    bstep = case stacked of
+      NonStacked -> (1 - ogap + (n - 1) * igap') / n
+      Stacked -> 1 - ogap
+    igap' = case stacked of
+      NonStacked -> igap * (1 - ogap)
+      Stacked -> 0
 
 -- | Convert data to a range assuming a zero bound (a very common but implicit assumption in a lot of bar charts)
 --
--- >>> barDataLowerUpper False [[1,2],[2,3]]
+-- >>> barDataLowerUpper NonStacked [[1,2],[2,3]]
 -- [[(0.0,1.0),(0.0,2.0)],[(0.0,2.0),(0.0,3.0)]]
-barDataLowerUpper :: Bool -> [[Double]] -> [[(Double, Double)]]
-barDataLowerUpper add bs =
-  case add of
-    False -> fmap (fmap (0,)) bs
-    True -> fmap (fmap (0,)) (accRows bs)
+barDataLowerUpper :: Stacked -> [[Double]] -> [[(Double, Double)]]
+barDataLowerUpper stacked bs =
+  case stacked of
+    NonStacked -> fmap (fmap (0,)) bs
+    Stacked -> drop 1 $ scanl' (\acc xs -> zip (fmap snd acc) xs) (repeat (0,0)) (accRows bs)
 
 -- | Calculate the Rect range of a bar data set.
 --
@@ -231,9 +235,9 @@ barLegendContent bo bd
       (view #barColumnLabels bd <> repeat "")
       ((\s -> RectChart s [one]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
 
-barDataTP :: Bool -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]
-barDataTP add fn d negd bs =
-  zipWith (zipWith (\x y' -> (formatN fn x, drop' y'))) bs' (bool bs' (accRows bs') add)
+barDataTP :: Stacked -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]
+barDataTP stacked fn d negd bs =
+  zipWith (zipWith (\x y' -> (formatN fn x, drop' y'))) bs' (bool bs' (accRows bs') (stacked == Stacked))
   where
     drop' x = bool (x - (negd * (w - y))) (x + (d * (w - y))) (x >= 0)
     bs' = appendZero bs
@@ -244,13 +248,13 @@ barTexts ::
   BarOptions ->
   [[Double]] ->
   [[(Text, Point Double)]]
-barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn add orient _) bs =
-  zipWith zip (fmap fst <$> barDataTP add fn tgap tgapneg bs') (txs'' orient)
+barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn orient stacked _) bs =
+  zipWith zip (fmap fst <$> barDataTP stacked fn tgap tgapneg bs') (txs'' orient)
   where
-    bs' = bool bs (appendZero bs) add
+    bs' = bool bs (appendZero bs) (stacked == Stacked)
     txs'' Hori = txs'
     txs'' Vert = fmap (\(Point x y) -> Point y x) <$> txs'
-    txs' = zipWith addX [0 ..] (fmap snd <$> barDataTP add fn tgap tgapneg bs')
+    txs' = zipWith addX [0 ..] (fmap snd <$> barDataTP stacked fn tgap tgapneg bs')
     addX z y =
       zipWith
         ( \x y' ->

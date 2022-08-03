@@ -22,6 +22,7 @@ module Chart.Primitive
     group,
     filterChartTree,
     Orientation (..),
+    Stacked (..),
     ChartAspect (..),
 
     -- * Boxes
@@ -51,7 +52,7 @@ module Chart.Primitive
     rectangularize,
     glyphize,
     overText,
-  )
+  renamed)
 where
 
 import Chart.Data
@@ -139,6 +140,10 @@ named l cs = ChartTree $ Node (Just l, cs) []
 -- | Convert a chart list to a tree, with no text label.
 unnamed :: [Chart] -> ChartTree
 unnamed cs = ChartTree $ Node (Nothing, cs) []
+
+-- | Rename a ChartTree, removing descendent names
+renamed :: Text -> ChartTree -> ChartTree
+renamed l ct = named l $ foldOf charts' ct
 
 -- | Rename a top-level label in a tree.
 rename :: Maybe Text -> ChartTree -> ChartTree
@@ -427,6 +432,9 @@ overText _ x = x
 
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)
+
+-- | Whether to stack chart data
+data Stacked = Stacked | NonStacked deriving (Eq, Show, Generic)
 
 -- | The basis for the x-y ratio of a chart
 --
