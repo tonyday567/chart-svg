@@ -109,7 +109,7 @@ defaultBarOptions =
     0.1
     True
     (FormatN FSCommaPrec (Just 2) True)
-    Hori
+    Vert
     NonStacked
     defaultLegendOptions
   where
@@ -139,8 +139,8 @@ barRects ::
 barRects (BarOptions _ _ ogap igap _ _ _ _ orient stacked _) bs = rects'' orient
   where
     bs' = appendZero bs
-    rects'' Hori = rects'
-    rects'' Vert = fmap (\(Rect x z y w) -> Rect y w x z) <$> rects'
+    rects'' Vert = rects'
+    rects'' Hori = fmap (\(Rect x z y w) -> Rect y w x z) <$> rects'
     rects' = zipWith batSet (bool [0 ..] (repeat 0) (stacked == Stacked)) (barDataLowerUpper stacked bs')
     batSet z ys =
       zipWith
@@ -252,8 +252,8 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn orient stacked _) bs =
   zipWith zip (fmap fst <$> barDataTP stacked fn tgap tgapneg bs') (txs'' orient)
   where
     bs' = bool bs (appendZero bs) (stacked == Stacked)
-    txs'' Hori = txs'
-    txs'' Vert = fmap (\(Point x y) -> Point y x) <$> txs'
+    txs'' Vert = txs'
+    txs'' Hori = fmap (\(Point x y) -> Point y x) <$> txs'
     txs' = zipWith addX [0 ..] (fmap snd <$> barDataTP stacked fn tgap tgapneg bs')
     addX z y =
       zipWith
