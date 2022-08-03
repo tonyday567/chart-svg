@@ -109,7 +109,7 @@ defaultBarOptions =
     0.1
     True
     (FormatN FSCommaPrec (Just 2) True)
-    Hori
+    Vert
     NonStacked
     defaultLegendOptions
   where
@@ -128,7 +128,7 @@ data BarData = BarData
 -- | Convert BarData to Rects
 --
 -- >>> barRects defaultBarOptions [[1,2],[2,3]]
--- [[Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],[Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0]]
+-- [[Rect 5.0e-2 0.5 0.0 1.0,Rect 1.05 1.5 0.0 2.0],[Rect 0.5 0.95 0.0 2.0,Rect 1.5 1.95 0.0 3.0]]
 --
 -- >>> barRects defaultBarOptions [[]]
 -- [[]]
@@ -139,8 +139,8 @@ barRects ::
 barRects (BarOptions _ _ ogap igap _ _ _ _ orient stacked _) bs = rects'' orient
   where
     bs' = appendZero bs
-    rects'' Hori = rects'
-    rects'' Vert = fmap (\(Rect x z y w) -> Rect y w x z) <$> rects'
+    rects'' Vert = rects'
+    rects'' Hori = fmap (\(Rect x z y w) -> Rect y w x z) <$> rects'
     rects' = zipWith batSet (bool [0 ..] (repeat 0) (stacked == Stacked)) (barDataLowerUpper stacked bs')
     batSet z ys =
       zipWith
@@ -189,7 +189,7 @@ barRange ys = singletonGuard $ Just $ Rect 0 (fromIntegral $ maximum (length <$>
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] [] [])
--- [RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.29 0.48 0.70}) [Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.66 0.07 0.55 1.00, color = Colour 0.66 0.07 0.55 0.70}) [Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0],BlankChart [Rect -5.0e-2 1.9500000000000002 0.0 3.0]]
+-- [RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.29 0.48 0.70}) [Rect 5.0e-2 0.5 0.0 1.0,Rect 1.05 1.5 0.0 2.0],RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.66 0.07 0.55 1.00, color = Colour 0.66 0.07 0.55 0.70}) [Rect 0.5 0.95 0.0 2.0,Rect 1.5 1.95 0.0 3.0],BlankChart [Rect -5.0e-2 2.05 0.0 3.0]]
 --
 -- >>> bars defaultBarOptions (BarData [[]] [] [])
 -- []
@@ -252,8 +252,8 @@ barTexts (BarOptions _ _ ogap igap tgap tgapneg _ fn orient stacked _) bs =
   zipWith zip (fmap fst <$> barDataTP stacked fn tgap tgapneg bs') (txs'' orient)
   where
     bs' = bool bs (appendZero bs) (stacked == Stacked)
-    txs'' Hori = txs'
-    txs'' Vert = fmap (\(Point x y) -> Point y x) <$> txs'
+    txs'' Vert = txs'
+    txs'' Hori = fmap (\(Point x y) -> Point y x) <$> txs'
     txs' = zipWith addX [0 ..] (fmap snd <$> barDataTP stacked fn tgap tgapneg bs')
     addX z y =
       zipWith
