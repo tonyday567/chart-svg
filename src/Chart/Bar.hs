@@ -128,7 +128,7 @@ data BarData = BarData
 -- | Convert BarData to Rects
 --
 -- >>> barRects defaultBarOptions [[1,2],[2,3]]
--- [[Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],[Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0]]
+-- [[Rect 5.0e-2 0.5 0.0 1.0,Rect 1.05 1.5 0.0 2.0],[Rect 0.5 0.95 0.0 2.0,Rect 1.5 1.95 0.0 3.0]]
 --
 -- >>> barRects defaultBarOptions [[]]
 -- [[]]
@@ -189,7 +189,7 @@ barRange ys = singletonGuard $ Just $ Rect 0 (fromIntegral $ maximum (length <$>
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] [] [])
--- [RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.29 0.48 0.70}) [Rect 5.0e-2 0.45 0.0 1.0,Rect 1.05 1.4500000000000002 0.0 2.0],RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.66 0.07 0.55 1.00, color = Colour 0.66 0.07 0.55 0.70}) [Rect 0.45 0.8500000000000001 0.0 2.0,Rect 1.4500000000000002 1.85 0.0 3.0],BlankChart [Rect -5.0e-2 1.9500000000000002 0.0 3.0]]
+-- [RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.29 0.48 0.70}) [Rect 5.0e-2 0.5 0.0 1.0,Rect 1.05 1.5 0.0 2.0],RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.66 0.07 0.55 1.00, color = Colour 0.66 0.07 0.55 0.70}) [Rect 0.5 0.95 0.0 2.0,Rect 1.5 1.95 0.0 3.0],BlankChart [Rect -5.0e-2 2.05 0.0 3.0]]
 --
 -- >>> bars defaultBarOptions (BarData [[]] [] [])
 -- []
