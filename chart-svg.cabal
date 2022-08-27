@@ -62,7 +62,7 @@ library
     , cubicbezier         ^>=0.6
     , foldl               ^>=1.4
     , formatn             ^>=0.2
-    , lucid               ^>=2.9
+    , lucid               >=2.9 && <3
     , mtl                 ^>=2.2.2
     , neat-interpolation  ^>=0.5.1
     , numhask             ^>=0.10
@@ -73,7 +73,7 @@ library
     , scientific          ^>=0.3
     , tagsoup             ^>=0.14
     , text                ^>=1.2
-    , time                ^>=1.9
+    , time                >=1.9 && <2
     , transformers        ^>=0.5
 
   default-language:   Haskell2010
