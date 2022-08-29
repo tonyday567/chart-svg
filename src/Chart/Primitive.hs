@@ -80,8 +80,8 @@ import Prelude
 
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
--- - 'RectChart': a rectangle in the XY-domain. For example, a @Rect 0 1 0 1@ is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on Rect Double's but the base types are polymorphic.
--- - 'LineChart': a list of points which represent connected straight lines. [Point 0 0, Point 1 1, Point 2 2, Point 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
+-- - 'RectChart': a rectangle in the XY-domain. For example, a @'Rect' 0 1 0 1@ is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on 'Rect' 'Double''s but the base types are polymorphic.
+-- - 'LineChart': a list of points which represent connected straight lines. ['Point' 0 0, 'Point' 1 1, 'Point' 2 2, 'Point' 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
 -- - 'GlyphChart': a 'GlyphShape' which is a predefined shaped centered at a 'Point' in XY space.
 -- - 'TextChart': text centered at a 'Point' in XY space.
 -- - 'PathChart': specification of curvilinear paths using the SVG standards.

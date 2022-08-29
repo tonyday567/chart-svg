@@ -104,7 +104,7 @@ import Data.Path.Parser
 
 -- $hud
 --
--- Axes, titles, tick marks, grid lines and legends are chart elements that exist to provide references to help explain the data being represented. The collective noun used by the library for these elements is /hud/. Hud elements can usually be distinguished from data syntax, but need information from the chart domain (data domain and style domain) to function. A tick mark and tick value on an axis need to know the range of the data to be placed properly on the screen. A chart border needs to know the syntactic range of the entire data representation inclusive of representational artifacts that might extend beyond the data domain (A circle glyph representing a point has dimension).
+-- Axes, titles, tick marks, grid lines and legends are chart elements that exist to provide references to help explain the data being represented. The collective noun used by the library for these elements is /hud/. Hud elements can usually be distinguished from data syntax, but need information from the chart domain (data domain and style domain) to function. A tick mark and tick value on an axis need to know the range of the data to be placed properly on the screen. A chart border needs to know the syntactic range of the entire data representation inclusive of representational artifacts that might extend beyond the data domain. A glyph representing a one-dimensional point exists in 2 dimensions, or we wouldn't be able to see it.
 --
 -- Apart from this functional usage, however, hud elements are pretty much the same as data elements. They are typically composed of the same stuff; rectangles and lines and text and colors.
 --
@@ -114,13 +114,13 @@ import Data.Path.Parser
 --
 -- - measure the range of the data values
 --
--- - fold hud elements into a chart, /creating new 'ChartTree' from the hud/, keeping track of chart dimensions across three domains:
+-- - fold hud elements into a chart, creating new 'ChartTree's from the hud, keeping track of chart dimensions across three domains:
 --
---   - The domain of the underlying data
+--   1. The domain of the underlying data
 --
---   - The domain of the canvas where the data is being represented
+--   2. The domain of the canvas where the data is being represented
 --
---   - The domain of the chart, inclusive of Hud or decorative elements.
+--   3. The domain of the chart, inclusive of Hud or decorative elements.
 --
 -- This process is reified in 'runHudWith'. The most common Hud concepts, such as axes and titles, have been collected into the 'HudOptions' type.
 --
@@ -129,6 +129,6 @@ import Data.Path.Parser
 
 -- $optics
 --
--- Usage suggests the use of optics-core and OverloadedLabels, but this is not required. 'Chart', 'HudOptions' and associated chart configuration types are big and sometimes deep syntax trees, and simple optics getting, setting and modding makes manipulation more pleasant. Lens works as well, and the library is perfectly capable of being used with records.
+-- Usage suggests the use of optics-core and OverloadedLabels, but this is not required. 'Chart', 'HudOptions' and associated chart configuration types are big and sometimes deep syntax trees, and simple optics; getting, setting and modding, makes manipulation more pleasant. Lens works as well, and the library is perfectly capable of being used with records.
 --
 -- Lenses are supplied, for the optics-core library, but can be easily modified for lens. The chart-svg convention is that lenses are either OverloadedLabels, or suffixed with a single quote /'/.
