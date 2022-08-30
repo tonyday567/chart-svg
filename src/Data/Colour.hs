@@ -566,6 +566,7 @@ lab2xyz_ lab =
 -- The mix has gone out of gamut because we are swishing through hue mixes.
 --
 -- In this case, settting the hue on the black colour within the LCH contruct helps:
+--
 -- >>> betterblack = set (lch' % hLCH') (view hue' (Colour 0.2 0.6 0.8 0.5)) (review lcha2colour' black)
 -- >>> view lcha2colour' $ mixLCHA 0.8 betterblack (review lcha2colour' $ Colour 0.2 0.6 0.8 0.5)
 -- Colour 0.14 0.44 0.59 0.60

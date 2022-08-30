@@ -225,6 +225,7 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' lar
 -- | Convert from an ArcCentroid to an ArcPosition specification.
 --
 -- Morally,
+--
 -- > arcPosition . arcCentroid == id
 --
 -- Not isomorphic if:

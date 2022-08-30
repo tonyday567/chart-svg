@@ -24,7 +24,7 @@ import qualified Data.Attoparsec.Text as A
 import Data.Either
 import Data.FormatN
 import Data.Functor
-import Data.Path
+import Data.Path ( PathData(..), ArcInfo(ArcInfo) )
 import Data.Scientific (toRealFloat)
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
@@ -40,9 +40,9 @@ import Optics.Core hiding ((<|))
 --
 -- References:
 --
--- [SVG d](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d)
+-- [SVG d attribute](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d)
 --
--- [SVG path](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
+-- [SVG Paths](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
 
 -- | Parse a raw path string.
 --
@@ -50,7 +50,6 @@ import Optics.Core hiding ((<|))
 -- >>> parsePath outerseg1
 -- Right [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
 --
--- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 parsePath :: Text -> Either String [PathCommand]
 parsePath = A.parseOnly pathParser
 
@@ -164,21 +163,6 @@ data Origin
     OriginRelative
   deriving (Eq, Show, Generic)
 
--- | To fit in with the requirements of the library design, specifically the separation of what a chart is into XY data Points from representation of these points, path instructions need to be decontructed into:
---
--- - define a single chart element as a line.
---
--- - split a single path element into the start and end points of the line, which become the 'Chart.Types.xys' of a 'Chart.Types.Chart', and the rest of the information, which is called 'PathInfo' and incorporated into the 'Chart.Types.Chart' 'Chart.Types.annotation'.
---
--- An arc path is variant to affine transformations of the 'Chart.Types.xys' points: angles are not presevred in the new reference frame.
-data PathInfo a
-  = StartI
-  | LineI
-  | CubicI (Point a) (Point a)
-  | QuadI (Point a)
-  | ArcI (ArcInfo a)
-  deriving (Show, Eq, Generic)
-
 pointToSvgCoords :: Point Double -> Point Double
 pointToSvgCoords (Point x y) = Point x (-y)
 
@@ -193,7 +177,7 @@ svgCoords (ArcP i p) = ArcP i (pointToSvgCoords p)
 --
 -- Note that morally,
 --
--- > toPathsAbsolute . toInfos . parsePath == id
+-- > toPathsAbsolute . toPathDatas . parsePath == id
 --
 -- but the round trip destroys much information, including:
 --
@@ -263,17 +247,17 @@ data PathCursor = PathCursor
 stateCur0 :: PathCursor
 stateCur0 = PathCursor zero zero Nothing
 
--- | Convert an SVG d path text snippet to a [PathData Double]
+-- | Convert from an SVG d attribute text snippet to a [`PathData` `Double`]
 svgToPathData :: Text -> [PathData Double]
 svgToPathData = toPathDatas . either error id . parsePath
 
--- | Convert [PathData] to an SVG d path text.
+-- | Convert from [`PathData` `Double`] to an SVG d path text snippet.
 pathDataToSvg :: [PathData Double] -> Text
 pathDataToSvg xs = Text.intercalate " " $ fmap toPathAbsolute xs
 
 -- | Convert from a path command list to a PathA specification
 toPathDatas :: [PathCommand] -> [PathData Double]
-toPathDatas xs = fmap svgCoords $ mconcat $ flip evalState stateCur0 $ sequence $ toInfo <$> xs
+toPathDatas xs = fmap svgCoords $ mconcat $ flip evalState stateCur0 $ sequence $ toPathData <$> xs
 
 -- | Convert relative points to absolute points
 relToAbs :: (Additive a) => a -> [a] -> [a]
@@ -383,43 +367,43 @@ relToAbsArc p xs = xs'
 -- | Convert a path command fragment to PathData
 --
 -- flips the y-dimension of points.
-toInfo :: PathCommand -> State PathCursor [PathData Double]
-toInfo (MoveTo OriginAbsolute xs) = moveTo xs
-toInfo (MoveTo OriginRelative xs) = do
+toPathData :: PathCommand -> State PathCursor [PathData Double]
+toPathData (MoveTo OriginAbsolute xs) = moveTo xs
+toPathData (MoveTo OriginRelative xs) = do
   (PathCursor p _ _) <- get
   moveTo (relToAbs p xs)
-toInfo EndPath = do
+toPathData EndPath = do
   (PathCursor _ s _) <- get
   pure [LineP s]
-toInfo (LineTo OriginAbsolute xs) = lineTo xs
-toInfo (LineTo OriginRelative xs) = do
+toPathData (LineTo OriginAbsolute xs) = lineTo xs
+toPathData (LineTo OriginRelative xs) = do
   (PathCursor p _ _) <- get
   lineTo (relToAbs p xs)
-toInfo (HorizontalTo OriginAbsolute xs) = horTo xs
-toInfo (HorizontalTo OriginRelative xs) = do
+toPathData (HorizontalTo OriginAbsolute xs) = horTo xs
+toPathData (HorizontalTo OriginRelative xs) = do
   (PathCursor (Point x _) _ _) <- get
   horTo (relToAbs x xs)
-toInfo (VerticalTo OriginAbsolute xs) = verTo xs
-toInfo (VerticalTo OriginRelative ys) = do
+toPathData (VerticalTo OriginAbsolute xs) = verTo xs
+toPathData (VerticalTo OriginRelative ys) = do
   (PathCursor (Point _ y) _ _) <- get
   verTo (relToAbs y ys)
-toInfo (CurveTo OriginAbsolute xs) = curveTo xs
-toInfo (CurveTo OriginRelative xs) = do
+toPathData (CurveTo OriginAbsolute xs) = curveTo xs
+toPathData (CurveTo OriginRelative xs) = do
   (PathCursor p _ _) <- get
   curveTo (relToAbs3 p xs)
-toInfo (SmoothCurveTo OriginAbsolute xs) = smoothCurveTo xs
-toInfo (SmoothCurveTo OriginRelative xs) = do
+toPathData (SmoothCurveTo OriginAbsolute xs) = smoothCurveTo xs
+toPathData (SmoothCurveTo OriginRelative xs) = do
   (PathCursor p _ _) <- get
   smoothCurveTo (relToAbs2 p xs)
-toInfo (QuadraticBezier OriginAbsolute xs) = quad xs
-toInfo (QuadraticBezier OriginRelative xs) = do
+toPathData (QuadraticBezier OriginAbsolute xs) = quad xs
+toPathData (QuadraticBezier OriginRelative xs) = do
   (PathCursor p _ _) <- get
   quad (relToAbs2 p xs)
-toInfo (SmoothQuadraticBezierCurveTo OriginAbsolute xs) = smoothQuad xs
-toInfo (SmoothQuadraticBezierCurveTo OriginRelative xs) = do
+toPathData (SmoothQuadraticBezierCurveTo OriginAbsolute xs) = smoothQuad xs
+toPathData (SmoothQuadraticBezierCurveTo OriginRelative xs) = do
   (PathCursor p _ _) <- get
   smoothQuad (relToAbs p xs)
-toInfo (EllipticalArc OriginAbsolute xs) = arcTo xs
-toInfo (EllipticalArc OriginRelative xs) = do
+toPathData (EllipticalArc OriginAbsolute xs) = arcTo xs
+toPathData (EllipticalArc OriginRelative xs) = do
   (PathCursor p _ _) <- get
   arcTo (relToAbsArc p xs)
