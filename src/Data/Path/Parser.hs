@@ -1,9 +1,12 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use unwords" #-}
 
 -- | SVG path manipulation
 module Data.Path.Parser
@@ -18,22 +21,21 @@ module Data.Path.Parser
 where
 
 import Chart.Data
-import Control.Applicative
+import Control.Applicative hiding (many, some)
 import Control.Monad.State.Lazy
-import qualified Data.Attoparsec.Text as A
 import Data.Either
 import Data.FormatN
-import Data.Functor
-import Data.Path (ArcInfo (ArcInfo), PathData (..))
-import Data.Scientific (toRealFloat)
-import Data.Text (Text, pack)
-import qualified Data.Text as Text
+import Data.Path ( PathData(..), ArcInfo(ArcInfo) )
 import GHC.Generics
 import GHC.OverloadedLabels
 import NumHask.Prelude
 import Optics.Core hiding ((<|))
-
--- import qualified Data.List as List
+import Data.ByteString (ByteString, intercalate)
+import Data.Text.Encoding (encodeUtf8)
+import Data.ByteString.Char8 (pack)
+import FlatParse.Basic
+import Chart.FlatParse
+import Data.Bifunctor
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -49,50 +51,18 @@ import Optics.Core hiding ((<|))
 -- >>> let outerseg1 = "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"
 -- >>> parsePath outerseg1
 -- Right [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
-parsePath :: Text -> Either String [PathCommand]
-parsePath = A.parseOnly pathParser
+--
+parsePath :: ByteString -> Either ByteString [PathCommand]
+parsePath = second fst . runParserEither pathParser
 
-commaWsp :: A.Parser ()
-commaWsp = A.skipSpace *> A.option () (A.string "," $> ()) <* A.skipSpace
+pathParser :: Parser e [PathCommand]
+pathParser = fromList <$> (ws *> some command)
 
-point :: A.Parser (Point Double)
-point = Point <$> num <* commaWsp <*> num
+command :: Parser e PathCommand
+command = undefined
+{-
 
-points :: A.Parser [Point Double]
-points = fromList <$> point `A.sepBy1` commaWsp
-
-pointPair :: A.Parser (Point Double, Point Double)
-pointPair = (,) <$> point <* commaWsp <*> point
-
-pointPairs :: A.Parser [(Point Double, Point Double)]
-pointPairs = fromList <$> pointPair `A.sepBy1` commaWsp
-
-pathParser :: A.Parser [PathCommand]
-pathParser = fromList <$> (A.skipSpace *> A.many1 command)
-
-num :: A.Parser Double
-num = realToFrac <$> (A.skipSpace *> plusMinus <* A.skipSpace)
-  where
-    doubleNumber :: A.Parser Double
-    doubleNumber = toRealFloat <$> A.scientific <|> shorthand
-
-    plusMinus =
-      negate <$ A.string "-" <*> doubleNumber
-        <|> A.string "+" *> doubleNumber
-        <|> doubleNumber
-
-    shorthand = process' <$> (A.string "." *> A.many1 A.digit)
-    process' = fromRight 0 . A.parseOnly doubleNumber . pack . (++) "0."
-
-nums :: A.Parser [Double]
-nums = num `A.sepBy1` commaWsp
-
-flag :: A.Parser Bool
-flag = fmap (/= '0') A.digit
-
-command :: A.Parser PathCommand
-command =
-  MoveTo OriginAbsolute <$ A.string "M" <*> points
+  MoveTo OriginAbsolute <$ Astring "M" <*> points
     <|> MoveTo OriginRelative <$ A.string "m" <*> points
     <|> LineTo OriginAbsolute <$ A.string "L" <*> points
     <|> LineTo OriginRelative <$ A.string "l" <*> points
@@ -131,6 +101,7 @@ command =
         <*> flagComma
         <*> point
 
+-}
 -- | Path command definition (ripped from reanimate-svg).
 data PathCommand
   = -- | M or m command
@@ -200,21 +171,21 @@ svgCoords (ArcP i p) = ArcP i (pointToSvgCoords p)
 toPathAbsolute ::
   PathData Double ->
   -- | path text
-  Text
-toPathAbsolute (StartP p) = "M " <> pp p
-toPathAbsolute (LineP p) = "L " <> pp p
+  ByteString
+toPathAbsolute (StartP p) = "M " <> pp' p
+toPathAbsolute (LineP p) = "L " <> pp' p
 toPathAbsolute (CubicP c1 c2 p) =
   "C "
-    <> pp c1
+    <> pp' c1
     <> " "
-    <> pp c2
+    <> pp' c2
     <> " "
-    <> pp p
+    <> pp' p
 toPathAbsolute (QuadP control p) =
   "Q "
-    <> pp control
+    <> pp' control
     <> " "
-    <> pp p
+    <> pp' p
 toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
   "A "
     <> (pack . show) x
@@ -227,13 +198,12 @@ toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
     <> " "
     <> bool "0" "1" sw
     <> " "
-    <> pp x2
+    <> pp' x2
 
 -- | Render a point (including conversion to SVG Coordinates).
-pp :: Point Double -> Text
-pp (Point x y) =
-  formatOrShow (FixedStyle 4) Nothing x
-    <> ","
+pp' :: Point Double -> ByteString
+pp' (Point x y) = encodeUtf8 $
+  formatOrShow (FixedStyle 4) Nothing x <> ","
     <> formatOrShow (FixedStyle 4) Nothing (bool (-y) y (y == zero))
 
 data PathCursor = PathCursor
@@ -250,12 +220,12 @@ stateCur0 :: PathCursor
 stateCur0 = PathCursor zero zero Nothing
 
 -- | Convert from an SVG d attribute text snippet to a [`PathData` `Double`]
-svgToPathData :: Text -> [PathData Double]
-svgToPathData = toPathDatas . either error id . parsePath
+svgToPathData :: ByteString -> [PathData Double]
+svgToPathData = either (const []) toPathDatas . parsePath
 
 -- | Convert from [`PathData` `Double`] to an SVG d path text snippet.
-pathDataToSvg :: [PathData Double] -> Text
-pathDataToSvg xs = Text.intercalate " " $ fmap toPathAbsolute xs
+pathDataToSvg :: [PathData Double] -> ByteString
+pathDataToSvg xs = intercalate " " $ fmap toPathAbsolute xs
 
 -- | Convert from a path command list to a PathA specification
 toPathDatas :: [PathCommand] -> [PathData Double]

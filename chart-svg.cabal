@@ -1,6 +1,6 @@
 cabal-version:   2.4
 name:            chart-svg
-version:         0.3.3
+version:         0.4
 synopsis:        Charting library targetting SVGs.
 description:
   This package provides a charting library targetting SVG as the rendered output.
@@ -44,11 +44,13 @@ library
     Chart.Bar
     Chart.Data
     Chart.Examples
+    Chart.FlatParse
     Chart.Hud
     Chart.Primitive
     Chart.Style
     Chart.Surface
     Chart.Svg
+    Chart.Xml
     Data.Colour
     Data.Path
     Data.Path.Parser
@@ -58,9 +60,12 @@ library
     , adjunctions         ^>=4.4
     , attoparsec          >=0.13.2 && <0.15
     , base                >=4.7    && <5
+    , bytestring ^>=0.11.3
     , Color               ^>=0.3
     , containers          ^>=0.6
     , cubicbezier         ^>=0.6
+    , directory
+    , flatparse
     , foldl               ^>=1.4
     , formatn             ^>=0.2
     , lucid               >=2.9 && <3
@@ -76,6 +81,9 @@ library
     , text                >=1.2 && <2.1
     , time                >=1.9 && <2
     , transformers        >=0.5 && <0.7
+    , these               ^>=1.1
+    , string-interpolate  ^>=0.3
+    , tree-diff
 
   default-language:   Haskell2010
   default-extensions: StrictData

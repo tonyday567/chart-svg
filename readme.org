@@ -4,6 +4,21 @@
 
 A charting library targetting SVG.
 
+
+* dev
+
+#+begin_src haskell :results output
+:set prompt "> "
+:set -XOverloadedLabels
+:set -XOverloadedStrings
+import Chart
+import Optics.Core
+#+end_src
+
+#+RESULTS:
+
+
+
 * Usage
 
 #+begin_src haskell :file other/usage.svg :results output graphics file :exports both
@@ -32,9 +47,33 @@ See the haddock documentation for a detailed overview and [[file:gallery.md][the
 
 [[file:other/banner.svg]]
 
+** 0.4
+
+0.4 is a plumbing release.
+
+*** Text ==> ByteString
+
+text is hardcoded as Text, which has biased design towards Text everywhere. 0.4 includes a move to bytestring with a few library changes:
+  - parsing with flatparse (replacing attoparsec). The ergonomics of flatparse is very nice to work with in a Haskell setting, especially with chainr, and easy but restricted template-haskell magic.
+  - quasi-quotation is via string-interpolate, (replacing neat-interpolation).
+
+*** lucid ==> Svg
+
+Printing SVG has moved internal to the library, replacing lucid (and blaze-svg under the hood).
+
+Charts now render to Svg, which can be thought of as a simple rose tree representation of a strict subset of XML, with SVG headers and trimmings. Svg is then rendered as a bytestring that is a guaranteed valid piece of SVG.
+
+The charts are formed from a very few svg tags and attributes: class, polyline, rect, point, d paths, ellipse, and then style as attributes and text as content.
+
+*** tree-diff
+
+In part, this has been done to introduce https://hackage.haskell.org/package/tree-diff into the machinery. Instead of sending entirely new *.svg's to a web browser, we will be able to send a diff of the raw SVG as a change to a chart. HUD elements becomes much more stable in this setup, and traffic over the websocket reduces by an order or so, resulting in a smoother rendering onscreen. In local tests, FPS can approach 90 or so when zooming on chart detail.
+
+** 0.3
+
 [[https://hackage.haskell.org/package/chart-svg][chart-svg-0.3]] is a major rewrite of a library I've had in the toolkit for a while. This has been a major refactoring and I'd like to share a few highlights.
 
-** Monomorphic primitives
+*** Monomorphic primitives
 
 Chart primitives boil down to a very short list. Charts consist of:
 
@@ -92,7 +131,7 @@ The new Chart sum type may not cover a useful primitive, or there may be ideas t
 
 ~ChartTree~ is in constrast to the prior usage of a ~[Chart]~ as the basic chart type, and fits in well with the notion of chart as svg, and thus xml tree. The rose-tree bundling and naming of chart components enables easy downstream manipulation with tools like reanimate and CSS.
 
-** Browser-centric
+*** Browser-centric
 
 #+attr_html: :width 400
 #+caption: A LineChart

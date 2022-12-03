@@ -21,7 +21,6 @@ import Chart.Data
 import Chart.Hud
 import Chart.Primitive
 import Chart.Style
-import Chart.Svg
 import Data.Bool
 import Data.Colour
 import Data.Foldable
@@ -32,6 +31,7 @@ import Data.Text (Text, pack)
 import GHC.Generics
 import Optics.Core
 import Prelude hiding (abs)
+import Chart.Xml
 
 -- $setup
 --
@@ -69,7 +69,7 @@ data BarOptions = BarOptions
 -- >>> emptyBar = barChart defaultBarOptions (BarData [] [] [])
 -- >>> foldOf (#charts % charts') emptyBar
 -- []
-barChart :: BarOptions -> BarData -> ChartSvg
+barChart :: BarOptions -> BarData -> ChartOptions
 barChart bo bd =
   mempty
     & set #hudOptions (barHudOptions bo bd)

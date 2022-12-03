@@ -37,7 +37,6 @@ module Chart.Style
     LineJoin (..),
     fromLineJoin,
     toLineJoin,
-    fromDashArray,
     Anchor (..),
     fromAnchor,
     toAnchor,
@@ -55,7 +54,8 @@ import Data.Maybe
 import Data.Path
 import Data.Path.Parser
 import Data.String
-import Data.Text (Text, pack)
+import Data.Text (Text)
+import Data.ByteString (ByteString)
 import qualified Data.Text as Text
 import GHC.Generics
 import Optics.Core
@@ -219,11 +219,11 @@ data GlyphShape
     TriangleGlyph (Point Double) (Point Double) (Point Double)
   | VLineGlyph
   | HLineGlyph
-  | PathGlyph Text ScaleBorder
+  | PathGlyph ByteString ScaleBorder
   deriving (Show, Eq, Generic)
 
 -- | textifier
-glyphText :: GlyphShape -> Text
+glyphText :: GlyphShape -> ByteString
 glyphText sh =
   case sh of
     CircleGlyph -> "Circle"
@@ -309,10 +309,6 @@ toLineJoin "miter" = LineJoinMiter
 toLineJoin "bevel" = LineJoinBevel
 toLineJoin "round" = LineJoinRound
 toLineJoin _ = LineJoinMiter
-
--- | Convert a dash representation from a list to text
-fromDashArray :: [Double] -> Text
-fromDashArray xs = Text.intercalate " " $ pack . show <$> xs
 
 -- | line style
 --

@@ -28,7 +28,7 @@ module Chart
     module Chart.Data,
     module Chart.Hud,
     module Chart.Style,
-    module Chart.Svg,
+    module Chart.Xml,
     module Chart.Bar,
     module Chart.Surface,
     module Data.Colour,
@@ -44,7 +44,7 @@ import Chart.Hud
 import Chart.Primitive
 import Chart.Style
 import Chart.Surface
-import Chart.Svg
+import Chart.Xml
 import Data.Colour
 import Data.FormatN
 import Data.Path

@@ -71,7 +71,7 @@ module Data.Colour
     rvRGB3,
     rvColour,
     paletteR,
-  )
+  showRGBbs)
 where
 
 import Chart.Data
@@ -95,6 +95,8 @@ import NumHask.Array.Fixed
 import Optics.Core
 import System.Random
 import System.Random.Stateful
+import Data.String.Interpolate
+import Data.ByteString ( ByteString )
 
 -- $setup
 --
@@ -143,6 +145,15 @@ showRGBA (Colour r' g' b' a') =
 showRGB :: Colour -> Text
 showRGB (Colour r' g' b' _) =
   [trimming|rgb($r, $g, $b)|]
+  where
+    r = percent (fixedSF (Just 0)) (Just 2) r'
+    g = percent (fixedSF (Just 0)) (Just 2) g'
+    b = percent (fixedSF (Just 0)) (Just 2) b'
+
+-- | CSS-style representation
+showRGBbs :: Colour -> ByteString
+showRGBbs (Colour r' g' b' _) =
+  [i|rgb(#{r}, #{g}, #{b})|]
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'
     g = percent (fixedSF (Just 0)) (Just 2) g'
@@ -217,13 +228,13 @@ toHex c =
     (ColorRGBA r g b _) = fromIntegral . toWord8 <$> color' c
 
 hex' :: Int -> Text
-hex' i
-  | i < 0 = "-" <> go (-i)
-  | otherwise = go i
+hex' n
+  | n < 0 = "-" <> go (-n)
+  | otherwise = go n
   where
-    go n
-      | n < 16 = hexDigit n
-      | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
+    go n'
+      | n' < 16 = hexDigit n'
+      | otherwise = go (n' `quot` 16) <> hexDigit (n' `rem` 16)
 
 hexDigit :: Int -> Text
 hexDigit n
@@ -231,7 +242,7 @@ hexDigit n
   | otherwise = Text.singleton $! toEnum (n + 87)
 
 i2d :: Int -> Char
-i2d i = chr (ord '0' + i)
+i2d x = chr (ord '0' + x)
 
 -- | Select a Colour from the palette
 --
@@ -596,12 +607,12 @@ mixLCHA x (LCHA l c h a) (LCHA l' c' h' a') = LCHA l'' c'' h'' a''
 mixes :: Double -> [Colour] -> Colour
 mixes _ [] = light
 mixes _ [c] = c
-mixes x cs = mix r (cs List.!! i) (cs List.!! (i + 1))
+mixes x cs = mix r (cs List.!! i') (cs List.!! (i' + 1))
   where
     l = length cs - 1
     x' = x * fromIntegral l
-    i = max 0 (min (floor x') (l - 1))
-    r = x' - fromIntegral i
+    i' = max 0 (min (floor x') (l - 1))
+    r = x' - fromIntegral i'
 
 -- * Colour manipulation
 

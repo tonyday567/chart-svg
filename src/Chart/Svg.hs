@@ -400,6 +400,10 @@ attsLine o =
     <> foldMap (\x -> [term "stroke-dasharray" (fromDashArray x)]) (o ^. #dasharray)
     <> foldMap (\x -> [term "stroke-dashoffset" (pack $ show x)]) (o ^. #dashoffset)
 
+-- | Convert a dash representation from a list to text
+fromDashArray :: [Double] -> Text
+fromDashArray xs = Text.intercalate " " $ pack . show <$> xs
+
 -- | PathStyle to Attributes
 attsPath :: PathStyle -> [Lucid.Attribute]
 attsPath o =
