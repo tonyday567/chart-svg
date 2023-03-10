@@ -11,7 +11,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Colour representations and combinations.
---
 module Data.Colour
   ( -- * Colour
     Colour,
@@ -105,7 +104,6 @@ import System.Random.Stateful
 -- >>> import Optics.Core
 
 -- | Colour type for the library, wrapping 'Color'.
---
 newtype Colour = Colour'
   { color' :: Color (Alpha RGB) Double
   }
@@ -114,7 +112,6 @@ newtype Colour = Colour'
 -- | Constructor pattern.
 --
 -- > Colour red green blue alpha
---
 pattern Colour :: Double -> Double -> Double -> Double -> Colour
 pattern Colour r g b a = Colour' (ColorRGBA r g b a)
 
@@ -219,7 +216,6 @@ toHex c =
   where
     (ColorRGBA r g b _) = fromIntegral . toWord8 <$> color' c
 
--- |
 hex' :: Int -> Text
 hex' i
   | i < 0 = "-" <> go (-i)
@@ -229,13 +225,11 @@ hex' i
       | n < 16 = hexDigit n
       | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
 
--- |
 hexDigit :: Int -> Text
 hexDigit n
   | n <= 9 = Text.singleton $! i2d n
   | otherwise = Text.singleton $! toEnum (n + 87)
 
--- |
 i2d :: Int -> Char
 i2d i = chr (ord '0' + i)
 
@@ -701,7 +695,7 @@ paletteR = go g0
     go g = let (x, g') = runStateGen g rvSensible in x : go g'
 
 -- | A random Colour generator that provides a (hopefully) pleasant colour not too light, dark, over-saturated or dull.
-rvSensible :: StatefulGen g m => g -> m Colour
+rvSensible :: (StatefulGen g m) => g -> m Colour
 rvSensible gen = do
   l <- uniformRM (0.3, 0.75) gen
   c <- uniformRM (0.05, 0.24) gen

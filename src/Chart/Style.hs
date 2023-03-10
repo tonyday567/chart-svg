@@ -5,7 +5,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Stylistic or syntactical options for chart elements.
---
 module Chart.Style
   ( -- * RectStyle
     RectStyle (..),

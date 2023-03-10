@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
@@ -111,14 +110,12 @@ scalePath x (ArcP i p) = ArcP i (fmap (x *) p)
 projectPaths :: Rect Double -> Rect Double -> [PathData Double] -> [PathData Double]
 projectPaths new old ps =
   flip evalState zero $
-    sequence $
-      ( \p -> do
+    mapM ( \p -> do
           x <- get
           let d = projectPath new old x p
           put (pointPath d)
           pure d
-      )
-        <$> ps
+      ) ps
 
 -- | Project a PathData from one Rect (XY plave) to a new one.
 projectPath ::

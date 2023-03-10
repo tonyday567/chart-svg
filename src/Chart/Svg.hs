@@ -7,7 +7,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Conversion from a chart to SVG.
---
 module Chart.Svg
   ( -- * ChartSvg
     ChartSvg (..),
@@ -113,7 +112,7 @@ instance Monoid ChartSvg where
 -- * rendering
 
 -- | @svg@ element + svg 2 attributes
-svg2Tag :: Term [Attribute] (s -> t) => s -> t
+svg2Tag :: (Term [Attribute] (s -> t)) => s -> t
 svg2Tag m =
   svg_
     [ makeAttribute "xmlns" "http://www.w3.org/2000/svg",

@@ -86,12 +86,12 @@ barHudOptions :: BarOptions -> BarData -> HudOptions
 barHudOptions bo bd =
   mempty
     & #axes
-    .~ [ (1, axis1),
-         (1, axis2)
-       ]
+      .~ [ (1, axis1),
+           (1, axis2)
+         ]
     & #legends
-    .~ [ (10, o & #content .~ barLegendContent bo bd)
-       ]
+      .~ [ (10, o & #content .~ barLegendContent bo bd)
+         ]
   where
     o = view #barLegendOptions bo
     axis1 = bool id flipAxis (barOrientation bo == Vert) (defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
@@ -117,7 +117,6 @@ defaultBarOptions =
     ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Two dimensional data, maybe with row and column labels.
---
 data BarData = BarData
   { barData :: [[Double]],
     barRowLabels :: [Text],
@@ -171,7 +170,7 @@ barDataLowerUpper :: Stacked -> [[Double]] -> [[(Double, Double)]]
 barDataLowerUpper stacked bs =
   case stacked of
     NonStacked -> fmap (fmap (0,)) bs
-    Stacked -> drop 1 $ scanl' (\acc xs -> zip (fmap snd acc) xs) (repeat (0,0)) (accRows bs)
+    Stacked -> drop 1 $ scanl' (\acc xs -> zip (fmap snd acc) xs) (repeat (0, 0)) (accRows bs)
 
 -- | Calculate the Rect range of a bar data set.
 --
@@ -219,11 +218,11 @@ barTicks :: BarData -> TickStyle
 barTicks bd
   | null (bd ^. #barData) = TickNone
   | null (bd ^. #barRowLabels) =
-    TickLabels $ pack . show <$> [0 .. (maxRows (bd ^. #barData) - 1)]
+      TickLabels $ pack . show <$> [0 .. (maxRows (bd ^. #barData) - 1)]
   | otherwise =
-    TickLabels $
-      take (maxRows (bd ^. #barData)) $
-        (bd ^. #barRowLabels) <> repeat ""
+      TickLabels $
+        take (maxRows (bd ^. #barData)) $
+          (bd ^. #barRowLabels) <> repeat ""
 
 -- | A bar legend
 barLegendContent :: BarOptions -> BarData -> [(Text, Chart)]
@@ -231,9 +230,9 @@ barLegendContent bo bd
   | null (bd ^. #barData) = []
   | null (bd ^. #barColumnLabels) = []
   | otherwise =
-    zip
-      (view #barColumnLabels bd <> repeat "")
-      ((\s -> RectChart s [one]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
+      zip
+        (view #barColumnLabels bd <> repeat "")
+        ((\s -> RectChart s [one]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
 
 barDataTP :: Stacked -> FormatN -> Double -> Double -> [[Double]] -> [[(Text, Double)]]
 barDataTP stacked fn d negd bs =
