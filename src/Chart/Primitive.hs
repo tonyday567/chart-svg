@@ -9,7 +9,6 @@
 -- | Base 'Chart' and 'ChartTree' types and support
 module Chart.Primitive
   ( -- * Charts
-
     Chart (..),
     ChartTree (..),
     tree',
@@ -26,7 +25,6 @@ module Chart.Primitive
     ChartAspect (..),
 
     -- * Boxes
-
     -- $boxes
     box,
     sbox,
@@ -52,7 +50,8 @@ module Chart.Primitive
     rectangularize,
     glyphize,
     overText,
-  renamed)
+    renamed,
+  )
 where
 
 import Chart.Data
@@ -117,7 +116,7 @@ newtype ChartTree = ChartTree {tree :: Tree (Maybe Text, [Chart])} deriving (Eq,
 -- | Apply a filter to ChartTree
 filterChartTree :: (Chart -> Bool) -> ChartTree -> ChartTree
 filterChartTree p (ChartTree (Node (a, cs) xs)) =
-  ChartTree (Node (a, catMaybes (rem' <$> cs)) (tree . filterChartTree p . ChartTree <$> xs))
+  ChartTree (Node (a, mapMaybe rem' cs) (tree . filterChartTree p . ChartTree <$> xs))
   where
     rem' x = bool Nothing (Just x) (p x)
 

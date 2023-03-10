@@ -8,7 +8,6 @@
 -- | A hud stands for <https://en.wikipedia.org/wiki/Head-up_display head-up display>, and is a collective noun used to name chart elements that assist in data interpretation or otherwise annotate and decorate data.
 --
 -- This includes axes, titles, borders, frames, background canvaii, tick marks and tick value labels.
---
 module Chart.Hud
   ( -- * Hud
     Hud (..),
@@ -586,7 +585,6 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 --
 -- >>> defaultLegendOptions
 -- LegendOptions {size = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = TextStyle {size = 0.18, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.05 0.05 0.05 1.00, color = Colour 0.05 0.05 0.05 0.00}), place = PlaceRight, overallScale = 0.25, content = []}
---
 data LegendOptions = LegendOptions
   { size :: Double,
     buffer :: Double,
@@ -709,9 +707,9 @@ title_ t hb =
   where
     style'
       | t ^. #anchor == AnchorStart =
-        #anchor .~ AnchorStart $ t ^. #style
+          #anchor .~ AnchorStart $ t ^. #style
       | t ^. #anchor == AnchorEnd =
-        #anchor .~ AnchorEnd $ t ^. #style
+          #anchor .~ AnchorEnd $ t ^. #style
       | otherwise = t ^. #style
     rot' = fromMaybe 0 (t ^. #style % #rotation)
     rot
@@ -734,22 +732,22 @@ alignPosTitle :: Title -> HudBox -> Point Double
 alignPosTitle t (Rect x z y w)
   | t ^. #anchor == AnchorStart
       && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
-    Point ((x - z) / 2.0) 0.0
+      Point ((x - z) / 2.0) 0.0
   | t ^. #anchor == AnchorStart
       && t ^. #place == PlaceLeft =
-    Point 0.0 ((y - w) / 2.0)
+      Point 0.0 ((y - w) / 2.0)
   | t ^. #anchor == AnchorStart
       && t ^. #place == PlaceRight =
-    Point 0.0 ((y - w) / 2.0)
+      Point 0.0 ((y - w) / 2.0)
   | t ^. #anchor == AnchorEnd
       && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
-    Point ((-x + z) / 2.0) 0.0
+      Point ((-x + z) / 2.0) 0.0
   | t ^. #anchor == AnchorEnd
       && t ^. #place == PlaceLeft =
-    Point 0.0 ((-y + w) / 2.0)
+      Point 0.0 ((-y + w) / 2.0)
   | t ^. #anchor == AnchorEnd
       && t ^. #place == PlaceRight =
-    Point 0.0 ((-y + w) / 2.0)
+      Point 0.0 ((-y + w) / 2.0)
   | otherwise = Point 0.0 0.0
 
 -- | title append transformation.
@@ -911,23 +909,23 @@ adjustTicks ::
   Ticks
 adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
   | pl == PlaceBottom || pl == PlaceTop =
-    if ad
-      then
-        ( case adjustSizeX > 1 of
-            True ->
-              ( case pl of
-                  PlaceBottom -> #ttick % _Just % _1 % #anchor .~ AnchorEnd
-                  PlaceTop -> #ttick % _Just % _1 % #anchor .~ AnchorStart
-                  _ -> #ttick % _Just % _1 % #anchor .~ AnchorEnd
-              )
-                . (#ttick % _Just % _1 % #size %~ (/ adjustSizeA))
-                $ (#ttick % _Just % _1 % #rotation ?~ pi / 4) t
-            False -> (#ttick % _Just % _1 % #size %~ (/ adjustSizeA)) t
-        )
-      else t & #ttick % _Just % _1 % #size %~ (/ adjustSizeX)
+      if ad
+        then
+          ( case adjustSizeX > 1 of
+              True ->
+                ( case pl of
+                    PlaceBottom -> #ttick % _Just % _1 % #anchor .~ AnchorEnd
+                    PlaceTop -> #ttick % _Just % _1 % #anchor .~ AnchorStart
+                    _ -> #ttick % _Just % _1 % #anchor .~ AnchorEnd
+                )
+                  . (#ttick % _Just % _1 % #size %~ (/ adjustSizeA))
+                  $ (#ttick % _Just % _1 % #rotation ?~ pi / 4) t
+              False -> (#ttick % _Just % _1 % #size %~ (/ adjustSizeA)) t
+          )
+        else t & #ttick % _Just % _1 % #size %~ (/ adjustSizeX)
   | otherwise -- pl `elem` [PlaceLeft, PlaceRight]
     =
-    (#ttick % _Just % _1 % #size %~ (/ adjustSizeY)) t
+      (#ttick % _Just % _1 % #size %~ (/ adjustSizeY)) t
   where
     max' [] = 1
     max' xs = maximum xs

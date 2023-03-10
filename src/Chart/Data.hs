@@ -7,7 +7,6 @@
 -- Whilst the library makes use of <https://hackage.haskell.org/package/numhask numhask>, it does not re-export, to avoid clashes with Prelude, with the exception of 'zero', 'one', 'angle', 'norm' & 'abs'.
 --
 -- 'Rect' and 'Point', from <https://hackage.haskell.org/package/numhask-space numhask-space>, make up the base elements of many chart primitives, and all of numhask-space is re-exported.
---
 module Chart.Data
   ( -- * Data Primitives
     Rect (..),
@@ -18,7 +17,9 @@ module Chart.Data
     addp,
 
     -- * NumHask Exports
+
     --
+
     -- | Note that (+) and (*) from numhask are not actually re-exported.
     Multiplicative (one),
     Additive (zero),

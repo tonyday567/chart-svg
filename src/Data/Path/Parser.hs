@@ -24,7 +24,7 @@ import qualified Data.Attoparsec.Text as A
 import Data.Either
 import Data.FormatN
 import Data.Functor
-import Data.Path ( PathData(..), ArcInfo(ArcInfo) )
+import Data.Path (ArcInfo (ArcInfo), PathData (..))
 import Data.Scientific (toRealFloat)
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
@@ -49,7 +49,6 @@ import Optics.Core hiding ((<|))
 -- >>> let outerseg1 = "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"
 -- >>> parsePath outerseg1
 -- Right [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
---
 parsePath :: Text -> Either String [PathCommand]
 parsePath = A.parseOnly pathParser
 
@@ -115,7 +114,8 @@ command =
     <|> EndPath <$ A.string "z" <* commaWsp
   where
     curveToArgs =
-      (,,) <$> (point <* commaWsp)
+      (,,)
+        <$> (point <* commaWsp)
         <*> (point <* commaWsp)
         <*> point
     manyComma a = fromList <$> a `A.sepBy1` commaWsp
@@ -123,7 +123,8 @@ command =
     numComma = num <* commaWsp
     flagComma = flag <* commaWsp
     ellipticalArgs =
-      (,,,,,) <$> numComma
+      (,,,,,)
+        <$> numComma
         <*> numComma
         <*> numComma
         <*> flagComma
@@ -231,7 +232,8 @@ toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
 -- | Render a point (including conversion to SVG Coordinates).
 pp :: Point Double -> Text
 pp (Point x y) =
-  formatOrShow (FixedStyle 4) Nothing x <> ","
+  formatOrShow (FixedStyle 4) Nothing x
+    <> ","
     <> formatOrShow (FixedStyle 4) Nothing (bool (-y) y (y == zero))
 
 data PathCursor = PathCursor
@@ -257,7 +259,7 @@ pathDataToSvg xs = Text.intercalate " " $ fmap toPathAbsolute xs
 
 -- | Convert from a path command list to a PathA specification
 toPathDatas :: [PathCommand] -> [PathData Double]
-toPathDatas xs = fmap svgCoords $ mconcat $ flip evalState stateCur0 $ sequence $ toPathData <$> xs
+toPathDatas xs = fmap svgCoords $ mconcat $ flip evalState stateCur0 $ mapM toPathData xs
 
 -- | Convert relative points to absolute points
 relToAbs :: (Additive a) => a -> [a] -> [a]
@@ -292,7 +294,7 @@ curveTo xs = do
   pure $ (\(c1, c2, x2) -> CubicP c1 c2 x2) <$> xs
 
 -- | Convert relative points to absolute points
-relToAbs3 :: Additive a => a -> [(a, a, a)] -> [(a, a, a)]
+relToAbs3 :: (Additive a) => a -> [(a, a, a)] -> [(a, a, a)]
 relToAbs3 p xs = xs'
   where
     x1 = (\(x, _, _) -> x) <$> xs
@@ -318,10 +320,10 @@ smoothCurveToStep (c2, x2) = do
 
 smoothCurveTo :: [(Point Double, Point Double)] -> State PathCursor [PathData Double]
 smoothCurveTo xs =
-  sequence (smoothCurveToStep <$> xs)
+  mapM smoothCurveToStep xs
 
 -- | Convert relative points to absolute points
-relToAbs2 :: Additive a => a -> [(a, a)] -> [(a, a)]
+relToAbs2 :: (Additive a) => a -> [(a, a)] -> [(a, a)]
 relToAbs2 p xs = xs'
   where
     x1 = fst <$> xs
@@ -346,7 +348,7 @@ smoothQuadStep x2 = do
 
 smoothQuad :: [Point Double] -> State PathCursor [PathData Double]
 smoothQuad xs =
-  sequence (smoothQuadStep <$> xs)
+  mapM smoothQuadStep xs
 
 arcTo :: [(Double, Double, Double, Bool, Bool, Point Double)] -> State PathCursor [PathData Double]
 arcTo xs = do
@@ -357,7 +359,7 @@ fromPathEllipticalArc :: (a, a, a, Bool, Bool, Point a) -> PathData a
 fromPathEllipticalArc (x, y, r, l, s, p) = ArcP (ArcInfo (Point x y) r l s) p
 
 -- | Convert relative points to absolute points
-relToAbsArc :: Additive a => Point a -> [(a, a, a, Bool, Bool, Point a)] -> [(a, a, a, Bool, Bool, Point a)]
+relToAbsArc :: (Additive a) => Point a -> [(a, a, a, Bool, Bool, Point a)] -> [(a, a, a, Bool, Bool, Point a)]
 relToAbsArc p xs = xs'
   where
     ps = (\(_, _, _, _, _, pt) -> pt) <$> xs

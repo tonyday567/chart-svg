@@ -6,7 +6,6 @@
 -- | Surface chart combinators.
 --
 -- A common chart is to present a set of rectangles on the XY plane with colour representing values of the underlying data. This library uses the term /surface/ chart but it is often referred to as a heatmap.
---
 module Chart.Surface
   ( SurfaceData (..),
     SurfaceOptions (..),
@@ -178,7 +177,7 @@ surfaceLegendChart dataRange l =
     pchart
       | l ^. #sloLegendOptions % #place == PlaceBottom
           || l ^. #sloLegendOptions % #place == PlaceTop =
-        vertGlyph
+          vertGlyph
       | otherwise = horiGlyph
     t = TextChart (l ^. #sloLegendOptions % #textStyle & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
     hs = vert (l ^. #sloLegendOptions % #vgap) [a, unnamed [t]]

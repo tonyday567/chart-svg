@@ -6,8 +6,7 @@
 
 -- | Examples of chart construction.
 module Chart.Examples
-  (
-    -- * Unit & Hud
+  ( -- * Unit & Hud
     unitExample,
     hudOptionsExample,
 
@@ -629,10 +628,12 @@ dateExample =
   mempty
     & #charts .~ blank (Rect 0 1 0 1)
     & #hudOptions
-      .~ ( mempty & #chartAspect .~ FixedAspect 1.5 & #axes
-             .~ [ (1, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
-                  (1, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
-                ]
+      .~ ( mempty
+             & #chartAspect .~ FixedAspect 1.5
+             & #axes
+               .~ [ (1, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
+                    (1, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
+                  ]
          )
   where
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
@@ -663,16 +664,16 @@ gradient :: Maybe Double -> Double -> Double -> Int -> LCHA -> LCHA -> ChartSvg
 gradient marker h fa grain ok0 ok1 =
   mempty
     & #svgOptions % #svgHeight
-    .~ h
+      .~ h
     & #svgOptions % #cssOptions % #shapeRendering
-    .~ UseCssCrisp
+      .~ UseCssCrisp
     & #hudOptions
-    .~ ( mempty
-           & #chartAspect .~ FixedAspect fa
-           & #frames .~ [(20, FrameOptions (Just (border 0.004 white)) 0.1)]
-       )
+      .~ ( mempty
+             & #chartAspect .~ FixedAspect fa
+             & #frames .~ [(20, FrameOptions (Just (border 0.004 white)) 0.1)]
+         )
     & #charts
-    .~ named "gradient" (gradientChart_ grain ok0 ok1) <> strip
+      .~ named "gradient" (gradientChart_ grain ok0 ok1) <> strip
   where
     strip = case marker of
       Nothing -> mempty
@@ -697,22 +698,22 @@ dotMap :: Double -> Int -> Double -> Double -> [Colour] -> ChartSvg
 dotMap s grain l maxchroma cs =
   mempty
     & #hudOptions
-    .~ defaultHudOptions
+      .~ defaultHudOptions
     & #charts
-    .~ named "dots" (dot_ <$> cs)
-    <> named
-      "wheel"
-      ( ( \(p, c) ->
-            GlyphChart
-              ( defaultGlyphStyle
-                  & #size .~ s
-                  & #color .~ c
-                  & #borderSize .~ 0
-              )
-              [p]
-        )
-          <$> filter (validColour . snd) (wheelPoints grain l maxchroma)
-      )
+      .~ named "dots" (dot_ <$> cs)
+        <> named
+          "wheel"
+          ( ( \(p, c) ->
+                GlyphChart
+                  ( defaultGlyphStyle
+                      & #size .~ s
+                      & #color .~ c
+                      & #borderSize .~ 0
+                  )
+                  [p]
+            )
+              <$> filter (validColour . snd) (wheelPoints grain l maxchroma)
+          )
 
 dot_ :: Colour -> Chart
 dot_ x = (\(p, c) -> GlyphChart (defaultGlyphStyle & #size .~ 0.08 & #color .~ c & #borderColor .~ Colour 0.5 0.5 0.5 1 & #shape .~ CircleGlyph) [p]) (colour2Point x, x)
@@ -765,20 +766,18 @@ pathChartSvg =
 -- | Run this to refresh example SVG's.
 writeAllExamples :: IO ()
 writeAllExamples = do
-  sequence_ $ uncurry writeChartSvg <$> pathChartSvg
+  mapM_ (uncurry writeChartSvg) pathChartSvg
   putStrLn "ok"
 
 -- | Version of charts with a dark-friendly hud
 writeAllExamplesDark :: IO ()
 writeAllExamplesDark = do
-  sequence_ $
-    uncurry writeChartSvg
+  mapM_ (uncurry writeChartSvg
       . bimap
         ((<> "d.svg") . reverse . drop 4 . reverse)
         ( \x ->
             x
               & #hudOptions %~ colourHudOptions (rgb light)
               & #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
-        )
-      <$> pathChartSvg
+        )) pathChartSvg
   putStrLn "dark version, ok"
