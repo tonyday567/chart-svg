@@ -47,6 +47,7 @@ import Lucid.Base
 import NeatInterpolation
 import Optics.Core
 import Prelude
+import FlatParse.Basic
 
 -- $setup
 --
@@ -332,7 +333,7 @@ svgShape_ VLineGlyph s (Point x y) =
 svgShape_ HLineGlyph s (Point x y) =
   terms "polyline" [term "points" (pack $ show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]
 svgShape_ (PathGlyph path _) s p =
-  terms "path" [term "d" path, term "transform" (toTranslateText p <> " " <> toScaleText s)]
+  terms "path" [term "d" (pack $ utf8ToStr path), term "transform" (toTranslateText p <> " " <> toScaleText s)]
 
 -- | GlyphStyle to svg Tree
 svgGlyph_ :: GlyphStyle -> Point Double -> Lucid.Html ()
@@ -343,7 +344,7 @@ svgGlyph_ s p =
 -- | Path svg
 svgPath_ :: [PathData Double] -> Lucid.Html ()
 svgPath_ ps =
-  terms "path" [term "d" (pathDataToSvg ps)]
+  terms "path" [term "d" (pack $ utf8ToStr $ pathDataToSvg ps)]
 
 -- | RectStyle to Attributes
 attsRect :: RectStyle -> [Lucid.Attribute]

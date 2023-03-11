@@ -37,7 +37,7 @@ import Data.Bool
 import Data.ByteString hiding (empty, head, length, map, zip, zipWith)
 import Data.Char hiding (isDigit)
 import Data.List.NonEmpty
-import FlatParse.Basic hiding (cut, lines)
+import FlatParse.Basic hiding (cut)
 import GHC.Generics
 import NumHask.Space
 import Prelude hiding (replicate)
@@ -65,7 +65,7 @@ ws = $(switch [| case _ of
   _    -> pure () |])
 
 digit :: Parser e Int
-digit = (\c -> ord c - ord '0') <$> satisfyASCII isDigit
+digit = (\c -> ord c - ord '0') <$> satisfyAscii isDigit
 
 -- | (unsigned) Int parser
 int :: Parser e Int
@@ -125,7 +125,7 @@ quote :: Parser e ()
 quote = $(char '"')
 
 quoted :: Parser e ByteString
-quoted = quote *> byteStringOf (some_ (satisfy_ (/= '"'))) <* quote
+quoted = quote *> byteStringOf (skipSome (skipSatisfy (/= '"'))) <* quote
 
 comma :: Parser e ()
 comma = $(char ',')

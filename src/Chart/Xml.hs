@@ -121,9 +121,9 @@ instance (Num a, Show a) => ToSvg (Rect a) where
         ]
 
 instance ToSvg Chart where
-  svg (RectChart s xs) = Just $ Svg "g" (attsRect s) (catMaybes (svg <$> xs)) mempty
+  svg (RectChart s xs) = Just $ Svg "g" (attsRect s) (mapMaybe svg xs) mempty
   svg (TextChart s xs) = Just $ Svg "g" (attsText s) (uncurry (svgText s) <$> xs) mempty
-  svg (GlyphChart s xs) = Just $ Svg "g" (attsGlyph s) (catMaybes (svgGlyph s <$> xs)) mempty
+  svg (GlyphChart s xs) = Just $ Svg "g" (attsGlyph s) (mapMaybe (svgGlyph s) xs) mempty
   svg (PathChart s xs) = Just $ Svg "g" (attsPath s) [svgPath xs] mempty
   svg (LineChart s xs) = Just $ Svg "g" (attsLine s) (svgLine xs) mempty
   svg (BlankChart _) = Nothing
@@ -131,7 +131,7 @@ instance ToSvg Chart where
 -- | Path svg
 svgLine :: [[Point Double]] -> [Svg]
 svgLine lss =
-  [Svg "polyline" (foldMap inject $ ("points",) . toPointsText <$> lss) mempty mempty]
+  [Svg "polyline" (foldMap (inject . ("points",) . toPointsText) lss) mempty mempty]
 
 toPointsText :: [Point Double] -> ByteString
 toPointsText xs = intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs
@@ -292,16 +292,16 @@ blank_ = $(char ' ')
 
 -- | word
 word :: Parser e ByteString
-word = byteStringOf (some_ (satisfy_ (\x -> x /= ' ' && x /= '>' && x /= '\\')))
+word = byteStringOf (skipSome (skipSatisfy (\x -> x /= ' ' && x /= '>' && x /= '\\')))
 
 key :: Parser e ByteString
-key = byteStringOf (some_ (satisfy_ (\x -> x /= '=' && x /= '>')))
+key = byteStringOf (skipSome (skipSatisfy (\x -> x /= '=' && x /= '>')))
 
 quote :: Parser e ()
 quote = $(char '"')
 
 quoted :: Parser e ByteString
-quoted = quote *> byteStringOf (some_ (satisfy_ (/= '"'))) <* quote
+quoted = quote *> byteStringOf (skipSome (skipSatisfy (/= '"'))) <* quote
 
 equals :: Parser e ()
 equals = $(char '=')
@@ -341,10 +341,10 @@ suffixTag = $(switch [| case _ of
   |])
 
 closertag :: Parser e ()
-closertag = opener *> slash *> many_ (satisfy_ (/= '>')) <* closer
+closertag = opener *> slash *> skipMany (skipSatisfy (/= '>')) <* closer
 
 notLT :: Parser e ByteString
-notLT = byteStringOf (many_ (satisfy_ (/= '<'))) <|> pure mempty
+notLT = byteStringOf (skipMany (skipSatisfy (/= '<'))) <|> pure mempty
 
 -- | Parse a Label
 -- >>> runParser label "<a a=\"a\" a=\"a\"><b b=\"b\">b content</b>content</a>"
