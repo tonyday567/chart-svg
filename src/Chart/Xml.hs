@@ -10,17 +10,25 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 {-# LANGUAGE TupleSections #-}
 {-# HLINT ignore "Use foldMap" #-}
+{-# LANGUAGE EmptyDataDeriving #-}
+{-# HLINT ignore "Use isAsciiLower" #-}
+{-# HLINT ignore "Use isAsciiUpper" #-}
+{-# LANGUAGE MagicHash #-}
+{-# HLINT ignore "Use isDigit" #-}
+{-# HLINT ignore "Use void" #-}
+{-# HLINT ignore "Use <$" #-}
+{-# HLINT ignore "Use infix" #-}
+-- https://www.w3.org/TR/SVG2/text.html#TextElement
 
 module Chart.Xml where
 
-import Data.ByteString ( intercalate, ByteString, readFile, writeFile )
+import Prelude
+import Data.ByteString ( intercalate, ByteString, writeFile )
 import GHC.Generics
-import FlatParse.Basic
 import Data.String.Interpolate
-import System.Directory
-import Chart.Data
+import Chart.Data hiding (Element)
 import Data.ByteString.Char8 (pack, unpack)
-import Optics.Core
+import Optics.Core hiding (element)
 import Data.Maybe
 import Data.Text.Encoding (encodeUtf8)
 -- import Data.Text hiding (unpack, pack, filter, intercalate, empty)
@@ -36,6 +44,14 @@ import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 import Data.Bool
 import Data.Bifunctor
+-- import GHC.Exts
+
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
 
 data Attribute =
   Class |
@@ -70,6 +86,23 @@ eject Class = "class"
 eject ID = "id"
 eject (Attribute a) = a
 
+
+-- https://jwatt.org/svg/authoring/
+
+-- xml-conduit sees this as:
+-- Attributes as Map Text Text
+-- forest as [Node] with Node as
+-- NodeElement
+-- NodeInstruction
+-- NodeContent
+-- NodeComment
+--
+-- xml gives:
+-- name
+-- [Att]
+-- [Content] (Element, CData, CRef String)
+-- Maybe Line (Int)
+--
 data Svg = Svg {
   name :: ByteString,
   attributes :: Attributes,
@@ -277,122 +310,6 @@ svgShape_ (PathGlyph path _) s p =
 getAtt :: (Read a) => ByteString -> [(ByteString, ByteString)] -> Maybe a
 getAtt n as = listToMaybe $ fmap (read . unpack . snd) $ filter ((==n) . fst) as
 
--- * parsing
--- | opening tag char
-opener :: Parser e ()
-opener = $(char '<')
-
--- | closing tag char
-closer :: Parser e ()
-closer = $(char '>')
-
--- | key separator
-blank_ :: Parser e ()
-blank_ = $(char ' ')
-
--- | word
-word :: Parser e ByteString
-word = byteStringOf (skipSome (skipSatisfy (\x -> x /= ' ' && x /= '>' && x /= '\\')))
-
-key :: Parser e ByteString
-key = byteStringOf (skipSome (skipSatisfy (\x -> x /= '=' && x /= '>')))
-
-quote :: Parser e ()
-quote = $(char '"')
-
-quoted :: Parser e ByteString
-quoted = quote *> byteStringOf (skipSome (skipSatisfy (/= '"'))) <* quote
-
-equals :: Parser e ()
-equals = $(char '=')
-
-attP :: Parser e (ByteString, ByteString)
-attP = (,) <$> (key <* equals) <*> quoted
-
-ws :: Parser e ()
-ws = $(switch [| case _ of
-  " "  -> ws
-  "\n" -> ws
-  "\t" -> ws
-  "\r" -> ws
-  _    -> pure () |])
-
-attsP :: Parser e Attributes
-attsP = mconcat . fmap inject <$> many (attP <* ws)
-
-openertag :: Parser e (ByteString, Attributes)
-openertag = (,) <$> (opener *> (word <* ws)) <*> (attsP <* closer)
-
-slash :: Parser e ()
-slash = $(char '/')
-
-tagP :: Parser e (ByteString, Attributes, TagStatus)
-tagP = $(switch [| case _ of
-  "</"  -> pure (mempty, mempty, TagClosed)
-  "<" -> (,,) <$> (word <* ws) <*> (attsP <* ws) <*> suffixTag
-  |])
-
-data TagStatus = TagOpen | TagClosed deriving (Eq, Show, Generic)
-
-suffixTag :: Parser e TagStatus
-suffixTag = $(switch [| case _ of
-  "/>"  -> pure TagClosed
-  ">" -> pure TagOpen
-  |])
-
-closertag :: Parser e ()
-closertag = opener *> slash *> skipMany (skipSatisfy (/= '>')) <* closer
-
-notLT :: Parser e ByteString
-notLT = byteStringOf (skipMany (skipSatisfy (/= '<'))) <|> pure mempty
-
--- | Parse a Label
--- >>> runParser label "<a a=\"a\" a=\"a\"><b b=\"b\">b content</b>content</a>"
--- OK (Label {name = "a", attributes = [("a","a"),("a","a")], content = "content", labels = [Label {name = "b", attributes = [("b","b")], content = "b content", labels = []}]}) ""
---
-svgParser :: Parser e Svg
-svgParser = do
-  (n, as, st) <- tagP
-  case st of
-    TagOpen -> do
-      xs <- many svgParser
-      c <- notLT
-      _ <- closertag
-      pure (Svg n as xs c)
-    TagClosed -> pure (Svg n as mempty mempty)
-
-svgPrinter :: Svg -> ByteString
-svgPrinter (Svg n as xs c) =
-  bool [i|<#{spaced}>#{ls}#{c}</#{n}>|] [i|<#{spaced}/>|] (xs==mempty && c == mempty)
-    where
-      spaced = intercalate " " ([n] <> (uncurry attPrint <$> Map.toList (atts as)))
-      ls = mconcat (svgPrinter <$> xs)
-
-attPrint :: Attribute -> ByteString -> ByteString
-attPrint a b = [i|#{eject a}="#{b}"|]
-
-isoSvgParse :: ByteString -> Bool
-isoSvgParse x = case runParser svgParser x of
-  OK l "" -> svgPrinter l == x
-  _ -> False
-
--- >>> iso x1
--- True
---
--- >>> isoRose x1
--- True
-x1 :: ByteString
-x1 = "<svg><style>style content</style><g class=\"group\"></g><g class=\"group>\"></g></svg>"
-
--- >>> x2 <- Data.ByteString.readFile "other/unit.svg"
--- True
-
-
--- >>> xOther
--- True
-xOther :: IO Bool
-xOther = fmap and $ (mapM (fmap isoSvgParse . (Data.ByteString.readFile . ("other/"<>))) . filter (/= ".DS_Store")) =<< listDirectory "other"
-
 -- | @svg@ element + svg 2 attributes
 header :: Double -> Rect Double -> [Svg] -> Svg
 header svgheight viewbox content' =
@@ -519,21 +436,27 @@ data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorSc
 defaultCssOptions :: CssOptions
 defaultCssOptions = CssOptions NoShapeRendering PreferHud mempty
 
-renderToSvgWith :: ChartOptions -> Svg
-renderToSvgWith co = header (view (#svgOptions % #svgHeight) co) viewbox (maybeToList $ svg (addHud (view #hudOptions co) cs))
+renderToSvg :: ChartOptions -> Svg
+renderToSvg co = header (view (#svgOptions % #svgHeight) co) viewbox (maybeToList $ svg (addHud (view #hudOptions co) cs))
   where
     viewbox = singletonGuard (view styleBox' cs)
     cs = view #charts co
 
-renderToSvg :: ChartTree -> Svg
-renderToSvg cs = renderToSvgWith (ChartOptions defaultSvgOptions defaultHudOptions cs)
+chartTreeToSvg :: ChartTree -> Svg
+chartTreeToSvg cs = renderToSvg (ChartOptions defaultSvgOptions mempty cs)
 
-renderToByteStringWith :: ChartOptions -> ByteString
-renderToByteStringWith = svgPrinter . renderToSvgWith
-
-renderToByteString :: ChartTree -> ByteString
+renderToByteString :: ChartOptions -> ByteString
 renderToByteString = svgPrinter . renderToSvg
 
+svgPrinter :: Svg -> ByteString
+svgPrinter (Svg n as xs c) =
+  bool [i|<#{spaced}>#{ls}#{c}</#{n}>|] [i|<#{spaced}/>|] (xs==mempty && c == mempty)
+    where
+      spaced = intercalate " " ([n] <> (uncurry attPrint <$> Map.toList (atts as)))
+      ls = mconcat (svgPrinter <$> xs)
+
+attPrint :: Attribute -> ByteString -> ByteString
+attPrint a b = [i|#{eject a}="#{b}"|]
 data ChartOptions = ChartOptions {
   svgOptions :: SvgOptions,
   hudOptions :: HudOptions,
@@ -555,7 +478,8 @@ instance ToSvg ChartTree where
       svgs = mconcat (maybeToList . svg . ChartTree <$> xs)
 
 instance ToSvg ChartOptions where
-  svg = Just . renderToSvgWith
+  svg = Just . renderToSvg
 
 writeChartOptions :: FilePath -> ChartOptions -> IO ()
-writeChartOptions fp co = Data.ByteString.writeFile fp (renderToByteStringWith co)
+writeChartOptions fp co = Data.ByteString.writeFile fp (renderToByteString co)
+

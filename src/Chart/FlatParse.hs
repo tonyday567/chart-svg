@@ -43,7 +43,7 @@ import NumHask.Space
 import Prelude hiding (replicate)
 
 -- $setup
--- >>> import DotParse
+-- >>> import Chart.FlatParse
 -- >>> import FlatParse.Basic
 
 -- | run a Parser, erroring on Fail or Err

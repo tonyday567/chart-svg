@@ -14,8 +14,8 @@ description:
   >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
   >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
   >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
-  >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
-  >>> writeChartSvg "other/usage.svg" lineExample
+  >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+  >>> writeChartOptions "other/usage.svg" lineExample
   .
   ![usage example](docs/other/usage.svg)
   .
@@ -51,6 +51,7 @@ library
     Chart.Surface
     Chart.Svg
     Chart.Xml
+    Chart.Xml.Parser
     Data.Colour
     Data.Path
     Data.Path.Parser
@@ -84,6 +85,7 @@ library
     , these               ^>=1.1
     , string-interpolate  ^>=0.3
     , tree-diff
+    , ghc-prim
 
   default-language:   Haskell2010
   default-extensions: StrictData

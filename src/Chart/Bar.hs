@@ -46,7 +46,7 @@ import Chart.Xml
 -- >>> let barDataExample = BarData [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]] (("row " <>) . pack . show <$> [1 .. 11]) (("column " <>) . pack . show <$> [1 .. 2])
 -- >>> let barExample = barChart defaultBarOptions barDataExample
 --
--- > writeChartSvg "other/bar.svg" barExample
+-- > writeChartOptions "other/bar.svg" barExample
 --
 -- ![bar chart example](other/bar.svg)
 data BarOptions = BarOptions

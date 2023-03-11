@@ -4,6 +4,5 @@
 :set -XFlexibleContexts
 :set -XTypeFamilies
 :set -XOverloadedLabels
-:set -XOverloadedLists
 :set prompt |
 :set -Wno-type-defaults

@@ -8,15 +8,141 @@ A charting library targetting SVG.
 * dev
 
 #+begin_src haskell :results output
+:reload
 :set prompt "> "
 :set -XOverloadedLabels
 :set -XOverloadedStrings
 import Chart
 import Optics.Core
+import FlatParse.Basic
 #+end_src
 
 #+RESULTS:
+: Ok, 14 modules loaded.
+: >
 
+
+* Next basic rendering pipeline
+** my versions
+- just renderToSvg
+- [ ] remove extra groups in forest of mempty example
+
+
+#+begin_src haskell
+renderToSvg (ChartOptions defaultSvgOptions mempty mempty)
+#+end_src
+
+#+RESULTS:
+: Svg {name = "svg", attributes = Attributes {atts = fromList [(Attribute "height","300.0"),(Attribute "viewbox","-0.5 -0.5 1.0 1.0"),(Attribute "width","300.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, forest = [Svg {name = "g", attributes = Attributes {atts = fromList []}, forest = [Svg {name = "g", attributes = Attributes {atts = fromList [(Class,"chart")]}, forest = [Svg {name = "g", attributes = Attributes {atts = fromList []}, forest = [], content = ""}], content = ""},Svg {name = "g", attributes = Attributes {atts = fromList [(Class,"hud")]}, forest = [Svg {name = "g", attributes = Attributes {atts = fromList []}, forest = [], content = ""}], content = ""}], content = ""}], content = ""}
+
+
+#+begin_src haskell
+x1 = svgPrinter $ renderToSvg (ChartOptions defaultSvgOptions mempty mempty)
+:t x1
+#+end_src
+
+#+RESULTS:
+: x1 :: Data.ByteString.Internal.ByteString
+
+
+#+begin_src haskell
+svgPrinter $ renderToSvg (ChartOptions defaultSvgOptions defaultHudOptions mempty)
+#+end_src
+
+#+RESULTS:
+: <svg height=\"300.0\" viewbox=\"-0.5 -0.5 1.0 1.0\" width=\"300.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g class=\"chart\"><g/></g><g class=\"hud\"><g><g class=\"frame\"><g fill=\"rgb(100%, 100%, 100%)\" fill-opacity=\"2.0e-2\" stroke=\"rgb(0%, 0%, 0%)\" stroke-opacity=\"0.0\" stroke-width=\"0.0\"><rect height=\"0.8769968051118211\" width=\"1.2754304846938778\" x=\"-0.5813810586734693\" y=\"-0.47399600638977646\"/></g></g><g/><g class=\"axis\"><g class=\"ticks\"><g class=\"tickglyph\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"0.4\" stroke=\"rgb(5%, 5%, 5%)\" stroke-opacity=\"0.4\" stroke-width=\"4.0e-3\"><polyline points=\"-0.6068896683673468,0.4180007987220447\n-0.6068896683673468,0.3880007987220447\"><g transform=\"rotate(-90.0, -0.6068896683673468, 0.4030007987220447)\"/></polyline><polyline points=\"-0.6068896683673468,0.3303011182108626\n-0.6068896683673468,0.3003011182108626\"><g transform=\"rotate(-90.0, -0.6068896683673468, 0.3153011182108626)\"/></polyline><polyline points=\"-0.6068896683673468,0.24260143769968046\n-0.6068896683673468,0.21260143769968043\"><g transform=\"rotate(-90.0, -0.6068896683673468, 0.22760143769968044)\"/></polyline><polyline points=\"-0.6068896683673468,0.1549017571884983\n-0.6068896683673468,0.12490175718849829\"><g transform=\"rotate(-90.0, -0.6068896683673468, 0.1399017571884983)\"/></polyline><polyline points=\"-0.6068896683673468,6.720207667731619e-2\n-0.6068896683673468,3.720207667731619e-2\"><g transform=\"rotate(-90.0, -0.6068896683673468, 5.220207667731619e-2)\"/></polyline><polyline points=\"-0.6068896683673468,-2.049760383386591e-2\n-0.6068896683673468,-5.049760383386591e-2\"><g transform=\"rotate(-90.0, -0.6068896683673468, -3.549760383386591e-2)\"/></polyline><polyline points=\"-0.6068896683673468,-0.10819728434504806\n-0.6068896683673468,-0.13819728434504808\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.12319728434504806)\"/></polyline><polyline points=\"-0.6068896683673468,-0.1958969648562302\n-0.6068896683673468,-0.22589696485623023\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.21089696485623022)\"/></polyline><polyline points=\"-0.6068896683673468,-0.28359664536741225\n-0.6068896683673468,-0.3135966453674123\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.29859664536741226)\"/></polyline><polyline points=\"-0.6068896683673468,-0.3712963258785943\n-0.6068896683673468,-0.4012963258785943\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.3862963258785943)\"/></polyline><polyline points=\"-0.6068896683673468,-0.45899600638977645\n-0.6068896683673468,-0.48899600638977647\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.47399600638977646)\"/></polyline></g></g><g class=\"ticktext\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"1.0\" font-size=\"4.251434948979592e-2\" stroke=\"none\" stroke-width=\"0.0\" text-anchor=\"end\"><text x=\"-0.6375\" y=\"0.4150595047923323\">-0.50</text><text x=\"-0.6375\" y=\"0.3273598242811501\">-0.40</text><text x=\"-0.6375\" y=\"0.23966014376996794\">-0.30</text><text x=\"-0.6375\" y=\"0.15196046325878587\">-0.20</text><text x=\"-0.6375\" y=\"6.426078274760372e-2\">-0.10</text><text x=\"-0.6375\" y=\"-2.3438897763578326e-2\"> 0.00</text><text x=\"-0.6375\" y=\"-0.11113857827476048\"> 0.10</text><text x=\"-0.6375\" y=\"-0.19883825878594263\"> 0.20</text><text x=\"-0.6375\" y=\"-0.2865379392971247\"> 0.30</text><text x=\"-0.6375\" y=\"-0.37423761980830683\"> 0.40</text><text x=\"-0.6375\" y=\"-0.4619373003194889\"> 0.50</text></g></g><g class=\"ticklines\"><g fill=\"none\" stroke=\"rgb(5%, 5%, 5%)\" stroke-opacity=\"5.0e-2\" stroke-width=\"5.0e-3\"><polyline points=\"-0.5813810586734693,-0.47399600638977646\n0.6940494260204084,-0.47399600638977646\"/></g></g></g><g class=\"axisbar\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"0.4\" stroke=\"rgb(0%, 0%, 0%)\" stroke-opacity=\"0.0\" stroke-width=\"0.0\"><rect height=\"0.8805047923322683\" width=\"3.40114795918367e-3\" x=\"-0.5932850765306121\" y=\"-0.47575\"/></g></g></g><g><g class=\"axis\"><g class=\"ticks\"><g class=\"tickglyph\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"0.4\" stroke=\"rgb(5%, 5%, 5%)\" stroke-opacity=\"0.4\" stroke-width=\"4.0e-3\"><polyline points=\"-0.5813810586734693,0.44431070287539937\n-0.5813810586734693,0.41431070287539934\"/><polyline points=\"-0.4538380102040816,0.44431070287539937\n-0.4538380102040816,0.41431070287539934\"/><polyline points=\"-0.32629496173469374,0.44431070287539937\n-0.32629496173469374,0.41431070287539934\"/><polyline points=\"-0.198751913265306,0.44431070287539937\n-0.198751913265306,0.41431070287539934\"/><polyline points=\"-7.120886479591826e-2,0.44431070287539937\n-7.120886479591826e-2,0.41431070287539934\"/><polyline points=\"5.633418367346954e-2,0.44431070287539937\n5.633418367346954e-2,0.41431070287539934\"/><polyline points=\"0.18387723214285745,0.44431070287539937\n0.18387723214285745,0.41431070287539934\"/><polyline points=\"0.311420280612245,0.44431070287539937\n0.311420280612245,0.41431070287539934\"/><polyline points=\"0.43896332908163305,0.44431070287539937\n0.43896332908163305,0.41431070287539934\"/><polyline points=\"0.5665063775510206,0.44431070287539937\n0.5665063775510206,0.41431070287539934\"/><polyline points=\"0.6940494260204084,0.44431070287539937\n0.6940494260204084,0.41431070287539934\"/></g></g><g class=\"ticktext\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"1.0\" font-size=\"4.251434948979592e-2\" stroke=\"none\" stroke-width=\"0.0\" text-anchor=\"middle\"><text x=\"-0.5813810586734693\" y=\"0.485\">-0.50</text><text x=\"-0.4538380102040816\" y=\"0.485\">-0.40</text><text x=\"-0.32629496173469374\" y=\"0.485\">-0.30</text><text x=\"-0.198751913265306\" y=\"0.485\">-0.20</text><text x=\"-7.120886479591826e-2\" y=\"0.485\">-0.10</text><text x=\"5.633418367346954e-2\" y=\"0.485\"> 0.00</text><text x=\"0.18387723214285745\" y=\"0.485\"> 0.10</text><text x=\"0.311420280612245\" y=\"0.485\"> 0.20</text><text x=\"0.43896332908163305\" y=\"0.485\"> 0.30</text><text x=\"0.5665063775510206\" y=\"0.485\"> 0.40</text><text x=\"0.6940494260204084\" y=\"0.485\"> 0.50</text></g></g><g class=\"ticklines\"><g fill=\"none\" stroke=\"rgb(5%, 5%, 5%)\" stroke-opacity=\"5.0e-2\" stroke-width=\"5.0e-3\"><polyline points=\"0.6940494260204084,0.4030007987220447\n0.6940494260204084,-0.47399600638977646\"/></g></g></g><g class=\"axisbar\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"0.4\" stroke=\"rgb(0%, 0%, 0%)\" stroke-opacity=\"0.0\" stroke-width=\"0.0\"><rect height=\"3.5079872204472617e-3\" width=\"1.2788316326530613\" x=\"-0.5830816326530611\" y=\"0.41177076677316293\"/></g></g></g><g/></g></g></g></g></svg>
+
+
+*** ToDo basic parsing
+
+Compare with this:
+
+ #+begin_src haskell
+ old1 <- Data.ByteString.readFile "old/unit.svg"
+ #+end_src
+
+
+
+#+RESULTS:
+
+
+ #+begin_src haskell :results output
+import Chart.FlatParse
+import FlatParse.Basic
+:t runParser
+:t runParserEither
+ #+end_src
+
+#+RESULTS:
+: runParser
+:   :: Parser e a -> Data.ByteString.Internal.ByteString -> Result e a
+: runParserEither
+:   :: Parser Data.ByteString.Internal.ByteString a
+:      -> Data.ByteString.Internal.ByteString
+:      -> Either
+:           Data.ByteString.Internal.ByteString
+:           (a, Data.ByteString.Internal.ByteString)
+
+
+ #+begin_src haskell :results output
+runParser xmlDocument "<svg height=\"300.0\" viewbox=\"-0.5 -0.5 1.0 1.0\" width=\"300.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"></svg>"
+ #+end_src
+
+#+RESULTS:
+: <interactive>:112:1: error:
+:     • No instance for (Show XmlDocument) arising from a use of ‘print’
+:     • In a stmt of an interactive GHCi command: print it
+
+ #+begin_src haskell :results output
+runParser svgParser "<g></g>"
+ #+end_src
+
+#+RESULTS:
+: Fail
+
+
+ #+begin_src haskell :results output
+runParser tagP "<svg height=\"300.0\"> </svg>"
+ #+end_src
+
+#+RESULTS:
+: OK ("svg",Attributes {atts = fromList [(Attribute "height","300.0")]},TagOpen) " </svg>"
+
+ #+begin_src haskell :results output
+runParser closertag "</svg>"
+ #+end_src
+
+#+RESULTS:
+: OK () ""
+
+
+ #+begin_src haskell :results output
+runParser ((,,) <$> tagP <*> notLT <*> closertag) "<svg height=\"300.0\" viewbox=\"-0.5 -0.5 1.0 1.0\" width=\"300.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">content</svg>"
+ #+end_src
+
+#+RESULTS:
+: OK (("svg",Attributes {atts = fromList [(Attribute "height","300.0"),(Attribute "viewbox","-0.5 -0.5 1.0 1.0"),(Attribute "width","300.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]},TagOpen),"content",()) ""
+
+ #+begin_src haskell :results output
+runParser ((,,) <$> tagP <*> notLT <*> closertag) "<svg height=\"300.0\" viewbox=\"-0.5 -0.5 1.0 1.0\" width=\"300.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">content</svg>"
+ #+end_src
+
+ #+begin_src haskell :results output
+runParser tagP "<a/>"
+#+end_src
+
+#+RESULTS:
+: OK ("a/",Attributes {atts = fromList []},TagOpen) ""
+
+** xml versions of parsers
+
+#+begin_src haskell
+runParser xmlSTag "<svg>"
+#+end_src
+
+#+RESULTS:
+: runParser xmlName "a"
+:   :: Result e Data.ByteString.Internal.ByteString
 
 
 * Usage
@@ -30,15 +156,14 @@ import Optics.Core
 lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
 styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
 cs = zipWith (\s x -> LineChart s [x]) styles lines
-lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
-writeChartSvg "other/usage.svg" lineExample
+lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+writeChartOptions "other/usage.svg" lineExample
 #+end_src
 
 #+RESULTS:
 [[file:other/usage.svg]]
 
 See the haddock documentation for a detailed overview and [[file:gallery.md][the gallery]] for some potential inspiration.
-
 
 * chart-svg changelog
 :PROPERTIES:

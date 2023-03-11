@@ -232,7 +232,7 @@ toChartTree cs =
 
 -- | The initial canvas before applying Huds
 --
--- >>> initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
+-- > initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
 -- Rect -0.75 0.75 -0.5 0.5
 initialCanvas :: ChartAspect -> ChartTree -> CanvasBox
 initialCanvas (FixedAspect a) _ = aspect a
@@ -241,7 +241,7 @@ initialCanvas ChartAspect cs = singletonGuard $ view box' cs
 
 -- | Render a chart using the supplied svg and hud config.
 --
--- >>> chartSvg mempty
+-- > chartSvg mempty
 -- "<svg width=\"450.0\" height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style>svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #0d0d0d;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #0d0d0d;\n  }\n  .legendBorder g {\n    fill: #f0f0f0;\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #f0f0f0;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #f0f0f0;\n  }\n  .legendBorder g {\n    fill: #0d0d0d;\n  }\n}</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 chartSvg :: ChartSvg -> Text
 chartSvg cs = renderToText (renderToSvg (view #svgOptions cs) (toChartTree cs))
@@ -440,7 +440,7 @@ toScaleText x =
 
 -- | SVG tag options.
 --
--- >>> defaultSvgOptions
+-- > defaultSvgOptions
 -- SvgOptions {svgHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}}
 data SvgOptions = SvgOptions
   { svgHeight :: Double,
@@ -466,7 +466,7 @@ data CssPreferColorScheme
 
 -- | css options
 --
--- >>> defaultCssOptions
+-- > defaultCssOptions
 -- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}
 data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: Text} deriving (Show, Eq, Generic)
 

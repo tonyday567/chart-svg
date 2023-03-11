@@ -98,7 +98,7 @@ import Prelude
 --
 -- Using the defaults, this chart is rendered as:
 --
--- > writeChartSvg "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #charts .~ unnamed [r]
+-- > writeChartOptions "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #charts .~ unnamed [r]
 --
 -- ![unit example](other/unit.svg)
 data Chart where
@@ -321,28 +321,31 @@ styleRebox_ cs r =
 --
 -- The example below starts with the unit chart, and a simple axis bar, with a dynamic overhang, so that the axis bar represents the x-axis extremity.
 --
--- >>> t1 = unnamed [RectChart defaultRectStyle [one]]
--- >>> x1 h = toChartTree $ mempty & set #charts t1 & set (#hudOptions % #chartAspect) (ChartAspect) & set (#hudOptions % #axes) [(1,defaultAxisOptions & over #bar (fmap (set #overhang h)) & set (#ticks % #ttick) Nothing & set (#ticks % #gtick) Nothing & set (#ticks % #ltick) Nothing)]
+-- FIXME:
+-- optics ambiguity bug
+--
+-- > t1 = unnamed [RectChart defaultRectStyle [one]]
+-- > x1 h = mempty & set #charts t1 & set (#hudOptions % #chartAspect) (ChartAspect) & set (#hudOptions % #axes) [(1,defaultAxisOptions & over #bar (fmap (set #overhang h)) & set (#ticks % #ttick) Nothing & set (#ticks % #gtick) Nothing & set (#ticks % #ltick) Nothing)] :: Double -> ChartOptions
 --
 -- With a significant overhang, the axis bar dominates the extrema:
 --
--- >>> view styleBox' $ set styleBox' (Just one) (x1 0.1)
+-- > view styleBox' $ set styleBox' (Just one) (x1 0.1)
 -- Just Rect -0.5 0.5 -0.5 0.5
 --
 -- With no overhang, the style additions caused by the chart dominates:
 --
--- >>> view styleBox' $ set styleBox' (Just one) (x1 0)
+-- > view styleBox' $ set styleBox' (Just one) (x1 0)
 -- Just Rect -0.5 0.5 -0.5 0.5
 --
 -- In between:
 --
--- >>> view styleBox' $ set styleBox' (Just one) (x1 0.002)
+-- > view styleBox' $ set styleBox' (Just one) (x1 0.002)
 -- Just Rect -0.5000199203187251 0.5000199203187251 -0.5 0.5
 --
 --
 -- If having an exact box is important, try running set styleBox' multiple times eg
 --
--- >>> view styleBox' $ foldr ($) (x1 0.002) (replicate 10 (set styleBox' (Just one)))
+-- > view styleBox' $ foldr ($) (x1 0.002) (replicate 10 (set styleBox' (Just one)))
 -- Just Rect -0.5 0.5000000000000001 -0.5 0.4999999999999999
 styleBox' :: Lens' ChartTree (Maybe (Rect Double))
 styleBox' =
