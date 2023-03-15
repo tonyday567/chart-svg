@@ -31,7 +31,7 @@ import Data.Text (Text, pack)
 import GHC.Generics
 import Optics.Core
 import Prelude hiding (abs)
-import Chart.Xml
+import Chart.Markup
 
 -- $setup
 --

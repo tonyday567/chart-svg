@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
@@ -23,7 +22,6 @@ where
 import Chart.Data
 import Control.Applicative hiding (many, some)
 import Control.Monad.State.Lazy
-import Data.Either
 import Data.FormatN
 import Data.Path ( PathData(..), ArcInfo(ArcInfo) )
 import GHC.Generics
@@ -33,9 +31,8 @@ import Optics.Core hiding ((<|))
 import Data.ByteString (ByteString, intercalate)
 import Data.Text.Encoding (encodeUtf8)
 import Data.ByteString.Char8 (pack)
-import FlatParse.Basic
 import Chart.FlatParse
-import Data.Bifunctor
+import FlatParse.Basic (some)
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -54,13 +51,13 @@ import Data.Bifunctor
 -- > parsePath outerseg1
 -- Right [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
 --
-parsePath :: ByteString -> Either ByteString [PathCommand]
-parsePath = second fst . runParserEither pathParser
+parsePath :: ByteString -> Maybe [PathCommand]
+parsePath = runParserMaybe pathParser
 
-pathParser :: Parser e [PathCommand]
+pathParser :: Parser [PathCommand]
 pathParser = fromList <$> (ws *> some command)
 
-command :: Parser e PathCommand
+command :: Parser PathCommand
 command = undefined
 {-
 
@@ -223,7 +220,7 @@ stateCur0 = PathCursor zero zero Nothing
 
 -- | Convert from an SVG d attribute text snippet to a [`PathData` `Double`]
 svgToPathData :: ByteString -> [PathData Double]
-svgToPathData = either (const []) toPathDatas . parsePath
+svgToPathData = foldMap toPathDatas . parsePath
 
 -- | Convert from [`PathData` `Double`] to an SVG d path text snippet.
 pathDataToSvg :: [PathData Double] -> ByteString

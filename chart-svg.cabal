@@ -50,8 +50,8 @@ library
     Chart.Style
     Chart.Surface
     Chart.Svg
-    Chart.Xml
-    Chart.Xml.Parser
+    Chart.Markup
+    Chart.Markup.Parser
     Data.Colour
     Data.Path
     Data.Path.Parser

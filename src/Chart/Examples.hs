@@ -157,8 +157,8 @@ textExample =
             ts
         ]
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #svgOptions % #cssOptions % #cssExtra .~ textSwitch (light, dark)
+    & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #markupOptions % #cssOptions % #cssExtra .~ textSwitch (light, dark)
   where
     ts :: [(Text, Point Double)]
     ts =
@@ -187,7 +187,7 @@ textExample =
 glyphsExample :: ChartOptions
 glyphsExample =
   mempty
-    & set (#svgOptions % #svgHeight) 400
+    & set (#markupOptions % #markupHeight) 400
     & set
       #charts
       ( named "glyphs" $
@@ -282,8 +282,8 @@ pathExample =
     & #charts .~ named "path" [path', c0] <> named "pathtext" [t0]
     & #hudOptions .~ defaultHudOptions
     & #hudOptions % #chartAspect .~ ChartAspect
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #svgOptions % #cssOptions % #cssExtra .~ classSwitch (light, dark) "pathtext"
+    & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #markupOptions % #cssOptions % #cssExtra .~ classSwitch (light, dark) "pathtext"
   where
     ps =
       [ StartP (Point 0 0),
@@ -379,8 +379,8 @@ arcFlagsExample =
           ]
       )
     & #hudOptions % #chartAspect .~ ChartAspect
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #svgOptions % #cssOptions % #cssExtra
+    & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #markupOptions % #cssOptions % #cssExtra
       .~ [i|
 {
   .chart g {
@@ -532,7 +532,7 @@ surfaceExample :: ChartOptions
 surfaceExample =
   mempty
     & #charts .~ named "surface" cs
-    & #svgOptions .~ (defaultSvgOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
+    & #markupOptions .~ (defaultMarkupOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
   where
     grain = Point 100 100
     r = one
@@ -554,8 +554,8 @@ arrowExample =
   mempty
     & #hudOptions .~ (defaultHudOptions & #axes %~ fmap (second (#ticks % #ltick .~ Nothing)))
     & #charts .~ named "arrow" ((\p -> gchart (tail' . f $ p) (angle . f $ p) p) <$> ps)
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #svgOptions % #cssOptions % #cssExtra
+    & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #markupOptions % #cssOptions % #cssExtra
       .~ [i|
 {
   .arrow g {
@@ -643,9 +643,9 @@ gradientChart_ grain c0 c1 =
 gradient :: Maybe Double -> Double -> Double -> Int -> LCHA -> LCHA -> ChartOptions
 gradient marker h fa grain ok0 ok1 =
   mempty
-    & #svgOptions % #svgHeight
+    & #markupOptions % #markupHeight
       .~ h
-    & #svgOptions % #cssOptions % #shapeRendering
+    & #markupOptions % #cssOptions % #shapeRendering
       .~ UseCssCrisp
     & #hudOptions
       .~ ( mempty
@@ -758,6 +758,6 @@ writeAllExamplesDark = do
         ( \x ->
             x
               & #hudOptions %~ colourHudOptions (rgb light)
-              & #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
+              & #markupOptions % #cssOptions % #preferColorScheme .~ PreferDark
         )) pathChartOptions
   putStrLn "dark version, ok"
