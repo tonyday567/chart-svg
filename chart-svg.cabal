@@ -50,7 +50,6 @@ library
     Chart.Primitive
     Chart.Style
     Chart.Surface
-    Chart.Svg
     Chart.Markup
     Chart.Markup.Parser
     Data.Colour
@@ -70,23 +69,16 @@ library
     , flatparse
     , foldl               ^>=1.4
     , formatn             ^>=0.2
-    , lucid               >=2.9 && <3
     , mtl                 >=2.2.2 && <2.4
-    , neat-interpolation  ^>=0.5.1
     , numhask             ^>=0.10
     , numhask-array       ^>=0.10
     , numhask-space       ^>=0.10
     , optics-core         ^>=0.4
     , random              ^>=1.2.1
-    , scientific          ^>=0.3
-    , tagsoup             ^>=0.14
     , text                >=1.2 && <2.1
     , time                >=1.9 && <2
-    , transformers        >=0.5 && <0.7
-    , these               ^>=1.1
     , string-interpolate  ^>=0.3
     , tree-diff
-    , ghc-prim
 
   default-language:   Haskell2010
   default-extensions: StrictData

@@ -57,6 +57,7 @@ runParserMaybe p b = case runParser p b of
 
 -- * parsing
 
+isWs :: Char -> Bool
 isWs x =
   (x == ' ') ||
   (x == '\n') ||

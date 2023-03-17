@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TupleSections #-}
 
 -- |
 
@@ -87,16 +86,13 @@ m2 = Markup "top" (Attributes (fromList [(Class, "a")])) [MarkupLeaf (Markup "le
 m3 :: Markup
 m3 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b","c"), (Attribute "d", "e")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
 
-
 -- changing a tag
 m4 :: Markup
 m4 = Markup "newtop" (Attributes (fromList [(Class, "a"), (Attribute "b","c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
 
-
 -- changing a leaf
 m5 :: Markup
 m5 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b","c")])) [MarkupLeaf (Markup "newleaf" mempty mempty), Content "text"]
-
 
 -- deleting a leaf
 m6 :: Markup

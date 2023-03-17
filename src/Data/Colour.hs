@@ -89,7 +89,6 @@ import GHC.Exts
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model as M hiding (LCH)
 import qualified Graphics.Color.Space as S
-import NeatInterpolation
 import NumHask.Algebra.Metric
 import NumHask.Array.Fixed
 import Optics.Core
@@ -134,7 +133,7 @@ instance Show Colour where
 -- | CSS-style representation
 showRGBA :: Colour -> Text
 showRGBA (Colour r' g' b' a') =
-  [trimming|rgba($r, $g, $b, $a)|]
+  [i|rgba(#{r}, #{g}, #{b}, #{a})|]
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'
     g = percent (fixedSF (Just 0)) (Just 2) g'
@@ -144,7 +143,7 @@ showRGBA (Colour r' g' b' a') =
 -- | CSS-style representation
 showRGB :: Colour -> Text
 showRGB (Colour r' g' b' _) =
-  [trimming|rgb($r, $g, $b)|]
+  [i|rgb(#{r}, #{g}, #{b})|]
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'
     g = percent (fixedSF (Just 0)) (Just 2) g'
@@ -650,17 +649,17 @@ hue' = re lcha2colour' % lch' % hLCH'
 -- "<div class=swatch style=\"background:rgba(5%, 5%, 5%, 1.00);\">swatch</div>"
 showSwatch :: Text -> Colour -> Text
 showSwatch label c =
-  [trimming|<div class=swatch style="background:$rgba;">$label</div>|]
+  [i|<div class=swatch style="background:#{rgba};">#{label}</div>|]
   where
     rgba = showRGBA c
 
 -- | Show multiple colors with embedded text.
 showSwatches :: Text -> Text -> [(Text, Colour)] -> Text
 showSwatches pref suff hs =
-  [trimming|<div>
-$pref
-$divs
-$suff
+  [i|<div>
+#{pref}
+#{divs}
+#{suff}
 </div>
 |]
   where

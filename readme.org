@@ -310,7 +310,7 @@ unitExample & view #charts & foldOf charts'
 : [RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -0.5 0.5 -0.5 0.5]]
 
 
-* Next tree-diff
+* tree-diff
 *** patch work
 #+begin_src haskell
 let diff1 = ediff m0 m1
@@ -616,13 +616,8 @@ See the haddock documentation for a detailed overview and [[file:gallery.md][the
 
 [[file:other/banner.svg]]
 
-** Next 0.4
+** chart-svg 0.4
 
- - [ ] remove lucid
- - [ ] remove tagsoup
- - [ ] FIXMEs
- - [ ] refactor Chart.Markup and Chart.FlatParse
- - [ ] refactor tree-diff into some golden tests
 
 0.4 is a plumbing release.
 

@@ -59,7 +59,6 @@ import Data.ByteString (ByteString)
 import qualified Data.Text as Text
 import GHC.Generics
 import Optics.Core
-import Text.HTML.TagSoup (maybeTagText, parseTags)
 import Prelude
 
 -- $setup
@@ -161,7 +160,7 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
     h = o ^. #hsize
     v = o ^. #vsize
     n1 = o ^. #vshift
-    x' = s * h * fromIntegral (sum $ maybe 0 Text.length . maybeTagText <$> parseTags t)
+    x' = s * h * fromIntegral (Text.length t)
     y' = s * v
     n1' = -s * n1
     a' = case o ^. #anchor of
