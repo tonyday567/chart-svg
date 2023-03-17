@@ -18,7 +18,7 @@
 
 -- | Lower-level flatparse parsers
 module Chart.FlatParse
-  ( Parser,
+  (
     runParserMaybe,
     ws',
     ws,
@@ -39,19 +39,17 @@ import Data.Bool
 import Data.ByteString hiding (empty, head, length, map, zip, zipWith)
 import Data.Char hiding (isDigit)
 import Data.List.NonEmpty
-import FlatParse.Basic hiding (cut, Parser)
+import FlatParse.Basic
 import GHC.Generics
 import NumHask.Space
 import Prelude hiding (replicate)
-import qualified FlatParse.Basic
+
 -- $setup
 -- >>> import Chart.FlatParse
 -- >>> import FlatParse.Basic
 
-type Parser = FlatParse.Basic.Parser ByteString
-
 -- | run a Parser, erroring on Fail or Err
-runParserMaybe :: Parser a -> ByteString -> Maybe a
+runParserMaybe :: Parser e a -> ByteString -> Maybe a
 runParserMaybe p b = case runParser p b of
   OK r _ -> Just r
   Fail -> Nothing
@@ -65,11 +63,11 @@ isWs x =
   (x == '\t') ||
   (x == '\r')
 
-ws :: Parser Char
+ws :: Parser e Char
 ws = satisfy isWs
 
 -- | consume whitespace
-ws' :: Parser ()
+ws' :: Parser e ()
 ws' = $(switch [| case _ of
   " "  -> ws'
   "\n" -> ws'
@@ -77,18 +75,18 @@ ws' = $(switch [| case _ of
   "\r" -> ws'
   _    -> pure () |])
 
-digit :: Parser Int
+digit :: Parser e Int
 digit = (\c -> ord c - ord '0') <$> satisfyAscii isDigit
 
 -- | (unsigned) Int parser
-int :: Parser Int
+int :: Parser e Int
 int = do
   (place, n) <- chainr (\n (!place, !acc) -> (place * 10, acc + place * n)) digit (pure (1, 0))
   case place of
     1 -> empty
     _ -> pure n
 
-digits :: Parser (Int, Int)
+digits :: Parser e (Int, Int)
 digits = chainr (\n (!place, !acc) -> (place * 10, acc + place * n)) digit (pure (1, 0))
 
 -- |
@@ -106,7 +104,7 @@ digits = chainr (\n (!place, !acc) -> (place * 10, acc + place * n)) digit (pure
 --
 -- >>> runParser double "123."
 -- OK 123.0 ""
-double :: Parser Double
+double :: Parser e Double
 double = do
   (placel, nl) <- digits
   withOption
@@ -121,30 +119,30 @@ double = do
         _ -> pure $ fromIntegral nl
     )
 
-minus :: Parser ()
+minus :: Parser e ()
 minus = $(char '-')
 
 -- |
 -- >>> runParser (signed double) "-1.234x"
 -- OK (-1.234) "x"
-signed :: Num b => Parser b -> Parser b
+signed :: Num b => Parser e b -> Parser e b
 signed p = do
   m <- optional minus
   case m of
     Nothing -> p
     Just () -> negate <$> p
 
-quote :: Parser ()
+quote :: Parser e ()
 quote = $(char '"')
 
-quoted :: Parser ByteString
+quoted :: Parser e ByteString
 quoted = quote *> byteStringOf (skipSome (skipSatisfy (/= '"'))) <* quote
 
-comma :: Parser ()
+comma :: Parser e ()
 comma = $(char ',')
 
 -- | comma separated Point
-point :: Parser (Point Double)
+point :: Parser e (Point Double)
 point = Point <$> double <*> (comma *> double)
 
 -- | dot specification of a cubic spline (and an arrow head which is ignored here)
@@ -152,7 +150,7 @@ data Spline = Spline {splineEnd :: Maybe (Point Double), splineStart :: Maybe (P
 
 -- |
 -- http://www.graphviz.org/docs/attr-types/splineType/
-splineP :: Parser Spline
+splineP :: Parser e Spline
 splineP =
   Spline
     <$> optional ($(string "e,") *> point)
@@ -161,7 +159,7 @@ splineP =
     <*> some ((,,) <$> point <*> point <*> point)
 
 -- | comma separated rectangle or bounding box
-rectP :: Parser (Rect Double)
+rectP :: Parser e (Rect Double)
 rectP = do
   x <- double
   _ <- comma
@@ -173,23 +171,23 @@ rectP = do
   pure $ Rect x z y w
 
 -- | true | false
-boolP :: Parser Bool
+boolP :: Parser e Bool
 boolP =
   (True <$ $(string "true"))
     <|> (False <$ $(string "false"))
 
 -- | NonEmpty version of many
-nonEmptyP :: Parser a -> Parser () -> Parser (NonEmpty a)
+nonEmptyP :: Parser e a -> Parser e () -> Parser e (NonEmpty a)
 nonEmptyP p sep = do
   s <- p
   xs <- many (optional sep *> p)
   pure (s :| xs)
 
-points :: Parser [Point Double]
+points :: Parser e [Point Double]
 points = toList <$> nonEmptyP point comma
 
-pointPair :: Parser (Point Double, Point Double)
+pointPair :: Parser e (Point Double, Point Double)
 pointPair = (,) <$> point <* comma <*> point
 
-pointPairs :: Parser [(Point Double, Point Double)]
+pointPairs :: Parser e [(Point Double, Point Double)]
 pointPairs = toList <$> nonEmptyP pointPair comma

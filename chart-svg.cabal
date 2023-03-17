@@ -43,6 +43,7 @@ library
     Chart
     Chart.Bar
     Chart.Data
+    Chart.Diff
     Chart.Examples
     Chart.FlatParse
     Chart.Hud

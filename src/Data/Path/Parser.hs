@@ -16,6 +16,7 @@ module Data.Path.Parser
     pathDataToSvg,
     PathCommand (..),
     Origin (..),
+    toPathDatas,
   )
 where
 
@@ -31,8 +32,7 @@ import Optics.Core hiding ((<|))
 import Data.ByteString (ByteString, intercalate)
 import Data.Text.Encoding (encodeUtf8)
 import Data.ByteString.Char8 (pack)
-import Chart.FlatParse
-import FlatParse.Basic (some)
+import FlatParse.Basic
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -52,12 +52,25 @@ import FlatParse.Basic (some)
 -- Right [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
 --
 parsePath :: ByteString -> Maybe [PathCommand]
-parsePath = runParserMaybe pathParser
+parsePath bs = case runParser pathParser bs of
+  OK x _ -> Just x
+  _ -> Nothing
 
-pathParser :: Parser [PathCommand]
-pathParser = fromList <$> (ws *> some command)
+isWs' :: Char -> Bool
+isWs' x =
+  (x == ' ') ||
+  (x == '\n') ||
+  (x == '\t') ||
+  (x == '\r')
 
-command :: Parser PathCommand
+ws' :: Parser e Char
+ws' = satisfy isWs'
+
+pathParser :: Parser e [PathCommand]
+pathParser = fromList <$> (ws' *> some command)
+
+-- FIXME:
+command :: Parser e PathCommand
 command = undefined
 {-
 

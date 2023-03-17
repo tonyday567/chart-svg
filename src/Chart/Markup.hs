@@ -44,6 +44,8 @@ import Data.Bool
 import Data.Bifunctor
 -- import GHC.Exts
 import Data.Path.Parser
+import Data.TreeDiff
+
 
 -- $setup
 --
@@ -60,7 +62,11 @@ data Attribute =
   ID |
   Attribute ByteString deriving (Eq, Show, Generic, Ord)
 
+instance ToExpr Attribute
+
 newtype Attributes = Attributes { attMap :: Map Attribute ByteString } deriving (Eq, Show, Generic)
+
+instance ToExpr Attributes
 
 instance Semigroup Attributes
   where
@@ -91,11 +97,15 @@ eject (Attribute a) = a
 
 data Content = Content ByteString | CDSect ByteString | Comment ByteString | MarkupLeaf Markup deriving (Eq, Show, Generic)
 
+instance ToExpr Content
+
 data Markup = Markup {
   tag :: ByteString,
   atts :: Attributes,
   contents :: [Content]
   } deriving (Eq, Show, Generic)
+
+instance ToExpr Markup
 
 -- * printing markup to bytestring
 
@@ -312,7 +322,7 @@ markupShape_ VLineGlyph s (Point x y) =
 markupShape_ HLineGlyph s (Point x y) =
   Markup "polyline" (foldMap inject [("points", pack $ show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]) mempty
 markupShape_ (PathGlyph path _) s p =
-  Markup "path" (foldMap inject [("d", pack $ show path), ("transform", toTranslateText p <> " " <> toScaleText s)]) mempty
+  Markup "path" (foldMap inject [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)]) mempty
 
 -- | @markup@ element + markup 2 attributes
 header :: Double -> Rect Double -> [Markup] -> Markup
