@@ -27,6 +27,7 @@ module Chart
     module Chart.Primitive,
     module Chart.Data,
     module Chart.Diff,
+    module Chart.FlatParse,
     module Chart.Hud,
     module Chart.Style,
     module Chart.Markup,
@@ -43,6 +44,7 @@ where
 import Chart.Bar
 import Chart.Data
 import Chart.Diff
+import Chart.FlatParse
 import Chart.Hud
 import Chart.Primitive
 import Chart.Style

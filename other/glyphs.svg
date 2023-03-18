@@ -3,25 +3,25 @@
 }
 {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: #0d0d0d;
+    fill: rgba(5%, 5%, 5%, 1.00);
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: #0d0d0d;
+    stroke: rgba(5%, 5%, 5%, 1.00);
   }
   .legendBorder g {
-    fill: #f0f0f0;
+    fill: rgba(94%, 94%, 94%, 1.00);
   }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: #f0f0f0;
+    fill: rgba(94%, 94%, 94%, 1.00);
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: #f0f0f0;
+    stroke: rgba(94%, 94%, 94%, 1.00);
   }
   .legendBorder g {
-    fill: #0d0d0d;
+    fill: rgba(5%, 5%, 5%, 1.00);
   }
-}</style><g class="chart"><g class="glyphs"><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="1.0e-2"><circle cx="-0.695" cy="-0.0" r="5.0e-2"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="1.0e-2"><rect height="0.1" width="0.10000000000000003" x="-0.565" y="-5.0e-2"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="1.0e-2"><rect height="7.500000000000001e-2" width="9.999999999999998e-2" x="-0.38499999999999995" y="-3.7500000000000006e-2"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="1.0e-2"><rect height="7.500000000000001e-2" rx="1.0e-2" ry="1.0e-2" width="9.999999999999999e-2" x="-0.2049999999999999" y="-3.7500000000000006e-2"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="1.0e-2"><ellipse cx="2.5000000000000022e-2" cy="-0.0" rx="5.0e-2" ry="3.7500000000000006e-2"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="1.0e-2"><polyline points="0.20499999999999996,5.0e-2
-0.20499999999999996,-5.0e-2"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="1.0e-2"><polyline points="0.33500000000000013,-0.0
-0.4350000000000001,-0.0"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="1.0e-2"><polygon points="0.0,-7.071067811865477e-2 -5.000000000000002e-2,4.330127018922193e-2 5.000000000000002e-2,4.330127018922193e-2" transform="translate(0.5650000000000001, -0.0)"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="9.999999999999999e-2"><path d="M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" transform="translate(0.745, -0.0) scale(0.1)"/></g></g></g><g class="hud"/></svg>
+}</style><g class="chart"><g class="glyphs"><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="1.0e-2"><circle cx="-0.695" cy="-0.0" r="5.0e-2"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="1.0e-2"><rect height="0.1" width="0.10000000000000003" x="-0.565" y="-5.0e-2"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="1.0e-2"><rect height="7.500000000000001e-2" width="9.999999999999998e-2" x="-0.38499999999999995" y="-3.7500000000000006e-2"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="1.0e-2"><rect height="7.500000000000001e-2" rx="1.0e-2" ry="1.0e-2" width="9.999999999999999e-2" x="-0.2049999999999999" y="-3.7500000000000006e-2"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="1.0e-2"><ellipse cx="2.5000000000000022e-2" cy="-0.0" rx="5.0e-2" ry="3.7500000000000006e-2"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="1.0e-2"><polyline points="0.20499999999999996,5.0e-2
+0.20499999999999996,-5.0e-2"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="1.0e-2"><polyline points="0.33500000000000013,-0.0
+0.4350000000000001,-0.0"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="1.0e-2"><polygon points="0.0,-7.071067811865477e-2 -5.000000000000002e-2,4.330127018922193e-2 5.000000000000002e-2,4.330127018922193e-2" transform="translate(0.5650000000000001, -0.0)"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="9.999999999999999e-2"><path d="M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" transform="translate(0.745, -0.0) scale(0.1)"/></g></g></g><g class="hud"/></svg>

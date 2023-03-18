@@ -9,6 +9,10 @@
 - ignore: {name: Avoid lambda using `infix`}
 - ignore: {name: Reduce duplication, within: Chart.Examples}
 - ignore: {name: Reduce duplication, within: Chart.Bar}
+
+- ignore: {name: Use isAsciiLower}
+- ignore: {name: Use isAsciiUpper}
+- ignore: {name: Use isDigit}
 # Replace a $ b $ c with a . b $ c
 #- group: {name: dollar, enabled: true}
 

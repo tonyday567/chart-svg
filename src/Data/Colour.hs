@@ -71,7 +71,7 @@ module Data.Colour
     rvRGB3,
     rvColour,
     paletteR,
-  showRGBbs)
+  )
 where
 
 import Chart.Data
@@ -131,7 +131,7 @@ instance Show Colour where
         <> fixed (Just 2) a
 
 -- | CSS-style representation
-showRGBA :: Colour -> Text
+showRGBA :: Colour -> ByteString
 showRGBA (Colour r' g' b' a') =
   [i|rgba(#{r}, #{g}, #{b}, #{a})|]
   where
@@ -141,17 +141,8 @@ showRGBA (Colour r' g' b' a') =
     a = fixed (Just 2) a'
 
 -- | CSS-style representation
-showRGB :: Colour -> Text
+showRGB :: Colour -> ByteString
 showRGB (Colour r' g' b' _) =
-  [i|rgb(#{r}, #{g}, #{b})|]
-  where
-    r = percent (fixedSF (Just 0)) (Just 2) r'
-    g = percent (fixedSF (Just 0)) (Just 2) g'
-    b = percent (fixedSF (Just 0)) (Just 2) b'
-
--- | CSS-style representation
-showRGBbs :: Colour -> ByteString
-showRGBbs (Colour r' g' b' _) =
   [i|rgb(#{r}, #{g}, #{b})|]
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'

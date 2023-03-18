@@ -6,6 +6,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use unwords" #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- | SVG path manipulation
 module Data.Path.Parser
@@ -21,7 +22,7 @@ module Data.Path.Parser
 where
 
 import Chart.Data
-import Control.Applicative hiding (many, some)
+import Control.Applicative hiding (many, some, (<|>), optional)
 import Control.Monad.State.Lazy
 import Data.FormatN
 import Data.Path ( PathData(..), ArcInfo(ArcInfo) )
@@ -33,6 +34,7 @@ import Data.ByteString (ByteString, intercalate)
 import Data.Text.Encoding (encodeUtf8)
 import Data.ByteString.Char8 (pack)
 import FlatParse.Basic
+import Chart.FlatParse hiding (point, points, pointPair, pointPairs)
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -46,10 +48,8 @@ import FlatParse.Basic
 -- | Parse a raw path string.
 --
 -- >>> let outerseg1 = "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"
---
--- FIXME: undefined bug
--- > parsePath outerseg1
--- Right [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
+-- >>> parsePath outerseg1
+-- Just [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
 --
 parsePath :: ByteString -> Maybe [PathCommand]
 parsePath bs = case runParser pathParser bs of
@@ -66,45 +66,55 @@ isWs' x =
 ws' :: Parser e Char
 ws' = satisfy isWs'
 
-pathParser :: Parser e [PathCommand]
-pathParser = fromList <$> (ws' *> some command)
+comma' :: Parser e ()
+comma' = $(char ',')
 
--- FIXME:
-command :: Parser e PathCommand
-command = undefined
-{-
+commaWsp :: Parser e (Maybe ())
+commaWsp = many ws' *> optional comma' <* many ws'
 
-  MoveTo OriginAbsolute <$ Astring "M" <*> points
-    <|> MoveTo OriginRelative <$ A.string "m" <*> points
-    <|> LineTo OriginAbsolute <$ A.string "L" <*> points
-    <|> LineTo OriginRelative <$ A.string "l" <*> points
-    <|> HorizontalTo OriginAbsolute <$ A.string "H" <*> nums
-    <|> HorizontalTo OriginRelative <$ A.string "h" <*> nums
-    <|> VerticalTo OriginAbsolute <$ A.string "V" <*> nums
-    <|> VerticalTo OriginRelative <$ A.string "v" <*> nums
-    <|> CurveTo OriginAbsolute <$ A.string "C" <*> fmap fromList (manyComma curveToArgs)
-    <|> CurveTo OriginRelative <$ A.string "c" <*> fmap fromList (manyComma curveToArgs)
-    <|> SmoothCurveTo OriginAbsolute <$ A.string "S" <*> pointPairs
-    <|> SmoothCurveTo OriginRelative <$ A.string "s" <*> pointPairs
-    <|> QuadraticBezier OriginAbsolute <$ A.string "Q" <*> pointPairs
-    <|> QuadraticBezier OriginRelative <$ A.string "q" <*> pointPairs
-    <|> SmoothQuadraticBezierCurveTo OriginAbsolute <$ A.string "T" <*> points
-    <|> SmoothQuadraticBezierCurveTo OriginRelative <$ A.string "t" <*> points
-    <|> EllipticalArc OriginAbsolute <$ A.string "A" <*> manyComma ellipticalArgs
-    <|> EllipticalArc OriginRelative <$ A.string "a" <*> manyComma ellipticalArgs
-    <|> EndPath <$ A.string "Z" <* commaWsp
-    <|> EndPath <$ A.string "z" <* commaWsp
-  where
-    curveToArgs =
+num :: Parser e Double
+num = signed double
+
+point :: Parser e (Point Double)
+point = Point <$> num <* commaWsp <*> num
+
+numComma :: Parser e Double
+numComma = num <* commaWsp
+
+points :: Parser e [Point Double]
+points = (:) <$> point <*> many (commaWsp *> point) <|> pure []
+
+pointPair :: Parser e (Point Double, Point Double)
+pointPair = (,) <$> point <* commaWsp <*> point
+
+pointPairs :: Parser e [(Point Double, Point Double)]
+pointPairs =(:) <$> pointPair <*> many (commaWsp *> pointPair) <|> pure []
+
+nums :: Parser e [Double]
+nums = (:) <$> num <*> many (commaWsp *> num) <|> pure []
+
+flag :: Parser e Bool
+flag = fmap (/= 0) digit
+
+manyComma :: Parser e a -> Parser e [a]
+manyComma a = (:) <$> a <*> many (commaWsp *> a) <|> pure []
+
+flagComma :: Parser e Bool
+flagComma = flag <* commaWsp
+
+curveToArgs :: Parser
+  e
+  (Point Double, Point Double, Point Double)
+curveToArgs =
       (,,)
         <$> (point <* commaWsp)
         <*> (point <* commaWsp)
         <*> point
-    manyComma a = fromList <$> a `A.sepBy1` commaWsp
 
-    numComma = num <* commaWsp
-    flagComma = flag <* commaWsp
-    ellipticalArgs =
+ellipticalArgs :: Parser
+  e
+  (Double, Double, Double, Bool, Bool, Point Double)
+ellipticalArgs =
       (,,,,,)
         <$> numComma
         <*> numComma
@@ -113,7 +123,32 @@ command = undefined
         <*> flagComma
         <*> point
 
--}
+pathParser :: Parser e [PathCommand]
+pathParser = many ws' *> manyComma command
+
+command :: Parser e PathCommand
+command =
+  (MoveTo OriginAbsolute <$ $(char 'M') <*> points)
+    <|> (MoveTo OriginRelative <$ $(char 'm') <*> points)
+    <|> (LineTo OriginAbsolute <$ $(char 'L') <*> points)
+    <|> (LineTo OriginRelative <$ $(char 'l') <*> points)
+    <|> (HorizontalTo OriginAbsolute <$ $(char 'H') <*> nums)
+    <|> (HorizontalTo OriginRelative <$ $(char 'h') <*> nums)
+    <|> (VerticalTo OriginAbsolute <$ $(char 'V') <*> nums)
+    <|> (VerticalTo OriginRelative <$ $(char 'v') <*> nums)
+    <|> (CurveTo OriginAbsolute <$ $(char 'C') <*> manyComma curveToArgs)
+    <|> (CurveTo OriginRelative <$ $(char 'c') <*> manyComma curveToArgs)
+    <|> (SmoothCurveTo OriginAbsolute <$ $(char 'S') <*> pointPairs)
+    <|> (SmoothCurveTo OriginRelative <$ $(char 's') <*> pointPairs)
+    <|> (QuadraticBezier OriginAbsolute <$ $(char 'Q') <*> pointPairs)
+    <|> (QuadraticBezier OriginRelative <$ $(char 'q') <*> pointPairs)
+    <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ $(char 'T') <*> points)
+    <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ $(char 't') <*> points)
+    <|> (EllipticalArc OriginAbsolute <$ $(char 'A') <*> manyComma ellipticalArgs)
+    <|> (EllipticalArc OriginRelative <$ $(char 'a') <*> manyComma ellipticalArgs)
+    <|> (EndPath <$ $(char 'Z') <* commaWsp)
+    <|> (EndPath <$ $(char 'z') <* commaWsp)
+
 -- | Path command definition (ripped from reanimate-svg).
 data PathCommand
   = -- | M or m command

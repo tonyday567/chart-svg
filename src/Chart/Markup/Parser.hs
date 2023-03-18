@@ -3,40 +3,55 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# OPTIONS_GHC -Wno-missing-signatures #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use unwords" #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-{-# OPTIONS_GHC -Wno-type-defaults #-}
 {-# LANGUAGE TupleSections #-}
-{-# HLINT ignore "Use foldMap" #-}
-{-# LANGUAGE EmptyDataDeriving #-}
-{-# HLINT ignore "Use isAsciiLower" #-}
-{-# HLINT ignore "Use isAsciiUpper" #-}
-{-# LANGUAGE MagicHash #-}
-{-# HLINT ignore "Use isDigit" #-}
-{-# HLINT ignore "Use void" #-}
-{-# HLINT ignore "Use <$" #-}
-{-# HLINT ignore "Use infix" #-}
-{-# HLINT ignore "Use <>" #-}
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
-{-# OPTIONS_GHC -Wno-unused-matches #-}
 
--- https://www.w3.org/TR/SVG2/text.html#TextElement
--- https://www.w3.org/TR/xml/#NT-content
-module Chart.Markup.Parser where
+-- | Much of the parsing logic is based on the XML productions found in https://www.w3.org/TR/xml/#NT-content
+--
+-- As an Xml parser, this is very incomplete and rudimentary, hence not calling it an xml parser.
+--
+-- My other reference was https://www.w3schools.com/xml/xml_syntax.asp (don't laugh).
+module Chart.Markup.Parser
+  (
+    markupP,
+    contentP,
+    XmlDocument(..),
+    xmlDocument,
+    xmlProlog,
+    xmlXMLDecl,
+    xmlDoctypedecl,
+    XmlMisc(..),
+    xmlMisc,
+    xmlComment,
+    lt,
+    gt,
+    gtc,
+    oct,
+    sq,
+    dq,
+    wrappedQ,
+    wrappedQNoGuard,
+    eq,
+    xmlName,
+    xmlAtt,
+    openTag,
+    closeTag,
+    emptyElemTag,
+
+    -- * testing
+    exampleDocument,
+)
+
+where
 
 import Prelude
-import Data.ByteString ( ByteString, readFile)
+import Data.ByteString ( ByteString )
 import GHC.Generics
 import FlatParse.Basic hiding (cut)
-import System.Directory
 import Chart.Markup
-    ( Content(..), Markup(Markup), inject, printMarkup )
+    ( Content(..), Markup(Markup), singleAtt)
 import qualified FlatParse.Basic.Text as T
 import Chart.FlatParse
-import qualified Data.ByteString as BS
-import GHC.Exts
+import Data.String.Interpolate
 
 -- $setup
 --
@@ -44,82 +59,94 @@ import GHC.Exts
 -- >>> :set -XOverloadedStrings
 -- >>> import Chart
 -- >>> import Optics.Core
+-- >>> import FlatParse.Basic
 
--- * special chars
--- | opening tag char
-lt :: Parser Error ()
+-- * special XML chars
+
+-- | opening tag
+--
+-- >>> runParserMaybe lt "<"
+-- Just ()
+lt :: Parser e ()
 lt = $(char '<') -- `cut'` Lit "<"
 
 -- | closing tag char
+--
+-- >>> runParserMaybe gt ">"
+-- Just ()
 gt :: Parser e ()
 gt = $(char '>')
 
 -- | self-closing tag
+--
+-- >>> runParserMaybe gtc "/>"
+-- Just ()
 gtc :: Parser e ()
 gtc = $(string "/>")
 
 -- | open closer tag
+--
+-- >>> runParserMaybe oct "</"
+-- Just ()
+oct :: Parser e ()
 oct = $(string "</")
 
-sp :: Parser e ()
-sp = $(char ' ')
-
-amp :: Parser e ()
-amp = $(char '&')
-
-caret :: Parser e ()
-caret = $(char '^')
-
-slash :: Parser e ()
-slash = $(char '/')
-
--- | name separator [6] [8]
-sep :: Parser e s -> Parser e a -> Parser e [a]
-sep s p = (:) <$> p <*> many (s *> p)
-
--- | xml production [3]
-wss :: Parser e String
-wss = many ws
-
--- | TODO: is this more efficient?
-wss' :: Parser e ByteString
-wss' = withSpan (some ws) (\_ s -> unsafeSpanToByteString s)
-
+-- | single quote
+--
+-- >>> runParserMaybe sq "''"
+-- Just ()
 sq :: ParserT st e ()
 sq = $(char '\'')
 
+-- | double quote
+--
+-- >>> runParserMaybe dq "\""
+-- Just ()
 dq :: ParserT st e ()
 dq = $(char '"')
 
-bracketed :: Parser e b -> Parser e b -> Parser e a -> Parser e a
-bracketed o c p = o *> p <* c
-
-wrapped :: Parser e () -> Parser e a -> Parser e a
-wrapped x p = bracketed x x p
-
-wrappedQNoGuard :: Parser e a -> Parser e a
-wrappedQNoGuard p = wrapped dq p <|> wrapped sq p
-
--- | guard check for closing character
 wrappedDq :: Parser e ByteString
 wrappedDq = wrapped dq (byteStringOf $ many (T.satisfy (/= '"')))
 
+-- | guard check for closing quote
 wrappedSq :: Parser e ByteString
 wrappedSq = wrapped sq (byteStringOf $ many (T.satisfy (/= '\'')))
 
+-- | quote or double quote wrapped
+--
+-- >>> runParserMaybe wrappedQ "\"quoted\""
+-- Just "quoted"
+--
+-- >>> runParserMaybe wrappedQ "'quoted'"
+-- Just "quoted"
+--
 wrappedQ :: Parser e ByteString
 wrappedQ =
   wrappedDq <|>
   wrappedSq
 
--- xml production [25]
+
+-- | quote or double quote wrapped
+--
+-- >>> runParserMaybe (wrappedQNoGuard xmlName) "\"name\""
+-- Just "name"
+--
+-- but will consume quotes if the underlying parser does.
+--
+-- >>> runParserMaybe (wrappedQNoGuard (many anyChar)) "\"name\""
+-- Nothing
+wrappedQNoGuard :: Parser e a -> Parser e a
+wrappedQNoGuard p = wrapped dq p <|> wrapped sq p
+
+-- | = (xml production [25])
+--
+-- >>> runParserMaybe eq " = "
+-- Just ()
+--
+-- >>> runParserMaybe eq "="
+-- Just ()
 eq :: Parser e ()
 eq = optional wss *> $(char '=') <* optional wss
-
--- * xml-style name production
--- [2]
-xmlChar :: Parser e Char
-xmlChar = anyChar
 
 -- [4]
 nameStartChar :: Parser e Char
@@ -178,73 +205,84 @@ isNameCharExt x =
   (x >= '\xFDF0' && x <= '\xFFFD') ||
   (x >= '\x10000' && x <= '\xEFFFF')
 
--- [5]
+-- | name string according to xml production rule [5]
 --
--- >>> runParser xmlName "markup>"
--- OK "markup" ">"
+-- >>> runParserMaybe xmlName "name"
+-- Just "name"
 xmlName :: Parser e ByteString
 xmlName = byteStringOf (nameStartChar >> many nameChar)
 
--- [6]
-xmlNames :: Parser e [ByteString]
-xmlNames = sep sp xmlName
-
--- * attributes
+-- | attribute pair
+--
+-- >>> runParserMaybe xmlAtt "style = 'fancy'"
+-- Just ("style","fancy")
+--
 xmlAtt :: Parser e (ByteString, ByteString)
 xmlAtt = (,) <$> (xmlName <* eq) <*> wrappedQ
 
--- [40]
+-- | open xml tag as per xml production rule [40]
+--
+-- >>> runParserMaybe openTag "<g style='fancy'>"
+-- Just ("g",[("style","fancy")])
 openTag :: Parser Error (ByteString, [(ByteString, ByteString)])
 openTag =
   lt *> ((,) <$> xmlName <*> many (wss *> xmlAtt) <* optional wss) <* gt `cut'` Msg "open tag expected"
 
--- [42]
+-- | closing tag as per [42]
+--
+-- >>> runParserMaybe closeTag "</g>"
+-- Just "g"
 closeTag :: Parser Error ByteString
 closeTag = oct *> xmlName <* optional wss <* gt `cut'` Msg "close tag expected"
 
--- [44]
+-- | empty element tag as per [44]
+--
+-- >>> runParserMaybe emptyElemTag "<br/>"
+-- Just ("br",[])
 emptyElemTag ::  Parser Error (ByteString, [(ByteString, ByteString)])
 emptyElemTag =
   lt *> ((,) <$> xmlName <*> many (wss *> xmlAtt) <* optional wss) <*  gtc
 
 -- * comments
+xmlCommentOpen :: Parser e ()
 xmlCommentOpen = $(string "<!--")
+
+xmlCommentClose :: Parser e ()
 xmlCommentClose = $(string "-->")
 
+xmlCharNotMinus :: Parser e ByteString
 xmlCharNotMinus = byteStringOf $ satisfy (/= '-')
 
+xmlMinusPlusChar :: Parser e ByteString
 xmlMinusPlusChar = byteStringOf $ $(char '-') *> xmlCharNotMinus
 
+-- | xml comment
+--
+--
+-- >>> runParserMaybe xmlComment "<!-- comment -->"
+-- Just " comment "
+xmlComment :: Parser e ByteString
 xmlComment = xmlCommentOpen *> byteStringOf (many (xmlCharNotMinus <|> xmlMinusPlusChar)) <* xmlCommentClose
 
--- * CDATA
--- https://stackoverflow.com/questions/55465703/is-cdata-necessary-when-styling-an-inline-svg
--- [18]
-xmlCDSect = xmlCDStart *> xmlCData <* xmlCDEnd
-
--- [19]
-xmlCDStart = $(string "<![CDATA[")
-
--- [20]
-xmlCData = byteStringOf (many xmlChar)
-
--- [21]
-xmlCDEnd = $(string "]]>")
-
 -- * prolog
-xmlXml =
-  ($(char 'X') <|> $(char 'x')) *>
-  ($(char 'M') <|> $(char 'm')) *>
-  ($(char 'L') <|> $(char 'l'))
 
--- [22]
+-- | xml production rule [22]
+--
+-- The library doesn't do any analysis of the prolog string nor produces it, hence it is just parsed as a ByteString
+--
+-- >>> runParser (ws_ *> xmlProlog) exampleDocument
+-- OK "<?xml version=\"1.0\" standalone=\"yes\" ?>\n\n<!--open the DOCTYPE declaration -\n  the open square bracket indicates an internal DTD-->\n<!DOCTYPE foo [\n\n<!--define the internal DTD-->\n  <!ELEMENT foo (#PCDATA)>\n\n<!--close the DOCTYPE declaration-->\n]>\n" "<foo>Hello World.</foo>\n"
 xmlProlog :: Parser e ByteString
 xmlProlog = byteStringOf $
-  optional xmlXMLDecl >>
+  xmlXMLDecl >>
   many xmlMisc >>
   optional (xmlDoctypedecl >> optional xmlMisc)
 
--- [23]
+-- | XML declaration as per production rule [23]
+--
+-- >>> runParserMaybe xmlXMLDecl "<?xml version=\"1.0\" standalone=\"yes\" ?>"
+-- Just "<?xml version=\"1.0\" standalone=\"yes\" ?>"
+xmlXMLDecl :: Parser e ByteString
 xmlXMLDecl = byteStringOf $
   $(string "<?xml") >>
   xmlVersionInfo >>
@@ -257,23 +295,44 @@ xmlXMLDecl = byteStringOf $
 xmlVersionInfo :: Parser e ByteString
 xmlVersionInfo = byteStringOf $ wss >> $(string "version") >> eq >> wrappedQNoGuard xmlVersionNum
 
--- [26]   	VersionNum	   ::=   	'1.' [0-9]+
+-- xml production [26]
 xmlVersionNum :: Parser e ByteString
 xmlVersionNum =
   byteStringOf ($(string "1.") >> some (satisfy isDigit))
 
--- [27]   	Misc	   ::=   	Comment | PI | S
-data XmlMiscType = XMiscComment | XMiscPI | XMiscS deriving (Generic, Show)
+-- | A comment or whitespace outside of the main document [27]
+-- not as per [27] (missing PI)
+data XmlMiscType = XMiscComment | XMiscS deriving (Generic, Show, Eq)
 
-data XmlMisc = XmlMisc { xmiscType :: XmlMiscType, xmiscContent :: ByteString } deriving (Generic, Show)
+data XmlMisc = XmlMisc { xmiscType :: XmlMiscType, xmiscContent :: ByteString } deriving (Generic, Show, Eq)
 
+-- | Parser for miscellaneous guff
 xmlMisc :: Parser e XmlMisc
 xmlMisc =
   (XmlMisc XMiscComment <$> xmlComment) <|>
-  -- (XmlMisc XMiscPI <$> xmlPI) <|>
-  (XmlMisc XMiscS <$> byteStringOf wss)
+  (XmlMisc XMiscS <$> wss)
 
--- [28]
+exampleDocument :: ByteString
+exampleDocument = [i|
+<?xml version="1.0" standalone="yes" ?>
+
+<!--open the DOCTYPE declaration -
+  the open square bracket indicates an internal DTD-->
+<!DOCTYPE foo [
+
+<!--define the internal DTD-->
+  <!ELEMENT foo (\#PCDATA)>
+
+<!--close the DOCTYPE declaration-->
+]>
+<foo>Hello World.</foo>
+|]
+
+-- | Doctype declaration as per production rule [28]
+--
+-- >>> runParserMaybe xmlDoctypedecl "<!DOCTYPE foo [ declarations ]>"
+-- Just "<!DOCTYPE foo [ declarations ]>"
+xmlDoctypedecl :: Parser e ByteString
 xmlDoctypedecl = byteStringOf $
   $(string "<!DOCTYPE") >>
   wss >>
@@ -283,6 +342,7 @@ xmlDoctypedecl = byteStringOf $
   optional bracketedSB >> optional wss >>
   $(char '>')
 
+bracketedSB :: Parser e [Char]
 bracketedSB = bracketed $(char '[') $(char ']') (many (satisfy (/= ']')))
 
 -- [32]
@@ -292,17 +352,6 @@ wssDDecl = byteStringOf $
 
 xmlYesNo :: Parser e ByteString
 xmlYesNo = wrappedQNoGuard (byteStringOf $ $(string "yes") <|> $(string "no"))
-
--- [33] - [38] removed
-
--- [77]
-xmlTextDecl :: Parser e ByteString
-xmlTextDecl = byteStringOf $
-  $(string "<?xml") >>
-  optional xmlVersionInfo >>
-  xmlEncodingDecl >>
-  optional wss >>
-  $(string "?>")
 
 -- | xml production [80]
 xmlEncodingDecl :: Parser e ByteString
@@ -314,159 +363,33 @@ xmlEncName = byteStringOf (satisfyAscii isLatinLetter >> many (satisfyAscii (\x 
 
 -- main Parser
 
--- [1]
-data XmlDocument = XmlDocument ByteString Markup [XmlMisc]
+-- | An XML document as pre production rule [1]
+--
+data XmlDocument = XmlDocument ByteString Markup [XmlMisc] deriving (Show, Eq)
 
+-- | Note that the library builds a Markup as per the SVG standards and not a Document.
+--
+-- >>> runParser (ws_ *> xmlDocument) exampleDocument
+-- OK (XmlDocument "<?xml version=\"1.0\" standalone=\"yes\" ?>\n\n<!--open the DOCTYPE declaration -\n  the open square bracket indicates an internal DTD-->\n<!DOCTYPE foo [\n\n<!--define the internal DTD-->\n  <!ELEMENT foo (#PCDATA)>\n\n<!--close the DOCTYPE declaration-->\n]>\n" (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = [Content "Hello World."]}) [XmlMisc {xmiscType = XMiscS, xmiscContent = "\n"}]) ""
 xmlDocument :: Parser Error XmlDocument
-xmlDocument = XmlDocument <$> xmlProlog <*> xmlElement <*> many xmlMisc
+xmlDocument = XmlDocument <$> (ws_ *> xmlProlog) <*> markupP <*> many xmlMisc
 
-xmlElement :: Parser Error Markup
-xmlElement =
-  ((\(n,as) -> Markup n (mconcat $ inject <$> as) mempty) <$> emptyElemTag) <|>
+-- | main parser for a single tagged, xml element
+--
+-- >>> runParser markupP "<foo>Hello World.</foo>"
+-- OK (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = [Content "Hello World."]}) ""
+markupP :: Parser Error Markup
+markupP =
+  ((\(n,as) -> Markup n (mconcat $ singleAtt <$> as) mempty) <$> emptyElemTag) <|>
   -- no close tag = open tag test
-  ((\(n,as) c _ -> Markup n (mconcat $ inject <$> as) c) <$> openTag <*> many xmlContent <*> closeTag `cut` ["open tag", "content", "close tag"])
+  ((\(n,as) c _ -> Markup n (mconcat $ singleAtt <$> as) c) <$> openTag <*> many contentP <*> closeTag `cut` ["open tag", "content", "close tag"])
 
-xmlContent :: Parser Error Content
-xmlContent =
-  (MarkupLeaf <$> xmlElement) <|>
-  (CDSect <$> xmlCDSect ) <|>
+-- | inner contents of a xml element.
+--
+-- >>> runParser (some contentP) "<foo>Hello World.</foo>content<!-- comment -->"
+-- OK [MarkupLeaf (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = [Content "Hello World."]}),Content "content",Comment " comment "] ""
+contentP :: Parser Error Content
+contentP =
+  (MarkupLeaf <$> markupP) <|>
   (Comment <$> xmlComment) <|>
   (Content <$> byteStringOf (some (satisfy (/= '<'))))
-
-isoMarkupParse :: ByteString -> Bool
-isoMarkupParse x = case runParser xmlElement x of
-  OK l "" -> printMarkup l == x
-  _ -> False
-
-parseOk :: Parser e a -> ByteString -> Bool
-parseOk p x = case runParser p x of
-  OK _ "" -> True
-  OK _ _ -> False
-  _ -> False
-
--- >>> os <- olds'
--- >>> osb <- oldChecks' os
--- >>> osb
--- [True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True]
-fileList :: FilePath -> IO [FilePath]
-fileList fp =  fmap (filter (/= ".DS_Store")) (listDirectory fp)
-
-isoFile :: FilePath -> IO Bool
-isoFile fp = do
-  bs <- BS.readFile fp
-  pure $ isoMarkupParse bs
-
-eqFiles :: FilePath -> FilePath -> IO Bool
-eqFiles fp  fp' = do
-  bs <- BS.readFile fp
-  bs' <- BS.readFile fp
-  pure $ bs == bs'
-
-
-
-oldChecks' fs = traverse (fmap (parseOk xmlElement) . Data.ByteString.readFile) $ ("../../git/chart-svg/other/"<>) <$> fs
-
-fileCheck fp = do
-  bs <- BS.readFile ("other/" <> fp)
-  case runParserMaybe xmlElement bs of
-    Nothing -> pure False
-    Just m -> pure $ bs == printMarkup m
-
--- parse error model
--- | An expected item which is displayed in error messages.
-data Expected
-  = Msg String  -- ^ An error message.
-  | Lit String  -- ^ A literal expected thing.
-  deriving (Eq, Show, Ord)
-
-instance IsString Expected where fromString = Lit
-
--- | A parsing error.
-data Error
-  = Precise Pos Expected     -- ^ A precisely known error, like leaving out "in" from "let".
-  | Imprecise Pos [Expected] -- ^ An imprecise error, when we expect a number of different things,
-                             --   but parse something else.
-  deriving Show
-
-errorPos :: Error -> Pos
-errorPos (Precise p _)   = p
-errorPos (Imprecise p _) = p
-
--- | Merge two errors. Inner errors (which were thrown at points with more consumed inputs)
---   are preferred. If errors are thrown at identical input positions, we prefer precise errors
---   to imprecise ones.
---
---   The point of prioritizing inner and precise errors is to suppress the deluge of "expected"
---   items, and instead try to point to a concrete issue to fix.
-merge :: Error -> Error -> Error
-merge e e' = case (errorPos e, errorPos e') of
-  (p, p') | p < p' -> e'
-  (p, p') | p > p' -> e
-  (p, _)          -> case (e, e') of
-    (Precise{}      , _               ) -> e
-    (_              , Precise{}       ) -> e'
-    (Imprecise _ es , Imprecise _ es' ) -> Imprecise p (es ++ es')
-{-# noinline merge #-} -- merge is "cold" code, so we shouldn't inline it.
-
--- | Pretty print an error. The `B.ByteString` input is the source file. The offending line from the
---   source is displayed in the output.
-prettyError :: ByteString -> Error -> String
-prettyError b e =
-
-  let pos :: Pos
-      pos      = case e of Imprecise pos e -> pos
-                           Precise pos e   -> pos
-      ls       = linesUtf8 b
-      (l, c)   = head $ posLineCols b [pos]
-      line     = if l < length ls then ls !! l else ""
-      line'     = if length line > 300 then Prelude.drop (c-50) $ Prelude.take (c+50) line else line
-      linum    = show l
-      lpad     = fmap (const ' ') linum
-
-      expected (Lit s) = show s
-      expected (Msg s) = s
-
-      err (Precise _ e)    = expected e
-      err (Imprecise _ es) = imprec es
-
-      imprec :: [Expected] -> String
-      imprec []     = error "impossible"
-      imprec [e]    = expected e
-      imprec (e:es) = expected e ++ go es where
-        go []     = ""
-        go [e]    = " or " ++ expected e
-        go (e:es) = ", " ++ expected e ++ go es
-
-  in show l ++ ":" ++ show c ++ ":\n" ++
-     lpad   ++ "|\n" ++
-     linum  ++ "| " ++ line' ++ "\n" ++
-     lpad   ++ "| " ++ replicate c ' ' ++ "^\n" ++
-     "parse error: expected " ++
-     err e
-
--- | Imprecise cut: we slap a list of items on inner errors.
-cut :: Parser Error a -> [Expected] -> Parser Error a
-cut p es = do
-  pos <- getPos
-  cutting p (Imprecise pos es) merge
-
--- | Precise cut: we propagate at most a single error.
-cut' :: Parser Error a -> Expected -> Parser Error a
-cut' p e = do
-  pos <- getPos
-  cutting p (Precise pos e) merge
-
--- | Run parser, print pretty error on failure.
-runParserEither :: Parser Error a -> ByteString -> Either ByteString a
-runParserEither p bs = case runParser p bs of
-    Err e  -> Left $ strToUtf8 $ prettyError bs e
-    OK a _ -> Right a
-    Fail   -> Left "uncaught parse error"
-
--- | Run parser, print pretty error on failure.
-testParser :: Show a => Parser Error a -> String -> IO ()
-testParser p str = case fromString str of
-  b -> case runParser p b of
-    Err e  -> putStrLn $ prettyError b e
-    OK a _ -> print a
-    Fail   -> putStrLn "uncaught parse error"

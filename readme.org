@@ -4,9 +4,186 @@
 
 A charting library targetting SVG.
 
+* Usage
 
-* dev
+#+begin_src haskell :file other/usage.svg :results output graphics file :exports both
+:set -XOverloadedLabels
+:set -XOverloadedStrings
+import Chart
+import Optics.Core
+lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
+styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
+cs = zipWith (\s x -> LineChart s [x]) styles lines
+lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+writeChartOptions "other/usage.svg" lineExample
+#+end_src
 
+#+RESULTS:
+[[file:other/usage.svg]]
+
+See the haddock documentation for a detailed overview and [[file:gallery.md][the gallery]] for some potential inspiration.
+
+* chart-svg changelog
+:PROPERTIES:
+:EXPORT_FILE_NAME: chart-svg-changelog
+:END:
+
+[[file:other/banner.svg]]
+
+** chart-svg 0.4
+
+
+0.4 is a plumbing release.
+
+*** Text ==> ByteString
+
+Attoparsec ==> FlatParse
+neat-interpolation ==> string-interpolate
+
+text is hardcoded as Text, which has biased design towards Text everywhere. 0.4 includes a move to bytestring with a few library changes:
+  - parsing with flatparse (replacing attoparsec). The ergonomics of flatparse is very nice to work with in a Haskell setting, especially with chainr, and easy but restricted template-haskell magic.
+  - quasi-quotation is via string-interpolate, (replacing neat-interpolation).
+
+*** lucid ==> Svg
+
+Printing SVG has moved internal to the library, replacing lucid (and blaze-svg under the hood).
+
+Charts now render to Markup, which can be thought of as a restricted subset of XML, with SVG headers and trimmings.
+
+The charts are formed from a very few svg tags and attributes: class, polyline, rect, point, d paths, ellipse, and then style as attributes and text as content.
+
+*** tree-diff
+
+In part, this has been done to introduce https://hackage.haskell.org/package/tree-diff into the machinery. Instead of sending entirely new *.svg's to a web browser, we will be able to send a diff of the raw SVG as a change to a chart. HUD elements becomes much more stable in this setup, and traffic over the websocket reduces by an order or so, resulting in a smoother rendering onscreen. In local tests, FPS can approach 90 or so when zooming on chart detail.
+
+** 0.3
+
+[[https://hackage.haskell.org/package/chart-svg][chart-svg-0.3]] is a major rewrite of a library I've had in the toolkit for a while. This has been a major refactoring and I'd like to share a few highlights.
+
+*** Monomorphic primitives
+
+Chart primitives boil down to a very short list. Charts consist of:
+
+- Rectangles
+- Lines
+- Glyphs (Geometric Shapes such as circles and arrows)
+- Text (specifically positioned on a page) &
+- Paths (curves)
+
+The core ~Chart~ type now reflects this and looks like:
+
+#+begin_src haskell
+data Chart where
+  RectChart :: RectStyle -> [Rect Double] -> Chart
+  LineChart :: LineStyle -> [[Point Double]] -> Chart
+  GlyphChart :: GlyphStyle -> [Point Double] -> Chart
+  TextChart :: TextStyle -> [(Text, Point Double)] -> Chart
+  PathChart :: PathStyle -> [PathData Double] -> Chart
+  BlankChart :: [Rect Double] -> Chart
+  deriving (Eq, Show)
+
+newtype ChartTree = ChartTree {tree :: Tree (Maybe Text, [Chart])} deriving (Eq, Show, Generic)
+#+end_src
+
+You can find examples of all of these in Chart.Examples.
+
+Compared to 0.2.3 ...
+
+#+begin_src haskell
+data Chart a = Chart
+  { -- | annotation style for the data
+    annotation :: Annotation,
+    -- | list of data elements, either points or rectangles.
+    xys :: [XY a]
+  }
+
+data Annotation
+  = RectA RectStyle
+  | TextA TextStyle [Text]
+  | GlyphA GlyphStyle
+  | LineA LineStyle
+  | PathA PathStyle [PathInfo Double]
+  | BlankA
+
+data XY a
+  = PointXY (Point a)
+  | RectXY (Rect a)
+#+end_src
+
+... the unification of style via Annotation and data via XY has been ditched, and there is now a simple and tight coupling between style, data type and primitive.
+
+I originally tried for user extensibility of what a Chart was but, in the course of refactoring, the complexity cost started to weigh pretty heavily on the code base. In this particular case, working with a concrete, serializable representation, amenable to optics and pattern matching trumped higher-kinded flexibility.
+
+The new Chart sum type may not cover a useful primitive, or there may be ideas that fall between the GADT definition, but allowing for this just wasn't worth it versus accepting future refactoring costs.
+
+~ChartTree~ is in constrast to the prior usage of a ~[Chart]~ as the basic chart type, and fits in well with the notion of chart as svg, and thus xml tree. The rose-tree bundling and naming of chart components enables easy downstream manipulation with tools like reanimate and CSS.
+
+*** Browser-centric
+
+#+attr_html: :width 400
+#+caption: A LineChart
+[[file:other/line.svg]]
+
+Existing chart ecosystems, such as excel, [[https://d3js.org/][d3js]] or [[https://github.com/plotly/plotly.js][plotly]], were built in earlier times and don't tend to have regard for modern browser conventions. One addition to the library is to try and fit in with user color scheme preferences. ~Chart-svg~ charts can respect [[https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme][prefers-color-scheme]] and once [[https://github.com/haskell-infra/www.haskell.org/issues/8][this Hackage ticket]] gets done, should look superb in a haddock.
+
+
+The design flexibility you get from thinking of a chart as primitive shapes to be rendered in a browser also helps expand any definition of what a chart is. A recent example of this can be found in the [[https://hackage.haskell.org/package/dotparse][dotparse]] library which includes production of a [[https://hackage.haskell.org/package/numhask-0.10.1.0][chart]] I added to the numhask docs. Given the constraints of Haddock, the chart is not (yet) clickable, but is clickable in the [[https://hackage.haskell.org/package/numhask-0.10.1.0/docs/other/nh.svg][docs]] ...
+This is very difficult to do in other chart libraries outside of direct javascript hacking. Imagine a future where visualisations of class hierarchies help us to tooltip, backlink and navigate complex code bases such as lens.
+
+** Better Colors
+
+#+caption: Default palette experiments from color-adjust
+#+attr_html: :width 400
+[[file:other/wheel.svg]]
+
+Default colors have been modified with the help of the [[https://bottosson.github.io/posts/oklab/][oklab color space]]. oklab has recently been introduced to the CSS standards and will become important in the coming years. You can read more about the development of this in a [recent]({{< relref "color-adjust" >}}) post, but I'm more than happy with the look and feel improvements you get from better lumination and saturation scaling.
+
+** Future development
+
+#+attr_html: :width 200
+#+caption: An example from dotparse
+[[file:other/ex.svg]]
+
+
+[[https://hackage.haskell.org/package/dotparse][Dotparse]] has been a useful test of interoperability, utilising a centuries-old schema and the wonderful new parsing paradigm that is [[https://hackage.haskell.org/package/flatparse][flatparse]], to create a modern web page artifact. If the ideas there are combined with the direction [[https://jonascarpay.com/posts/2022-04-26-calligraphy-tutorial.html][calligraphy]] is taking, we could make clickable visualizations of module, class and call graph heirarchies. That could take performance benchmarking, testing, Haddocks and Hackage to another level, and a unique one compared with other languages.
+
+Some [[https://hackage.haskell.org/package/reanimate][reanimate]] experiments have been carved out of the project in the interests of complexity management, but can still be found in [[https://github.com/tonyday567/chart-reanimate][chart-reanimate]]. ~chart-svg~ handles text well, and the gap between what is a chart and what is text rendering is getting smaller. I'm personally string diagram blind (a rare but real affliction), but animation of string diagrams would look good on the page and be very benficial to documentation.
+
+I'm pretty happy with the recent refactorings and I suspect the integration of visualization with documentation will remain a weird hobby of mine for a good while. The library is nine parts aesthetics and zero parts commercial, but if it ever gets sponsorship it could be an interesting alternative to Excel, d3js and their clones.
+
+Any ideas or criticisms are gratefully appreciated.
+* Bugz
+** styleBox' imprecision
+
+- SVG is, in general, an additive model eg a border adds a constant amount no matter the scale or aspect. Text charts, in particular, can have small data boxes but large style additions to the box.
+- rescaling of style here is, in juxtaposition, a multiplicative model.
+
+In practice, this can lead to weird corner cases and unrequited distortion.
+
+The example below starts with the unit chart, and a simple axis bar, with a dynamic overhang, so that the axis bar represents the x-axis extremity.
+
+#+begin_src haskell :results output
+exHud h = defaultHudOptions & set #chartAspect ChartAspect & set #axes [(1,defaultAxisOptions & over #bar (fmap (set #overhang h)) & set (#ticks % #ttick) Nothing & set (#ticks % #gtick) Nothing & set (#ticks % #ltick) Nothing)]
+:t exHud
+x1 h = addHud (exHud h) t1
+:t x1
+#+end_src
+
+#+begin_src haskell
+view styleBox' $ set styleBox' (Just one) (x1 0.1)
+#+end_src
+
+#+RESULTS:
+: Just Rect -0.5 0.5 -0.5 0.5001171875000001
+
+#+begin_src haskell
+view styleBox' $ set styleBox' (Just one) (x1 0)
+#+end_src
+
+#+RESULTS:
+: Just Rect -0.500049504950495 0.5000495049504949 -0.5 0.5001171875000001
+
+* Development
 
 #+begin_src haskell :results output
 :reload
@@ -14,6 +191,7 @@ A charting library targetting SVG.
 :set -XOverloadedLabels
 :set -XOverloadedStrings
 import Chart
+import Chart.Examples
 import Optics.Core
 import FlatParse.Basic
 import qualified Data.ByteString as BS
@@ -24,136 +202,34 @@ import qualified Data.Set
 #+end_src
 
 #+RESULTS:
-: <no location info>: warning: [-Wmissing-home-modules]
-:     These modules are needed for compilation but not listed in your .cabal file's other-modules:
-:         Chart.Diff
-: [13 of 16] Compiling Chart.Diff       ( src/Chart/Diff.hs, interpreted ) [Source file changed]
-: Ok, 16 modules loaded.
-: >
+: Ok, 15 modules loaded.
 : >
 
+** basic ChartOptions ==> Markup ==> ByteString rendering pipeline
 
-* basic rendering pipeline
-
-** mempty
 #+begin_src haskell
-markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
+let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
+c0
+#+end_src
+
+#+RESULTS:
+: ChartOptions {markupOptions = MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferNormal, cssExtra = ""}}, hudOptions = HudOptions {chartAspect = FixedAspect 1.5, axes = [], frames = [], legends = [], titles = []}, charts = ChartTree {tree = Node {rootLabel = (Nothing,[]), subForest = []}}}
+
+#+begin_src haskell
+markupChartOptions c0
 #+end_src
 
 #+RESULTS:
 : Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
 
 #+begin_src haskell
-printChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
+printMarkup $ markupChartOptions c0
 #+end_src
 
 #+RESULTS:
 : <svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>
 
-
-#+begin_src haskell :results output
-printChartOptions (ChartOptions defaultMarkupOptions defaultHudOptions mempty)
-#+end_src
-
-#+RESULTS:
-: <svg height=\"300.0\" viewbox=\"-0.7331572863520408 -0.49594877991132563 1.4750353555484697 0.9937030847582644\" width=\"445.31471568510756\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style>\nsvg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: $hexDark;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: $hexDark;\n  }\n  .legendBorder g {\n    fill: $hexLight;\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #f0f0f0;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #f0f0f0;\n  }\n  .legendBorder g {\n    fill: #0d0d0d;\n  }\n}\n</style><g class=\"chart\"/><g class=\"hud\"><g class=\"frame\"><g fill=\"rgb(100%, 100%, 100%)\" fill-opacity=\"2.0e-2\" stroke=\"rgb(0%, 0%, 0%)\" stroke-opacity=\"0.0\" stroke-width=\"0.0\"><rect height=\"0.8769968051118211\" width=\"1.2754304846938778\" x=\"-0.5813810586734693\" y=\"-0.47399600638977646\"/></g></g><g class=\"axis\"><g class=\"ticks\"><g class=\"tickglyph\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"0.4\" stroke=\"rgb(5%, 5%, 5%)\" stroke-opacity=\"0.4\" stroke-width=\"4.0e-3\"><polyline points=\"-0.6068896683673468,0.4180007987220447\n-0.6068896683673468,0.3880007987220447\"><g transform=\"rotate(-90.0, -0.6068896683673468, 0.4030007987220447)\"/></polyline><polyline points=\"-0.6068896683673468,0.3303011182108626\n-0.6068896683673468,0.3003011182108626\"><g transform=\"rotate(-90.0, -0.6068896683673468, 0.3153011182108626)\"/></polyline><polyline points=\"-0.6068896683673468,0.24260143769968046\n-0.6068896683673468,0.21260143769968043\"><g transform=\"rotate(-90.0, -0.6068896683673468, 0.22760143769968044)\"/></polyline><polyline points=\"-0.6068896683673468,0.1549017571884983\n-0.6068896683673468,0.12490175718849829\"><g transform=\"rotate(-90.0, -0.6068896683673468, 0.1399017571884983)\"/></polyline><polyline points=\"-0.6068896683673468,6.720207667731619e-2\n-0.6068896683673468,3.720207667731619e-2\"><g transform=\"rotate(-90.0, -0.6068896683673468, 5.220207667731619e-2)\"/></polyline><polyline points=\"-0.6068896683673468,-2.049760383386591e-2\n-0.6068896683673468,-5.049760383386591e-2\"><g transform=\"rotate(-90.0, -0.6068896683673468, -3.549760383386591e-2)\"/></polyline><polyline points=\"-0.6068896683673468,-0.10819728434504806\n-0.6068896683673468,-0.13819728434504808\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.12319728434504806)\"/></polyline><polyline points=\"-0.6068896683673468,-0.1958969648562302\n-0.6068896683673468,-0.22589696485623023\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.21089696485623022)\"/></polyline><polyline points=\"-0.6068896683673468,-0.28359664536741225\n-0.6068896683673468,-0.3135966453674123\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.29859664536741226)\"/></polyline><polyline points=\"-0.6068896683673468,-0.3712963258785943\n-0.6068896683673468,-0.4012963258785943\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.3862963258785943)\"/></polyline><polyline points=\"-0.6068896683673468,-0.45899600638977645\n-0.6068896683673468,-0.48899600638977647\"><g transform=\"rotate(-90.0, -0.6068896683673468, -0.47399600638977646)\"/></polyline></g></g><g class=\"ticktext\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"1.0\" font-size=\"4.251434948979592e-2\" stroke=\"none\" stroke-width=\"0.0\" text-anchor=\"end\"><text x=\"-0.6375\" y=\"0.4150595047923323\">-0.50</text><text x=\"-0.6375\" y=\"0.3273598242811501\">-0.40</text><text x=\"-0.6375\" y=\"0.23966014376996794\">-0.30</text><text x=\"-0.6375\" y=\"0.15196046325878587\">-0.20</text><text x=\"-0.6375\" y=\"6.426078274760372e-2\">-0.10</text><text x=\"-0.6375\" y=\"-2.3438897763578326e-2\"> 0.00</text><text x=\"-0.6375\" y=\"-0.11113857827476048\"> 0.10</text><text x=\"-0.6375\" y=\"-0.19883825878594263\"> 0.20</text><text x=\"-0.6375\" y=\"-0.2865379392971247\"> 0.30</text><text x=\"-0.6375\" y=\"-0.37423761980830683\"> 0.40</text><text x=\"-0.6375\" y=\"-0.4619373003194889\"> 0.50</text></g></g><g class=\"ticklines\"><g fill=\"none\" stroke=\"rgb(5%, 5%, 5%)\" stroke-opacity=\"5.0e-2\" stroke-width=\"5.0e-3\"><polyline points=\"-0.5813810586734693,-0.47399600638977646\n0.6940494260204084,-0.47399600638977646\"/></g></g></g><g class=\"axisbar\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"0.4\" stroke=\"rgb(0%, 0%, 0%)\" stroke-opacity=\"0.0\" stroke-width=\"0.0\"><rect height=\"0.8805047923322683\" width=\"3.40114795918367e-3\" x=\"-0.5932850765306121\" y=\"-0.47575\"/></g></g></g><g class=\"axis\"><g class=\"ticks\"><g class=\"tickglyph\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"0.4\" stroke=\"rgb(5%, 5%, 5%)\" stroke-opacity=\"0.4\" stroke-width=\"4.0e-3\"><polyline points=\"-0.5813810586734693,0.44431070287539937\n-0.5813810586734693,0.41431070287539934\"/><polyline points=\"-0.4538380102040816,0.44431070287539937\n-0.4538380102040816,0.41431070287539934\"/><polyline points=\"-0.32629496173469374,0.44431070287539937\n-0.32629496173469374,0.41431070287539934\"/><polyline points=\"-0.198751913265306,0.44431070287539937\n-0.198751913265306,0.41431070287539934\"/><polyline points=\"-7.120886479591826e-2,0.44431070287539937\n-7.120886479591826e-2,0.41431070287539934\"/><polyline points=\"5.633418367346954e-2,0.44431070287539937\n5.633418367346954e-2,0.41431070287539934\"/><polyline points=\"0.18387723214285745,0.44431070287539937\n0.18387723214285745,0.41431070287539934\"/><polyline points=\"0.311420280612245,0.44431070287539937\n0.311420280612245,0.41431070287539934\"/><polyline points=\"0.43896332908163305,0.44431070287539937\n0.43896332908163305,0.41431070287539934\"/><polyline points=\"0.5665063775510206,0.44431070287539937\n0.5665063775510206,0.41431070287539934\"/><polyline points=\"0.6940494260204084,0.44431070287539937\n0.6940494260204084,0.41431070287539934\"/></g></g><g class=\"ticktext\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"1.0\" font-size=\"4.251434948979592e-2\" stroke=\"none\" stroke-width=\"0.0\" text-anchor=\"middle\"><text x=\"-0.5813810586734693\" y=\"0.485\">-0.50</text><text x=\"-0.4538380102040816\" y=\"0.485\">-0.40</text><text x=\"-0.32629496173469374\" y=\"0.485\">-0.30</text><text x=\"-0.198751913265306\" y=\"0.485\">-0.20</text><text x=\"-7.120886479591826e-2\" y=\"0.485\">-0.10</text><text x=\"5.633418367346954e-2\" y=\"0.485\"> 0.00</text><text x=\"0.18387723214285745\" y=\"0.485\"> 0.10</text><text x=\"0.311420280612245\" y=\"0.485\"> 0.20</text><text x=\"0.43896332908163305\" y=\"0.485\"> 0.30</text><text x=\"0.5665063775510206\" y=\"0.485\"> 0.40</text><text x=\"0.6940494260204084\" y=\"0.485\"> 0.50</text></g></g><g class=\"ticklines\"><g fill=\"none\" stroke=\"rgb(5%, 5%, 5%)\" stroke-opacity=\"5.0e-2\" stroke-width=\"5.0e-3\"><polyline points=\"0.6940494260204084,0.4030007987220447\n0.6940494260204084,-0.47399600638977646\"/></g></g></g><g class=\"axisbar\"><g fill=\"rgb(5%, 5%, 5%)\" fill-opacity=\"0.4\" stroke=\"rgb(0%, 0%, 0%)\" stroke-opacity=\"0.0\" stroke-width=\"0.0\"><rect height=\"3.5079872204472617e-3\" width=\"1.2788316326530613\" x=\"-0.5830816326530611\" y=\"0.41177076677316293\"/></g></g></g></g></svg>
-
-** comparison to old unit.svg
-
-#+begin_src haskell :results output
-u0 <- BS.readFile "../../git/chart-svg/other/unit.svg"
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell :results output
-let (Just u0m) = runParserMaybe xmlElement u0
-#+end_src
-
-#+begin_src haskell :results output
-u0m
-#+end_src
-
-#+RESULTS:
-: Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.7328858661167512 -0.4962895215155287 1.475089427347716 0.9940076369977622"),(Attribute "width","445.19459582915766"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content "svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #0d0d0d;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #0d0d0d;\n  }\n  .legendBorder g {\n    fill: #f0f0f0;\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #f0f0f0;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #f0f0f0;\n  }\n  .legendBorder g {\n    fill: #0d0d0d;\n  }\n}"]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"unit")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(2%, 73%, 80%)"),(Attribute "fill-opacity","0.1"),(Attribute "stroke","rgb(2%, 29%, 48%)"),(Attribute "stroke-opacity","1.0"),(Attribute "stroke-width","1.0e-2")]}, contents = [MarkupLeaf (Markup {tag = "rect", atts = Attributes {attMap = fromList [(Attribute "height","0.8733574988672406"),(Attribute "width","1.2718115482233503"),(Attribute "x","-0.5773009200507613"),(Attribute "y","-0.47438321250566384")]}, contents = []})]})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"frame")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(100%, 100%, 100%)"),(Attribute "fill-opacity","2.0e-2"),(Attribute "stroke","rgb(0%, 0%, 0%)"),(Attribute "stroke-opacity","0.0"),(Attribute "stroke-width","0.0")]}, contents = [MarkupLeaf (Markup {tag = "rect", atts = Attributes {attMap = fromList [(Attribute "height","0.8820910738559129"),(Attribute "width","1.2802902918781724"),(Attribute "x","-0.5815402918781725"),(Attribute "y","-0.47875")]}, contents = []})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"axis")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"ticks")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"tickglyph")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(5%, 5%, 5%)"),(Attribute "fill-opacity","0.4"),(Attribute "stroke","rgb(5%, 5%, 5%)"),(Attribute "stroke-opacity","0.4"),(Attribute "stroke-width","4.0e-3")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, 0.3989742863615767)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,0.41397428636157674\n-0.6069765228426395,0.3839742863615767")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, 0.31163853647485273)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,0.32663853647485275\n-0.6069765228426395,0.2966385364748527")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, 0.22430278658812863)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,0.23930278658812865\n-0.6069765228426395,0.20930278658812862")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, 0.13696703670140453)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,0.15196703670140455\n-0.6069765228426395,0.12196703670140453")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, 4.9631286814680486e-2)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,6.463128681468049e-2\n-0.6069765228426395,3.463128681468049e-2")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, -3.770446307204356e-2)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,-2.270446307204356e-2\n-0.6069765228426395,-5.270446307204356e-2")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, -0.12504021295876766)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,-0.11004021295876766\n-0.6069765228426395,-0.14004021295876767")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, -0.21237596284549165)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,-0.19737596284549164\n-0.6069765228426395,-0.22737596284549166")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, -0.29971171273221575)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,-0.28471171273221574\n-0.6069765228426395,-0.31471171273221576")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, -0.38704746261893985)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,-0.37204746261893984\n-0.6069765228426395,-0.40204746261893987")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "transform","rotate(-90.0, -0.6069765228426395, -0.47438321250566384)")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.6069765228426395,-0.45938321250566383\n-0.6069765228426395,-0.48938321250566386")]}, contents = []})]})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"ticktext")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(5%, 5%, 5%)"),(Attribute "fill-opacity","1.0"),(Attribute "font-size","4.2393718274111675e-2"),(Attribute "stroke","none"),(Attribute "stroke-width","0.0"),(Attribute "text-anchor","end")]}, contents = [MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","0.4109829519710013")]}, contents = [Content "-0.50"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","0.3236472020842772")]}, contents = [Content "-0.40"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","0.23631145219755315")]}, contents = [Content "-0.30"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","0.14897570231082913")]}, contents = [Content "-0.20"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","6.163995242410503e-2")]}, contents = [Content "-0.10"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","-2.5695797462618963e-2")]}, contents = [Content " 0.00"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","-0.11303154734934306")]}, contents = [Content " 0.10"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","-0.20036729723606705")]}, contents = [Content " 0.20"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","-0.28770304712279127")]}, contents = [Content " 0.30"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","-0.37503879700951526")]}, contents = [Content " 0.40"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.6375"),(Attribute "y","-0.46237454689623936")]}, contents = [Content " 0.50"]})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"ticklines")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgb(5%, 5%, 5%)"),(Attribute "stroke-opacity","5.0e-2"),(Attribute "stroke-width","5.0e-3")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,0.3989742863615767\n0.694510628172589,0.3989742863615767")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,0.31163853647485273\n0.694510628172589,0.31163853647485273")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,0.22430278658812863\n0.694510628172589,0.22430278658812863")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,0.13696703670140453\n0.694510628172589,0.13696703670140453")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,4.9631286814680486e-2\n0.694510628172589,4.9631286814680486e-2")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,-3.770446307204356e-2\n0.694510628172589,-3.770446307204356e-2")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,-0.12504021295876766\n0.694510628172589,-0.12504021295876766")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,-0.21237596284549165\n0.694510628172589,-0.21237596284549165")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,-0.29971171273221575\n0.694510628172589,-0.29971171273221575")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,-0.38704746261893985\n0.694510628172589,-0.38704746261893985")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,-0.47438321250566384\n0.694510628172589,-0.47438321250566384")]}, contents = []})]})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"axisbar")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(5%, 5%, 5%)"),(Attribute "fill-opacity","0.4"),(Attribute "stroke","rgb(0%, 0%, 0%)"),(Attribute "stroke-opacity","0.0"),(Attribute "stroke-width","0.0")]}, contents = [MarkupLeaf (Markup {tag = "rect", atts = Attributes {attMap = fromList [(Attribute "height","0.8768509288627095"),(Attribute "width","3.391497461928905e-3"),(Attribute "x","-0.5934105329949237"),(Attribute "y","-0.47612992750339833")]}, contents = []})]})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"axis")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"ticks")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"tickglyph")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(5%, 5%, 5%)"),(Attribute "fill-opacity","0.4"),(Attribute "stroke","rgb(5%, 5%, 5%)"),(Attribute "stroke-opacity","0.4"),(Attribute "stroke-width","4.0e-3")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,0.44454179882193023\n-0.5773009200507613,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.45011976522842634,0.44454179882193023\n-0.45011976522842634,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.32293861040609123,0.44454179882193023\n-0.32293861040609123,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.19575745558375618,0.44454179882193023\n-0.19575745558375618,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-6.857630076142118e-2,0.44454179882193023\n-6.857630076142118e-2,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","5.860485406091387e-2,0.44454179882193023\n5.860485406091387e-2,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.18578600888324892,0.44454179882193023\n0.18578600888324892,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.31296716370558375,0.44454179882193023\n0.31296716370558375,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.44014831852791914,0.44454179882193023\n0.44014831852791914,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.5673294733502541,0.44454179882193023\n0.5673294733502541,0.4145417988219302")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.694510628172589,0.44454179882193023\n0.694510628172589,0.4145417988219302")]}, contents = []})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"ticktext")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(5%, 5%, 5%)"),(Attribute "fill-opacity","1.0"),(Attribute "font-size","4.2393718274111675e-2"),(Attribute "stroke","none"),(Attribute "stroke-width","0.0"),(Attribute "text-anchor","middle")]}, contents = [MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.5773009200507613"),(Attribute "y","0.485")]}, contents = [Content "-0.50"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.45011976522842634"),(Attribute "y","0.485")]}, contents = [Content "-0.40"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.32293861040609123"),(Attribute "y","0.485")]}, contents = [Content "-0.30"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-0.19575745558375618"),(Attribute "y","0.485")]}, contents = [Content "-0.20"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","-6.857630076142118e-2"),(Attribute "y","0.485")]}, contents = [Content "-0.10"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","5.860485406091387e-2"),(Attribute "y","0.485")]}, contents = [Content " 0.00"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","0.18578600888324892"),(Attribute "y","0.485")]}, contents = [Content " 0.10"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","0.31296716370558375"),(Attribute "y","0.485")]}, contents = [Content " 0.20"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","0.44014831852791914"),(Attribute "y","0.485")]}, contents = [Content " 0.30"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","0.5673294733502541"),(Attribute "y","0.485")]}, contents = [Content " 0.40"]}),MarkupLeaf (Markup {tag = "text", atts = Attributes {attMap = fromList [(Attribute "x","0.694510628172589"),(Attribute "y","0.485")]}, contents = [Content " 0.50"]})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"ticklines")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgb(5%, 5%, 5%)"),(Attribute "stroke-opacity","5.0e-2"),(Attribute "stroke-width","5.0e-3")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.5773009200507613,0.3989742863615767\n-0.5773009200507613,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.45011976522842634,0.3989742863615767\n-0.45011976522842634,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.32293861040609123,0.3989742863615767\n-0.32293861040609123,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-0.19575745558375618,0.3989742863615767\n-0.19575745558375618,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","-6.857630076142118e-2,0.3989742863615767\n-6.857630076142118e-2,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","5.860485406091387e-2,0.3989742863615767\n5.860485406091387e-2,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.18578600888324892,0.3989742863615767\n0.18578600888324892,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.31296716370558375,0.3989742863615767\n0.31296716370558375,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.44014831852791914,0.3989742863615767\n0.44014831852791914,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.5673294733502541,0.3989742863615767\n0.5673294733502541,-0.47438321250566384")]}, contents = []}),MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.694510628172589,0.3989742863615767\n0.694510628172589,-0.47438321250566384")]}, contents = []})]})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"axisbar")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(5%, 5%, 5%)"),(Attribute "fill-opacity","0.4"),(Attribute "stroke","rgb(0%, 0%, 0%)"),(Attribute "stroke-opacity","0.0"),(Attribute "stroke-width","0.0")]}, contents = [MarkupLeaf (Markup {tag = "rect", atts = Attributes {attMap = fromList [(Attribute "height","3.493429995468922e-3"),(Attribute "width","1.275203045685279"),(Attribute "x","-0.5789966687817258"),(Attribute "y","0.4120746488445854")]}, contents = []})]})]})]})]})]}
-
-rc haskell :results output
-import Chart.Examples
-let u1m = markupChartOptions unitExample
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell
-u1m
-#+end_src
-
-
-#+begin_src haskell
-BS.writeFile "other/u1.svg" $ printChartOptions unitExample
-#+end_src
-
-#+RESULTS:
-
-** compare
-*** comparing all examples with old
-
-#+begin_src haskell
-oldBS <- BS.readFile "../../git/chart-svg/other/unit.svg"
-let (Just oldMarkup) = runParserMaybe xmlElement oldBS
-newBS <- BS.readFile "../../git/chart-svg/other/unit.svg"
-let currentMarkup = markupChartOptions unitExample
-#+end_src
-
-#+RESULTS:
-: <interactive>:387:5: warning: [-Wincomplete-uni-patterns]
-:     Pattern match(es) are non-exhaustive
-:     In a pattern binding:
-:         Patterns of type ‘Maybe Markup’ not matched: Nothing
-
-#+begin_src haskell
-oldBS == newBS
-#+end_src
-
-#+RESULTS:
-: True
-
-
-#+begin_src haskell
-fps <- fileList "other"
-#+end_src
-
-#+RESULTS:
-
-
-#+begin_src haskell
-fps' <- fileList "../../git/chart-svg/other"
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell
-import Data.Set
-let fps'' = Data.Set.toList $ Data.Set.intersection (Data.Set.fromList fps) (Data.Set.fromList fps')
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell
-traverse (\fp -> eqFiles ("other/"<>fp) ("../../git/chart-svg/other/"<>fp)) fps''
-#+end_src
-
-#+RESULTS:
-| True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True | True |
-
-*** round trip iso for print/parse
-
-path was a ByteString and conversion to markup used a show which introduces extra quote marks.
-
-- [X] get directory list of files; forall files
-  - [X] parse;print:should be equal
-- [X] arrow.svg & glyphs.svg
-  - tree-doff
+*** checking round trip iso for printMarkup . parseMarkup
 
 #+begin_src haskell
 writeAllExamples
@@ -163,155 +239,65 @@ writeAllExamples
 : ok
 
 #+begin_src haskell
+fileList fp =  fmap (filter (/= ".DS_Store")) (listDirectory fp)
 fps <- fileList "other"
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell
 fps
 #+end_src
 
 #+RESULTS:
-| rect.svg | sbar.svg | debug.svg | unit.svg | path.svg | arrow.svg | arcflags.svg | wheel.svg | u1.svg | hudoptions.svg | u0.svg | ellipse.svg | surface.svg | cubic.svg | gradient.svg | text.svg | bar.svg | line.svg | glyphs.svg | venn.svg | quad.svg | ellipse2.svg | wave.svg | date.svg |
+| rect.svg | sbar.svg | debug.svg | unit.svg | path.svg | arrow.svg | arcflags.svg | wheel.svg | hudoptions.svg | ellipse.svg | surface.svg | cubic.svg | gradient.svg | text.svg | bar.svg | line.svg | glyphs.svg | venn.svg | quad.svg | ellipse2.svg | usage.svg | wave.svg | date.svg |
 
-#+begin_src haskell
-fok <- mapM isoFile (("other/"<>) <$> fps)
-#+end_src
+ #+begin_src haskell
+:{
+isoMarkupParse :: BS.ByteString -> Bool
+isoMarkupParse x = case runParser markupP x of
+  OK l "" -> printMarkup l == x
+  _ -> False
 
-#+RESULTS:
+isoFile :: FilePath -> IO Bool
+isoFile fp = do
+  bs <- BS.readFile fp
+  pure $ isoMarkupParse bs
+:}
 
-#+begin_src haskell
-Prelude.zip fps fok
-#+end_src
-
-#+RESULTS:
-| rect.svg       | True  |
-| sbar.svg       | True  |
-| debug.svg      | True  |
-| unit.svg       | True  |
-| path.svg       | True  |
-| arrow.svg      | True  |
-| arcflags.svg   | True  |
-| wheel.svg      | True  |
-| u1.svg         | True  |
-| hudoptions.svg | True  |
-| u0.svg         | False |
-| ellipse.svg    | True  |
-| surface.svg    | True  |
-| cubic.svg      | True  |
-| gradient.svg   | True  |
-| text.svg       | True  |
-| bar.svg        | True  |
-| line.svg       | True  |
-| glyphs.svg     | True  |
-| venn.svg       | True  |
-| quad.svg       | True  |
-| ellipse2.svg   | True  |
-| wave.svg       | True  |
-| date.svg       | True  |
-
-#+begin_src haskell
-fileCheck "arrow.svg"
-#+end_src
-
-#+RESULTS:
-: True
-
-** Parser Errors dev & tree-diff
-
-
-#+RESULTS:
-
-#+begin_src haskell :results output
-bs <- BS.readFile "other/arrow.svg"
-runParserEither xmlElement bs
-#+end_src
-
- #+begin_src haskell :results output
-markupPath $ toPathDatas [MoveTo OriginAbsolute [Point (-1.0) 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 (-1.2320508075688774)),(1.0,1.0,0.0,False,False,Point (-0.5) (-0.3660254037844387)),(1.0,1.0,0.0,False,False,Point (-1.0) 0.5)],EndPath]
  #+end_src
 
 #+RESULTS:
-: Markup {tag = "path", atts = Attributes {attMap = fromList [(Attribute "d","M -1.0,0.5 A 0.5 0.5 -0.0 1 1 0,-1.2321 A 1.0 1.0 -0.0 0 0 -0.5,-0.3660 A 1.0 1.0 -0.0 0 0 -1.0,0.5 L -1.0,0.5")]}, contents = []}
+: ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci|
+
 
 #+begin_src haskell
-markupChart $ glyphsExample & foldOf (#charts % charts') & (\x -> x !! 8)
+fok <- mapM isoFile (("other/"<>) <$> fps)
+zip fps fok
 #+end_src
 
 #+RESULTS:
-: Just (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(2%, 73%, 80%)"),(Attribute "fill-opacity","0.2"),(Attribute "stroke","rgb(2%, 29%, 48%)"),(Attribute "stroke-opacity","1.0"),(Attribute "stroke-width","9.999999999999999e-2")]}, contents = [MarkupLeaf (Markup {tag = "path", atts = Attributes {attMap = fromList [(Attribute "d","M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z"),(Attribute "transform","translate(8.0, -0.0) scale(0.1)")]}, contents = []})]})
+| rect.svg       | True |
+| sbar.svg       | True |
+| debug.svg      | True |
+| unit.svg       | True |
+| path.svg       | True |
+| arrow.svg      | True |
+| arcflags.svg   | True |
+| wheel.svg      | True |
+| hudoptions.svg | True |
+| ellipse.svg    | True |
+| surface.svg    | True |
+| cubic.svg      | True |
+| gradient.svg   | True |
+| text.svg       | True |
+| bar.svg        | True |
+| line.svg       | True |
+| glyphs.svg     | True |
+| venn.svg       | True |
+| quad.svg       | True |
+| ellipse2.svg   | True |
+| usage.svg      | True |
+| wave.svg       | True |
+| date.svg       | True |
 
+* ToDo tree-diff patch
 
-*** just tick lines:
-
-#+begin_src haskell
-import Data.Bifunctor
-let ltickExample = unitExample & (#hudOptions % #axes) %~ fmap (second ((#bar .~ Nothing) . ((#ticks % #gtick) .~ Nothing) . ((#ticks % #ttick) .~ Nothing))) & (#hudOptions % #frames .~ []) & (#hudOptions % #axes) %~ Prelude.take 1
-#+end_src
-
-#+RESULTS:
-
-#+begin_src haskell
-ltickExample
-#+end_src
-
-#+RESULTS:
-: ChartOptions {markupOptions = MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}}, hudOptions = HudOptions {chartAspect = FixedAspect 1.5, axes = [(5.0,AxisOptions {bar = Nothing, adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), ticks = Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 2, addLPad = True}) 8 TickExtend, gtick = Nothing, ttick = Nothing, ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}, place = PlaceBottom})], frames = [], legends = [], titles = []}, charts = ChartTree {tree = Node {rootLabel = (Just "unit",[RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -0.5 0.5 -0.5 0.5]]), subForest = []}}}
-
-#+begin_src haskell
-markupChartOptions ltickExample
-#+end_src
-
-#+RESULTS:
-: Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content "svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: ${hex cd};\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: ${hex cd};\n  }\n  .legendBorder g {\n    fill: ${hex cl};\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: #f0f0f0;\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: #f0f0f0;\n  }\n  .legendBorder g {\n    fill: #0d0d0d;\n  }\n}"]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"unit")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","rgb(2%, 73%, 80%)"),(Attribute "fill-opacity","0.1"),(Attribute "stroke","rgb(2%, 29%, 48%)"),(Attribute "stroke-opacity","1.0"),(Attribute "stroke-width","1.0e-2")]}, contents = [MarkupLeaf (Markup {tag = "rect", atts = Attributes {attMap = fromList [(Attribute "height","0.99"),(Attribute "width","1.49"),(Attribute "x","-0.745"),(Attribute "y","-0.495")]}, contents = []})]})]})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"axis")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"ticks")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"ticklines")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgb(5%, 5%, 5%)"),(Attribute "stroke-opacity","5.0e-2"),(Attribute "stroke-width","5.0e-3")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.745,0.495\n0.745,-0.495")]}, contents = []})]})]})]})]})]})]}
-
-*** rerender old unit markup
-
-
-
-#+begin_src haskell :results output
-import Chart.Examples
-let u1 = printChartOptions unitExample
-#+end_src
-
-#+begin_src haskell :results output
-import Chart.Examples
-let u1 = printChartOptions unitExample
-#+end_src
-
-#+RESULTS:
-
-
-#+begin_src haskell :results output
-BS.writeFile "other/u0.svg" u0
-BS.writeFile "other/u1.svg" u1
-
-#+end_src
-
-#+RESULTS:
-
-*** debugging unitExample
-
-
-#+begin_src haskell :results output
-unitExample
-#+end_src
-
-#+RESULTS:
-: ChartOptions {markupOptions = MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}}, hudOptions = HudOptions {chartAspect = FixedAspect 1.5, axes = [(5.0,AxisOptions {bar = Just (AxisBar {style = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 0.40}, size = 4.0e-3, buffer = 1.0e-2, overhang = 2.0e-3}), adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), ticks = Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 2, addLPad = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}, place = PlaceBottom}),(5.0,AxisOptions {bar = Just (AxisBar {style = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 0.40}, size = 4.0e-3, buffer = 1.0e-2, overhang = 2.0e-3}), adjust = Just (Adjustments {maxXRatio = 8.0e-2, maxYRatio = 6.0e-2, angledRatio = 0.12, allowDiagonal = True}), ticks = Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 2, addLPad = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}, place = PlaceLeft})], frames = [(1.0,FrameOptions {frame = Just (RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 1.00 1.00 1.00 0.02}), buffer = 0.0})], legends = [], titles = []}, charts = ChartTree {tree = Node {rootLabel = (Just "unit",[RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -0.5 0.5 -0.5 0.5]]), subForest = []}}}
-
-
-#+begin_src haskell :results output
-unitExample & view #charts & foldOf charts'
-#+end_src
-
-#+RESULTS:
-: [RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -0.5 0.5 -0.5 0.5]]
-
-
-* tree-diff
-*** patch work
 #+begin_src haskell
 let diff1 = ediff m0 m1
 #+end_src
@@ -526,215 +512,3 @@ Just Markup {
 *** javascript dom stuff
   - parental relationships
   - inserting/deletng/replacing the ith div
-
-
-* parsing
-**** openTag
-
- #+begin_src haskell :results output
-runParser openTag t1
- #+end_src
-
-#+RESULTS:
-: OK ("svg",[("xmlns","\"http://www.w3.org/2000/svg\""),("xmlns:xlink","\"http://www.w3.org/1999/xlink\""),("width","\"300.0\""),("height","\"300.0\""),("viewbox","\"-0.505 -0.505 1.01 1.01\"")]) "</svg>"
-
-**** emptyElemTag
-
- #+begin_src haskell :results output
-runParser emptyElemTag  "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300.0\" height=\"300.0\" viewbox=\"-0.505 -0.505 1.01 1.01\"/>"
- #+end_src
-
-#+RESULTS:
-: OK ("svg",[("xmlns","\"http://www.w3.org/2000/svg\""),("xmlns:xlink","\"http://www.w3.org/1999/xlink\""),("width","\"300.0\""),("height","\"300.0\""),("viewbox","\"-0.505 -0.505 1.01 1.01\"")]) ""
-
-**** closeTag
-
- #+begin_src haskell :results output
-runParser closeTag "</svg>"
- #+end_src
-
-#+RESULTS:
-: OK "svg" ""
-
-**** xmlElement
-
- #+begin_src haskell :results output
-runParser xmlElement t1
- #+end_src
-
-#+RESULTS:
-: OK (Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","\"300.0\""),(Attribute "viewbox","\"-0.505 -0.505 1.01 1.01\""),(Attribute "width","\"300.0\""),(Attribute "xmlns","\"http://www.w3.org/2000/svg\""),(Attribute "xmlns:xlink","\"http://www.w3.org/1999/xlink\"")]}, contents = []}) ""
-
-#+begin_src haskell
-t2 <- Data.ByteString.readFile "old/unit.svg"
-parseAllOk xmlElement t2
-#+end_src
-
-#+RESULTS:
-: True
-
-#+begin_src haskell
-err1 = "<path d=\"M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z\" transform=\"translate(0.695, -0.0) scale(0.1)\"/>"
-runParser xmlElement err1
-#+end_src
-
-#+RESULTS:
-: OK (Markup {tag = "path", atts = Attributes {attMap = fromList [(Attribute "d","M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z"),(Attribute "transform","translate(0.695, -0.0) scale(0.1)")]}, contents = []}) ""
-
-
-#+begin_src haskell
-runParser openTag "<svg a = \"a\">"
-#+end_src
-
-#+RESULTS:
-: OK ("svg",[("a","\"a\"")]) ""
-
-* Usage
-
-#+begin_src haskell :file other/usage.svg :results output graphics file :exports both
-:set prompt "> "
-:set -XOverloadedLabels
-:set -XOverloadedStrings
-import Chart
-import Optics.Core
-lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
-styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
-cs = zipWith (\s x -> LineChart s [x]) styles lines
-lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
-writeChartOptions "other/usage.svg" lineExample
-#+end_src
-
-#+RESULTS:
-[[file:other/usage.svg]]
-
-See the haddock documentation for a detailed overview and [[file:gallery.md][the gallery]] for some potential inspiration.
-
-* chart-svg changelog
-:PROPERTIES:
-:EXPORT_FILE_NAME: chart-svg-changelog
-:END:
-
-[[file:other/banner.svg]]
-
-** chart-svg 0.4
-
-
-0.4 is a plumbing release.
-
-*** Text ==> ByteString
-
-Attoparsec ==> FlatParse
-neat-interpolation ==> string-interpolate
-
-text is hardcoded as Text, which has biased design towards Text everywhere. 0.4 includes a move to bytestring with a few library changes:
-  - parsing with flatparse (replacing attoparsec). The ergonomics of flatparse is very nice to work with in a Haskell setting, especially with chainr, and easy but restricted template-haskell magic.
-  - quasi-quotation is via string-interpolate, (replacing neat-interpolation).
-
-*** lucid ==> Svg
-
-Printing SVG has moved internal to the library, replacing lucid (and blaze-svg under the hood).
-
-Charts now render to Markup, which can be thought of as a restricted subset of XML, with SVG headers and trimmings.
-
-The charts are formed from a very few svg tags and attributes: class, polyline, rect, point, d paths, ellipse, and then style as attributes and text as content.
-
-*** tree-diff
-
-In part, this has been done to introduce https://hackage.haskell.org/package/tree-diff into the machinery. Instead of sending entirely new *.svg's to a web browser, we will be able to send a diff of the raw SVG as a change to a chart. HUD elements becomes much more stable in this setup, and traffic over the websocket reduces by an order or so, resulting in a smoother rendering onscreen. In local tests, FPS can approach 90 or so when zooming on chart detail.
-
-** 0.3
-
-[[https://hackage.haskell.org/package/chart-svg][chart-svg-0.3]] is a major rewrite of a library I've had in the toolkit for a while. This has been a major refactoring and I'd like to share a few highlights.
-
-*** Monomorphic primitives
-
-Chart primitives boil down to a very short list. Charts consist of:
-
-- Rectangles
-- Lines
-- Glyphs (Geometric Shapes such as circles and arrows)
-- Text (specifically positioned on a page) &
-- Paths (curves)
-
-The core ~Chart~ type now reflects this and looks like:
-
-#+begin_src haskell
-data Chart where
-  RectChart :: RectStyle -> [Rect Double] -> Chart
-  LineChart :: LineStyle -> [[Point Double]] -> Chart
-  GlyphChart :: GlyphStyle -> [Point Double] -> Chart
-  TextChart :: TextStyle -> [(Text, Point Double)] -> Chart
-  PathChart :: PathStyle -> [PathData Double] -> Chart
-  BlankChart :: [Rect Double] -> Chart
-  deriving (Eq, Show)
-
-newtype ChartTree = ChartTree {tree :: Tree (Maybe Text, [Chart])} deriving (Eq, Show, Generic)
-#+end_src
-
-You can find examples of all of these in Chart.Examples.
-
-Compared to 0.2.3 ...
-
-#+begin_src haskell
-data Chart a = Chart
-  { -- | annotation style for the data
-    annotation :: Annotation,
-    -- | list of data elements, either points or rectangles.
-    xys :: [XY a]
-  }
-
-data Annotation
-  = RectA RectStyle
-  | TextA TextStyle [Text]
-  | GlyphA GlyphStyle
-  | LineA LineStyle
-  | PathA PathStyle [PathInfo Double]
-  | BlankA
-
-data XY a
-  = PointXY (Point a)
-  | RectXY (Rect a)
-#+end_src
-
-... the unification of style via Annotation and data via XY has been ditched, and there is now a simple and tight coupling between style, data type and primitive.
-
-I originally tried for user extensibility of what a Chart was but, in the course of refactoring, the complexity cost started to weigh pretty heavily on the code base. In this particular case, working with a concrete, serializable representation, amenable to optics and pattern matching trumped higher-kinded flexibility.
-
-The new Chart sum type may not cover a useful primitive, or there may be ideas that fall between the GADT definition, but allowing for this just wasn't worth it versus accepting future refactoring costs.
-
-~ChartTree~ is in constrast to the prior usage of a ~[Chart]~ as the basic chart type, and fits in well with the notion of chart as svg, and thus xml tree. The rose-tree bundling and naming of chart components enables easy downstream manipulation with tools like reanimate and CSS.
-
-*** Browser-centric
-
-#+attr_html: :width 400
-#+caption: A LineChart
-[[file:other/line.svg]]
-
-Existing chart ecosystems, such as excel, [[https://d3js.org/][d3js]] or [[https://github.com/plotly/plotly.js][plotly]], were built in earlier times and don't tend to have regard for modern browser conventions. One addition to the library is to try and fit in with user color scheme preferences. ~Chart-svg~ charts can respect [[https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme][prefers-color-scheme]] and once [[https://github.com/haskell-infra/www.haskell.org/issues/8][this Hackage ticket]] gets done, should look superb in a haddock.
-
-
-The design flexibility you get from thinking of a chart as primitive shapes to be rendered in a browser also helps expand any definition of what a chart is. A recent example of this can be found in the [[https://hackage.haskell.org/package/dotparse][dotparse]] library which includes production of a [[https://hackage.haskell.org/package/numhask-0.10.1.0][chart]] I added to the numhask docs. Given the constraints of Haddock, the chart is not (yet) clickable, but is clickable in the [[https://hackage.haskell.org/package/numhask-0.10.1.0/docs/other/nh.svg][docs]] ...
-This is very difficult to do in other chart libraries outside of direct javascript hacking. Imagine a future where visualisations of class hierarchies help us to tooltip, backlink and navigate complex code bases such as lens.
-
-** Better Colors
-
-#+caption: Default palette experiments from color-adjust
-#+attr_html: :width 400
-[[file:other/wheel.svg]]
-
-Default colors have been modified with the help of the [[https://bottosson.github.io/posts/oklab/][oklab color space]]. oklab has recently been introduced to the CSS standards and will become important in the coming years. You can read more about the development of this in a [recent]({{< relref "color-adjust" >}}) post, but I'm more than happy with the look and feel improvements you get from better lumination and saturation scaling.
-
-** Future development
-
-#+attr_html: :width 200
-#+caption: An example from dotparse
-[[file:other/ex.svg]]
-
-
-[[https://hackage.haskell.org/package/dotparse][Dotparse]] has been a useful test of interoperability, utilising a centuries-old schema and the wonderful new parsing paradigm that is [[https://hackage.haskell.org/package/flatparse][flatparse]], to create a modern web page artifact. If the ideas there are combined with the direction [[https://jonascarpay.com/posts/2022-04-26-calligraphy-tutorial.html][calligraphy]] is taking, we could make clickable visualizations of module, class and call graph heirarchies. That could take performance benchmarking, testing, Haddocks and Hackage to another level, and a unique one compared with other languages.
-
-Some [[https://hackage.haskell.org/package/reanimate][reanimate]] experiments have been carved out of the project in the interests of complexity management, but can still be found in [[https://github.com/tonyday567/chart-reanimate][chart-reanimate]]. ~chart-svg~ handles text well, and the gap between what is a chart and what is text rendering is getting smaller. I'm personally string diagram blind (a rare but real affliction), but animation of string diagrams would look good on the page and be very benficial to documentation.
-
-I'm pretty happy with the recent refactorings and I suspect the integration of visualization with documentation will remain a weird hobby of mine for a good while. The library is nine parts aesthetics and zero parts commercial, but if it ever gets sponsorship it could be an interesting alternative to Excel, d3js and their clones.
-
-Any ideas or criticisms are gratefully appreciated.

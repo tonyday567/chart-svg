@@ -28,6 +28,8 @@ module Chart.Hud
     -- * HudOptions
     HudOptions (..),
     defaultHudOptions,
+    addHud,
+    initialCanvas,
     colourHudOptions,
     toHuds,
 
@@ -292,6 +294,26 @@ defaultHudOptions =
     [(1, defaultFrameOptions)]
     []
     []
+
+-- | Decorate a ChartTree with HudOptions
+addHud :: HudOptions -> ChartTree -> ChartTree
+addHud ho cs =
+  runHudWith
+    (initialCanvas (view #chartAspect ho) cs)
+    db'
+    hs
+    (cs <> blank db')
+  where
+    (hs, db') = toHuds ho (singletonGuard $ view box' cs)
+
+-- | The initial canvas before applying Huds
+--
+-- >>> initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
+-- Rect -0.75 0.75 -0.5 0.5
+initialCanvas :: ChartAspect -> ChartTree -> Rect Double
+initialCanvas (FixedAspect a) _ = aspect a
+initialCanvas (CanvasAspect a) _ = aspect a
+initialCanvas ChartAspect cs = singletonGuard $ view box' cs
 
 priorities :: HudOptions -> [Priority]
 priorities o =

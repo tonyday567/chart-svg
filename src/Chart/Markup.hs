@@ -64,6 +64,16 @@ data Attribute =
 
 instance ToExpr Attribute
 
+inject :: ByteString -> Attribute
+inject "class" = Class
+inject "id" = ID
+inject a = Attribute a
+
+eject :: Attribute -> ByteString
+eject Class = "class"
+eject ID = "id"
+eject (Attribute a) = a
+
 newtype Attributes = Attributes { attMap :: Map Attribute ByteString } deriving (Eq, Show, Generic)
 
 instance ToExpr Attributes
@@ -84,18 +94,13 @@ instance Monoid Attributes
   where
     mempty = Attributes Map.empty
 
--- TODO: refactor singleton out
-inject :: (ByteString, ByteString) -> Attributes
-inject ("class",b) = Attributes $ Map.singleton Class b
-inject ("id",b) = Attributes $ Map.singleton ID b
-inject (a,b) = Attributes $ Map.singleton (Attribute a) b
+singleAtt :: (ByteString, ByteString) -> Attributes
+singleAtt ("class",b) = Attributes $ Map.singleton Class b
+singleAtt ("id",b) = Attributes $ Map.singleton ID b
+singleAtt (a,b) = Attributes $ Map.singleton (Attribute a) b
 
-eject :: Attribute -> ByteString
-eject Class = "class"
-eject ID = "id"
-eject (Attribute a) = a
-
-data Content = Content ByteString | CDSect ByteString | Comment ByteString | MarkupLeaf Markup deriving (Eq, Show, Generic)
+-- | CDATA sections and Comments are unused by the library representation of a chart and are here to help with parsing arbitrary svg in the wild.
+data Content = Content ByteString | Comment ByteString | MarkupLeaf Markup deriving (Eq, Show, Generic)
 
 instance ToExpr Content
 
@@ -124,11 +129,15 @@ printAttribute :: Attribute -> ByteString -> ByteString
 printAttribute a b = [i|#{eject a}="#{b}"|]
 
 -- * conversion to markup
-
-data ChartOptions = ChartOptions {
-  markupOptions :: MarkupOptions,
-  hudOptions :: HudOptions,
-  charts :: ChartTree } deriving (Generic, Eq, Show)
+markupChartTree :: ChartTree -> [Markup]
+markupChartTree cs =
+  case (xs', label) of
+    ([], Nothing) -> mempty
+    (xs'', Nothing) -> xs''
+    (xs'', Just l) -> [Markup "g" (Attributes . Map.singleton Class . encodeUtf8 $ l) (MarkupLeaf <$> xs'')]
+    where
+      (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
+      xs' = mapMaybe markupChart cs' <> (mconcat $ markupChartTree . ChartTree <$> xs)
 
 -- | Text markup
 markupText :: TextStyle -> Text -> Point Double -> Markup
@@ -180,16 +189,18 @@ markupChart (BlankChart _) = Nothing
 -- | Path markup
 markupLine :: [[Point Double]] -> [Markup]
 markupLine lss =
-  fmap (($ mempty) . Markup "polyline" . inject . ("points",) . toPointsText) lss
+  fmap (($ mempty) . Markup "polyline" . singleAtt . ("points",) . toPointsText) lss
 
--- FIXME: should be space separator
 toPointsText :: [Point Double] -> ByteString
-toPointsText xs = intercalate "\n" $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs
+toPointsText xs = intercalate " " $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs
 
 -- | Path markup
+--
+-- >>> markupPath $ toPathDatas [MoveTo OriginAbsolute [Point (-1.0) 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 (-1.2320508075688774)),(1.0,1.0,0.0,False,False,Point (-0.5) (-0.3660254037844387)),(1.0,1.0,0.0,False,False,Point (-1.0) 0.5)],EndPath]
+-- Markup {tag = "path", atts = Attributes {attMap = fromList [(Attribute "d","M -1.0,0.5 A 0.5 0.5 -0.0 1 1 0,-1.2321 A 1.0 1.0 -0.0 0 0 -0.5,-0.3660 A 1.0 1.0 -0.0 0 0 -1.0,0.5 L -1.0,0.5")]}, contents = []}
 markupPath :: [PathData Double] -> Markup
 markupPath ps =
-  Markup "path" (foldMap inject [("d", pathDataToSvg ps)]) mempty
+  Markup "path" (foldMap singleAtt [("d", pathDataToSvg ps)]) mempty
 
 -- | GlyphStyle to markup Tree
 -- Note rotation on the outside not the inside.
@@ -197,7 +208,7 @@ markupGlyph :: GlyphStyle -> Point Double -> Markup
 markupGlyph s p =
   case view #rotation s of
     Nothing -> gl
-    Just r -> Markup "g" (foldMap inject [("transform", toRotateText r p)]) [MarkupLeaf gl]
+    Just r -> Markup "g" (foldMap singleAtt [("transform", toRotateText r p)]) [MarkupLeaf gl]
   where
     gl = markupShape_ (s ^. #shape) (s ^. #size) p
 
@@ -209,10 +220,9 @@ fromDashOffset :: Double -> ByteString
 fromDashOffset x = pack (show x)
 
 attsLine :: LineStyle -> Attributes
-attsLine o = mconcat $ inject <$>
+attsLine o = mconcat $ singleAtt <$>
   [ ("stroke-width", pack $ show $ o ^. #size),
-    ("stroke", showRGBbs $ o ^. #color),
-    ("stroke-opacity", pack $ show $ opac $ o ^. #color),
+    ("stroke", showRGBA $ o ^. #color),
     ("fill", "none")
   ] <>
   catMaybes
@@ -222,12 +232,10 @@ attsLine o = mconcat $ inject <$>
     <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (o ^. #dashoffset)
 
 attsRect :: RectStyle -> Attributes
-attsRect o = foldMap inject
+attsRect o = foldMap singleAtt
   [ ("stroke-width", pack $ show $ o ^. #borderSize),
-    ("stroke", showRGBbs $ o ^. #borderColor),
-    ("stroke-opacity", pack $ show $ opac $ o ^. #borderColor),
-    ("fill", showRGBbs $ o ^. #color),
-    ("fill-opacity", pack $ show $ opac $ o ^. #color)
+    ("stroke", showRGBA $ o ^. #borderColor),
+    ("fill", showRGBA $ o ^. #color)
   ]
 
 -- | TextStyle to Attributes
@@ -235,8 +243,7 @@ attsText :: TextStyle -> Attributes
 attsText o = Attributes $ Map.fromList $ fmap (first Attribute)
   [ ("stroke-width","0.0"),
     ("stroke", "none"),
-    ("fill", showRGBbs $ o ^. #color),
-    ("fill-opacity", pack $ show $ opac $ o ^. #color),
+    ("fill", showRGBA $ o ^. #color),
     ("font-size", pack $ show $ o ^. #size),
     ("text-anchor", toTextAnchor $ o ^. #anchor)
   ]
@@ -250,10 +257,8 @@ attsText o = Attributes $ Map.fromList $ fmap (first Attribute)
 attsGlyph :: GlyphStyle -> Attributes
 attsGlyph o = Attributes $ Map.fromList $ fmap (first Attribute) $
   [ ("stroke-width", pack $ show sw),
-    ("stroke", showRGBbs $ o ^. #borderColor),
-    ("stroke-opacity", pack $ show $ opac $ o ^. #borderColor),
-    ("fill", showRGBbs $ o ^. #color),
-    ("fill-opacity", pack $ show $ opac $ o ^. #color)
+    ("stroke", showRGBA $ o ^. #borderColor),
+    ("fill", showRGBA $ o ^. #color)
   ]
   <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
   where
@@ -266,10 +271,8 @@ attsGlyph o = Attributes $ Map.fromList $ fmap (first Attribute) $
 attsPath :: PathStyle -> Attributes
 attsPath o = Attributes $ Map.fromList $ fmap (first Attribute)
   [ ("stroke-width", pack $ show $ o ^. #borderSize),
-    ("stroke", showRGBbs $ o ^. #borderColor),
-    ("stroke-opacity", pack $ show $ opac $ o ^. #borderColor),
-    ("fill", showRGBbs $ o ^. #color),
-    ("fill-opacity", pack $ show $ opac $ o ^. #color)
+    ("stroke", showRGBA $ o ^. #borderColor),
+    ("fill", showRGBA $ o ^. #color)
   ]
 
 -- | includes a flip of the y dimension.
@@ -318,18 +321,18 @@ markupShape_ (EllipseGlyph x') s (Point x y) =
         ("ry", (pack . show) $ 0.5 * s * x')
       ]
 markupShape_ VLineGlyph s (Point x y) =
-  Markup "polyline" (foldMap inject [("points", pack $ show x <> "," <> show (-(y - s / 2)) <> "\n" <> show x <> "," <> show (-(y + s / 2)))]) mempty
+  Markup "polyline" (foldMap singleAtt [("points", pack $ show x <> "," <> show (-(y - s / 2)) <> "\n" <> show x <> "," <> show (-(y + s / 2)))]) mempty
 markupShape_ HLineGlyph s (Point x y) =
-  Markup "polyline" (foldMap inject [("points", pack $ show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]) mempty
+  Markup "polyline" (foldMap singleAtt [("points", pack $ show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]) mempty
 markupShape_ (PathGlyph path _) s p =
-  Markup "path" (foldMap inject [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)]) mempty
+  Markup "path" (foldMap singleAtt [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)]) mempty
 
 -- | @markup@ element + markup 2 attributes
 header :: Double -> Rect Double -> [Markup] -> Markup
 header markupheight viewbox content' =
   Markup
   "svg"
-   (foldMap inject
+   (foldMap singleAtt
     [("xmlns", "http://www.w3.org/2000/svg"),
      ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
      ("width", pack $ show w''),
@@ -342,31 +345,31 @@ header markupheight viewbox content' =
     Point w'' h' = Point (markupheight / h * w') markupheight
 
 -- | CSS prefer-color-scheme text snippet
-cssPreferColorScheme :: (Text, Text) -> CssPreferColorScheme -> ByteString
+cssPreferColorScheme :: (Colour, Colour) -> CssPreferColorScheme -> ByteString
 cssPreferColorScheme (cl, cd) PreferHud =
   [i|svg {
   color-scheme: light dark;
 }
 {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: #{cd};
+    fill: #{showRGBA cd};
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: #{cd};
+    stroke: #{showRGBA cd};
   }
   .legendBorder g {
-    fill: #{cl};
+    fill: #{showRGBA cl};
   }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: #{cl};
+    fill: #{showRGBA cl};
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: #{cl};
+    stroke: #{showRGBA cl};
   }
   .legendBorder g {
-    fill: #{cd};
+    fill: #{showRGBA cd};
   }
 }|]
 cssPreferColorScheme (cl, _) PreferLight =
@@ -375,7 +378,7 @@ cssPreferColorScheme (cl, _) PreferLight =
     }
     @media (prefers-color-scheme:dark) {
       markup {
-        background-color: #{cl};
+        background-color: #{showRGBA cl};
       }
     }|]
 cssPreferColorScheme (_, cd) PreferDark =
@@ -384,10 +387,11 @@ cssPreferColorScheme (_, cd) PreferDark =
     }
     @media (prefers-color-scheme:light) {
       markup {
-        background-color: #{cd};
+        background-color: #{showRGBA cd};
       }
     }|]
 cssPreferColorScheme _ PreferNormal = mempty
+
 
 -- | MARKUP tag options.
 --
@@ -415,25 +419,6 @@ data CssPreferColorScheme
   | PreferNormal
   deriving (Show, Eq, Generic)
 
-addHud :: HudOptions -> ChartTree -> ChartTree
-addHud ho cs =
-  runHudWith
-    (initialCanvas (view #chartAspect ho) cs)
-    db'
-    hs
-    (cs <> blank db')
-  where
-    (hs, db') = toHuds ho (singletonGuard $ view box' cs)
-
--- | The initial canvas before applying Huds
---
--- >>> initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
--- Rect -0.75 0.75 -0.5 0.5
-initialCanvas :: ChartAspect -> ChartTree -> Rect Double
-initialCanvas (FixedAspect a) _ = aspect a
-initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = singletonGuard $ view box' cs
-
 -- | css options
 --
 -- >>> defaultCssOptions
@@ -444,11 +429,10 @@ data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorSc
 defaultCssOptions :: CssOptions
 defaultCssOptions = CssOptions NoShapeRendering PreferHud mempty
 
--- FIXME: remove hex
 markupCssOptions :: CssOptions -> Markup
 markupCssOptions css = Markup "style" mempty
   [Content $
-   cssPreferColorScheme (hex light, hex dark) (view #preferColorScheme css) <>
+   cssPreferColorScheme (light, dark) (view #preferColorScheme css) <>
    markupShapeRendering (view #shapeRendering css) <>
    view #cssExtra css
   ]
@@ -459,6 +443,15 @@ markupShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPr
 markupShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 markupShapeRendering NoShapeRendering = mempty
 
+data ChartOptions = ChartOptions {
+  markupOptions :: MarkupOptions,
+  hudOptions :: HudOptions,
+  charts :: ChartTree } deriving (Generic, Eq, Show)
+
+-- | Convert ChartOptions to Markup
+--
+-- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
 markupChartOptions :: ChartOptions -> Markup
 markupChartOptions co = header (view (#markupOptions % #markupHeight) co) viewbox
   ([markupCssOptions (view (#markupOptions % #cssOptions) co)] <>
@@ -476,16 +469,6 @@ instance Semigroup ChartOptions where
 
 instance Monoid ChartOptions where
   mempty = ChartOptions defaultMarkupOptions mempty mempty
-
-markupChartTree :: ChartTree -> [Markup]
-markupChartTree cs =
-  case (xs', label) of
-    ([], Nothing) -> mempty
-    (xs'', Nothing) -> xs''
-    (xs'', Just l) -> [Markup "g" (Attributes . Map.singleton Class . encodeUtf8 $ l) (MarkupLeaf <$> xs'')]
-    where
-      (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
-      xs' = mapMaybe markupChart cs' <> (mconcat $ markupChartTree . ChartTree <$> xs)
 
 writeChartOptions :: FilePath -> ChartOptions -> IO ()
 writeChartOptions fp co = Data.ByteString.writeFile fp (printChartOptions co)

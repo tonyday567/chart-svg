@@ -171,12 +171,12 @@ textExample =
       [i|
 {
   .text g {
-    fill: #{hex cl};
+    fill: #{showRGBA cl};
   }
 }
 @media (prefers-color-scheme:dark) {
   .text g {
-    fill: #{hex cd};
+    fill: #{showRGBA cd};
   }
 }
 |]
@@ -310,12 +310,12 @@ classSwitch (cl, cd) class' =
   [i|
 {
   .#{class'} g {
-    fill: #{hex cd};
+    fill: #{showRGBA cd};
   }
 }
 @media (prefers-color-scheme:dark) {
   .$class' g {
-    fill: #{hex cl};
+    fill: #{showRGBA cl};
   }
 }
 |]
@@ -384,18 +384,18 @@ arcFlagsExample =
       .~ [i|
 {
   .chart g {
-    stroke: $hexDark;
+    stroke: #{showRGBA dark};
   }
   .chart g text {
-    fill: #{hex dark};
+    fill: #{showRGBA dark};
   }
 }
 @media (prefers-color-scheme:dark) {
   .chart g {
-    stroke: #{hex light};
+    stroke: #{showRGBA light};
   }
   .chart g text {
-    fill: #{hex light};
+    fill: #{showRGBA light};
   }
 }
 |]
@@ -559,14 +559,14 @@ arrowExample =
       .~ [i|
 {
   .arrow g {
-    fill: #{hex dark};
-    stroke: #{hex dark};
+    fill: #{showRGBA dark};
+    stroke: #{showRGBA dark};
   }
 }
 @media (prefers-color-scheme:dark) {
   .arrow g {
-    fill: #{hex light};
-    stroke: #{hex light};
+    fill: #{showRGBA light};
+    stroke: #{showRGBA light};
   }
 }
 |]
