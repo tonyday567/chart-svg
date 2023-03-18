@@ -34,7 +34,7 @@ import Data.ByteString (ByteString, intercalate)
 import Data.Text.Encoding (encodeUtf8)
 import Data.ByteString.Char8 (pack)
 import FlatParse.Basic
-import Chart.FlatParse hiding (point, points, pointPair, pointPairs)
+import Chart.FlatParse
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.

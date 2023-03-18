@@ -1,6 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
@@ -11,12 +10,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# HLINT ignore "Use <$>" #-}
 {-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
-{-# OPTIONS_GHC -Wno-unused-matches #-}
 
 -- | Lower-level flatparse parsers
 module Chart.FlatParse
@@ -39,31 +35,25 @@ module Chart.FlatParse
     int,
     double,
     signed,
-    quoted,
-    point,
-    Spline (..),
-    splineP,
-    rectP,
-    boolP,
-    nonEmptyP,
-  points, pointPair, pointPairs)
+  )
 where
 
 import Data.Bool
 import Data.ByteString ( ByteString )
 import Data.Char hiding (isDigit)
-import Data.List.NonEmpty ( NonEmpty(..) )
 import FlatParse.Basic hiding (cut)
-import GHC.Generics
-import NumHask.Space ( Point(..), Rect(..), pattern Rect)
 import Prelude hiding (replicate)
 import GHC.Exts
 import Data.List (replicate)
+
 -- $setup
+-- >>> :set -XTemplateHaskell
 -- >>> import Chart.FlatParse
 -- >>> import FlatParse.Basic
 
--- * parser error model taken from flatparse examples
+-- * parser error model
+--
+-- taken from flatparse examples
 
 -- | An expected item which is displayed in error messages.
 data Expected
@@ -106,8 +96,8 @@ prettyError :: ByteString -> Error -> String
 prettyError b e =
 
   let pos :: Pos
-      pos      = case e of Imprecise pos e -> pos
-                           Precise pos e   -> pos
+      pos      = case e of Imprecise p _ -> p
+                           Precise p _   -> p
       ls       = linesUtf8 b
       (l, c)   = head $ posLineCols b [pos]
       line     = if l < length ls then ls !! l else ""
@@ -143,7 +133,7 @@ cut' p e = do
   pos <- getPos
   cutting p (Precise pos e) merge
 
--- | run a Parser, Nothing on falure
+-- | run a Parser, Nothing on failure
 runParserMaybe :: Parser e a -> ByteString -> Maybe a
 runParserMaybe p b = case runParser p b of
   OK r _ -> Just r
@@ -166,7 +156,6 @@ testParser p str = case fromString str of
     Fail   -> putStrLn "uncaught parse error"
 
 -- * parsing
-
 isWs :: Char -> Bool
 isWs x =
   x == ' ' ||
@@ -175,10 +164,19 @@ isWs x =
   x == '\r'
 
 -- | single whitespace
+--
+-- >>> runParser ws " \nx"
+-- OK ' ' "\nx"
 ws :: Parser e Char
 ws = satisfy isWs
 
 -- | Consume whitespace.
+--
+-- >>> runParser ws_ " \nx"
+-- OK () "x"
+--
+-- >>> runParser ws_ "x"
+-- OK () "x"
 ws_ :: Parser e ()
 ws_ = $(switch [| case _ of
   " "  -> ws_
@@ -188,23 +186,47 @@ ws_ = $(switch [| case _ of
   _    -> pure () |])
 
 -- | multiple whitespace
+--
+-- >>> runParser wss " \nx"
+-- OK " \n" "x"
+--
+-- >>> runParser wss "x"
+-- Fail
 wss :: Parser e ByteString
 wss = byteStringOf $ some ws
 
 -- | some with a separator
+--
+-- >>> runParser (sep ws (many (satisfy (/= ' ')))) "a b c"
+-- OK ["a","b","c"] ""
 sep :: Parser e s -> Parser e a -> Parser e [a]
 sep s p = (:) <$> p <*> many (s *> p)
 
+-- | parser bracketed by two other parsers
+--
+-- >>> runParser (bracketed ($(char '[')) ($(char ']')) (many (satisfy (/= ']')))) "[bracketed]"
+-- OK "bracketed" ""
 bracketed :: Parser e b -> Parser e b -> Parser e a -> Parser e a
 bracketed o c p = o *> p <* c
 
+-- | parser wrapped by another parser
+--
+-- >>> runParser (wrapped ($(char '"')) (many (satisfy (/= '"')))) "\"wrapped\""
+-- OK "wrapped" ""
 wrapped :: Parser e () -> Parser e a -> Parser e a
 wrapped x p = bracketed x x p
 
+-- | A single digit
+--
+-- runParserMaybe digit "5"
+-- Just 5
 digit :: Parser e Int
 digit = (\c -> ord c - ord '0') <$> satisfyAscii isDigit
 
 -- | (unsigned) Int parser
+--
+-- runParserMaybe int "567"
+-- Just 567
 int :: Parser e Int
 int = do
   (place, n) <- chainr (\n (!place, !acc) -> (place * 10, acc + place * n)) digit (pure (1, 0))
@@ -258,61 +280,3 @@ signed p = do
     Nothing -> p
     Just () -> negate <$> p
 
-quote :: Parser e ()
-quote = $(char '"')
-
-quoted :: Parser e ByteString
-quoted = quote *> byteStringOf (skipSome (skipSatisfy (/= '"'))) <* quote
-
-comma :: Parser e ()
-comma = $(char ',')
-
--- | comma separated Point
-point :: Parser e (Point Double)
-point = Point <$> double <*> (comma *> double)
-
--- | dot specification of a cubic spline (and an arrow head which is ignored here)
-data Spline = Spline {splineEnd :: Maybe (Point Double), splineStart :: Maybe (Point Double), splineP1 :: Point Double, splineTriples :: [(Point Double, Point Double, Point Double)]} deriving (Eq, Show, Generic)
-
--- |
--- http://www.graphviz.org/docs/attr-types/splineType/
-splineP :: Parser e Spline
-splineP =
-  Spline
-    <$> optional ($(string "e,") *> point)
-    <*> optional ($(string "s") *> point)
-    <*> point
-    <*> some ((,,) <$> point <*> point <*> point)
-
--- | comma separated rectangle or bounding box
-rectP :: Parser e (Rect Double)
-rectP = do
-  x <- double
-  _ <- comma
-  y <- double
-  _ <- comma
-  z <- double
-  _ <- comma
-  Rect x z y <$> double
-
--- | true | false
-boolP :: Parser e Bool
-boolP =
-  (True <$ $(string "true"))
-    <|> (False <$ $(string "false"))
-
--- | NonEmpty version of many
-nonEmptyP :: Parser e a -> Parser e () -> Parser e (NonEmpty a)
-nonEmptyP p sep = do
-  s <- p
-  xs <- many (optional sep *> p)
-  pure (s :| xs)
-
-points :: Parser e [Point Double]
-points = toList <$> nonEmptyP point comma
-
-pointPair :: Parser e (Point Double, Point Double)
-pointPair = (,) <$> point <* comma <*> point
-
-pointPairs :: Parser e [(Point Double, Point Double)]
-pointPairs = toList <$> nonEmptyP pointPair comma

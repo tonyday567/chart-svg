@@ -15,6 +15,7 @@ module Chart.Markup
     Content(..),
     printMarkup,
     printContent,
+    printComment,
     printAttribute,
     ChartOptions(..),
     markupChartOptions,
@@ -28,6 +29,7 @@ module Chart.Markup
     CssPreferColorScheme(..),
     cssPreferColorScheme,
     CssShapeRendering(..),
+    markupCssOptions,
     MarkupOptions(..),
     defaultMarkupOptions,
   ) where
@@ -65,6 +67,7 @@ import Data.TreeDiff
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
+-- >>> import Chart.Examples
 
 -- | Allows class to be concatenated in monadic appends, with:
 --
@@ -121,7 +124,7 @@ singleAtt (a,b) = Attributes $ Map.singleton (Attribute a) b
 -- | A representation of SVG (and XML) markup with no specific knowledge of SVG or XML syntax rules.
 --
 -- >>> markupChartOptions c0
---
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
 data Markup = Markup {
   tag :: ByteString,
   atts :: Attributes,
@@ -133,6 +136,7 @@ instance ToExpr Markup
 -- | The things that can be inside (form the Content of) a Markup element, especially in a DOM context. Comments are unused by the library representation of a chart and are here to help with parsing arbitrary svg in the wild.
 --
 -- >>> contents (markupChartOptions c0)
+-- [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]
 data Content = Content ByteString | Comment ByteString | MarkupLeaf Markup deriving (Eq, Show, Generic)
 
 instance ToExpr Content
@@ -140,6 +144,7 @@ instance ToExpr Content
 -- | render markup to a ByteString compliant with an SVG object (and XML element)
 --
 -- >>> printMarkup (markupChartOptions c0)
+-- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
 printMarkup :: Markup -> ByteString
 printMarkup (Markup n as xs) =
   bool [i|<#{na}>#{ls}</#{n}>|] [i|<#{na}/>|] (xs==mempty)
@@ -149,7 +154,8 @@ printMarkup (Markup n as xs) =
 
 -- | render Content to SVG
 --
--- >>> printContent <$> contents $ markupChartOptions c0)
+-- >>> printContent <$> (contents $ markupChartOptions c0)
+-- ["<style></style>","<g class=\"chart\"/>","<g class=\"hud\"/>"]
 printContent :: Content -> ByteString
 printContent (Content c) = c
 printContent (Comment c) = printComment c
@@ -165,14 +171,14 @@ printComment c = "<!--" <> c <> "-->"
 -- | render an Attribute with a value
 --
 -- >>> printAttribute Class "a"
--- "class = \"a\""
+-- "class=\"a\""
 printAttribute :: Attribute -> ByteString -> ByteString
 printAttribute a b = [i|#{eject a}="#{b}"|]
 
 -- | Convert a ChartTree to markup
 --
 -- >>> lineExample & view #charts & markupChartTree
---
+-- [Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"line")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 73%, 80%, 1.00)"),(Attribute "stroke-width","1.5e-2")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0,-1.0 1.0,-1.0 2.0,-5.0")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 29%, 48%, 1.00)"),(Attribute "stroke-width","1.5e-2")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0,-0.0 2.8,-3.0")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(66%, 7%, 55%, 1.00)"),(Attribute "stroke-width","1.5e-2")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.5,-4.0 0.5,-0.0")]}, contents = []})]})]}]
 markupChartTree :: ChartTree -> [Markup]
 markupChartTree cs =
   case (xs', label) of
@@ -183,10 +189,6 @@ markupChartTree cs =
       (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
       xs' = mapMaybe markupChart cs' <> (mconcat $ markupChartTree . ChartTree <$> xs)
 
--- | Text markup
---
--- >>> markupText defaultTextStyle "example" (Point 0 0)
---
 markupText :: TextStyle -> Text -> Point Double -> Markup
 markupText s t p@(Point x y) = Markup "text" as ((MarkupLeaf <$> xs) <> [Content c])
   where
@@ -210,7 +212,6 @@ markupText s t p@(Point x y) = Markup "text" as ((MarkupLeaf <$> xs) <> [Content
 --
 -- - flip y dimension
 --
--- >>> toRotateText 0.5 (Point 0 1)
 toRotateText :: Double -> Point Double -> ByteString
 toRotateText r (Point x y) =
     pack $ "rotate(" <> show (-r * 180 / pi) <> ", " <> show x <> ", " <> show (-y) <> ")"
@@ -221,8 +222,6 @@ toScaleText x =
     "scale(" <> show x <> ")"
 
 -- | Convert a Rect to Markup
---
--- >>> markupRect one
 --
 markupRect :: (Show a, Num a) => Rect a -> Markup
 markupRect (Rect x z y w) =
@@ -237,7 +236,8 @@ markupRect (Rect x z y w) =
 
 -- | Convert a Chart to Markup
 --
--- >>> lineExample & view #charts & markupChart
+-- >>> lineExample & view #charts & foldOf charts' & head & markupChart
+-- Just (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 73%, 80%, 1.00)"),(Attribute "stroke-width","1.5e-2")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0,-1.0 1.0,-1.0 2.0,-5.0")]}, contents = []})]})
 markupChart :: Chart -> Maybe Markup
 markupChart (RectChart s xs) = Just $ Markup "g" (attsRect s) (MarkupLeaf . markupRect <$> xs)
 markupChart (TextChart s xs) = Just $ Markup "g" (attsText s) (MarkupLeaf . uncurry (markupText s) <$> xs)
@@ -255,8 +255,6 @@ toPointsText xs = intercalate " " $ (\(Point x y) -> pack (show x <> "," <> show
 
 -- | Path markup
 --
--- >>> markupPath $ toPathDatas [MoveTo OriginAbsolute [Point (-1.0) 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 (-1.2320508075688774)),(1.0,1.0,0.0,False,False,Point (-0.5) (-0.3660254037844387)),(1.0,1.0,0.0,False,False,Point (-1.0) 0.5)],EndPath]
--- Markup {tag = "path", atts = Attributes {attMap = fromList [(Attribute "d","M -1.0,0.5 A 0.5 0.5 -0.0 1 1 0,-1.2321 A 1.0 1.0 -0.0 0 0 -0.5,-0.3660 A 1.0 1.0 -0.0 0 0 -1.0,0.5 L -1.0,0.5")]}, contents = []}
 markupPath :: [PathData Double] -> Markup
 markupPath ps =
   Markup "path" (foldMap singleAtt [("d", pathDataToSvg ps)]) mempty
@@ -389,7 +387,7 @@ markupShape_ (PathGlyph path _) s p =
 -- | Create the classic SVG element
 --
 -- >>> header 100 one [Markup "foo" mempty mempty]
---
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","100.0"),(Attribute "viewBox","-0.5 -0.5 1.0 1.0"),(Attribute "width","100.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = []})]}
 header :: Double -> Rect Double -> [Markup] -> Markup
 header markupheight viewbox content' =
   Markup
@@ -409,7 +407,7 @@ header markupheight viewbox content' =
 -- | CSS prefer-color-scheme text snippet
 --
 -- >>> cssPreferColorScheme (light, dark) PreferHud
---
+-- "svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgba(5%, 5%, 5%, 1.00);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgba(5%, 5%, 5%, 1.00);\n  }\n  .legendBorder g {\n    fill: rgba(94%, 94%, 94%, 1.00);\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgba(94%, 94%, 94%, 1.00);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgba(94%, 94%, 94%, 1.00);\n  }\n  .legendBorder g {\n    fill: rgba(5%, 5%, 5%, 1.00);\n  }\n}"
 cssPreferColorScheme :: (Colour, Colour) -> CssPreferColorScheme -> ByteString
 cssPreferColorScheme (cl, cd) PreferHud =
   [i|svg {
@@ -496,7 +494,7 @@ defaultCssOptions = CssOptions NoShapeRendering PreferHud mempty
 -- | Convert CssOptions to Markup
 --
 -- >>> markupCssOptions defaultCssOptions
---
+-- Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content "svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgba(5%, 5%, 5%, 1.00);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgba(5%, 5%, 5%, 1.00);\n  }\n  .legendBorder g {\n    fill: rgba(94%, 94%, 94%, 1.00);\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgba(94%, 94%, 94%, 1.00);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgba(94%, 94%, 94%, 1.00);\n  }\n  .legendBorder g {\n    fill: rgba(5%, 5%, 5%, 1.00);\n  }\n}"]}
 markupCssOptions :: CssOptions -> Markup
 markupCssOptions css = Markup "style" mempty
   [Content $
@@ -512,8 +510,6 @@ markupShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 markupShapeRendering NoShapeRendering = mempty
 
 -- | A sum type representing charts, hud options and markup options, which can be transformed into SVG.
---
--- >>> unitExample
 --
 data ChartOptions = ChartOptions {
   markupOptions :: MarkupOptions,
@@ -535,7 +531,7 @@ markupChartOptions co = header (view (#markupOptions % #markupHeight) co) viewbo
 -- | Render ChartOptions to an SVG ByteString
 --
 -- >>> printChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
+-- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
 printChartOptions :: ChartOptions -> ByteString
 printChartOptions = printMarkup . markupChartOptions
 
