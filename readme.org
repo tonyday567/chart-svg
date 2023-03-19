@@ -23,14 +23,14 @@ writeChartOptions "other/usage.svg" lineExample
 
 See the haddock documentation for a detailed overview and [[file:gallery.md][the gallery]] for some potential inspiration.
 
-* chart-svg changelog
+* ChangeLog
 :PROPERTIES:
 :EXPORT_FILE_NAME: chart-svg-changelog
 :END:
 
 [[file:other/banner.svg]]
 
-** chart-svg 0.4
+** 0.4
 
 
 0.4 is a plumbing release.
@@ -296,7 +296,114 @@ zip fps fok
 | wave.svg       | True |
 | date.svg       | True |
 
-* ToDo tree-diff patch
+** tree-diff patch development
+
+patch is in the test suite, so:
+
+#+begin_src elisp
+(setq haskell-process-args-cabal-repl '("chart-svg:test"))
+#+end_src
+
+#+RESULTS:
+| chart-svg:test |
+
+#+begin_src haskell
+:set prompt "> "
+:t printPatchExamples
+#+end_src
+
+#+RESULTS:
+: printPatchExamples :: IO ()
+
+** patch examples
+
+#+begin_src haskell :results output
+printPatchExamples
+#+end_src
+
+#+RESULTS:
+#+begin_example
+"class change"
+Markup {
+  atts = Attributes
+    (Map.fromList [_×_ -"a" +"b"])}
+"delete an attribute"
+Markup {
+  atts = Attributes
+    (Map.fromList
+      [-_×_ (Attribute "b") "c"])}
+"insert an attribute"
+Markup {
+  atts = Attributes
+    (Map.fromList
+      [+_×_ (Attribute "d") "e"])}
+"change a tag"
+Markup {tag = -"top" +"newtop"}
+"change a markup leaf"
+Markup {
+  contents = [
+    MarkupLeaf
+      Markup {
+        tag = -"leaf" +"newleaf"}]}
+"delete a leaf"
+Markup {
+  contents = [
+    -MarkupLeaf
+      Markup {
+        tag = "leaf",
+        atts = Attributes
+          (Map.fromList []),
+        contents = []}]}
+"insert a leaf"
+Markup {
+  contents = [
+    +MarkupLeaf
+      Markup {
+        tag = "newleaf",
+        atts = Attributes
+          (Map.fromList []),
+        contents = []}]}
+"insert attribute"
+Markup {
+  contents = [
+    MarkupLeaf
+      Markup {
+        atts = Attributes
+          (Map.fromList
+            [
+              +_×_ Class "a",
+              +_×_ (Attribute "b") "c"])}]}
+"modify content"
+Markup {
+  contents = [
+    Content
+      -"text"
+      +"textual content"]}
+"deep leaf insertion"
+Markup {
+  contents = [
+    MarkupLeaf
+      Markup {
+        contents = [
+          +MarkupLeaf
+            Markup {
+              tag = "newdeepleaf",
+              atts = Attributes
+                (Map.fromList []),
+              contents = [
+                Content "deeper content"]}]},
+    Content
+      -"text"
+      +"textual content"]}
+#+end_example
+
+** ToDo creating a proper tree-diff patch
+
+To be a real patch:
+
+- count tree levels for changes
+- count insertion, deletion index for lists, and store record name for recs
+- invent javascript actions for identified changes
 
 #+begin_src haskell
 let diff1 = ediff m0 m1
@@ -312,79 +419,11 @@ diff1
 : Cpy (EditRec "Markup" (fromList [("tag",Cpy (EditExp (App "\"top\"" []))),("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])])),("contents",Cpy (EditExp (Lst [App "MarkupLeaf" [Rec "Markup" (fromList [("tag",App "\"g\"" []),("atts",App "Attributes" [App "Map.fromList" [Lst []]]),("contents",Lst [])])],App "Content" [App "\"text\"" []]])))]))
 
 #+begin_src haskell
-filterChangedEdit diff1
-#+end_src
-
-#+RESULTS:
-: Just (Cpy (EditRec "Markup" (fromList [("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))])])])]))])))
-
-#+begin_src haskell
 fmap prettyEditExpr $ filterChangedEdit diff1
 #+end_src
 
 #+RESULTS:
 : Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
-
-bisection
-
-bug
-
-#+begin_src haskell :results output
-fmap prettyEditExpr $ fmap Cpy $ filterChangedExprs $ EditRec "Markup" (O.fromList [("tag",Cpy (EditExp (App "\"top\"" []))),("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])])),("contents",Cpy (EditExp (Lst [App "MarkupLeaf" [Rec "Markup" (O.fromList [("tag",App "\"g\"" []),("atts",App "Attributes" [App "Map.fromList" [Lst []]]),("contents",Lst [])])],App "Content" [App "\"text\"" []]])))])
-#+end_src
-
-#+RESULTS:
-: Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
-
-not a bug
-
-#+begin_src haskell
-fmap prettyEditExpr $ filterChangedEdit $ Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])
-#+end_src
-
-#+RESULTS:
-: Just Map.fromList [_×_ -"a" +"b"]
-
-#+begin_src haskell :results output
-isUnchangedEdit <$> [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])]
-#+end_src
-
-#+RESULTS:
-: [False]
-
-
-#+begin_src haskell :results output
-fmap prettyEditExpr $ filterChangedEdit $ Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])
-#+end_src
-
-#+RESULTS:
-: Just [_×_ -"a" +"b"]
-
-
-#+begin_src haskell
-let m2 = Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))
-#+end_src
-
-#+RESULTS:
-
-
-#+begin_src haskell
-filterChangedEdits m2
-#+end_src
-
-#+RESULTS:
-: Nothing
-
-#+begin_src haskell :results output
-m3 = Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])
-filterChangedEdits m3
-#+end_src
-
-#+RESULTS:
-: <interactive>:717:1: warning: [-Wname-shadowing]
-:     This binding for ‘m3’ shadows the existing binding
-:       defined at <interactive>:693:1
-: Just (Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))])]))
 
 #+begin_src haskell
 prettyEditExpr diff1
@@ -404,111 +443,3 @@ Markup {
     Content "text"]}
 #+end_example
 
-*** patch tests
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m1
-#+end_src
-
-#+RESULTS:
-: Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
-
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m2
-#+end_src
-
-#+RESULTS:
-: Just Markup {
-:   atts = Attributes (Map.fromList [-_×_ (Attribute "b") "c"])}
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m3
-#+end_src
-
-#+RESULTS:
-: Just Markup {
-:   atts = Attributes (Map.fromList [+_×_ (Attribute "d") "e"])}
-
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m4
-#+end_src
-
-#+RESULTS:
-: Just Markup {tag = -"top" +"newtop"}
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m5
-#+end_src
-
-#+RESULTS:
-: Just Markup {contents = [MarkupLeaf Markup {tag = -"leaf" +"newleaf"}]}
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m6
-#+end_src
-
-#+RESULTS:
-: Just Markup {
-:   contents =
-:   [ -MarkupLeaf
-:        Markup {
-:          tag = "leaf", atts = Attributes (Map.fromList []), contents = []}]}
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m7
-#+end_src
-
-#+RESULTS:
-: Just Markup {
-:   contents =
-:   [ +MarkupLeaf
-:        Markup {
-:          tag = "newleaf",
-:          atts = Attributes (Map.fromList []),
-:          contents = []}]}
-
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m8
-#+end_src
-
-#+RESULTS:
-: Just Markup {
-:   contents =
-:   [ MarkupLeaf
-:       Markup {
-:         atts =
-:         Attributes
-:           (Map.fromList [+_×_ Class "a", +_×_ (Attribute "b") "c"])}]}
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m9
-#+end_src
-
-#+RESULTS:
-: Just Markup {contents = [Content -"text" +"textual content"]}
-
-#+begin_src haskell :results output
-prettyEditExpr <$> patch m0 m10
-#+end_src
-
-#+RESULTS:
-#+begin_example
-Just Markup {
-  contents =
-  [ MarkupLeaf
-      Markup {
-        contents =
-        [ +MarkupLeaf
-             Markup {
-               tag = "newdeepleaf",
-               atts = Attributes (Map.fromList []),
-               contents = [Content "deeper content"]}]},
-    Content -"text" +"textual content"]}
-#+end_example
-
-*** javascript dom stuff
-  - parental relationships
-  - inserting/deletng/replacing the ith div

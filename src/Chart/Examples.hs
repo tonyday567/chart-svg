@@ -37,6 +37,7 @@ module Chart.Examples
 
     -- * Debugging
     debugExample,
+    pathChartOptions,
     writeAllExamples,
     writeAllExamplesDark,
   )
