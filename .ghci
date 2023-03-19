@@ -1,8 +1,4 @@
-:set -XDataKinds
 :set -XOverloadedStrings
-:set -XExtendedDefaultRules
-:set -XFlexibleContexts
-:set -XTypeFamilies
 :set -XOverloadedLabels
-:set prompt |
+:set prompt >
 :set -Wno-type-defaults
