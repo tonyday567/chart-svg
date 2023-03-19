@@ -46,14 +46,14 @@ where
 import Chart
 import Data.Bifunctor
 import Data.Bool
-import Data.Function
-import Data.Text (Text)
 import Data.ByteString (ByteString)
+import Data.Function
+import Data.String.Interpolate
+import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Time
 import Optics.Core
 import Prelude hiding (abs)
-import Data.String.Interpolate
 
 -- | unit example
 --
@@ -539,10 +539,11 @@ surfaceExample =
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     evenColors = trimColour . over lightness' (const 0.55) . palette1 <$> [0 .. 5]
-    so = defaultSurfaceOptions
-            & #soGrain .~ grain
-            & #soRange .~ r
-            & #soStyle % #surfaceColors .~ evenColors
+    so =
+      defaultSurfaceOptions
+        & #soGrain .~ grain
+        & #soRange .~ r
+        & #soStyle % #surfaceColors .~ evenColors
     (cs, _) = surfacef f so
 
 -- | arrow example
@@ -753,12 +754,15 @@ writeAllExamples = do
 -- | Version of charts with a dark-friendly hud
 writeAllExamplesDark :: IO ()
 writeAllExamplesDark = do
-  mapM_ (uncurry writeChartOptions
-      . bimap
-        ((<> "d.svg") . reverse . drop 4 . reverse)
-        ( \x ->
-            x
-              & #hudOptions %~ colourHudOptions (rgb light)
-              & #markupOptions % #cssOptions % #preferColorScheme .~ PreferDark
-        )) pathChartOptions
+  mapM_
+    ( uncurry writeChartOptions
+        . bimap
+          ((<> "d.svg") . reverse . drop 4 . reverse)
+          ( \x ->
+              x
+                & #hudOptions %~ colourHudOptions (rgb light)
+                & #markupOptions % #cssOptions % #preferColorScheme .~ PreferDark
+          )
+    )
+    pathChartOptions
   putStrLn "dark version, ok"

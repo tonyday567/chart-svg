@@ -3,10 +3,10 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use unwords" #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | SVG path manipulation
 module Data.Path.Parser
@@ -22,19 +22,19 @@ module Data.Path.Parser
 where
 
 import Chart.Data
-import Control.Applicative hiding (many, some, (<|>), optional)
+import Chart.FlatParse
+import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
+import Data.ByteString (ByteString, intercalate)
+import Data.ByteString.Char8 (pack)
 import Data.FormatN
-import Data.Path ( PathData(..), ArcInfo(ArcInfo) )
+import Data.Path (ArcInfo (ArcInfo), PathData (..))
+import Data.Text.Encoding (encodeUtf8)
+import FlatParse.Basic
 import GHC.Generics
 import GHC.OverloadedLabels
 import NumHask.Prelude
 import Optics.Core hiding ((<|))
-import Data.ByteString (ByteString, intercalate)
-import Data.Text.Encoding (encodeUtf8)
-import Data.ByteString.Char8 (pack)
-import FlatParse.Basic
-import Chart.FlatParse
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -50,7 +50,6 @@ import Chart.FlatParse
 -- >>> let outerseg1 = "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"
 -- >>> parsePath outerseg1
 -- Just [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
---
 parsePath :: ByteString -> Maybe [PathCommand]
 parsePath bs = case runParser pathParser bs of
   OK x _ -> Just x
@@ -58,10 +57,10 @@ parsePath bs = case runParser pathParser bs of
 
 isWs' :: Char -> Bool
 isWs' x =
-  (x == ' ') ||
-  (x == '\n') ||
-  (x == '\t') ||
-  (x == '\r')
+  (x == ' ')
+    || (x == '\n')
+    || (x == '\t')
+    || (x == '\r')
 
 ws' :: Parser e Char
 ws' = satisfy isWs'
@@ -88,7 +87,7 @@ pointPair :: Parser e (Point Double, Point Double)
 pointPair = (,) <$> point <* commaWsp <*> point
 
 pointPairs :: Parser e [(Point Double, Point Double)]
-pointPairs =(:) <$> pointPair <*> many (commaWsp *> pointPair) <|> pure []
+pointPairs = (:) <$> pointPair <*> many (commaWsp *> pointPair) <|> pure []
 
 nums :: Parser e [Double]
 nums = (:) <$> num <*> many (commaWsp *> num) <|> pure []
@@ -102,26 +101,28 @@ manyComma a = (:) <$> a <*> many (commaWsp *> a) <|> pure []
 flagComma :: Parser e Bool
 flagComma = flag <* commaWsp
 
-curveToArgs :: Parser
-  e
-  (Point Double, Point Double, Point Double)
+curveToArgs ::
+  Parser
+    e
+    (Point Double, Point Double, Point Double)
 curveToArgs =
-      (,,)
-        <$> (point <* commaWsp)
-        <*> (point <* commaWsp)
-        <*> point
+  (,,)
+    <$> (point <* commaWsp)
+    <*> (point <* commaWsp)
+    <*> point
 
-ellipticalArgs :: Parser
-  e
-  (Double, Double, Double, Bool, Bool, Point Double)
+ellipticalArgs ::
+  Parser
+    e
+    (Double, Double, Double, Bool, Bool, Point Double)
 ellipticalArgs =
-      (,,,,,)
-        <$> numComma
-        <*> numComma
-        <*> numComma
-        <*> flagComma
-        <*> flagComma
-        <*> point
+  (,,,,,)
+    <$> numComma
+    <*> numComma
+    <*> numComma
+    <*> flagComma
+    <*> flagComma
+    <*> point
 
 pathParser :: Parser e [PathCommand]
 pathParser = many ws' *> manyComma command
@@ -249,9 +250,11 @@ toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
 
 -- | Render a point (including conversion to SVG Coordinates).
 pp' :: Point Double -> ByteString
-pp' (Point x y) = encodeUtf8 $
-  formatOrShow (FixedStyle 4) Nothing x <> ","
-    <> formatOrShow (FixedStyle 4) Nothing (bool (-y) y (y == zero))
+pp' (Point x y) =
+  encodeUtf8 $
+    formatOrShow (FixedStyle 4) Nothing x
+      <> ","
+      <> formatOrShow (FixedStyle 4) Nothing (bool (-y) y (y == zero))
 
 data PathCursor = PathCursor
   { -- | previous position

@@ -46,37 +46,37 @@ library
     Chart.Examples
     Chart.FlatParse
     Chart.Hud
+    Chart.Markup
+    Chart.Markup.Parser
     Chart.Primitive
     Chart.Style
     Chart.Surface
-    Chart.Markup
-    Chart.Markup.Parser
     Data.Colour
     Data.Path
     Data.Path.Parser
 
   hs-source-dirs:     src
   build-depends:
-    , adjunctions         ^>=4.4
-    , attoparsec          >=0.13.2 && <0.15
-    , base                >=4.7    && <5
-    , bytestring ^>=0.11.3
-    , Color               ^>=0.3
-    , containers          ^>=0.6
-    , cubicbezier         ^>=0.6
-    , flatparse           >= 0.4.0 && <0.5
-    , foldl               ^>=1.4
-    , formatn             ^>=0.2
-    , mtl                 >=2.2.2 && <2.4
-    , numhask             ^>=0.10
-    , numhask-array       ^>=0.10
-    , numhask-space       ^>=0.10
-    , optics-core         ^>=0.4
-    , random              ^>=1.2.1
-    , text                >=1.2 && <2.1
-    , time                >=1.9 && <2
-    , string-interpolate  ^>=0.3
-    , tree-diff >=0.3 && <0.4
+    Color ^>=0.3,
+    adjunctions ^>=4.4,
+    attoparsec >=0.13.2 && <0.15,
+    base >=4.7 && <5,
+    bytestring ^>=0.11.3,
+    containers ^>=0.6,
+    cubicbezier ^>=0.6,
+    flatparse >= 0.4.0 && <0.5,
+    foldl ^>=1.4,
+    formatn ^>=0.2,
+    mtl >=2.2.2 && <2.4,
+    numhask ^>=0.10,
+    numhask-array ^>=0.10,
+    numhask-space ^>=0.10,
+    optics-core ^>=0.4,
+    random ^>=1.2.1,
+    string-interpolate ^>=0.3,
+    text >=1.2 && <2.1,
+    time >=1.9 && <2,
+    tree-diff >=0.3 && <0.4,
 
   default-language:   Haskell2010
   default-extensions: StrictData
@@ -91,16 +91,13 @@ test-suite test
   hs-source-dirs:
     test
   build-depends:
+    base >=4.7 && <5,
+    bytestring ^>=0.11.3,
     chart-svg,
-    base                >=4.7    && <5,
-    tree-diff >=0.3 && <0.4,
+    flatparse >= 0.4.0 && <0.5,
     tasty >=1.2 && <1.5,
     tasty-golden ^>=2.3.1.1,
-    bytestring,
-    text,
-    parsec,
-    flatparse,
-
+    tree-diff >=0.3 && <0.4,
 
   ghc-options:
     -Wall -Wcompat -Wincomplete-record-updates

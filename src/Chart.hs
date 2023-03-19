@@ -44,11 +44,11 @@ import Chart.Bar
 import Chart.Data
 import Chart.FlatParse
 import Chart.Hud
+import Chart.Markup
+import Chart.Markup.Parser
 import Chart.Primitive
 import Chart.Style
 import Chart.Surface
-import Chart.Markup
-import Chart.Markup.Parser
 import Data.Colour
 import Data.FormatN
 import Data.Path

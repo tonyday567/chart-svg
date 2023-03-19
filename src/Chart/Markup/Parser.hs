@@ -1,8 +1,8 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE TupleSections #-}
 
 -- | Much of the parsing logic is based on the XML productions found in https://www.w3.org/TR/xml/#NT-content
@@ -11,15 +11,14 @@
 --
 -- My other reference was https://www.w3schools.com/xml/xml_syntax.asp (don't laugh).
 module Chart.Markup.Parser
-  (
-    markupP,
+  ( markupP,
     contentP,
-    XmlDocument(..),
+    XmlDocument (..),
     xmlDocument,
     xmlProlog,
     xmlXMLDecl,
     xmlDoctypedecl,
-    XmlMisc(..),
+    XmlMisc (..),
     xmlMisc,
     xmlComment,
     lt,
@@ -39,19 +38,21 @@ module Chart.Markup.Parser
 
     -- * testing
     exampleDocument,
-)
-
+  )
 where
 
-import Prelude
-import Data.ByteString ( ByteString )
-import GHC.Generics
-import FlatParse.Basic hiding (cut)
-import Chart.Markup
-    ( Content(..), Markup(Markup), singleAtt)
-import qualified FlatParse.Basic.Text as T
 import Chart.FlatParse
+import Chart.Markup
+  ( Content (..),
+    Markup (Markup),
+    singleAtt,
+  )
+import Data.ByteString (ByteString)
 import Data.String.Interpolate
+import FlatParse.Basic hiding (cut)
+import qualified FlatParse.Basic.Text as T
+import GHC.Generics
+import Prelude
 
 -- $setup
 --
@@ -119,12 +120,10 @@ wrappedSq = wrapped sq (byteStringOf $ many (T.satisfy (/= '\'')))
 --
 -- >>> runParserMaybe wrappedQ "'quoted'"
 -- Just "quoted"
---
 wrappedQ :: Parser e ByteString
 wrappedQ =
-  wrappedDq <|>
-  wrappedSq
-
+  wrappedDq
+    <|> wrappedSq
 
 -- | quote or double quote wrapped
 --
@@ -154,21 +153,22 @@ nameStartChar = fusedSatisfy isLatinLetter isNameStartChar isNameStartChar isNam
 
 isNameStartChar :: Char -> Bool
 isNameStartChar x =
-  (x >= 'a' && x <= 'z') ||
-  (x >= 'A' && x <= 'Z') ||
-  (x == ':') || (x == '_') ||
-  (x >= '\xC0' && x <= '\xD6') ||
-  (x >= '\xD8' && x <= '\xF6') ||
-  (x >= '\xF8' && x <= '\x2FF') ||
-  (x >= '\x370' && x <= '\x37D') ||
-  (x >= '\x37F' && x <= '\x1FFF') ||
-  (x >= '\x200C' && x <= '\x200D') ||
-  (x >= '\x2070' && x <= '\x218F') ||
-  (x >= '\x2C00' && x <= '\x2FEF') ||
-  (x >= '\x3001' && x <= '\xD7FF') ||
-  (x >= '\xF900' && x <= '\xFDCF') ||
-  (x >= '\xFDF0' && x <= '\xFFFD') ||
-  (x >= '\x10000' && x <= '\xEFFFF')
+  (x >= 'a' && x <= 'z')
+    || (x >= 'A' && x <= 'Z')
+    || (x == ':')
+    || (x == '_')
+    || (x >= '\xC0' && x <= '\xD6')
+    || (x >= '\xD8' && x <= '\xF6')
+    || (x >= '\xF8' && x <= '\x2FF')
+    || (x >= '\x370' && x <= '\x37D')
+    || (x >= '\x37F' && x <= '\x1FFF')
+    || (x >= '\x200C' && x <= '\x200D')
+    || (x >= '\x2070' && x <= '\x218F')
+    || (x >= '\x2C00' && x <= '\x2FEF')
+    || (x >= '\x3001' && x <= '\xD7FF')
+    || (x >= '\xF900' && x <= '\xFDCF')
+    || (x >= '\xFDF0' && x <= '\xFFFD')
+    || (x >= '\x10000' && x <= '\xEFFFF')
 
 -- [4a]
 nameChar :: Parser e Char
@@ -176,34 +176,38 @@ nameChar = fusedSatisfy isNameCharAscii isNameCharExt isNameCharExt isNameCharEx
 
 isNameCharAscii :: Char -> Bool
 isNameCharAscii x =
-  (x >= 'a' && x <= 'z') ||
-  (x >= 'A' && x <= 'Z') ||
-  (x >= '0' && x <= '9') ||
-  (x == ':') || (x == '_') ||
-  (x == '-') || (x == '.')
+  (x >= 'a' && x <= 'z')
+    || (x >= 'A' && x <= 'Z')
+    || (x >= '0' && x <= '9')
+    || (x == ':')
+    || (x == '_')
+    || (x == '-')
+    || (x == '.')
 
 isNameCharExt :: Char -> Bool
 isNameCharExt x =
-  (x >= 'a' && x <= 'z') ||
-  (x >= 'A' && x <= 'Z') ||
-  (x >= '0' && x <= '9') ||
-  (x == ':') || (x == '_') ||
-  (x == '-') || (x == '.') ||
-  (x == '\xB7') ||
-  (x >= '\xC0' && x <= '\xD6') ||
-  (x >= '\xD8' && x <= '\xF6') ||
-  (x >= '\xF8' && x <= '\x2FF') ||
-  (x >= '\x300' && x <= '\x36F') ||
-  (x >= '\x370' && x <= '\x37D') ||
-  (x >= '\x37F' && x <= '\x1FFF') ||
-  (x >= '\x200C' && x <= '\x200D') ||
-  (x >= '\x203F' && x <= '\x2040') ||
-  (x >= '\x2070' && x <= '\x218F') ||
-  (x >= '\x2C00' && x <= '\x2FEF') ||
-  (x >= '\x3001' && x <= '\xD7FF') ||
-  (x >= '\xF900' && x <= '\xFDCF') ||
-  (x >= '\xFDF0' && x <= '\xFFFD') ||
-  (x >= '\x10000' && x <= '\xEFFFF')
+  (x >= 'a' && x <= 'z')
+    || (x >= 'A' && x <= 'Z')
+    || (x >= '0' && x <= '9')
+    || (x == ':')
+    || (x == '_')
+    || (x == '-')
+    || (x == '.')
+    || (x == '\xB7')
+    || (x >= '\xC0' && x <= '\xD6')
+    || (x >= '\xD8' && x <= '\xF6')
+    || (x >= '\xF8' && x <= '\x2FF')
+    || (x >= '\x300' && x <= '\x36F')
+    || (x >= '\x370' && x <= '\x37D')
+    || (x >= '\x37F' && x <= '\x1FFF')
+    || (x >= '\x200C' && x <= '\x200D')
+    || (x >= '\x203F' && x <= '\x2040')
+    || (x >= '\x2070' && x <= '\x218F')
+    || (x >= '\x2C00' && x <= '\x2FEF')
+    || (x >= '\x3001' && x <= '\xD7FF')
+    || (x >= '\xF900' && x <= '\xFDCF')
+    || (x >= '\xFDF0' && x <= '\xFFFD')
+    || (x >= '\x10000' && x <= '\xEFFFF')
 
 -- | name string according to xml production rule [5]
 --
@@ -216,7 +220,6 @@ xmlName = byteStringOf (nameStartChar >> many nameChar)
 --
 -- >>> runParserMaybe xmlAtt "style = 'fancy'"
 -- Just ("style","fancy")
---
 xmlAtt :: Parser e (ByteString, ByteString)
 xmlAtt = (,) <$> (xmlName <* eq) <*> wrappedQ
 
@@ -239,11 +242,12 @@ closeTag = oct *> xmlName <* optional wss <* gt `cut'` Msg "close tag expected"
 --
 -- >>> runParserMaybe emptyElemTag "<br/>"
 -- Just ("br",[])
-emptyElemTag ::  Parser Error (ByteString, [(ByteString, ByteString)])
+emptyElemTag :: Parser Error (ByteString, [(ByteString, ByteString)])
 emptyElemTag =
-  lt *> ((,) <$> xmlName <*> many (wss *> xmlAtt) <* optional wss) <*  gtc
+  lt *> ((,) <$> xmlName <*> many (wss *> xmlAtt) <* optional wss) <* gtc
 
 -- * comments
+
 xmlCommentOpen :: Parser e ()
 xmlCommentOpen = $(string "<!--")
 
@@ -273,23 +277,25 @@ xmlComment = xmlCommentOpen *> byteStringOf (many (xmlCharNotMinus <|> xmlMinusP
 -- >>> runParser (ws_ *> xmlProlog) exampleDocument
 -- OK "<?xml version=\"1.0\" standalone=\"yes\" ?>\n\n<!--open the DOCTYPE declaration -\n  the open square bracket indicates an internal DTD-->\n<!DOCTYPE foo [\n\n<!--define the internal DTD-->\n  <!ELEMENT foo (#PCDATA)>\n\n<!--close the DOCTYPE declaration-->\n]>\n" "<foo>Hello World.</foo>\n"
 xmlProlog :: Parser e ByteString
-xmlProlog = byteStringOf $
-  xmlXMLDecl >>
-  many xmlMisc >>
-  optional (xmlDoctypedecl >> optional xmlMisc)
+xmlProlog =
+  byteStringOf $
+    xmlXMLDecl
+      >> many xmlMisc
+      >> optional (xmlDoctypedecl >> optional xmlMisc)
 
 -- | XML declaration as per production rule [23]
 --
 -- >>> runParserMaybe xmlXMLDecl "<?xml version=\"1.0\" standalone=\"yes\" ?>"
 -- Just "<?xml version=\"1.0\" standalone=\"yes\" ?>"
 xmlXMLDecl :: Parser e ByteString
-xmlXMLDecl = byteStringOf $
-  $(string "<?xml") >>
-  xmlVersionInfo >>
-  optional xmlEncodingDecl >>
-  optional wssDDecl >>
-  optional wss >>
-  $(string "?>")
+xmlXMLDecl =
+  byteStringOf $
+    $(string "<?xml")
+      >> xmlVersionInfo
+      >> optional xmlEncodingDecl
+      >> optional wssDDecl
+      >> optional wss
+      >> $(string "?>")
 
 -- xml production [24]
 xmlVersionInfo :: Parser e ByteString
@@ -304,16 +310,17 @@ xmlVersionNum =
 -- not as per [27] (missing PI)
 data XmlMiscType = XMiscComment | XMiscS deriving (Generic, Show, Eq)
 
-data XmlMisc = XmlMisc { xmiscType :: XmlMiscType, xmiscContent :: ByteString } deriving (Generic, Show, Eq)
+data XmlMisc = XmlMisc {xmiscType :: XmlMiscType, xmiscContent :: ByteString} deriving (Generic, Show, Eq)
 
 -- | Parser for miscellaneous guff
 xmlMisc :: Parser e XmlMisc
 xmlMisc =
-  (XmlMisc XMiscComment <$> xmlComment) <|>
-  (XmlMisc XMiscS <$> wss)
+  (XmlMisc XMiscComment <$> xmlComment)
+    <|> (XmlMisc XMiscS <$> wss)
 
 exampleDocument :: ByteString
-exampleDocument = [i|
+exampleDocument =
+  [i|
 <?xml version="1.0" standalone="yes" ?>
 
 <!--open the DOCTYPE declaration -
@@ -333,22 +340,26 @@ exampleDocument = [i|
 -- >>> runParserMaybe xmlDoctypedecl "<!DOCTYPE foo [ declarations ]>"
 -- Just "<!DOCTYPE foo [ declarations ]>"
 xmlDoctypedecl :: Parser e ByteString
-xmlDoctypedecl = byteStringOf $
-  $(string "<!DOCTYPE") >>
-  wss >>
-  xmlName >>
-  -- optional (wss >> xmlExternalID) >>
-  optional wss >>
-  optional bracketedSB >> optional wss >>
-  $(char '>')
+xmlDoctypedecl =
+  byteStringOf $
+    $(string "<!DOCTYPE")
+      >> wss
+      >> xmlName
+      >>
+      -- optional (wss >> xmlExternalID) >>
+      optional wss
+      >> optional bracketedSB
+      >> optional wss
+      >> $(char '>')
 
 bracketedSB :: Parser e [Char]
 bracketedSB = bracketed $(char '[') $(char ']') (many (satisfy (/= ']')))
 
 -- [32]
 wssDDecl :: Parser e ByteString
-wssDDecl = byteStringOf $
-  wss *> $(string "standalone") *> eq *> xmlYesNo
+wssDDecl =
+  byteStringOf $
+    wss *> $(string "standalone") *> eq *> xmlYesNo
 
 xmlYesNo :: Parser e ByteString
 xmlYesNo = wrappedQNoGuard (byteStringOf $ $(string "yes") <|> $(string "no"))
@@ -359,12 +370,11 @@ xmlEncodingDecl = wss *> $(string "encoding") *> eq *> wrappedQNoGuard xmlEncNam
 
 -- [81]
 xmlEncName :: Parser e ByteString
-xmlEncName = byteStringOf (satisfyAscii isLatinLetter >> many (satisfyAscii (\x -> isLatinLetter x || isDigit x || elem x ("._-" :: [Char]) )))
+xmlEncName = byteStringOf (satisfyAscii isLatinLetter >> many (satisfyAscii (\x -> isLatinLetter x || isDigit x || elem x ("._-" :: [Char]))))
 
 -- main Parser
 
 -- | An XML document as pre production rule [1]
---
 data XmlDocument = XmlDocument ByteString Markup [XmlMisc] deriving (Show, Eq)
 
 -- | Note that the library builds a Markup as per the SVG standards and not a Document.
@@ -380,9 +390,10 @@ xmlDocument = XmlDocument <$> (ws_ *> xmlProlog) <*> markupP <*> many xmlMisc
 -- OK (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = [Content "Hello World."]}) ""
 markupP :: Parser Error Markup
 markupP =
-  ((\(n,as) -> Markup n (mconcat $ singleAtt <$> as) mempty) <$> emptyElemTag) <|>
-  -- no close tag = open tag test
-  ((\(n,as) c _ -> Markup n (mconcat $ singleAtt <$> as) c) <$> openTag <*> many contentP <*> closeTag `cut` ["open tag", "content", "close tag"])
+  ((\(n, as) -> Markup n (mconcat $ singleAtt <$> as) mempty) <$> emptyElemTag)
+    <|>
+    -- no close tag = open tag test
+    ((\(n, as) c _ -> Markup n (mconcat $ singleAtt <$> as) c) <$> openTag <*> many contentP <*> closeTag `cut` ["open tag", "content", "close tag"])
 
 -- | inner contents of a xml element.
 --
@@ -390,6 +401,6 @@ markupP =
 -- OK [MarkupLeaf (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = [Content "Hello World."]}),Content "content",Comment " comment "] ""
 contentP :: Parser Error Content
 contentP =
-  (MarkupLeaf <$> markupP) <|>
-  (Comment <$> xmlComment) <|>
-  (Content <$> byteStringOf (some (satisfy (/= '<'))))
+  (MarkupLeaf <$> markupP)
+    <|> (Comment <$> xmlComment)
+    <|> (Content <$> byteStringOf (some (satisfy (/= '<'))))

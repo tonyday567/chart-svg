@@ -78,11 +78,13 @@ import Chart.Data
 import qualified Data.Attoparsec.Text as A
 import Data.Bifunctor
 import Data.Bool (bool)
+import Data.ByteString (ByteString)
 import Data.Char
 import Data.Either
 import Data.FormatN
 import Data.Functor.Rep
 import qualified Data.List as List
+import Data.String.Interpolate
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Exts
@@ -94,8 +96,6 @@ import NumHask.Array.Fixed
 import Optics.Core
 import System.Random
 import System.Random.Stateful
-import Data.String.Interpolate
-import Data.ByteString ( ByteString )
 
 -- $setup
 --

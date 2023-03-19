@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TupleSections #-}
 
 -- | An intermediary representation not unlike SVG or XML but only forming a subset of these standards.
@@ -11,54 +11,55 @@ module Chart.Markup
     eject,
     Attributes (..),
     singleAtt,
-    Markup(..),
-    Content(..),
+    Markup (..),
+    Content (..),
     printMarkup,
     printContent,
     printComment,
     printAttribute,
-    ChartOptions(..),
+    ChartOptions (..),
     markupChartOptions,
     markupChartTree,
     markupChart,
     header,
     printChartOptions,
     writeChartOptions,
-    CssOptions(..),
+    CssOptions (..),
     defaultCssOptions,
-    CssPreferColorScheme(..),
+    CssPreferColorScheme (..),
     cssPreferColorScheme,
-    CssShapeRendering(..),
+    CssShapeRendering (..),
     markupCssOptions,
-    MarkupOptions(..),
+    MarkupOptions (..),
     defaultMarkupOptions,
-  ) where
-
+  )
+where
 
 import Chart.Data
-import Prelude
-import Data.ByteString ( intercalate, ByteString, writeFile )
-import GHC.Generics
-import Data.String.Interpolate
-import Data.ByteString.Char8 (pack)
-import Optics.Core hiding (element)
-import Data.Maybe
-import Data.Text.Encoding (encodeUtf8)
 -- import Data.Text hiding (unpack, pack, filter, intercalate, empty)
+
+import Chart.Hud
 import Chart.Primitive hiding (tree)
 import Chart.Style
-import Data.Colour
-import Data.Text (Text)
-import Data.Path
-import Chart.Hud
-import Data.Tree (Tree(..))
-import qualified Data.Map.Strict as Map
-import Data.Map.Strict (Map)
-import Data.Bool
 import Data.Bifunctor
+import Data.Bool
+import Data.ByteString (ByteString, intercalate, writeFile)
+import Data.ByteString.Char8 (pack)
+import Data.Colour
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import Data.Maybe
+import Data.Path
 -- import GHC.Exts
 import Data.Path.Parser
+import Data.String.Interpolate
+import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
+import Data.Tree (Tree (..))
 import Data.TreeDiff
+import GHC.Generics
+import Optics.Core hiding (element)
+import Prelude
 
 -- $setup
 --
@@ -76,11 +77,11 @@ import Data.TreeDiff
 -- -- ID treadted as a special Attribute, and
 --
 -- -- All other attributes treated as the Last semigroup.
---
-data Attribute =
-  Class |
-  ID |
-  Attribute ByteString deriving (Eq, Show, Generic, Ord)
+data Attribute
+  = Class
+  | ID
+  | Attribute ByteString
+  deriving (Eq, Show, Generic, Ord)
 
 instance ToExpr Attribute
 
@@ -96,40 +97,41 @@ eject Class = "class"
 eject ID = "id"
 eject (Attribute a) = a
 
-newtype Attributes = Attributes { attMap :: Map Attribute ByteString } deriving (Eq, Show, Generic)
+newtype Attributes = Attributes {attMap :: Map Attribute ByteString} deriving (Eq, Show, Generic)
 
 instance ToExpr Attributes
 
-instance Semigroup Attributes
-  where
-    (<>) (Attributes m) (Attributes m') =
-      Attributes $ Map.unionWithKey
-      (\k a b ->
-        case k of
-          Class -> a <> " " <> b
-          ID -> b
-          Attribute _ -> b
+instance Semigroup Attributes where
+  (<>) (Attributes m) (Attributes m') =
+    Attributes $
+      Map.unionWithKey
+        ( \k a b ->
+            case k of
+              Class -> a <> " " <> b
+              ID -> b
+              Attribute _ -> b
+        )
+        m
+        m'
 
-      ) m m'
-
-instance Monoid Attributes
-  where
-    mempty = Attributes Map.empty
+instance Monoid Attributes where
+  mempty = Attributes Map.empty
 
 singleAtt :: (ByteString, ByteString) -> Attributes
-singleAtt ("class",b) = Attributes $ Map.singleton Class b
-singleAtt ("id",b) = Attributes $ Map.singleton ID b
-singleAtt (a,b) = Attributes $ Map.singleton (Attribute a) b
+singleAtt ("class", b) = Attributes $ Map.singleton Class b
+singleAtt ("id", b) = Attributes $ Map.singleton ID b
+singleAtt (a, b) = Attributes $ Map.singleton (Attribute a) b
 
 -- | A representation of SVG (and XML) markup with no specific knowledge of SVG or XML syntax rules.
 --
 -- >>> markupChartOptions c0
 -- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
-data Markup = Markup {
-  tag :: ByteString,
-  atts :: Attributes,
-  contents :: [Content]
-  } deriving (Eq, Show, Generic)
+data Markup = Markup
+  { tag :: ByteString,
+    atts :: Attributes,
+    contents :: [Content]
+  }
+  deriving (Eq, Show, Generic)
 
 instance ToExpr Markup
 
@@ -147,10 +149,10 @@ instance ToExpr Content
 -- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
 printMarkup :: Markup -> ByteString
 printMarkup (Markup n as xs) =
-  bool [i|<#{na}>#{ls}</#{n}>|] [i|<#{na}/>|] (xs==mempty)
-    where
-      na = intercalate " " ([n] <> (uncurry printAttribute <$> Map.toList (attMap as)))
-      ls = mconcat (printContent <$> xs)
+  bool [i|<#{na}>#{ls}</#{n}>|] [i|<#{na}/>|] (xs == mempty)
+  where
+    na = intercalate " " ([n] <> (uncurry printAttribute <$> Map.toList (attMap as)))
+    ls = mconcat (printContent <$> xs)
 
 -- | render Content to SVG
 --
@@ -185,18 +187,20 @@ markupChartTree cs =
     ([], Nothing) -> mempty
     (xs'', Nothing) -> xs''
     (xs'', Just l) -> [Markup "g" (Attributes . Map.singleton Class . encodeUtf8 $ l) (MarkupLeaf <$> xs'')]
-    where
-      (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
-      xs' = mapMaybe markupChart cs' <> (mconcat $ markupChartTree . ChartTree <$> xs)
+  where
+    (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
+    xs' = mapMaybe markupChart cs' <> (mconcat $ markupChartTree . ChartTree <$> xs)
 
 markupText :: TextStyle -> Text -> Point Double -> Markup
 markupText s t p@(Point x y) = Markup "text" as ((MarkupLeaf <$> xs) <> [Content c])
   where
-    as = Attributes $ Map.fromList $
-      [ (Attribute "x", pack $ show x),
-        (Attribute "y", pack $ show $ -y)
-      ] <>
-      maybeToList ((\x' -> (Attribute "transform", toRotateText x' p)) <$> (s ^. #rotation))
+    as =
+      Attributes $
+        Map.fromList $
+          [ (Attribute "x", pack $ show x),
+            (Attribute "y", pack $ show $ -y)
+          ]
+            <> maybeToList ((\x' -> (Attribute "transform", toRotateText x' p)) <$> (s ^. #rotation))
     xs = case view #frame s of
       Nothing -> []
       Just f -> maybeToList $ markupChart (RectChart (f & over #borderSize (* view #size s)) [styleBoxText s t p])
@@ -211,10 +215,9 @@ markupText s t p@(Point x y) = Markup "text" as ((MarkupLeaf <$> xs) <> [Content
 -- - from counter-clockwise is a positive rotation to clockwise is positive
 --
 -- - flip y dimension
---
 toRotateText :: Double -> Point Double -> ByteString
 toRotateText r (Point x y) =
-    pack $ "rotate(" <> show (-r * 180 / pi) <> ", " <> show x <> ", " <> show (-y) <> ")"
+  pack $ "rotate(" <> show (-r * 180 / pi) <> ", " <> show x <> ", " <> show (-y) <> ")"
 
 toScaleText :: Double -> ByteString
 toScaleText x =
@@ -222,17 +225,19 @@ toScaleText x =
     "scale(" <> show x <> ")"
 
 -- | Convert a Rect to Markup
---
 markupRect :: (Show a, Num a) => Rect a -> Markup
 markupRect (Rect x z y w) =
-    Markup "rect" as mempty
-    where
-      as = Attributes $ Map.fromList $ first Attribute <$>
-        [ ("width", pack $ show $ z - x),
-          ("height", pack $ show $ w - y),
-          ("x", pack $ show x),
-          ("y", pack $ show $ -w)
-        ]
+  Markup "rect" as mempty
+  where
+    as =
+      Attributes $
+        Map.fromList $
+          first Attribute
+            <$> [ ("width", pack $ show $ z - x),
+                  ("height", pack $ show $ w - y),
+                  ("x", pack $ show x),
+                  ("y", pack $ show $ -w)
+                ]
 
 -- | Convert a Chart to Markup
 --
@@ -254,7 +259,6 @@ toPointsText :: [Point Double] -> ByteString
 toPointsText xs = intercalate " " $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs
 
 -- | Path markup
---
 markupPath :: [PathData Double] -> Markup
 markupPath ps =
   Markup "path" (foldMap singleAtt [("d", pathDataToSvg ps)]) mempty
@@ -277,33 +281,41 @@ fromDashOffset :: Double -> ByteString
 fromDashOffset x = pack (show x)
 
 attsLine :: LineStyle -> Attributes
-attsLine o = mconcat $ singleAtt <$>
-  [ ("stroke-width", pack $ show $ o ^. #size),
-    ("stroke", showRGBA $ o ^. #color),
-    ("fill", "none")
-  ] <>
-  catMaybes
-  [(\x -> ("stroke-linecap", fromLineCap x)) <$> (o ^. #linecap)]
-    <> foldMap (\x -> [("stroke-linejoin", fromLineJoin x)]) (o ^. #linejoin)
-    <> foldMap (\x -> [("stroke-dasharray", fromDashArray x)]) (o ^. #dasharray)
-    <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (o ^. #dashoffset)
+attsLine o =
+  mconcat $
+    singleAtt
+      <$> [ ("stroke-width", pack $ show $ o ^. #size),
+            ("stroke", showRGBA $ o ^. #color),
+            ("fill", "none")
+          ]
+        <> catMaybes
+          [(\x -> ("stroke-linecap", fromLineCap x)) <$> (o ^. #linecap)]
+        <> foldMap (\x -> [("stroke-linejoin", fromLineJoin x)]) (o ^. #linejoin)
+        <> foldMap (\x -> [("stroke-dasharray", fromDashArray x)]) (o ^. #dasharray)
+        <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (o ^. #dashoffset)
 
 attsRect :: RectStyle -> Attributes
-attsRect o = foldMap singleAtt
-  [ ("stroke-width", pack $ show $ o ^. #borderSize),
-    ("stroke", showRGBA $ o ^. #borderColor),
-    ("fill", showRGBA $ o ^. #color)
-  ]
+attsRect o =
+  foldMap
+    singleAtt
+    [ ("stroke-width", pack $ show $ o ^. #borderSize),
+      ("stroke", showRGBA $ o ^. #borderColor),
+      ("fill", showRGBA $ o ^. #color)
+    ]
 
 -- | TextStyle to Attributes
 attsText :: TextStyle -> Attributes
-attsText o = Attributes $ Map.fromList $ fmap (first Attribute)
-  [ ("stroke-width","0.0"),
-    ("stroke", "none"),
-    ("fill", showRGBA $ o ^. #color),
-    ("font-size", pack $ show $ o ^. #size),
-    ("text-anchor", toTextAnchor $ o ^. #anchor)
-  ]
+attsText o =
+  Attributes $
+    Map.fromList $
+      fmap
+        (first Attribute)
+        [ ("stroke-width", "0.0"),
+          ("stroke", "none"),
+          ("fill", showRGBA $ o ^. #color),
+          ("font-size", pack $ show $ o ^. #size),
+          ("text-anchor", toTextAnchor $ o ^. #anchor)
+        ]
   where
     toTextAnchor :: Anchor -> ByteString
     toTextAnchor AnchorMiddle = "middle"
@@ -312,12 +324,15 @@ attsText o = Attributes $ Map.fromList $ fmap (first Attribute)
 
 -- | GlyphStyle to Attributes
 attsGlyph :: GlyphStyle -> Attributes
-attsGlyph o = Attributes $ Map.fromList $ fmap (first Attribute) $
-  [ ("stroke-width", pack $ show sw),
-    ("stroke", showRGBA $ o ^. #borderColor),
-    ("fill", showRGBA $ o ^. #color)
-  ]
-  <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
+attsGlyph o =
+  Attributes $
+    Map.fromList $
+      fmap (first Attribute) $
+        [ ("stroke-width", pack $ show sw),
+          ("stroke", showRGBA $ o ^. #borderColor),
+          ("fill", showRGBA $ o ^. #color)
+        ]
+          <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
   where
     sw = case o ^. #shape of
       PathGlyph _ NoScaleBorder -> o ^. #borderSize
@@ -326,11 +341,15 @@ attsGlyph o = Attributes $ Map.fromList $ fmap (first Attribute) $
 
 -- | PathStyle to Attributes
 attsPath :: PathStyle -> Attributes
-attsPath o = Attributes $ Map.fromList $ fmap (first Attribute)
-  [ ("stroke-width", pack $ show $ o ^. #borderSize),
-    ("stroke", showRGBA $ o ^. #borderColor),
-    ("fill", showRGBA $ o ^. #color)
-  ]
+attsPath o =
+  Attributes $
+    Map.fromList $
+      fmap
+        (first Attribute)
+        [ ("stroke-width", pack $ show $ o ^. #borderSize),
+          ("stroke", showRGBA $ o ^. #borderColor),
+          ("fill", showRGBA $ o ^. #color)
+        ]
 
 -- | includes a flip of the y dimension.
 toTranslateText :: Point Double -> ByteString
@@ -340,43 +359,60 @@ toTranslateText (Point x y) =
 
 -- | GlyphShape to markup Tree
 markupShape_ :: GlyphShape -> Double -> Point Double -> Markup
-markupShape_ CircleGlyph s (Point x y) = Markup "circle" as mempty where
-  as = Attributes $ Map.fromList  $ fmap (first Attribute)
-    [ ("cx", pack $ show x),
-      ("cy", pack $ show $ -y),
-      ("r", pack $ show $ 0.5 * s)
-    ]
+markupShape_ CircleGlyph s (Point x y) = Markup "circle" as mempty
+  where
+    as =
+      Attributes $
+        Map.fromList $
+          fmap
+            (first Attribute)
+            [ ("cx", pack $ show x),
+              ("cy", pack $ show $ -y),
+              ("r", pack $ show $ 0.5 * s)
+            ]
 markupShape_ SquareGlyph s p =
   markupRect (move p ((s *) <$> one :: Rect Double))
 markupShape_ (RectSharpGlyph x') s p =
   markupRect (move p (scale (Point s (x' * s)) one :: Rect Double))
 markupShape_ (RectRoundedGlyph x' rx ry) s p = Markup "rect" as mempty
   where
-    as = Attributes $ Map.fromList $ fmap (first Attribute)
-      [ ("width", pack $ show $ z - x),
-        ("height", pack $ show $ w - y),
-        ("x", pack $ show x),
-        ("y", pack $ show $ -w),
-        ("rx", pack $ show rx),
-        ("ry", pack $ show ry)
-      ]
+    as =
+      Attributes $
+        Map.fromList $
+          fmap
+            (first Attribute)
+            [ ("width", pack $ show $ z - x),
+              ("height", pack $ show $ w - y),
+              ("x", pack $ show x),
+              ("y", pack $ show $ -w),
+              ("rx", pack $ show rx),
+              ("ry", pack $ show ry)
+            ]
     (Rect x z y w) = move p (scale (Point s (x' * s)) one)
 markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   Markup "polygon" as mempty
   where
-    as = Attributes $ Map.fromList $ fmap (first Attribute)
-      [ ("transform", toTranslateText p),
-        ("points", pack $ show (s * xa) <> "," <> show (-(s * ya)) <> " " <> show (s * xb) <> "," <> show (-(s * yb)) <> " " <> show (s * xc) <> "," <> show (-(s * yc)))
-      ]
+    as =
+      Attributes $
+        Map.fromList $
+          fmap
+            (first Attribute)
+            [ ("transform", toTranslateText p),
+              ("points", pack $ show (s * xa) <> "," <> show (-(s * ya)) <> " " <> show (s * xb) <> "," <> show (-(s * yb)) <> " " <> show (s * xc) <> "," <> show (-(s * yc)))
+            ]
 markupShape_ (EllipseGlyph x') s (Point x y) =
   Markup "ellipse" as mempty
   where
-    as = Attributes $ Map.fromList $ fmap (first Attribute)
-      [ ("cx", (pack . show) x),
-        ("cy", (pack . show) $ -y),
-        ("rx", (pack . show) $ 0.5 * s),
-        ("ry", (pack . show) $ 0.5 * s * x')
-      ]
+    as =
+      Attributes $
+        Map.fromList $
+          fmap
+            (first Attribute)
+            [ ("cx", (pack . show) x),
+              ("cy", (pack . show) $ -y),
+              ("rx", (pack . show) $ 0.5 * s),
+              ("ry", (pack . show) $ 0.5 * s * x')
+            ]
 markupShape_ VLineGlyph s (Point x y) =
   Markup "polyline" (foldMap singleAtt [("points", pack $ show x <> "," <> show (-(y - s / 2)) <> "\n" <> show x <> "," <> show (-(y + s / 2)))]) mempty
 markupShape_ HLineGlyph s (Point x y) =
@@ -391,14 +427,17 @@ markupShape_ (PathGlyph path _) s p =
 header :: Double -> Rect Double -> [Markup] -> Markup
 header markupheight viewbox content' =
   Markup
-  "svg"
-   (foldMap singleAtt
-    [("xmlns", "http://www.w3.org/2000/svg"),
-     ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
-     ("width", pack $ show w''),
-     ("height", pack $ show h'),
-     ("viewBox", pack $ show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
-    ]) (MarkupLeaf <$> content')
+    "svg"
+    ( foldMap
+        singleAtt
+        [ ("xmlns", "http://www.w3.org/2000/svg"),
+          ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
+          ("width", pack $ show w''),
+          ("height", pack $ show h'),
+          ("viewBox", pack $ show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
+        ]
+    )
+    (MarkupLeaf <$> content')
   where
     (Rect x z y w) = viewbox
     Point w' h = width viewbox
@@ -496,12 +535,15 @@ defaultCssOptions = CssOptions NoShapeRendering PreferHud mempty
 -- >>> markupCssOptions defaultCssOptions
 -- Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content "svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgba(5%, 5%, 5%, 1.00);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgba(5%, 5%, 5%, 1.00);\n  }\n  .legendBorder g {\n    fill: rgba(94%, 94%, 94%, 1.00);\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgba(94%, 94%, 94%, 1.00);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgba(94%, 94%, 94%, 1.00);\n  }\n  .legendBorder g {\n    fill: rgba(5%, 5%, 5%, 1.00);\n  }\n}"]}
 markupCssOptions :: CssOptions -> Markup
-markupCssOptions css = Markup "style" mempty
-  [Content $
-   cssPreferColorScheme (light, dark) (view #preferColorScheme css) <>
-   markupShapeRendering (view #shapeRendering css) <>
-   view #cssExtra css
-  ]
+markupCssOptions css =
+  Markup
+    "style"
+    mempty
+    [ Content $
+        cssPreferColorScheme (light, dark) (view #preferColorScheme css)
+          <> markupShapeRendering (view #shapeRendering css)
+          <> view #cssExtra css
+    ]
 
 -- | CSS shape rendering text snippet
 markupShapeRendering :: CssShapeRendering -> ByteString
@@ -510,20 +552,25 @@ markupShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 markupShapeRendering NoShapeRendering = mempty
 
 -- | A sum type representing charts, hud options and markup options, which can be transformed into SVG.
---
-data ChartOptions = ChartOptions {
-  markupOptions :: MarkupOptions,
-  hudOptions :: HudOptions,
-  charts :: ChartTree } deriving (Generic, Eq, Show)
+data ChartOptions = ChartOptions
+  { markupOptions :: MarkupOptions,
+    hudOptions :: HudOptions,
+    charts :: ChartTree
+  }
+  deriving (Generic, Eq, Show)
 
 -- | Convert ChartOptions to Markup
 --
 -- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
 -- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
 markupChartOptions :: ChartOptions -> Markup
-markupChartOptions co = header (view (#markupOptions % #markupHeight) co) viewbox
-  ([markupCssOptions (view (#markupOptions % #cssOptions) co)] <>
-   markupChartTree csAndHud)
+markupChartOptions co =
+  header
+    (view (#markupOptions % #markupHeight) co)
+    viewbox
+    ( [markupCssOptions (view (#markupOptions % #cssOptions) co)]
+        <> markupChartTree csAndHud
+    )
   where
     viewbox = singletonGuard (view styleBox' csAndHud)
     csAndHud = addHud (view #hudOptions co) (view #charts co)

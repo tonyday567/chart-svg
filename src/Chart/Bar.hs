@@ -19,6 +19,7 @@ where
 
 import Chart.Data
 import Chart.Hud
+import Chart.Markup
 import Chart.Primitive
 import Chart.Style
 import Data.Bool
@@ -31,7 +32,6 @@ import Data.Text (Text, pack)
 import GHC.Generics
 import Optics.Core
 import Prelude hiding (abs)
-import Chart.Markup
 
 -- $setup
 --
