@@ -13,16 +13,15 @@ module Chart.Markup
     singleAtt,
     Markup (..),
     Content (..),
-    printMarkup,
-    printContent,
-    printComment,
-    printAttribute,
+    renderMarkup,
+    encodeMarkup,
     ChartOptions (..),
     markupChartOptions,
     markupChartTree,
     markupChart,
     header,
-    printChartOptions,
+    renderChartOptions,
+    encodeChartOptions,
     writeChartOptions,
     CssOptions (..),
     defaultCssOptions,
@@ -143,39 +142,38 @@ data Content = Content ByteString | Comment ByteString | MarkupLeaf Markup deriv
 
 instance ToExpr Content
 
--- | render markup to a ByteString compliant with an SVG object (and XML element)
+-- | render markup to Text compliant with being an SVG object (and XML element)
 --
--- >>> printMarkup (markupChartOptions c0)
+-- >>> renderMarkup (markupChartOptions c0)
 -- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
-printMarkup :: Markup -> ByteString
-printMarkup (Markup n as xs) =
+renderMarkup :: Markup -> Text
+renderMarkup (Markup n as xs) =
   bool [i|<#{na}>#{ls}</#{n}>|] [i|<#{na}/>|] (xs == mempty)
   where
-    na = intercalate " " ([n] <> (uncurry printAttribute <$> Map.toList (attMap as)))
-    ls = mconcat (printContent <$> xs)
+    na = intercalate " " ([n] <> (uncurry encodeAttribute <$> Map.toList (attMap as)))
+    ls = mconcat (encodeContent <$> xs)
 
--- | render Content to SVG
+-- | render markup to a ByteString compliant with being an SVG object (and XML element)
 --
--- >>> printContent <$> (contents $ markupChartOptions c0)
--- ["<style></style>","<g class=\"chart\"/>","<g class=\"hud\"/>"]
-printContent :: Content -> ByteString
-printContent (Content c) = c
-printContent (Comment c) = printComment c
-printContent (MarkupLeaf x) = printMarkup x
+-- >>> encodeMarkup (markupChartOptions c0)
+-- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
+encodeMarkup :: Markup -> ByteString
+encodeMarkup (Markup n as xs) =
+  bool [i|<#{na}>#{ls}</#{n}>|] [i|<#{na}/>|] (xs == mempty)
+  where
+    na = intercalate " " ([n] <> (uncurry encodeAttribute <$> Map.toList (attMap as)))
+    ls = mconcat (encodeContent <$> xs)
 
--- | Render a comment
---
--- >>> printComment "comment"
--- "<!--comment-->"
-printComment :: ByteString -> ByteString
-printComment c = "<!--" <> c <> "-->"
+encodeContent :: Content -> ByteString
+encodeContent (Content c) = c
+encodeContent (Comment c) = encodeComment c
+encodeContent (MarkupLeaf x) = encodeMarkup x
 
--- | render an Attribute with a value
---
--- >>> printAttribute Class "a"
--- "class=\"a\""
-printAttribute :: Attribute -> ByteString -> ByteString
-printAttribute a b = [i|#{eject a}="#{b}"|]
+encodeComment :: ByteString -> ByteString
+encodeComment c = "<!--" <> c <> "-->"
+
+encodeAttribute :: Attribute -> ByteString -> ByteString
+encodeAttribute a b = [i|#{eject a}="#{b}"|]
 
 -- | Convert a ChartTree to markup
 --
@@ -577,10 +575,17 @@ markupChartOptions co =
 
 -- | Render ChartOptions to an SVG ByteString
 --
--- >>> printChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
+-- >>> encodeChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
 -- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
-printChartOptions :: ChartOptions -> ByteString
-printChartOptions = printMarkup . markupChartOptions
+encodeChartOptions :: ChartOptions -> ByteString
+encodeChartOptions = encodeMarkup . markupChartOptions
+
+-- | Render ChartOptions to an SVG Text snippet
+--
+-- >>> renderChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
+-- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
+renderChartOptions :: ChartOptions -> Text
+renderChartOptions = renderMarkup . markupChartOptions
 
 instance Semigroup ChartOptions where
   (<>) (ChartOptions _ h c) (ChartOptions s' h' c') =
@@ -591,4 +596,4 @@ instance Monoid ChartOptions where
 
 -- | Convert ChartOptions to an SVG ByteString and save to a file
 writeChartOptions :: FilePath -> ChartOptions -> IO ()
-writeChartOptions fp co = Data.ByteString.writeFile fp (printChartOptions co)
+writeChartOptions fp co = Data.ByteString.writeFile fp (encodeChartOptions co)

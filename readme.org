@@ -223,13 +223,13 @@ markupChartOptions c0
 : Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
 
 #+begin_src haskell
-printMarkup $ markupChartOptions c0
+encodeMarkup $ markupChartOptions c0
 #+end_src
 
 #+RESULTS:
 : <svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>
 
-*** checking round trip iso for printMarkup . parseMarkup
+*** checking round trip iso for encodeMarkup . parseMarkup
 
 #+begin_src haskell
 writeAllExamples
@@ -251,7 +251,7 @@ fps
 :{
 isoMarkupParse :: BS.ByteString -> Bool
 isoMarkupParse x = case runParser markupP x of
-  OK l "" -> printMarkup l == x
+  OK l "" -> encodeMarkup l == x
   _ -> False
 
 isoFile :: FilePath -> IO Bool
