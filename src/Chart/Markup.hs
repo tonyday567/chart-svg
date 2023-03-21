@@ -59,6 +59,7 @@ import Data.TreeDiff
 import GHC.Generics
 import Optics.Core hiding (element)
 import Prelude
+import Data.FormatN
 
 -- $setup
 --
@@ -68,6 +69,9 @@ import Prelude
 -- >>> import Optics.Core
 -- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
 -- >>> import Chart.Examples
+
+encodeNum :: Double -> ByteString
+encodeNum = encodeUtf8 . decimal (Just 5)
 
 -- | Allows class to be concatenated in monadic appends, with:
 --
@@ -124,7 +128,7 @@ singleAtt (a, b) = Attributes $ Map.singleton (Attribute a) b
 -- | A representation of SVG (and XML) markup with no specific knowledge of SVG or XML syntax rules.
 --
 -- >>> markupChartOptions c0
--- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.00"),(Attribute "viewBox","-0.75000 -0.50000 1.5000 1.0000"),(Attribute "width","450.00"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
 data Markup = Markup
   { tag :: ByteString,
     atts :: Attributes,
@@ -145,7 +149,7 @@ instance ToExpr Content
 -- | render markup to Text compliant with being an SVG object (and XML element)
 --
 -- >>> renderMarkup (markupChartOptions c0)
--- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
+-- "<svg height=\"300.00\" viewBox=\"-0.75000 -0.50000 1.5000 1.0000\" width=\"450.00\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
 renderMarkup :: Markup -> Text
 renderMarkup (Markup n as xs) =
   bool [i|<#{na}>#{ls}</#{n}>|] [i|<#{na}/>|] (xs == mempty)
@@ -156,7 +160,7 @@ renderMarkup (Markup n as xs) =
 -- | render markup to a ByteString compliant with being an SVG object (and XML element)
 --
 -- >>> encodeMarkup (markupChartOptions c0)
--- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
+-- "<svg height=\"300.00\" viewBox=\"-0.75000 -0.50000 1.5000 1.0000\" width=\"450.00\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
 encodeMarkup :: Markup -> ByteString
 encodeMarkup (Markup n as xs) =
   bool [i|<#{na}>#{ls}</#{n}>|] [i|<#{na}/>|] (xs == mempty)
@@ -178,7 +182,7 @@ encodeAttribute a b = [i|#{eject a}="#{b}"|]
 -- | Convert a ChartTree to markup
 --
 -- >>> lineExample & view #charts & markupChartTree
--- [Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"line")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 73%, 80%, 1.00)"),(Attribute "stroke-width","1.5e-2")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0,-1.0 1.0,-1.0 2.0,-5.0")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 29%, 48%, 1.00)"),(Attribute "stroke-width","1.5e-2")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0,-0.0 2.8,-3.0")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(66%, 7%, 55%, 1.00)"),(Attribute "stroke-width","1.5e-2")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.5,-4.0 0.5,-0.0")]}, contents = []})]})]}]
+-- [Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"line")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 73%, 80%, 1.00)"),(Attribute "stroke-width","0.015000")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0000,-1.0000 1.0000,-1.0000 2.0000,-5.0000")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 29%, 48%, 1.00)"),(Attribute "stroke-width","0.015000")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0000,0.0000 2.8000,-3.0000")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(66%, 7%, 55%, 1.00)"),(Attribute "stroke-width","0.015000")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.50000,-4.0000 0.50000,0.0000")]}, contents = []})]})]}]
 markupChartTree :: ChartTree -> [Markup]
 markupChartTree cs =
   case (xs', label) of
@@ -195,8 +199,8 @@ markupText s t p@(Point x y) = Markup "text" as ((MarkupLeaf <$> xs) <> [Content
     as =
       Attributes $
         Map.fromList $
-          [ (Attribute "x", pack $ show x),
-            (Attribute "y", pack $ show $ -y)
+          [ (Attribute "x", encodeNum x),
+            (Attribute "y", encodeNum $ -y)
           ]
             <> maybeToList ((\x' -> (Attribute "transform", toRotateText x' p)) <$> (s ^. #rotation))
     xs = case view #frame s of
@@ -215,15 +219,14 @@ markupText s t p@(Point x y) = Markup "text" as ((MarkupLeaf <$> xs) <> [Content
 -- - flip y dimension
 toRotateText :: Double -> Point Double -> ByteString
 toRotateText r (Point x y) =
-  pack $ "rotate(" <> show (-r * 180 / pi) <> ", " <> show x <> ", " <> show (-y) <> ")"
+  "rotate(" <> encodeNum (-r * 180 / pi) <> ", " <> encodeNum x <> ", " <> encodeNum (-y) <> ")"
 
 toScaleText :: Double -> ByteString
 toScaleText x =
-  pack $
-    "scale(" <> show x <> ")"
+  "scale(" <> encodeNum x <> ")"
 
 -- | Convert a Rect to Markup
-markupRect :: (Show a, Num a) => Rect a -> Markup
+markupRect :: Rect Double -> Markup
 markupRect (Rect x z y w) =
   Markup "rect" as mempty
   where
@@ -231,16 +234,16 @@ markupRect (Rect x z y w) =
       Attributes $
         Map.fromList $
           first Attribute
-            <$> [ ("width", pack $ show $ z - x),
-                  ("height", pack $ show $ w - y),
-                  ("x", pack $ show x),
-                  ("y", pack $ show $ -w)
+            <$> [ ("width", encodeNum (z - x)),
+                  ("height", encodeNum (w - y)),
+                  ("x", encodeNum x),
+                  ("y", encodeNum (-w))
                 ]
 
 -- | Convert a Chart to Markup
 --
 -- >>> lineExample & view #charts & foldOf charts' & head & markupChart
--- Just (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 73%, 80%, 1.00)"),(Attribute "stroke-width","1.5e-2")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0,-1.0 1.0,-1.0 2.0,-5.0")]}, contents = []})]})
+-- Just (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgba(2%, 73%, 80%, 1.00)"),(Attribute "stroke-width","0.015000")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.0000,-1.0000 1.0000,-1.0000 2.0000,-5.0000")]}, contents = []})]})
 markupChart :: Chart -> Maybe Markup
 markupChart (RectChart s xs) = Just $ Markup "g" (attsRect s) (MarkupLeaf . markupRect <$> xs)
 markupChart (TextChart s xs) = Just $ Markup "g" (attsText s) (MarkupLeaf . uncurry (markupText s) <$> xs)
@@ -254,7 +257,7 @@ markupLine lss =
   fmap (($ mempty) . Markup "polyline" . singleAtt . ("points",) . toPointsText) lss
 
 toPointsText :: [Point Double] -> ByteString
-toPointsText xs = intercalate " " $ (\(Point x y) -> pack (show x <> "," <> show (-y))) <$> xs
+toPointsText xs = intercalate " " $ (\(Point x y) -> encodeNum x <> "," <> encodeNum (-y)) <$> xs
 
 -- | Path markup
 markupPath :: [PathData Double] -> Markup
@@ -273,16 +276,16 @@ markupGlyph s p =
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> ByteString
-fromDashArray xs = intercalate " " $ pack . show <$> xs
+fromDashArray xs = intercalate " " $ encodeNum <$> xs
 
 fromDashOffset :: Double -> ByteString
-fromDashOffset x = pack (show x)
+fromDashOffset x = encodeNum x
 
 attsLine :: LineStyle -> Attributes
 attsLine o =
   mconcat $
     singleAtt
-      <$> [ ("stroke-width", pack $ show $ o ^. #size),
+      <$> [ ("stroke-width", encodeNum $ o ^. #size),
             ("stroke", showRGBA $ o ^. #color),
             ("fill", "none")
           ]
@@ -296,7 +299,7 @@ attsRect :: RectStyle -> Attributes
 attsRect o =
   foldMap
     singleAtt
-    [ ("stroke-width", pack $ show $ o ^. #borderSize),
+    [ ("stroke-width", encodeNum $ o ^. #borderSize),
       ("stroke", showRGBA $ o ^. #borderColor),
       ("fill", showRGBA $ o ^. #color)
     ]
@@ -311,7 +314,7 @@ attsText o =
         [ ("stroke-width", "0.0"),
           ("stroke", "none"),
           ("fill", showRGBA $ o ^. #color),
-          ("font-size", pack $ show $ o ^. #size),
+          ("font-size", encodeNum $ o ^. #size),
           ("text-anchor", toTextAnchor $ o ^. #anchor)
         ]
   where
@@ -326,7 +329,7 @@ attsGlyph o =
   Attributes $
     Map.fromList $
       fmap (first Attribute) $
-        [ ("stroke-width", pack $ show sw),
+        [ ("stroke-width", encodeNum sw),
           ("stroke", showRGBA $ o ^. #borderColor),
           ("fill", showRGBA $ o ^. #color)
         ]
@@ -344,7 +347,7 @@ attsPath o =
     Map.fromList $
       fmap
         (first Attribute)
-        [ ("stroke-width", pack $ show $ o ^. #borderSize),
+        [ ("stroke-width", encodeNum $ o ^. #borderSize),
           ("stroke", showRGBA $ o ^. #borderColor),
           ("fill", showRGBA $ o ^. #color)
         ]
@@ -352,8 +355,7 @@ attsPath o =
 -- | includes a flip of the y dimension.
 toTranslateText :: Point Double -> ByteString
 toTranslateText (Point x y) =
-  pack $
-    "translate(" <> show x <> ", " <> show (-y) <> ")"
+    "translate(" <> encodeNum x <> ", " <> encodeNum (-y) <> ")"
 
 -- | GlyphShape to markup Tree
 markupShape_ :: GlyphShape -> Double -> Point Double -> Markup
@@ -364,9 +366,9 @@ markupShape_ CircleGlyph s (Point x y) = Markup "circle" as mempty
         Map.fromList $
           fmap
             (first Attribute)
-            [ ("cx", pack $ show x),
-              ("cy", pack $ show $ -y),
-              ("r", pack $ show $ 0.5 * s)
+            [ ("cx", encodeNum x),
+              ("cy", encodeNum $ -y),
+              ("r", encodeNum $ 0.5 * s)
             ]
 markupShape_ SquareGlyph s p =
   markupRect (move p ((s *) <$> one :: Rect Double))
@@ -379,12 +381,12 @@ markupShape_ (RectRoundedGlyph x' rx ry) s p = Markup "rect" as mempty
         Map.fromList $
           fmap
             (first Attribute)
-            [ ("width", pack $ show $ z - x),
-              ("height", pack $ show $ w - y),
-              ("x", pack $ show x),
-              ("y", pack $ show $ -w),
-              ("rx", pack $ show rx),
-              ("ry", pack $ show ry)
+            [ ("width", encodeNum $ z - x),
+              ("height", encodeNum $ w - y),
+              ("x", encodeNum x),
+              ("y", encodeNum $ -w),
+              ("rx", encodeNum rx),
+              ("ry", encodeNum ry)
             ]
     (Rect x z y w) = move p (scale (Point s (x' * s)) one)
 markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
@@ -396,7 +398,7 @@ markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
           fmap
             (first Attribute)
             [ ("transform", toTranslateText p),
-              ("points", pack $ show (s * xa) <> "," <> show (-(s * ya)) <> " " <> show (s * xb) <> "," <> show (-(s * yb)) <> " " <> show (s * xc) <> "," <> show (-(s * yc)))
+              ("points", encodeNum (s * xa) <> "," <> encodeNum (-(s * ya)) <> " " <> encodeNum (s * xb) <> "," <> encodeNum (-(s * yb)) <> " " <> encodeNum (s * xc) <> "," <> encodeNum (-(s * yc)))
             ]
 markupShape_ (EllipseGlyph x') s (Point x y) =
   Markup "ellipse" as mempty
@@ -412,16 +414,16 @@ markupShape_ (EllipseGlyph x') s (Point x y) =
               ("ry", (pack . show) $ 0.5 * s * x')
             ]
 markupShape_ VLineGlyph s (Point x y) =
-  Markup "polyline" (foldMap singleAtt [("points", pack $ show x <> "," <> show (-(y - s / 2)) <> "\n" <> show x <> "," <> show (-(y + s / 2)))]) mempty
+  Markup "polyline" (foldMap singleAtt [("points", encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2)))]) mempty
 markupShape_ HLineGlyph s (Point x y) =
-  Markup "polyline" (foldMap singleAtt [("points", pack $ show (x - s / 2) <> "," <> show (-y) <> "\n" <> show (x + s / 2) <> "," <> show (-y))]) mempty
+  Markup "polyline" (foldMap singleAtt [("points", encodeNum (x - s / 2) <> "," <> encodeNum (-y) <> "\n" <> encodeNum (x + s / 2) <> "," <> encodeNum (-y))]) mempty
 markupShape_ (PathGlyph path _) s p =
   Markup "path" (foldMap singleAtt [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)]) mempty
 
 -- | Create the classic SVG element
 --
 -- >>> header 100 one [Markup "foo" mempty mempty]
--- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","100.0"),(Attribute "viewBox","-0.5 -0.5 1.0 1.0"),(Attribute "width","100.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = []})]}
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","100.00"),(Attribute "viewBox","-0.50000 -0.50000 1.0000 1.0000"),(Attribute "width","100.00"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = []})]}
 header :: Double -> Rect Double -> [Markup] -> Markup
 header markupheight viewbox content' =
   Markup
@@ -430,9 +432,9 @@ header markupheight viewbox content' =
         singleAtt
         [ ("xmlns", "http://www.w3.org/2000/svg"),
           ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
-          ("width", pack $ show w''),
-          ("height", pack $ show h'),
-          ("viewBox", pack $ show x <> " " <> show (-w) <> " " <> show (z - x) <> " " <> show (w - y))
+          ("width", encodeNum w''),
+          ("height", encodeNum h'),
+          ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
         ]
     )
     (MarkupLeaf <$> content')
@@ -560,7 +562,7 @@ data ChartOptions = ChartOptions
 -- | Convert ChartOptions to Markup
 --
 -- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.00"),(Attribute "viewBox","-0.75000 -0.50000 1.5000 1.0000"),(Attribute "width","450.00"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
 markupChartOptions :: ChartOptions -> Markup
 markupChartOptions co =
   header
@@ -576,14 +578,14 @@ markupChartOptions co =
 -- | Render ChartOptions to an SVG ByteString
 --
 -- >>> encodeChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
+-- "<svg height=\"300.00\" viewBox=\"-0.75000 -0.50000 1.5000 1.0000\" width=\"450.00\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
 encodeChartOptions :: ChartOptions -> ByteString
 encodeChartOptions = encodeMarkup . markupChartOptions
 
 -- | Render ChartOptions to an SVG Text snippet
 --
 -- >>> renderChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- "<svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
+-- "<svg height=\"300.00\" viewBox=\"-0.75000 -0.50000 1.5000 1.0000\" width=\"450.00\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>"
 renderChartOptions :: ChartOptions -> Text
 renderChartOptions = renderMarkup . markupChartOptions
 
