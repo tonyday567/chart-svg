@@ -199,11 +199,28 @@ import GHC.Exts
 import Data.TreeDiff
 import qualified Data.TreeDiff.OMap as O
 import qualified Data.Set
+import Data.FormatN
 #+end_src
 
 #+RESULTS:
-: Ok, 15 modules loaded.
+: [ 8 of 14] Compiling Chart.Hud        ( src/Chart/Hud.hs, interpreted ) [Source file changed]
+: [ 9 of 14] Compiling Chart.Surface    ( src/Chart/Surface.hs, interpreted ) [Chart.Hud changed]
+: [10 of 14] Compiling Chart.Markup     ( src/Chart/Markup.hs, interpreted ) [Chart.Hud changed]
+: [12 of 14] Compiling Chart.Bar        ( src/Chart/Bar.hs, interpreted ) [Chart.Hud changed]
+: [13 of 14] Compiling Chart            ( src/Chart.hs, interpreted ) [Chart.Bar changed]
+: [14 of 14] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted ) [Chart.Bar changed]
+: Ok, 14 modules loaded.
 : >
+
+** write examples
+
+  #+begin_src haskell
+writeAllExamples
+  #+end_src
+
+#+RESULTS:
+: ok
+
 
 ** basic ChartOptions ==> Markup ==> ByteString rendering pipeline
 
@@ -397,6 +414,7 @@ Markup {
       +"textual content"]}
 #+end_example
 
+
 ** ToDo creating a proper tree-diff patch
 
 To be a real patch:
@@ -443,3 +461,68 @@ Markup {
     Content "text"]}
 #+end_example
 
+
+
+** replacing double shows with formatN
+
+#+begin_src haskell :results output
+decimal (Just 5) 0
+#+end_src
+
+#+RESULTS:
+: 0.0000
+
+
+* test
+
+#+begin_src haskell :file other/test1.svg :results output graphics file :exports both
+:set -XOverloadedLabels
+:set -XOverloadedStrings
+import Chart
+import Optics.Core
+import Chart.Examples
+writeChartOptions "other/test1.svg" lineExample
+#+end_src
+
+#+RESULTS:
+[[file:other/test1.svg]]
+
+#+RESULTS:[[file:other/test1.svg]]
+
+#+begin_src haskell :file other/test2.svg :results output graphics file :exports both
+:set -XOverloadedLabels
+:set -XOverloadedStrings
+import Chart
+import Optics.Core
+import Chart.Examples
+lineExample' = lineExample & #hudOptions % #titles %~ fmap (first (const (Priority 20.0))
+writeChartOptions "other/test2.svg" lineExample'
+#+end_src
+
+#+RESULTS:
+[[file:other/test2.svg]]
+
+
+
+#+begin_src haskell :file other/test3.svg :results output graphics file :exports both
+:set -XOverloadedLabels
+:set -XOverloadedStrings
+import Chart
+import Optics.Core
+import Chart.Examples
+lineExample'' = lineExample & #hudOptions % #axes %~ fmap (first (const (Priority 5))) & #hudOptions % #titles %~ fmap (first (const (Priority 51))) & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+le = lineExample'' & (#hudOptions % #frames) .~ [(1, FrameOptions (Just (defaultRectStyle)) 0), (50.5, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)]
+writeChartOptions "other/test3.svg" le
+#+end_src
+
+#+RESULTS:
+[[file:other/test3.svg]]
+
+
+#+begin_src haskell :results output :exports both
+lineExample'' = lineExample & #hudOptions % #axes %~ fmap (first (const (Priority 5))) & #hudOptions % #titles %~ fmap (first (const (Priority 51))) & #hudOptions % #frames .~ [(1, FrameOptions fmap (first (const (Priority 10))) & #hudOptions % #legends %~ fmap (first (const (Priority 50)))  & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+#+end_src
+
+#+RESULTS:
+: <interactive>:803:359: error:
+:     parse error (possibly incorrect indentation or mismatched brackets)

@@ -11,7 +11,10 @@
 module Chart.Hud
   ( -- * Hud
     Hud (..),
-    Priority,
+    Priority (..),
+    defaultPriority,
+    highPriority,
+    lowPriority,
     HudBox,
     CanvasBox,
     DataBox,
@@ -106,8 +109,59 @@ import Prelude
 --
 -- Lower priority (higher values) huds will tend to be placed on the outside of a chart.
 --
--- Equal priority values will be placed in the same process step.
-type Priority = Double
+-- Hud elements are rendered in order from high to low priority and the positioning of hud elements can depend on the positioning of elements that have already been included. Equal priority values will be placed in the same process step.
+--
+--
+
+
+
+--
+-- The first example below, based in 'lineExample' but with the legend placed on the right and coloured frames to help accentuate effects, includes (in order of priority):
+--
+-- - an inner frame, representing the core data area of the chart (Priority 1)
+--
+-- - the axes (defaultPriority (5))
+--
+-- - the titles (Priority 12)
+--
+-- - the legend (Priority 50)
+--
+-- - an outer frame which is transparent and used to pad out the chart (Priority 100).
+--
+-- > priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)] & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+--
+-- ![priorityv1 example](other/priorityv1.svg)
+--
+-- The second variation below drops the title priorities to below the legend:
+--
+-- > priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (const (Priority 51)))
+--
+-- ![priorityv2 example](other/priorityv2.svg)
+newtype Priority = Priority { priority :: Double } deriving (Eq, Ord, Show, Generic)
+
+instance Num Priority where
+  (*) (Priority a) (Priority b) = Priority (a * b)
+  (+) (Priority a) (Priority b) = Priority (a + b)
+  negate (Priority a) = Priority (negate a)
+  abs (Priority a) = Priority (Prelude.abs a)
+  signum (Priority a) = Priority (signum a)
+  fromInteger x = Priority (fromInteger x)
+
+instance Fractional Priority where
+  fromRational x = Priority (fromRational x)
+  recip (Priority x) = Priority (recip x)
+
+-- | An arbitrary 5.0
+-- >>> defaultPriority
+--
+defaultPriority :: Priority
+defaultPriority = Priority 5.0
+
+highPriority :: Priority
+highPriority = Priority 1.0
+
+lowPriority :: Priority
+lowPriority = Priority 20.0
 
 -- | Heads-up display additions to charts
 --

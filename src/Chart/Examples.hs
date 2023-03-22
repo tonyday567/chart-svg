@@ -80,7 +80,7 @@ rectExample =
       .~ ( mempty
              & set
                #axes
-               [(1, defaultAxisOptions & #ticks % #ltick .~ Nothing)]
+               [(defaultPriority, defaultAxisOptions & #ticks % #ltick .~ Nothing)]
          )
     & #charts .~ named "rect" (zipWith RectChart ropts rss)
 
@@ -143,6 +143,12 @@ lineExample =
         [Point 0.0 0.0, Point 2.8 3.0],
         [Point 0.5 4.0, Point 0.5 0]
       ]
+
+priorityv1Example :: ChartOptions
+priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)] & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+
+priorityv2Example :: ChartOptions
+priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (const (Priority 51))) & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
 
 -- | text example
 --
@@ -613,8 +619,8 @@ dateExample =
       .~ ( mempty
              & #chartAspect .~ FixedAspect 1.5
              & #axes
-               .~ [ (1, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
-                    (1, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
+               .~ [ (defaultPriority, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
+                    (defaultPriority, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
                   ]
          )
   where
@@ -652,7 +658,7 @@ gradient marker h fa grain ok0 ok1 =
     & #hudOptions
       .~ ( mempty
              & #chartAspect .~ FixedAspect fa
-             & #frames .~ [(20, FrameOptions (Just (border 0.004 white)) 0.1)]
+             & #frames .~ [(lowPriority, FrameOptions (Just (border 0.004 white)) 0.1)]
          )
     & #charts
       .~ named "gradient" (gradientChart_ grain ok0 ok1) <> strip
@@ -742,7 +748,9 @@ pathChartOptions =
     ("other/date.svg", dateExample),
     ("other/gradient.svg", gradientExample),
     ("other/wheel.svg", wheelExample),
-    ("other/debug.svg", debugExample lineExample)
+    ("other/debug.svg", debugExample lineExample),
+    ("other/priorityv1.svg", priorityv1Example),
+    ("other/priorityv2.svg", priorityv2Example)
   ]
 
 -- | Run this to refresh example SVG's.
