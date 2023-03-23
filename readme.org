@@ -32,7 +32,6 @@ See the haddock documentation for a detailed overview and [[file:gallery.md][the
 
 ** 0.4
 
-
 0.4 is a plumbing release.
 
 *** Text ==> ByteString
@@ -203,12 +202,11 @@ import Data.FormatN
 #+end_src
 
 #+RESULTS:
-: [ 8 of 14] Compiling Chart.Hud        ( src/Chart/Hud.hs, interpreted ) [Source file changed]
-: [ 9 of 14] Compiling Chart.Surface    ( src/Chart/Surface.hs, interpreted ) [Chart.Hud changed]
-: [10 of 14] Compiling Chart.Markup     ( src/Chart/Markup.hs, interpreted ) [Chart.Hud changed]
-: [12 of 14] Compiling Chart.Bar        ( src/Chart/Bar.hs, interpreted ) [Chart.Hud changed]
-: [13 of 14] Compiling Chart            ( src/Chart.hs, interpreted ) [Chart.Bar changed]
-: [14 of 14] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted ) [Chart.Bar changed]
+: [10 of 14] Compiling Chart.Markup     ( src/Chart/Markup.hs, interpreted ) [Source file changed]
+: [11 of 14] Compiling Chart.Markup.Parser ( src/Chart/Markup/Parser.hs, interpreted ) [Chart.Markup changed]
+: [12 of 14] Compiling Chart.Bar        ( src/Chart/Bar.hs, interpreted ) [Chart.Markup changed]
+: [13 of 14] Compiling Chart            ( src/Chart.hs, interpreted ) [Chart.Markup changed]
+: [14 of 14] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted ) [Chart changed]
 : Ok, 14 modules loaded.
 : >
 
@@ -220,7 +218,6 @@ writeAllExamples
 
 #+RESULTS:
 : ok
-
 
 ** basic ChartOptions ==> Markup ==> ByteString rendering pipeline
 
@@ -313,109 +310,18 @@ zip fps fok
 | wave.svg       | True |
 | date.svg       | True |
 
-** tree-diff patch development
-
-patch is in the test suite, so:
+* Test
 
 #+begin_src elisp
 (setq haskell-process-args-cabal-repl '("chart-svg:test"))
 #+end_src
 
-#+RESULTS:
-| chart-svg:test |
-
 #+begin_src haskell
 :set prompt "> "
-:t printPatchExamples
+import Main
 #+end_src
 
-#+RESULTS:
-: printPatchExamples :: IO ()
-
-** patch examples
-
-#+begin_src haskell :results output
-printPatchExamples
-#+end_src
-
-#+RESULTS:
-#+begin_example
-"class change"
-Markup {
-  atts = Attributes
-    (Map.fromList [_×_ -"a" +"b"])}
-"delete an attribute"
-Markup {
-  atts = Attributes
-    (Map.fromList
-      [-_×_ (Attribute "b") "c"])}
-"insert an attribute"
-Markup {
-  atts = Attributes
-    (Map.fromList
-      [+_×_ (Attribute "d") "e"])}
-"change a tag"
-Markup {tag = -"top" +"newtop"}
-"change a markup leaf"
-Markup {
-  contents = [
-    MarkupLeaf
-      Markup {
-        tag = -"leaf" +"newleaf"}]}
-"delete a leaf"
-Markup {
-  contents = [
-    -MarkupLeaf
-      Markup {
-        tag = "leaf",
-        atts = Attributes
-          (Map.fromList []),
-        contents = []}]}
-"insert a leaf"
-Markup {
-  contents = [
-    +MarkupLeaf
-      Markup {
-        tag = "newleaf",
-        atts = Attributes
-          (Map.fromList []),
-        contents = []}]}
-"insert attribute"
-Markup {
-  contents = [
-    MarkupLeaf
-      Markup {
-        atts = Attributes
-          (Map.fromList
-            [
-              +_×_ Class "a",
-              +_×_ (Attribute "b") "c"])}]}
-"modify content"
-Markup {
-  contents = [
-    Content
-      -"text"
-      +"textual content"]}
-"deep leaf insertion"
-Markup {
-  contents = [
-    MarkupLeaf
-      Markup {
-        contents = [
-          +MarkupLeaf
-            Markup {
-              tag = "newdeepleaf",
-              atts = Attributes
-                (Map.fromList []),
-              contents = [
-                Content "deeper content"]}]},
-    Content
-      -"text"
-      +"textual content"]}
-#+end_example
-
-
-** ToDo creating a proper tree-diff patch
+** creating a proper tree-diff patch
 
 To be a real patch:
 
@@ -460,69 +366,3 @@ Markup {
         tag = "g", atts = Attributes (Map.fromList []), contents = []},
     Content "text"]}
 #+end_example
-
-
-
-** replacing double shows with formatN
-
-#+begin_src haskell :results output
-decimal (Just 5) 0
-#+end_src
-
-#+RESULTS:
-: 0.0000
-
-
-* test
-
-#+begin_src haskell :file other/test1.svg :results output graphics file :exports both
-:set -XOverloadedLabels
-:set -XOverloadedStrings
-import Chart
-import Optics.Core
-import Chart.Examples
-writeChartOptions "other/test1.svg" lineExample
-#+end_src
-
-#+RESULTS:
-[[file:other/test1.svg]]
-
-#+RESULTS:[[file:other/test1.svg]]
-
-#+begin_src haskell :file other/test2.svg :results output graphics file :exports both
-:set -XOverloadedLabels
-:set -XOverloadedStrings
-import Chart
-import Optics.Core
-import Chart.Examples
-lineExample' = lineExample & #hudOptions % #titles %~ fmap (first (const (Priority 20.0))
-writeChartOptions "other/test2.svg" lineExample'
-#+end_src
-
-#+RESULTS:
-[[file:other/test2.svg]]
-
-
-
-#+begin_src haskell :file other/test3.svg :results output graphics file :exports both
-:set -XOverloadedLabels
-:set -XOverloadedStrings
-import Chart
-import Optics.Core
-import Chart.Examples
-lineExample'' = lineExample & #hudOptions % #axes %~ fmap (first (const (Priority 5))) & #hudOptions % #titles %~ fmap (first (const (Priority 51))) & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
-le = lineExample'' & (#hudOptions % #frames) .~ [(1, FrameOptions (Just (defaultRectStyle)) 0), (50.5, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)]
-writeChartOptions "other/test3.svg" le
-#+end_src
-
-#+RESULTS:
-[[file:other/test3.svg]]
-
-
-#+begin_src haskell :results output :exports both
-lineExample'' = lineExample & #hudOptions % #axes %~ fmap (first (const (Priority 5))) & #hudOptions % #titles %~ fmap (first (const (Priority 51))) & #hudOptions % #frames .~ [(1, FrameOptions fmap (first (const (Priority 10))) & #hudOptions % #legends %~ fmap (first (const (Priority 50)))  & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
-#+end_src
-
-#+RESULTS:
-: <interactive>:803:359: error:
-:     parse error (possibly incorrect indentation or mismatched brackets)

@@ -26,7 +26,6 @@ import Chart.FlatParse
 import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
 import Data.ByteString (ByteString, intercalate)
-import Data.ByteString.Char8 (pack)
 import Data.FormatN
 import Data.Path (ArcInfo (ArcInfo), PathData (..))
 import Data.Text.Encoding (encodeUtf8)
@@ -234,19 +233,26 @@ toPathAbsolute (QuadP control p) =
     <> pp' control
     <> " "
     <> pp' p
+-- FIXME: check why y doesn't need swapping into SVG coord system
 toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
   "A "
-    <> (pack . show) x
+    <> pv' x
     <> " "
-    <> (pack . show) y
+    <> pv' y
     <> " "
-    <> (pack . show) (-phi' * 180 / pi)
+    <> pv' (-phi' * 180 / pi)
     <> " "
     <> bool "0" "1" l
     <> " "
     <> bool "0" "1" sw
     <> " "
     <> pp' x2
+
+-- | Render a value to 4 SigFigs
+pv' :: Double -> ByteString
+pv' x =
+  encodeUtf8 $
+    formatOrShow (FixedStyle 4) Nothing x
 
 -- | Render a point (including conversion to SVG Coordinates).
 pp' :: Point Double -> ByteString

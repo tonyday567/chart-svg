@@ -20,6 +20,7 @@ module Data.Colour
     trimColour,
     showRGBA,
     showRGB,
+    showOpacity,
     opac',
     opac,
     hex,
@@ -175,6 +176,13 @@ validate c = bool Nothing (Just c) (validColour c)
 -- | Opacity or alpha
 opac :: Colour -> Double
 opac (Colour _ _ _ o) = o
+
+-- | CSS-style representation
+showOpacity :: Colour -> ByteString
+showOpacity c =
+  [i|(#{o}|]
+  where
+    o = prec (Just 2) (opac c)
 
 -- | lens for opacity (or alpha channel)
 opac' :: Lens' Colour Double

@@ -1,26 +1,26 @@
-<svg height="300.00" viewBox="-0.75124 -1.5262 2.0643 1.6513" width="375.05" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style>svg {
+<svg height="300" viewBox="-0.7512 -1.5262 2.0643 1.6513" width="375" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style>svg {
   color-scheme: light dark;
 }
 {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgba(5%, 5%, 5%, 1.00);
+    fill: rgb(5%, 5%, 5%);
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgba(5%, 5%, 5%, 1.00);
+    stroke: rgb(5%, 5%, 5%);
   }
   .legendBorder g {
-    fill: rgba(94%, 94%, 94%, 1.00);
+    fill: rgb(94%, 94%, 94%);
   }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgba(94%, 94%, 94%, 1.00);
+    fill: rgb(94%, 94%, 94%);
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgba(94%, 94%, 94%, 1.00);
+    stroke: rgb(94%, 94%, 94%);
   }
   .legendBorder g {
-    fill: rgba(5%, 5%, 5%, 1.00);
+    fill: rgb(5%, 5%, 5%);
   }
 }
 {
@@ -33,21 +33,21 @@
     fill: rgba(94%, 94%, 94%, 1.00);
   }
 }
-</style><g class="chart"><g class="path"><g fill="rgba(2%, 73%, 80%, 0.10)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><path d="M 0.0476,0 L 1.0,0 C 0.2381,0 0.2857,-0.9375 1.0,-0.9375 Q -0.9048,-1.875 0.0476,-0.9375 A 0.9486825977868139 0.9412422945844034 30.0 0 0 0.0476,0"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.0030000"><rect height="0.030000" width="0.030000" x="0.032619" y="-0.015000"/><rect height="0.030000" width="0.030000" x="0.98500" y="-0.015000"/><rect height="0.030000" width="0.030000" x="0.98500" y="-0.95250"/><rect height="0.030000" width="0.030000" x="0.032619" y="-0.95250"/><rect height="0.030000" width="0.030000" x="0.032619" y="-0.015000"/></g></g><g class="pathtext"><g fill="rgba(5%, 5%, 5%, 1.00)" font-size="0.047619" stroke="none" stroke-width="0.0" text-anchor="middle"><text x="0.047619" y="-0.046875">StartP (Point 0 0)</text><text x="0.52381" y="0.00000000000000044409">LineP (Point 1 0)</text><text x="0.80952" y="-0.46875">CubicP (Point 0.2 0) (Point 0.25 1) (Point 1 1)</text><text x="0.42857" y="-1.0312">QuadP (Point (-1) 2) (Point 0 1)</text><text x="0.047619" y="-0.37500">ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)</text></g></g></g><g class="hud"><g class="frame"><g fill="rgba(100%, 100%, 100%, 0.02)" stroke="rgba(0%, 0%, 0%, 0.00)" stroke-width="0.0000"><rect height="1.5165" width="1.9083" x="-0.59524" y="-1.5000"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgba(5%, 5%, 5%, 0.40)" stroke="rgba(5%, 5%, 5%, 0.40)" stroke-width="0.0040000"><g transform="rotate(-90.000, -0.62524, 0.00000000000000066613)"><polyline points="-0.62524,0.015000
--0.62524,-0.015000"/></g><g transform="rotate(-90.000, -0.62524, -0.18750)"><polyline points="-0.62524,-0.17250
--0.62524,-0.20250"/></g><g transform="rotate(-90.000, -0.62524, -0.37500)"><polyline points="-0.62524,-0.36000
--0.62524,-0.39000"/></g><g transform="rotate(-90.000, -0.62524, -0.56250)"><polyline points="-0.62524,-0.54750
--0.62524,-0.57750"/></g><g transform="rotate(-90.000, -0.62524, -0.75000)"><polyline points="-0.62524,-0.73500
--0.62524,-0.76500"/></g><g transform="rotate(-90.000, -0.62524, -0.93750)"><polyline points="-0.62524,-0.92250
--0.62524,-0.95250"/></g><g transform="rotate(-90.000, -0.62524, -1.1250)"><polyline points="-0.62524,-1.1100
--0.62524,-1.1400"/></g><g transform="rotate(-90.000, -0.62524, -1.3125)"><polyline points="-0.62524,-1.2975
--0.62524,-1.3275"/></g><g transform="rotate(-90.000, -0.62524, -1.5000)"><polyline points="-0.62524,-1.4850
--0.62524,-1.5150"/></g></g></g><g class="ticktext"><g fill="rgba(5%, 5%, 5%, 1.00)" font-size="0.050000" stroke="none" stroke-width="0.0" text-anchor="end"><text x="-0.66124" y="0.013750">0.00</text><text x="-0.66124" y="-0.17375">0.20</text><text x="-0.66124" y="-0.36125">0.40</text><text x="-0.66124" y="-0.54875">0.60</text><text x="-0.66124" y="-0.73625">0.80</text><text x="-0.66124" y="-0.92375">1.00</text><text x="-0.66124" y="-1.1112">1.20</text><text x="-0.66124" y="-1.2988">1.40</text><text x="-0.66124" y="-1.4862">1.60</text></g></g><g class="ticklines"><g fill="none" stroke="rgba(5%, 5%, 5%, 0.05)" stroke-width="0.0050000"><polyline points="-0.33333,0.00000000000000066613 1.0000,0.00000000000000066613"/><polyline points="-0.33333,-0.18750 1.0000,-0.18750"/><polyline points="-0.33333,-0.37500 1.0000,-0.37500"/><polyline points="-0.33333,-0.56250 1.0000,-0.56250"/><polyline points="-0.33333,-0.75000 1.0000,-0.75000"/><polyline points="-0.33333,-0.93750 1.0000,-0.93750"/><polyline points="-0.33333,-1.1250 1.0000,-1.1250"/><polyline points="-0.33333,-1.3125 1.0000,-1.3125"/><polyline points="-0.33333,-1.5000 1.0000,-1.5000"/></g></g></g><g class="axisbar"><g fill="rgba(5%, 5%, 5%, 0.40)" stroke="rgba(0%, 0%, 0%, 0.00)" stroke-width="0.0000"><rect height="1.5040" width="0.0040000" x="-0.60924" y="-1.5020"/></g></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgba(5%, 5%, 5%, 0.40)" stroke="rgba(5%, 5%, 5%, 0.40)" stroke-width="0.0040000"><polyline points="-0.33333,0.061500
--0.33333,0.031500"/><polyline points="-0.14286,0.061500
--0.14286,0.031500"/><polyline points="0.047619,0.061500
-0.047619,0.031500"/><polyline points="0.23810,0.061500
-0.23810,0.031500"/><polyline points="0.42857,0.061500
-0.42857,0.031500"/><polyline points="0.61905,0.061500
-0.61905,0.031500"/><polyline points="0.80952,0.061500
-0.80952,0.031500"/><polyline points="1.0000,0.061500
-1.0000,0.031500"/></g></g><g class="ticktext"><g fill="rgba(5%, 5%, 5%, 1.00)" font-size="0.050000" stroke="none" stroke-width="0.0" text-anchor="middle"><text x="-0.33333" y="0.11000">-0.40</text><text x="-0.14286" y="0.11000">-0.20</text><text x="0.047619" y="0.11000"> 0.00</text><text x="0.23810" y="0.11000"> 0.20</text><text x="0.42857" y="0.11000"> 0.40</text><text x="0.61905" y="0.11000"> 0.60</text><text x="0.80952" y="0.11000"> 0.80</text><text x="1.0000" y="0.11000"> 1.00</text></g></g><g class="ticklines"><g fill="none" stroke="rgba(5%, 5%, 5%, 0.05)" stroke-width="0.0050000"><polyline points="-0.33333,0.00000000000000066613 -0.33333,-1.5000"/><polyline points="-0.14286,0.00000000000000066613 -0.14286,-1.5000"/><polyline points="0.047619,0.00000000000000066613 0.047619,-1.5000"/><polyline points="0.23810,0.00000000000000066613 0.23810,-1.5000"/><polyline points="0.42857,0.00000000000000066613 0.42857,-1.5000"/><polyline points="0.61905,0.00000000000000066613 0.61905,-1.5000"/><polyline points="0.80952,0.00000000000000066613 0.80952,-1.5000"/><polyline points="1.0000,0.00000000000000066613 1.0000,-1.5000"/></g></g></g><g class="axisbar"><g fill="rgba(5%, 5%, 5%, 0.40)" stroke="rgba(0%, 0%, 0%, 0.00)" stroke-width="0.0000"><rect height="0.0040000" width="1.3373" x="-0.33533" y="0.026500"/></g></g></g></g></svg>
+</style><g class="chart"><g class="path"><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.10" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><path d="M 0.0476,0 L 1.0,0 C 0.2381,0 0.2857,-0.9375 1.0,-0.9375 Q -0.9048,-1.875 0.0476,-0.9375 A 0.9487 0.9412 30.0 0 0 0.0476,0"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0030"><rect height="0.0300" width="0.0300" x="0.0326" y="-0.0150"/><rect height="0.0300" width="0.0300" x="0.985" y="-0.0150"/><rect height="0.0300" width="0.0300" x="0.985" y="-0.9525"/><rect height="0.0300" width="0.0300" x="0.0326" y="-0.9525"/><rect height="0.0300" width="0.0300" x="0.0326" y="-0.0150"/></g></g><g class="pathtext"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(1.0" font-size="0.0476" stroke="none" stroke-width="0.0" text-anchor="middle"><text x="0.0476" y="-0.0469">StartP (Point 0 0)</text><text x="0.5238" y="0">LineP (Point 1 0)</text><text x="0.8095" y="-0.4687">CubicP (Point 0.2 0) (Point 0.25 1) (Point 1 1)</text><text x="0.4286" y="-1.0312">QuadP (Point (-1) 2) (Point 0 1)</text><text x="0.0476" y="-0.3750">ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)</text></g></g></g><g class="hud"><g class="frame"><g fill="rgb(100%, 100%, 100%)" fill-opacity="(0.020" stroke="rgb(0%, 0%, 0%)" stroke-opacity="(0.0" stroke-width="0"><rect height="1.5165" width="1.9083" x="-0.5952" y="-1.5"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(0.40" stroke="rgb(5%, 5%, 5%)" stroke-opacity="(0.40" stroke-width="0.0040"><g transform="rotate(-90.0, -0.6252, 0)"><polyline points="-0.6252,0.0150
+-0.6252,-0.0150"/></g><g transform="rotate(-90.0, -0.6252, -0.1875)"><polyline points="-0.6252,-0.1725
+-0.6252,-0.2025"/></g><g transform="rotate(-90.0, -0.6252, -0.3750)"><polyline points="-0.6252,-0.3600
+-0.6252,-0.3900"/></g><g transform="rotate(-90.0, -0.6252, -0.5625)"><polyline points="-0.6252,-0.5475
+-0.6252,-0.5775"/></g><g transform="rotate(-90.0, -0.6252, -0.7500)"><polyline points="-0.6252,-0.7350
+-0.6252,-0.7650"/></g><g transform="rotate(-90.0, -0.6252, -0.9375)"><polyline points="-0.6252,-0.9225
+-0.6252,-0.9525"/></g><g transform="rotate(-90.0, -0.6252, -1.125)"><polyline points="-0.6252,-1.11
+-0.6252,-1.14"/></g><g transform="rotate(-90.0, -0.6252, -1.3125)"><polyline points="-0.6252,-1.2975
+-0.6252,-1.3275"/></g><g transform="rotate(-90.0, -0.6252, -1.5)"><polyline points="-0.6252,-1.485
+-0.6252,-1.515"/></g></g></g><g class="ticktext"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(1.0" font-size="0.0500" stroke="none" stroke-width="0.0" text-anchor="end"><text x="-0.6612" y="0.0138">0.00</text><text x="-0.6612" y="-0.1737">0.20</text><text x="-0.6612" y="-0.3612">0.40</text><text x="-0.6612" y="-0.5487">0.60</text><text x="-0.6612" y="-0.7362">0.80</text><text x="-0.6612" y="-0.9237">1.00</text><text x="-0.6612" y="-1.1112">1.20</text><text x="-0.6612" y="-1.2988">1.40</text><text x="-0.6612" y="-1.4862">1.60</text></g></g><g class="ticklines"><g fill="none" stroke="rgb(5%, 5%, 5%)" stroke-opacity="(0.050" stroke-width="0.0050"><polyline points="-0.3333,0 1.0,0"/><polyline points="-0.3333,-0.1875 1.0,-0.1875"/><polyline points="-0.3333,-0.3750 1.0,-0.3750"/><polyline points="-0.3333,-0.5625 1.0,-0.5625"/><polyline points="-0.3333,-0.7500 1.0,-0.7500"/><polyline points="-0.3333,-0.9375 1.0,-0.9375"/><polyline points="-0.3333,-1.125 1.0,-1.125"/><polyline points="-0.3333,-1.3125 1.0,-1.3125"/><polyline points="-0.3333,-1.5 1.0,-1.5"/></g></g></g><g class="axisbar"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(0.40" stroke="rgb(0%, 0%, 0%)" stroke-opacity="(0.0" stroke-width="0"><rect height="1.5040" width="0.0040" x="-0.6092" y="-1.502"/></g></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(0.40" stroke="rgb(5%, 5%, 5%)" stroke-opacity="(0.40" stroke-width="0.0040"><polyline points="-0.3333,0.0615
+-0.3333,0.0315"/><polyline points="-0.1429,0.0615
+-0.1429,0.0315"/><polyline points="0.0476,0.0615
+0.0476,0.0315"/><polyline points="0.2381,0.0615
+0.2381,0.0315"/><polyline points="0.4286,0.0615
+0.4286,0.0315"/><polyline points="0.6190,0.0615
+0.6190,0.0315"/><polyline points="0.8095,0.0615
+0.8095,0.0315"/><polyline points="1.0,0.0615
+1.0,0.0315"/></g></g><g class="ticktext"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(1.0" font-size="0.0500" stroke="none" stroke-width="0.0" text-anchor="middle"><text x="-0.3333" y="0.1100">-0.4</text><text x="-0.1429" y="0.1100">-0.2</text><text x="0.0476" y="0.1100"> 0.0</text><text x="0.2381" y="0.1100"> 0.2</text><text x="0.4286" y="0.1100"> 0.4</text><text x="0.6190" y="0.1100"> 0.6</text><text x="0.8095" y="0.1100"> 0.8</text><text x="1.0" y="0.1100"> 1.0</text></g></g><g class="ticklines"><g fill="none" stroke="rgb(5%, 5%, 5%)" stroke-opacity="(0.050" stroke-width="0.0050"><polyline points="-0.3333,0 -0.3333,-1.5"/><polyline points="-0.1429,0 -0.1429,-1.5"/><polyline points="0.0476,0 0.0476,-1.5"/><polyline points="0.2381,0 0.2381,-1.5"/><polyline points="0.4286,0 0.4286,-1.5"/><polyline points="0.6190,0 0.6190,-1.5"/><polyline points="0.8095,0 0.8095,-1.5"/><polyline points="1.0,0 1.0,-1.5"/></g></g></g><g class="axisbar"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(0.40" stroke="rgb(0%, 0%, 0%)" stroke-opacity="(0.0" stroke-width="0"><rect height="0.0040" width="1.3373" x="-0.3353" y="0.0265"/></g></g></g></g></svg>

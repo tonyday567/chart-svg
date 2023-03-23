@@ -1,47 +1,47 @@
-<svg height="300.00" viewBox="-0.73289 -0.49629 1.4751 0.99401" width="445.19" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style>svg {
+<svg height="300" viewBox="-0.7382 -0.4971 1.4830 0.9952" width="447" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style>svg {
   color-scheme: light dark;
 }
 {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgba(5%, 5%, 5%, 1.00);
+    fill: rgb(5%, 5%, 5%);
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgba(5%, 5%, 5%, 1.00);
+    stroke: rgb(5%, 5%, 5%);
   }
   .legendBorder g {
-    fill: rgba(94%, 94%, 94%, 1.00);
+    fill: rgb(94%, 94%, 94%);
   }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgba(94%, 94%, 94%, 1.00);
+    fill: rgb(94%, 94%, 94%);
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgba(94%, 94%, 94%, 1.00);
+    stroke: rgb(94%, 94%, 94%);
   }
   .legendBorder g {
-    fill: rgba(5%, 5%, 5%, 1.00);
+    fill: rgb(5%, 5%, 5%);
   }
-}</style><g class="chart"><g class="unit"><g fill="rgba(2%, 73%, 80%, 0.10)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><rect height="0.87336" width="1.2718" x="-0.57730" y="-0.47438"/></g></g></g><g class="hud"><g class="frame"><g fill="rgba(100%, 100%, 100%, 0.02)" stroke="rgba(0%, 0%, 0%, 0.00)" stroke-width="0.0000"><rect height="0.88209" width="1.2803" x="-0.58154" y="-0.47875"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgba(5%, 5%, 5%, 0.40)" stroke="rgba(5%, 5%, 5%, 0.40)" stroke-width="0.0040000"><g transform="rotate(-90.000, -0.60698, 0.39897)"><polyline points="-0.60698,0.41397
--0.60698,0.38397"/></g><g transform="rotate(-90.000, -0.60698, 0.31164)"><polyline points="-0.60698,0.32664
--0.60698,0.29664"/></g><g transform="rotate(-90.000, -0.60698, 0.22430)"><polyline points="-0.60698,0.23930
--0.60698,0.20930"/></g><g transform="rotate(-90.000, -0.60698, 0.13697)"><polyline points="-0.60698,0.15197
--0.60698,0.12197"/></g><g transform="rotate(-90.000, -0.60698, 0.049631)"><polyline points="-0.60698,0.064631
--0.60698,0.034631"/></g><g transform="rotate(-90.000, -0.60698, -0.037704)"><polyline points="-0.60698,-0.022704
--0.60698,-0.052704"/></g><g transform="rotate(-90.000, -0.60698, -0.12504)"><polyline points="-0.60698,-0.11004
--0.60698,-0.14004"/></g><g transform="rotate(-90.000, -0.60698, -0.21238)"><polyline points="-0.60698,-0.19738
--0.60698,-0.22738"/></g><g transform="rotate(-90.000, -0.60698, -0.29971)"><polyline points="-0.60698,-0.28471
--0.60698,-0.31471"/></g><g transform="rotate(-90.000, -0.60698, -0.38705)"><polyline points="-0.60698,-0.37205
--0.60698,-0.40205"/></g><g transform="rotate(-90.000, -0.60698, -0.47438)"><polyline points="-0.60698,-0.45938
--0.60698,-0.48938"/></g></g></g><g class="ticktext"><g fill="rgba(5%, 5%, 5%, 1.00)" font-size="0.042394" stroke="none" stroke-width="0.0" text-anchor="end"><text x="-0.63750" y="0.41098">-0.50</text><text x="-0.63750" y="0.32365">-0.40</text><text x="-0.63750" y="0.23631">-0.30</text><text x="-0.63750" y="0.14898">-0.20</text><text x="-0.63750" y="0.061640">-0.10</text><text x="-0.63750" y="-0.025696"> 0.00</text><text x="-0.63750" y="-0.11303"> 0.10</text><text x="-0.63750" y="-0.20037"> 0.20</text><text x="-0.63750" y="-0.28770"> 0.30</text><text x="-0.63750" y="-0.37504"> 0.40</text><text x="-0.63750" y="-0.46237"> 0.50</text></g></g><g class="ticklines"><g fill="none" stroke="rgba(5%, 5%, 5%, 0.05)" stroke-width="0.0050000"><polyline points="-0.57730,0.39897 0.69451,0.39897"/><polyline points="-0.57730,0.31164 0.69451,0.31164"/><polyline points="-0.57730,0.22430 0.69451,0.22430"/><polyline points="-0.57730,0.13697 0.69451,0.13697"/><polyline points="-0.57730,0.049631 0.69451,0.049631"/><polyline points="-0.57730,-0.037704 0.69451,-0.037704"/><polyline points="-0.57730,-0.12504 0.69451,-0.12504"/><polyline points="-0.57730,-0.21238 0.69451,-0.21238"/><polyline points="-0.57730,-0.29971 0.69451,-0.29971"/><polyline points="-0.57730,-0.38705 0.69451,-0.38705"/><polyline points="-0.57730,-0.47438 0.69451,-0.47438"/></g></g></g><g class="axisbar"><g fill="rgba(5%, 5%, 5%, 0.40)" stroke="rgba(0%, 0%, 0%, 0.00)" stroke-width="0.0000"><rect height="0.87685" width="0.0033915" x="-0.59341" y="-0.47613"/></g></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgba(5%, 5%, 5%, 0.40)" stroke="rgba(5%, 5%, 5%, 0.40)" stroke-width="0.0040000"><polyline points="-0.57730,0.44454
--0.57730,0.41454"/><polyline points="-0.45012,0.44454
--0.45012,0.41454"/><polyline points="-0.32294,0.44454
--0.32294,0.41454"/><polyline points="-0.19576,0.44454
--0.19576,0.41454"/><polyline points="-0.068576,0.44454
--0.068576,0.41454"/><polyline points="0.058605,0.44454
-0.058605,0.41454"/><polyline points="0.18579,0.44454
-0.18579,0.41454"/><polyline points="0.31297,0.44454
-0.31297,0.41454"/><polyline points="0.44015,0.44454
-0.44015,0.41454"/><polyline points="0.56733,0.44454
-0.56733,0.41454"/><polyline points="0.69451,0.44454
-0.69451,0.41454"/></g></g><g class="ticktext"><g fill="rgba(5%, 5%, 5%, 1.00)" font-size="0.042394" stroke="none" stroke-width="0.0" text-anchor="middle"><text x="-0.57730" y="0.48500">-0.50</text><text x="-0.45012" y="0.48500">-0.40</text><text x="-0.32294" y="0.48500">-0.30</text><text x="-0.19576" y="0.48500">-0.20</text><text x="-0.068576" y="0.48500">-0.10</text><text x="0.058605" y="0.48500"> 0.00</text><text x="0.18579" y="0.48500"> 0.10</text><text x="0.31297" y="0.48500"> 0.20</text><text x="0.44015" y="0.48500"> 0.30</text><text x="0.56733" y="0.48500"> 0.40</text><text x="0.69451" y="0.48500"> 0.50</text></g></g><g class="ticklines"><g fill="none" stroke="rgba(5%, 5%, 5%, 0.05)" stroke-width="0.0050000"><polyline points="-0.57730,0.39897 -0.57730,-0.47438"/><polyline points="-0.45012,0.39897 -0.45012,-0.47438"/><polyline points="-0.32294,0.39897 -0.32294,-0.47438"/><polyline points="-0.19576,0.39897 -0.19576,-0.47438"/><polyline points="-0.068576,0.39897 -0.068576,-0.47438"/><polyline points="0.058605,0.39897 0.058605,-0.47438"/><polyline points="0.18579,0.39897 0.18579,-0.47438"/><polyline points="0.31297,0.39897 0.31297,-0.47438"/><polyline points="0.44015,0.39897 0.44015,-0.47438"/><polyline points="0.56733,0.39897 0.56733,-0.47438"/><polyline points="0.69451,0.39897 0.69451,-0.47438"/></g></g></g><g class="axisbar"><g fill="rgba(5%, 5%, 5%, 0.40)" stroke="rgba(0%, 0%, 0%, 0.00)" stroke-width="0.0000"><rect height="0.0034934" width="1.2752" x="-0.57900" y="0.41207"/></g></g></g></g></svg>
+}</style><g class="chart"><g class="unit"><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.10" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><rect height="0.8734" width="1.3039" x="-0.5983" y="-0.4744"/></g></g></g><g class="hud"><g class="frame"><g fill="rgb(100%, 100%, 100%)" fill-opacity="(0.020" stroke="rgb(0%, 0%, 0%)" stroke-opacity="(0.0" stroke-width="0"><rect height="0.8821" width="1.3126" x="-0.6026" y="-0.4788"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(0.40" stroke="rgb(5%, 5%, 5%)" stroke-opacity="(0.40" stroke-width="0.0040"><g transform="rotate(-90.0, -0.6287, 0.3990)"><polyline points="-0.6287,0.4140
+-0.6287,0.3840"/></g><g transform="rotate(-90.0, -0.6287, 0.3116)"><polyline points="-0.6287,0.3266
+-0.6287,0.2966"/></g><g transform="rotate(-90.0, -0.6287, 0.2243)"><polyline points="-0.6287,0.2393
+-0.6287,0.2093"/></g><g transform="rotate(-90.0, -0.6287, 0.1370)"><polyline points="-0.6287,0.1520
+-0.6287,0.1220"/></g><g transform="rotate(-90.0, -0.6287, 0.0496)"><polyline points="-0.6287,0.0646
+-0.6287,0.0346"/></g><g transform="rotate(-90.0, -0.6287, -0.0377)"><polyline points="-0.6287,-0.0227
+-0.6287,-0.0527"/></g><g transform="rotate(-90.0, -0.6287, -0.1250)"><polyline points="-0.6287,-0.1100
+-0.6287,-0.1400"/></g><g transform="rotate(-90.0, -0.6287, -0.2124)"><polyline points="-0.6287,-0.1974
+-0.6287,-0.2274"/></g><g transform="rotate(-90.0, -0.6287, -0.2997)"><polyline points="-0.6287,-0.2847
+-0.6287,-0.3147"/></g><g transform="rotate(-90.0, -0.6287, -0.3870)"><polyline points="-0.6287,-0.3720
+-0.6287,-0.4020"/></g><g transform="rotate(-90.0, -0.6287, -0.4744)"><polyline points="-0.6287,-0.4594
+-0.6287,-0.4894"/></g></g></g><g class="ticktext"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(1.0" font-size="0.0435" stroke="none" stroke-width="0.0" text-anchor="end"><text x="-0.66" y="0.4110">-0.5</text><text x="-0.66" y="0.3236">-0.4</text><text x="-0.66" y="0.2363">-0.3</text><text x="-0.66" y="0.1490">-0.2</text><text x="-0.66" y="0.0616">-0.1</text><text x="-0.66" y="-0.0257"> 0.0</text><text x="-0.66" y="-0.1130"> 0.1</text><text x="-0.66" y="-0.2004"> 0.2</text><text x="-0.66" y="-0.2877"> 0.3</text><text x="-0.66" y="-0.3750"> 0.4</text><text x="-0.66" y="-0.4624"> 0.5</text></g></g><g class="ticklines"><g fill="none" stroke="rgb(5%, 5%, 5%)" stroke-opacity="(0.050" stroke-width="0.0050"><polyline points="-0.5983,0.3990 0.7057,0.3990"/><polyline points="-0.5983,0.3116 0.7057,0.3116"/><polyline points="-0.5983,0.2243 0.7057,0.2243"/><polyline points="-0.5983,0.1370 0.7057,0.1370"/><polyline points="-0.5983,0.0496 0.7057,0.0496"/><polyline points="-0.5983,-0.0377 0.7057,-0.0377"/><polyline points="-0.5983,-0.1250 0.7057,-0.1250"/><polyline points="-0.5983,-0.2124 0.7057,-0.2124"/><polyline points="-0.5983,-0.2997 0.7057,-0.2997"/><polyline points="-0.5983,-0.3870 0.7057,-0.3870"/><polyline points="-0.5983,-0.4744 0.7057,-0.4744"/></g></g></g><g class="axisbar"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(0.40" stroke="rgb(0%, 0%, 0%)" stroke-opacity="(0.0" stroke-width="0"><rect height="0.8769" width="0.0035" x="-0.6148" y="-0.4761"/></g></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(0.40" stroke="rgb(5%, 5%, 5%)" stroke-opacity="(0.40" stroke-width="0.0040"><polyline points="-0.5983,0.4445
+-0.5983,0.4145"/><polyline points="-0.4679,0.4445
+-0.4679,0.4145"/><polyline points="-0.3375,0.4445
+-0.3375,0.4145"/><polyline points="-0.2071,0.4445
+-0.2071,0.4145"/><polyline points="-0.0767,0.4445
+-0.0767,0.4145"/><polyline points="0.0537,0.4445
+0.0537,0.4145"/><polyline points="0.1841,0.4445
+0.1841,0.4145"/><polyline points="0.3145,0.4445
+0.3145,0.4145"/><polyline points="0.4449,0.4445
+0.4449,0.4145"/><polyline points="0.5753,0.4445
+0.5753,0.4145"/><polyline points="0.7057,0.4445
+0.7057,0.4145"/></g></g><g class="ticktext"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(1.0" font-size="0.0435" stroke="none" stroke-width="0.0" text-anchor="middle"><text x="-0.5983" y="0.485">-0.5</text><text x="-0.4679" y="0.485">-0.4</text><text x="-0.3375" y="0.485">-0.3</text><text x="-0.2071" y="0.485">-0.2</text><text x="-0.0767" y="0.485">-0.1</text><text x="0.0537" y="0.485"> 0.0</text><text x="0.1841" y="0.485"> 0.1</text><text x="0.3145" y="0.485"> 0.2</text><text x="0.4449" y="0.485"> 0.3</text><text x="0.5753" y="0.485"> 0.4</text><text x="0.7057" y="0.485"> 0.5</text></g></g><g class="ticklines"><g fill="none" stroke="rgb(5%, 5%, 5%)" stroke-opacity="(0.050" stroke-width="0.0050"><polyline points="-0.5983,0.3990 -0.5983,-0.4744"/><polyline points="-0.4679,0.3990 -0.4679,-0.4744"/><polyline points="-0.3375,0.3990 -0.3375,-0.4744"/><polyline points="-0.2071,0.3990 -0.2071,-0.4744"/><polyline points="-0.0767,0.3990 -0.0767,-0.4744"/><polyline points="0.0537,0.3990 0.0537,-0.4744"/><polyline points="0.1841,0.3990 0.1841,-0.4744"/><polyline points="0.3145,0.3990 0.3145,-0.4744"/><polyline points="0.4449,0.3990 0.4449,-0.4744"/><polyline points="0.5753,0.3990 0.5753,-0.4744"/><polyline points="0.7057,0.3990 0.7057,-0.4744"/></g></g></g><g class="axisbar"><g fill="rgb(5%, 5%, 5%)" fill-opacity="(0.40" stroke="rgb(0%, 0%, 0%)" stroke-opacity="(0.0" stroke-width="0"><rect height="0.0035" width="1.3074" x="-0.6000" y="0.4121"/></g></g></g></g></svg>

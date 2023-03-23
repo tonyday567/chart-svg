@@ -153,7 +153,7 @@ instance Fractional Priority where
 
 -- | An arbitrary 5.0
 -- >>> defaultPriority
---
+-- Priority {priority = 5.0}
 defaultPriority :: Priority
 defaultPriority = Priority 5.0
 
@@ -573,7 +573,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTicks
--- Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 2, addLPad = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
+-- Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, addLPad = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
 data Ticks = Ticks
   { style :: TickStyle,
     gtick :: Maybe (GlyphStyle, Double),
@@ -627,8 +627,11 @@ data TickStyle
   deriving (Show, Eq, Generic)
 
 -- | The official tick style
+--
+-- >>> defaultTickStyle
+-- TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, addLPad = True}) 8 TickExtend
 defaultTickStyle :: TickStyle
-defaultTickStyle = TickRound defaultFormatN 8 TickExtend
+defaultTickStyle = TickRound (FormatN FSCommaPrec (Just 1) True) 8 TickExtend
 
 -- | textifier
 tickStyleText :: TickStyle -> Text

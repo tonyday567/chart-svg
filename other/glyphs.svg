@@ -1,27 +1,27 @@
-<svg height="400.00" viewBox="-0.75000 -0.50000 1.5000 1.0000" width="600.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style>svg {
+<svg height="400" viewBox="-0.75 -0.5 1.5 1.0" width="600" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style>svg {
   color-scheme: light dark;
 }
 {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgba(5%, 5%, 5%, 1.00);
+    fill: rgb(5%, 5%, 5%);
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgba(5%, 5%, 5%, 1.00);
+    stroke: rgb(5%, 5%, 5%);
   }
   .legendBorder g {
-    fill: rgba(94%, 94%, 94%, 1.00);
+    fill: rgb(94%, 94%, 94%);
   }
 }
 @media (prefers-color-scheme:dark) {
   .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgba(94%, 94%, 94%, 1.00);
+    fill: rgb(94%, 94%, 94%);
   }
   .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgba(94%, 94%, 94%, 1.00);
+    stroke: rgb(94%, 94%, 94%);
   }
   .legendBorder g {
-    fill: rgba(5%, 5%, 5%, 1.00);
+    fill: rgb(5%, 5%, 5%);
   }
-}</style><g class="chart"><g class="glyphs"><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><circle cx="-0.69500" cy="0.0000" r="0.050000"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><rect height="0.10000" width="0.10000" x="-0.56500" y="-0.050000"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><rect height="0.075000" width="0.10000" x="-0.38500" y="-0.037500"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><rect height="0.075000" rx="0.010000" ry="0.010000" width="0.10000" x="-0.20500" y="-0.037500"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><ellipse cx="2.5000000000000022e-2" cy="-0.0" rx="5.0e-2" ry="3.7500000000000006e-2"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><polyline points="0.20500,0.050000
-0.20500,-0.050000"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><polyline points="0.33500,0.0000
-0.43500,0.0000"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.010000"><polygon points="0.0000,-0.070711 -0.050000,0.043301 0.050000,0.043301" transform="translate(0.56500, 0.0000)"/></g><g fill="rgba(2%, 73%, 80%, 0.20)" stroke="rgba(2%, 29%, 48%, 1.00)" stroke-width="0.10000"><path d="M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" transform="translate(0.74500, 0.0000) scale(0.10000)"/></g></g></g><g class="hud"/></svg>
+}</style><g class="chart"><g class="glyphs"><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><circle cx="-0.695" cy="0" r="0.0500"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><rect height="0.1" width="0.1000" x="-0.565" y="-0.0500"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><rect height="0.0750" width="0.1000" x="-0.3850" y="-0.0375"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><rect height="0.0750" rx="0.0100" ry="0.0100" width="0.1000" x="-0.2050" y="-0.0375"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><ellipse cx="2.5000000000000022e-2" cy="-0.0" rx="5.0e-2" ry="3.7500000000000006e-2"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><polyline points="0.2050,0.0500
+0.2050,-0.0500"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><polyline points="0.3350,0
+0.4350,0"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.0100"><polygon points="0,-0.0707 -0.0500,0.0433 0.0500,0.0433" transform="translate(0.5650, 0)"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="(0.20" stroke="rgb(2%, 29%, 48%)" stroke-opacity="(1.0" stroke-width="0.1000"><path d="M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" transform="translate(0.745, 0) scale(0.1)"/></g></g></g><g class="hud"/></svg>

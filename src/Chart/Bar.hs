@@ -86,16 +86,14 @@ barHudOptions :: BarOptions -> BarData -> HudOptions
 barHudOptions bo bd =
   mempty
     & #axes
-      .~ [ (1, axis1),
-           (1, axis2)
+      .~ [ (1, axis1)
          ]
     & #legends
       .~ [ (10, o & #content .~ barLegendContent bo bd)
          ]
   where
     o = view #barLegendOptions bo
-    axis1 = bool id flipAxis (barOrientation bo == Vert) (defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
-    axis2 = bool id flipAxis (barOrientation bo == Hori) defaultAxisOptions
+    axis1 = bool id flipAxis (barOrientation bo == Hori) (defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
 
 -- | The official bar options.
 defaultBarOptions :: BarOptions
