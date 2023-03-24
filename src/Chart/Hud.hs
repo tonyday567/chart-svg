@@ -338,6 +338,17 @@ instance Monoid HudOptions where
   mempty = HudOptions (FixedAspect 1.5) [] [] [] []
 
 -- | The official hud options.
+--
+-- - A fixed chart aspect (width:height) of 1.5
+--
+-- - An x axis at the bottom and y axis at the left.
+--
+-- - The default tick style for each axis of an axis bar, tick glyphs (or marks), automated tick labels, and tick (or grid) lines.
+--
+-- - A high 'Priority' (and thus inner), low-opacity frame, representing the data area of the chart.
+--
+-- - A low priority (outer), transparent frame, providing some padding around the chart.
+--
 defaultHudOptions :: HudOptions
 defaultHudOptions =
   HudOptions
@@ -345,7 +356,8 @@ defaultHudOptions =
     [ (5, defaultAxisOptions),
       (5, defaultAxisOptions & set #place PlaceLeft)
     ]
-    [(1, defaultFrameOptions)]
+    [ (1, defaultFrameOptions),
+      (20, defaultFrameOptions & #buffer .~ 0.04)]
     []
     []
 

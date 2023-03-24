@@ -67,7 +67,7 @@ unitExample = mempty & #charts .~ named "unit" [RectChart defaultRectStyle [one]
 hudOptionsExample :: ChartOptions
 hudOptionsExample =
   mempty
-    & #hudOptions .~ colourHudOptions (rgb dark) defaultHudOptions
+    & #hudOptions .~ defaultHudOptions
     & #charts .~ blank one
 
 -- | rect example
@@ -115,7 +115,6 @@ lineExample =
                 & set #anchor AnchorEnd
             )
           ]
-        & over #frames (<> [(20, defaultFrameOptions & #buffer .~ 0.04)])
         & set
           #legends
           [ ( 12,
