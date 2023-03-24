@@ -106,7 +106,7 @@ defaultBarOptions =
     0.04
     0.1
     True
-    (FormatN FSCommaPrec (Just 2) True)
+    (FormatN FSCommaPrec (Just 2) True True)
     Vert
     NonStacked
     defaultLegendOptions
