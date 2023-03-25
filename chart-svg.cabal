@@ -66,7 +66,7 @@ library
     cubicbezier ^>=0.6,
     flatparse >= 0.4.0 && <0.5,
     foldl ^>=1.4,
-    formatn ^>=0.2,
+    formatn >=0.3 && < 0.4,
     mtl >=2.2.2 && <2.4,
     numhask ^>=0.10,
     numhask-array ^>=0.10,

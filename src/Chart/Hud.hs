@@ -429,12 +429,12 @@ makePlacedTicks s r =
     TickRound f n e ->
       ( zip
           ticks0
-          (formatNs 4 f ticks0),
+          (formatNs f ticks0),
         bool (space1 ticks0) Nothing (e == NoTickExtend)
       )
       where
         ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
-    TickExact f n -> (zip ticks0 (formatNs 4 f ticks0), Nothing)
+    TickExact f n -> (zip ticks0 (formatNs f ticks0), Nothing)
       where
         ticks0 = grid OuterPos r n
     TickLabels ls ->
@@ -585,7 +585,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTicks
--- Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, addLPad = True, cutRightZeros = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
+-- Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
 data Ticks = Ticks
   { style :: TickStyle,
     gtick :: Maybe (GlyphStyle, Double),
@@ -641,9 +641,9 @@ data TickStyle
 -- | The official tick style
 --
 -- >>> defaultTickStyle
--- TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, addLPad = True, cutRightZeros = True}) 8 TickExtend
+-- TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 8 TickExtend
 defaultTickStyle :: TickStyle
-defaultTickStyle = TickRound (FormatN FSCommaPrec (Just 1) True True) 8 TickExtend
+defaultTickStyle = TickRound (FormatN FSCommaPrec (Just 1) 4 True True) 8 TickExtend
 
 -- | textifier
 tickStyleText :: TickStyle -> Text
@@ -891,10 +891,10 @@ ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
 ticksR s d r =
   case s of
     TickNone -> []
-    TickRound f n e -> zip (project r d <$> ticks0) (formatNs 4 f ticks0)
+    TickRound f n e -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
         ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
-    TickExact f n -> zip (project r d <$> ticks0) (formatNs 4 f ticks0)
+    TickExact f n -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
         ticks0 = grid OuterPos r n
     TickLabels ls ->
