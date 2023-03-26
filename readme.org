@@ -208,9 +208,7 @@ import Data.FormatN
 #+end_src
 
 #+RESULTS:
-: [14 of 14] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted ) [Source file changed]
 : Ok, 14 modules loaded.
-: >
 : >
 
 ** write examples

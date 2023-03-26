@@ -27,6 +27,7 @@ module Chart.Markup
     defaultCssOptions,
     CssPreferColorScheme (..),
     cssPreferColorScheme,
+    fillSwitch,
     CssShapeRendering (..),
     markupCssOptions,
     MarkupOptions (..),
@@ -93,9 +94,10 @@ encodePx = pack . show . (floor :: Double -> Int)
 --
 -- -- Class attributes concatenated (as a string of space separated names)
 --
--- -- ID treadted as a special Attribute, and
+-- -- ID treated as a special Attribute, and
 --
 -- -- All other attributes treated as the Last semigroup.
+-- FIXME: Consider removing.
 data Attribute
   = Class
   | ID
@@ -517,6 +519,20 @@ cssPreferColorScheme (_, cd) PreferDark =
       }
     }|]
 cssPreferColorScheme _ PreferNormal = mempty
+
+fillSwitch :: (Colour, Colour) -> ByteString -> ByteString -> ByteString
+fillSwitch (colorNormal, colorPrefer) prefer item = [i|
+{
+  .#{item} g {
+    fill: #{showRGB colorNormal};
+  }
+}
+@media (prefers-color-scheme:#{prefer}) {
+  .#{item} g {
+    fill: #{showRGB colorPrefer};
+  }
+}
+|]
 
 -- | Markup options.
 --

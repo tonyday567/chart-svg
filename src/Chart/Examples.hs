@@ -165,7 +165,7 @@ textExample =
         ]
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #markupOptions % #cssOptions % #cssExtra .~ classSwitch (light, dark) "text"
+    & #markupOptions % #cssOptions % #cssExtra .~ fillSwitch (dark, light) "dark" "text"
   where
     ts :: [(Text, Point Double)]
     ts =
@@ -276,7 +276,7 @@ pathExample =
     & #hudOptions .~ defaultHudOptions
     & #hudOptions % #chartAspect .~ ChartAspect
     & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #markupOptions % #cssOptions % #cssExtra .~ classSwitch (light, dark) "pathtext"
+    & #markupOptions % #cssOptions % #cssExtra .~ fillSwitch (dark, light) "dark" "pathtext"
   where
     ps =
       [ StartP (Point 0 0),
@@ -297,21 +297,6 @@ pathExample =
     midp = Point 0 0 : zipWith (\(Point x y) (Point x' y') -> Point ((x + x') / 2) ((y + y') / 2)) (drop 1 (pointPath <$> ps)) (pointPath <$> ps)
     offp = [Point 0 0.05, Point 0 0, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
     t0 = TextChart (defaultTextStyle & set #size 0.05) (zip ts (zipWith addp offp midp))
-
-classSwitch :: (Colour, Colour) -> ByteString -> ByteString
-classSwitch (cl, cd) class' =
-  [i|
-{
-  .#{class'} g {
-    fill: #{showRGB cd};
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .#{class'} g {
-    fill: #{showRGB cl};
-  }
-}
-|]
 
 -- | ellipse example
 --
