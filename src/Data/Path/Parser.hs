@@ -13,6 +13,9 @@ module Data.Path.Parser
   ( -- * Parsing
     -- $parsing
     parsePath,
+    pathParser,
+    command,
+    manyComma,
     svgToPathData,
     pathDataToSvg,
     PathCommand (..),
@@ -128,24 +131,24 @@ pathParser = many ws' *> manyComma command
 
 command :: Parser e PathCommand
 command =
-  (MoveTo OriginAbsolute <$ $(char 'M') <*> points)
-    <|> (MoveTo OriginRelative <$ $(char 'm') <*> points)
-    <|> (LineTo OriginAbsolute <$ $(char 'L') <*> points)
-    <|> (LineTo OriginRelative <$ $(char 'l') <*> points)
-    <|> (HorizontalTo OriginAbsolute <$ $(char 'H') <*> nums)
-    <|> (HorizontalTo OriginRelative <$ $(char 'h') <*> nums)
-    <|> (VerticalTo OriginAbsolute <$ $(char 'V') <*> nums)
-    <|> (VerticalTo OriginRelative <$ $(char 'v') <*> nums)
-    <|> (CurveTo OriginAbsolute <$ $(char 'C') <*> manyComma curveToArgs)
-    <|> (CurveTo OriginRelative <$ $(char 'c') <*> manyComma curveToArgs)
-    <|> (SmoothCurveTo OriginAbsolute <$ $(char 'S') <*> pointPairs)
-    <|> (SmoothCurveTo OriginRelative <$ $(char 's') <*> pointPairs)
-    <|> (QuadraticBezier OriginAbsolute <$ $(char 'Q') <*> pointPairs)
-    <|> (QuadraticBezier OriginRelative <$ $(char 'q') <*> pointPairs)
-    <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ $(char 'T') <*> points)
-    <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ $(char 't') <*> points)
-    <|> (EllipticalArc OriginAbsolute <$ $(char 'A') <*> manyComma ellipticalArgs)
-    <|> (EllipticalArc OriginRelative <$ $(char 'a') <*> manyComma ellipticalArgs)
+  (MoveTo OriginAbsolute <$ $(char 'M') <*> (ws_ *> points))
+    <|> (MoveTo OriginRelative <$ $(char 'm') <*> (ws_ *> points))
+    <|> (LineTo OriginAbsolute <$ $(char 'L') <*> (ws_ *> points))
+    <|> (LineTo OriginRelative <$ $(char 'l') <*> (ws_ *> points))
+    <|> (HorizontalTo OriginAbsolute <$ $(char 'H') <*> (ws_ *> nums))
+    <|> (HorizontalTo OriginRelative <$ $(char 'h') <*> (ws_ *> nums))
+    <|> (VerticalTo OriginAbsolute <$ $(char 'V') <*> (ws_ *> nums))
+    <|> (VerticalTo OriginRelative <$ $(char 'v') <*> (ws_ *> nums))
+    <|> (CurveTo OriginAbsolute <$ $(char 'C') <*> (ws_ *> manyComma curveToArgs))
+    <|> (CurveTo OriginRelative <$ $(char 'c') <*> (ws_ *> manyComma curveToArgs))
+    <|> (SmoothCurveTo OriginAbsolute <$ $(char 'S') <*> (ws_ *> pointPairs))
+    <|> (SmoothCurveTo OriginRelative <$ $(char 's') <*> (ws_ *> pointPairs))
+    <|> (QuadraticBezier OriginAbsolute <$ $(char 'Q') <*> (ws_ *> pointPairs))
+    <|> (QuadraticBezier OriginRelative <$ $(char 'q') <*> (ws_ *> pointPairs))
+    <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ $(char 'T') <*> (ws_ *> points))
+    <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ $(char 't') <*> (ws_ *> points))
+    <|> (EllipticalArc OriginAbsolute <$ $(char 'A') <*> (ws_ *> manyComma ellipticalArgs))
+    <|> (EllipticalArc OriginRelative <$ $(char 'a') <*> (ws_ *> manyComma ellipticalArgs))
     <|> (EndPath <$ $(char 'Z') <* commaWsp)
     <|> (EndPath <$ $(char 'z') <* commaWsp)
 

@@ -25,12 +25,12 @@
 }
 {
   .pathtext g {
-    fill: rgba(5%, 5%, 5%, 1.00);
+    fill: rgb(5%, 5%, 5%);
   }
 }
 @media (prefers-color-scheme:dark) {
-  .$class' g {
-    fill: rgba(94%, 94%, 94%, 1.00);
+  .pathtext g {
+    fill: rgb(94%, 94%, 94%);
   }
 }
 </style><g class="chart"><g class="path"><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.1" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="0.0100"><path d="M 0.0476,0 L 1.0,0 C 0.2381,0 0.2857,-0.9375 1.0,-0.9375 Q -0.9048,-1.875 0.0476,-0.9375 A 0.9487 0.9412 30.0 0 0 0.0476,0"/></g><g fill="rgb(2%, 73%, 80%)" fill-opacity="0.2" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" stroke-width="0.0030"><rect height="0.0300" width="0.0300" x="0.0326" y="-0.0150"/><rect height="0.0300" width="0.0300" x="0.985" y="-0.0150"/><rect height="0.0300" width="0.0300" x="0.985" y="-0.9525"/><rect height="0.0300" width="0.0300" x="0.0326" y="-0.9525"/><rect height="0.0300" width="0.0300" x="0.0326" y="-0.0150"/></g></g><g class="pathtext"><g fill="rgb(5%, 5%, 5%)" fill-opacity="1.0" font-size="0.0476" stroke="none" stroke-width="0.0" text-anchor="middle"><text x="0.0476" y="-0.0469">StartP (Point 0 0)</text><text x="0.5238" y="0">LineP (Point 1 0)</text><text x="0.8095" y="-0.4687">CubicP (Point 0.2 0) (Point 0.25 1) (Point 1 1)</text><text x="0.4286" y="-1.0312">QuadP (Point (-1) 2) (Point 0 1)</text><text x="0.0476" y="-0.3750">ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)</text></g></g></g><g class="hud"><g class="frame"><g fill="rgb(100%, 100%, 100%)" fill-opacity="0.02" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" stroke-width="0"><rect height="1.5165" width="1.9083" x="-0.5952" y="-1.5"/></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g fill="rgb(5%, 5%, 5%)" fill-opacity="0.4" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" stroke-width="0.0040"><g transform="rotate(-90.0, -0.6252, 0)"><polyline points="-0.6252,0.0150

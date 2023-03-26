@@ -165,7 +165,7 @@ textExample =
         ]
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #markupOptions % #cssOptions % #cssExtra .~ textSwitch (light, dark)
+    & #markupOptions % #cssOptions % #cssExtra .~ classSwitch (light, dark) "text"
   where
     ts :: [(Text, Point Double)]
     ts =
@@ -173,28 +173,14 @@ textExample =
         (fmap Text.singleton ['a' .. 'z'])
         ((\x -> Point (sin (x * 0.1)) x) <$> [0 .. 25])
 
-    textSwitch :: (Colour, Colour) -> ByteString
-    textSwitch (cl, cd) =
-      [i|
-{
-  .text g {
-    fill: #{showRGB cd};
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .text g {
-    fill: #{showRGB cl};
-  }
-}
-|]
-
 -- | glyphs example
 --
 -- ![glyphs example](other/glyphs.svg)
 glyphsExample :: ChartOptions
 glyphsExample =
   mempty
-    & set (#markupOptions % #markupHeight) 400
+    & set (#markupOptions % #markupHeight) 50
+    & set (#hudOptions % #chartAspect) (FixedAspect 12)
     & set
       #charts
       ( named "glyphs" $
@@ -202,21 +188,21 @@ glyphsExample =
             ( \(sh, bs) p ->
                 GlyphChart
                   ( defaultGlyphStyle
-                      & #size .~ (0.1 :: Double)
+                      & #size .~ (0.8 :: Double)
                       & #borderSize .~ bs
                       & #shape .~ sh
                   )
                   [p]
             )
-            [ (CircleGlyph, 0.01 :: Double),
-              (SquareGlyph, 0.01),
-              (RectSharpGlyph 0.75, 0.01),
-              (RectRoundedGlyph 0.75 0.01 0.01, 0.01),
-              (EllipseGlyph 0.75, 0.01),
-              (VLineGlyph, 0.01),
-              (HLineGlyph, 0.01),
-              (TriangleGlyph (Point 0.0 (0.5 * sqrt 2)) (Point (-cos (pi / 3)) (-sin (pi / 3) / 2)) (Point (cos (pi / 3)) (-sin (pi / 3) / 2)), 0.01),
-              (PathGlyph "M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" ScaleBorder, 0.01)
+            [ (CircleGlyph, 0.02 :: Double),
+              (SquareGlyph, 0.02),
+              (RectSharpGlyph 0.75, 0.02),
+              (RectRoundedGlyph 0.75 0.01 0.01, 0.02),
+              (EllipseGlyph 0.75, 0.02),
+              (VLineGlyph, 0.02),
+              (HLineGlyph, 0.02),
+              (TriangleGlyph (Point 0.0 (0.5 * sqrt 2)) (Point (-cos (pi / 3)) (-sin (pi / 3) / 2)) (Point (cos (pi / 3)) (-sin (pi / 3) / 2)), 0.02),
+              (PathGlyph "M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" ScaleBorder, 0.02)
             ]
             [Point x 0 | x <- [0 .. (8 :: Double)]]
       )
@@ -317,12 +303,12 @@ classSwitch (cl, cd) class' =
   [i|
 {
   .#{class'} g {
-    fill: #{showRGBA cd};
+    fill: #{showRGB cd};
   }
 }
 @media (prefers-color-scheme:dark) {
-  .$class' g {
-    fill: #{showRGBA cl};
+  .#{class'} g {
+    fill: #{showRGB cl};
   }
 }
 |]
@@ -719,6 +705,8 @@ wheelPoints grain l maxchroma =
 debugExample :: ChartOptions -> ChartOptions
 debugExample cs =
   mempty
+    & set #markupOptions (view #markupOptions cs)
+    & set (#hudOptions % #chartAspect) (view (#hudOptions % #chartAspect) cs)
     & set #charts (e1 <> e2 <> e3)
   where
     e1 = addHud (view #hudOptions cs) (view #charts cs)

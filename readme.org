@@ -4,7 +4,6 @@
 
 A charting library targetting SVG.
 
-
 * Usage
 
 #+begin_src haskell :file other/usage.svg :results output graphics file :exports both
@@ -183,6 +182,12 @@ view styleBox' $ set styleBox' (Just one) (x1 0)
 #+RESULTS:
 : Just Rect -0.500049504950495 0.5000495049504949 -0.5 0.5001171875000001
 
+** style elements and the axes
+
+Hud elements (and especially axes) do not take into account the increase in the data area due to style elements.
+
+The structure and interaction of addHud and runHudWith makes implementation problematic.
+
 * Development
 
 #+begin_src haskell :results output
@@ -205,6 +210,7 @@ import Data.FormatN
 #+RESULTS:
 : [14 of 14] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted ) [Source file changed]
 : Ok, 14 modules loaded.
+: >
 : >
 
 ** write examples
@@ -306,29 +312,6 @@ zip fps fok
 | usage.svg      | True |
 | wave.svg       | True |
 | date.svg       | True |
-
-
-
-* Next gallery fixes
-
-- [X] text text is not showing (dark mode?)
-- [ ] bar text numbers not exactly mid
-- [ ] glyphs - last glyph cut off, entire chart should be thin.
-- [ ] path.
-  - [ ] text on chart dark in dark mode.
-  - [ ] chart data area not accounting for chart text
-
-
-#+begin_src haskell
-writeChartOptions "other/bardebug.svg" $ debugExample barExample
-#+end_src
-
-#+RESULTS:
-: <interactive>:53:1: error:
-:     Variable not in scope: writeChartOption :: t0 -> ChartOptions -> b
-:     Suggested fix:
-:       Perhaps use ‘writeChartOptions’ (imported from Chart)
-
 
 
 * Test
