@@ -19,6 +19,7 @@ module Chart.Examples
 
     -- * Compounds
     barExample,
+    barDataExample,
     sbarExample,
     waveExample,
     surfaceExample,
@@ -177,12 +178,12 @@ textExample =
       [i|
 {
   .text g {
-    fill: #{showRGBA cl};
+    fill: #{showRGB cd};
   }
 }
 @media (prefers-color-scheme:dark) {
   .text g {
-    fill: #{showRGBA cd};
+    fill: #{showRGB cl};
   }
 }
 |]

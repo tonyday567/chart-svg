@@ -4,6 +4,7 @@
 
 A charting library targetting SVG.
 
+
 * Usage
 
 #+begin_src haskell :file other/usage.svg :results output graphics file :exports both
@@ -202,11 +203,7 @@ import Data.FormatN
 #+end_src
 
 #+RESULTS:
-: [10 of 14] Compiling Chart.Markup     ( src/Chart/Markup.hs, interpreted ) [Source file changed]
-: [11 of 14] Compiling Chart.Markup.Parser ( src/Chart/Markup/Parser.hs, interpreted ) [Chart.Markup changed]
-: [12 of 14] Compiling Chart.Bar        ( src/Chart/Bar.hs, interpreted ) [Chart.Markup changed]
-: [13 of 14] Compiling Chart            ( src/Chart.hs, interpreted ) [Chart.Markup changed]
-: [14 of 14] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted ) [Chart changed]
+: [14 of 14] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted ) [Source file changed]
 : Ok, 14 modules loaded.
 : >
 
@@ -309,6 +306,30 @@ zip fps fok
 | usage.svg      | True |
 | wave.svg       | True |
 | date.svg       | True |
+
+
+
+* Next gallery fixes
+
+- [X] text text is not showing (dark mode?)
+- [ ] bar text numbers not exactly mid
+- [ ] glyphs - last glyph cut off, entire chart should be thin.
+- [ ] path.
+  - [ ] text on chart dark in dark mode.
+  - [ ] chart data area not accounting for chart text
+
+
+#+begin_src haskell
+writeChartOptions "other/bardebug.svg" $ debugExample barExample
+#+end_src
+
+#+RESULTS:
+: <interactive>:53:1: error:
+:     Variable not in scope: writeChartOption :: t0 -> ChartOptions -> b
+:     Suggested fix:
+:       Perhaps use ‘writeChartOptions’ (imported from Chart)
+
+
 
 * Test
 
