@@ -26,7 +26,6 @@ module Chart
     -- * Re-exports
     module Chart.Primitive,
     module Chart.Data,
-    module Chart.FlatParse,
     module Chart.Hud,
     module Chart.Style,
     module Chart.Markup,
@@ -42,7 +41,6 @@ where
 
 import Chart.Bar
 import Chart.Data
-import Chart.FlatParse
 import Chart.Hud
 import Chart.Markup
 import Chart.Markup.Parser

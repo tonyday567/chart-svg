@@ -61,6 +61,7 @@ import Prelude
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> import FlatParse.Basic
+-- >>> import Chart.FlatParse
 
 -- * special XML chars
 
