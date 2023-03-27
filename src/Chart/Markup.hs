@@ -6,11 +6,8 @@
 
 -- | An intermediary representation not unlike SVG or XML but only forming a subset of these standards.
 module Chart.Markup
-  ( Attribute (..),
-    inject,
-    eject,
-    Attributes (..),
-    singleAtt,
+  ( Attributes (..),
+    attribute,
     Markup (..),
     Content (..),
     renderMarkup,
@@ -43,7 +40,6 @@ import Chart.Data
 import Chart.Hud
 import Chart.Primitive hiding (tree)
 import Chart.Style
-import Data.Bifunctor
 import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
 import Data.ByteString.Char8 (pack)
@@ -90,47 +86,20 @@ encodeNum = encodeUtf8 . formatOrShow (FixedStyle 4) Nothing
 encodePx :: Double -> ByteString
 encodePx = pack . show . (floor :: Double -> Int)
 
--- | Allows class to be concatenated in monadic appends, with:
---
--- -- Class attributes concatenated (as a string of space separated names)
---
--- -- ID treated as a special Attribute, and
---
--- -- All other attributes treated as the Last semigroup.
--- FIXME: Consider removing.
-data Attribute
-  = Class
-  | ID
-  | Attribute ByteString
-  deriving (Eq, Show, Generic, Ord)
-
-instance ToExpr Attribute
-
--- | convert a ByteString to an Attribute tag
-inject :: ByteString -> Attribute
-inject "class" = Class
-inject "id" = ID
-inject a = Attribute a
-
--- | convert an Attribute to a ByteString
-eject :: Attribute -> ByteString
-eject Class = "class"
-eject ID = "id"
-eject (Attribute a) = a
-
-newtype Attributes = Attributes {attMap :: Map Attribute ByteString} deriving (Eq, Show, Generic)
+-- | A collection of attributes as a ByteString key-value map.
+newtype Attributes = Attributes {attMap :: Map ByteString ByteString} deriving (Eq, Show, Generic)
 
 instance ToExpr Attributes
 
+-- Like Last for most attributes but concatenates the "class" attribute.
 instance Semigroup Attributes where
   (<>) (Attributes m) (Attributes m') =
     Attributes $
       Map.unionWithKey
         ( \k a b ->
             case k of
-              Class -> a <> " " <> b
-              ID -> b
-              Attribute _ -> b
+              "class" -> a <> " " <> b
+              _ -> b
         )
         m
         m'
@@ -138,15 +107,14 @@ instance Semigroup Attributes where
 instance Monoid Attributes where
   mempty = Attributes Map.empty
 
-singleAtt :: (ByteString, ByteString) -> Attributes
-singleAtt ("class", b) = Attributes $ Map.singleton Class b
-singleAtt ("id", b) = Attributes $ Map.singleton ID b
-singleAtt (a, b) = Attributes $ Map.singleton (Attribute a) b
+-- | Create a singleton Attributes
+attribute :: (ByteString, ByteString) -> Attributes
+attribute (k, v) = Attributes $ Map.singleton k v
 
 -- | A representation of SVG (and XML) markup with no specific knowledge of SVG or XML syntax rules.
 --
 -- >>> markupChartOptions c0
--- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [("height","300"),("viewBox","-0.75 -0.5 1.5 1.0"),("width","450"),("xmlns","http://www.w3.org/2000/svg"),("xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("class","chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("class","hud")]}, contents = []})]}
 data Markup = Markup
   { tag :: ByteString,
     atts :: Attributes,
@@ -159,7 +127,7 @@ instance ToExpr Markup
 -- | The things that can be inside (form the Content of) a Markup element, especially in a DOM context. Comments are unused by the library representation of a chart and are here to help with parsing arbitrary svg in the wild.
 --
 -- >>> contents (markupChartOptions c0)
--- [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]
+-- [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("class","chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("class","hud")]}, contents = []})]
 data Content = Content ByteString | Comment ByteString | MarkupLeaf Markup deriving (Eq, Show, Generic)
 
 instance ToExpr Content
@@ -194,19 +162,19 @@ encodeContent (MarkupLeaf x) = encodeMarkup x
 encodeComment :: ByteString -> ByteString
 encodeComment c = "<!--" <> c <> "-->"
 
-encodeAttribute :: Attribute -> ByteString -> ByteString
-encodeAttribute a b = [i|#{eject a}="#{b}"|]
+encodeAttribute :: ByteString -> ByteString -> ByteString
+encodeAttribute a b = [i|#{a}="#{b}"|]
 
 -- | Convert a ChartTree to markup
 --
 -- >>> lineExample & view #charts & markupChartTree
--- [Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"line")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgb(2%, 73%, 80%)"),(Attribute "stroke-opacity","1.0"),(Attribute "stroke-width","0.0150")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0,-1.0 1.0,-1.0 2.0,-5.0")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgb(2%, 29%, 48%)"),(Attribute "stroke-opacity","1.0"),(Attribute "stroke-width","0.0150")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0,0 2.8,-3.0")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgb(66%, 7%, 55%)"),(Attribute "stroke-opacity","1.0"),(Attribute "stroke-width","0.0150")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0.5,-4.0 0.5,0")]}, contents = []})]})]}]
+-- [Markup {tag = "g", atts = Attributes {attMap = fromList [("class","line")]}, contents = [MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("fill","none"),("stroke","rgb(2%, 73%, 80%)"),("stroke-opacity","1.0"),("stroke-width","0.0150")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [("points","0,-1.0 1.0,-1.0 2.0,-5.0")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("fill","none"),("stroke","rgb(2%, 29%, 48%)"),("stroke-opacity","1.0"),("stroke-width","0.0150")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [("points","0,0 2.8,-3.0")]}, contents = []})]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("fill","none"),("stroke","rgb(66%, 7%, 55%)"),("stroke-opacity","1.0"),("stroke-width","0.0150")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [("points","0.5,-4.0 0.5,0")]}, contents = []})]})]}]
 markupChartTree :: ChartTree -> [Markup]
 markupChartTree cs =
   case (xs', label) of
     ([], Nothing) -> mempty
     (xs'', Nothing) -> xs''
-    (xs'', Just l) -> [Markup "g" (Attributes . Map.singleton Class . encodeUtf8 $ l) (MarkupLeaf <$> xs'')]
+    (xs'', Just l) -> [Markup "g" (Attributes . Map.singleton "class" . encodeUtf8 $ l) (MarkupLeaf <$> xs'')]
   where
     (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
     xs' = mapMaybe markupChart cs' <> (mconcat $ markupChartTree . ChartTree <$> xs)
@@ -217,10 +185,10 @@ markupText s t p@(Point x y) = Markup "text" as ((MarkupLeaf <$> xs) <> [Content
     as =
       Attributes $
         Map.fromList $
-          [ (Attribute "x", encodeNum x),
-            (Attribute "y", encodeNum $ -y)
+          [ ("x", encodeNum x),
+            ("y", encodeNum $ -y)
           ]
-            <> maybeToList ((\x' -> (Attribute "transform", toRotateText x' p)) <$> (s ^. #rotation))
+            <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> (s ^. #rotation))
     xs = case view #frame s of
       Nothing -> []
       Just f -> maybeToList $ markupChart (RectChart (f & over #borderSize (* view #size s)) [styleBoxText s t p])
@@ -250,9 +218,8 @@ markupRect (Rect x z y w) =
   where
     as =
       Attributes $
-        Map.fromList $
-          first Attribute
-            <$> [ ("width", encodeNum (z - x)),
+        Map.fromList
+            [ ("width", encodeNum (z - x)),
                   ("height", encodeNum (w - y)),
                   ("x", encodeNum x),
                   ("y", encodeNum (-w))
@@ -261,7 +228,7 @@ markupRect (Rect x z y w) =
 -- | Convert a Chart to Markup
 --
 -- >>> lineExample & view #charts & foldOf charts' & head & markupChart
--- Just (Markup {tag = "g", atts = Attributes {attMap = fromList [(Attribute "fill","none"),(Attribute "stroke","rgb(2%, 73%, 80%)"),(Attribute "stroke-opacity","1.0"),(Attribute "stroke-width","0.0150")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [(Attribute "points","0,-1.0 1.0,-1.0 2.0,-5.0")]}, contents = []})]})
+-- Just (Markup {tag = "g", atts = Attributes {attMap = fromList [("fill","none"),("stroke","rgb(2%, 73%, 80%)"),("stroke-opacity","1.0"),("stroke-width","0.0150")]}, contents = [MarkupLeaf (Markup {tag = "polyline", atts = Attributes {attMap = fromList [("points","0,-1.0 1.0,-1.0 2.0,-5.0")]}, contents = []})]})
 markupChart :: Chart -> Maybe Markup
 markupChart (RectChart s xs) = Just $ Markup "g" (attsRect s) (MarkupLeaf . markupRect <$> xs)
 markupChart (TextChart s xs) = Just $ Markup "g" (attsText s) (MarkupLeaf . uncurry (markupText s) <$> xs)
@@ -272,7 +239,7 @@ markupChart (BlankChart _) = Nothing
 
 markupLine :: [[Point Double]] -> [Markup]
 markupLine lss =
-  fmap (($ mempty) . Markup "polyline" . singleAtt . ("points",) . toPointsText) lss
+  fmap (($ mempty) . Markup "polyline" . attribute . ("points",) . toPointsText) lss
 
 toPointsText :: [Point Double] -> ByteString
 toPointsText xs = intercalate " " $ (\(Point x y) -> encodeNum x <> "," <> encodeNum (-y)) <$> xs
@@ -280,7 +247,7 @@ toPointsText xs = intercalate " " $ (\(Point x y) -> encodeNum x <> "," <> encod
 -- | Path markup
 markupPath :: [PathData Double] -> Markup
 markupPath ps =
-  Markup "path" (foldMap singleAtt [("d", pathDataToSvg ps)]) mempty
+  Markup "path" (foldMap attribute [("d", pathDataToSvg ps)]) mempty
 
 -- | GlyphStyle to markup Tree
 -- Note rotation on the outside not the inside.
@@ -288,7 +255,7 @@ markupGlyph :: GlyphStyle -> Point Double -> Markup
 markupGlyph s p =
   case view #rotation s of
     Nothing -> gl
-    Just r -> Markup "g" (foldMap singleAtt [("transform", toRotateText r p)]) [MarkupLeaf gl]
+    Just r -> Markup "g" (foldMap attribute [("transform", toRotateText r p)]) [MarkupLeaf gl]
   where
     gl = markupShape_ (s ^. #shape) (s ^. #size) p
 
@@ -302,7 +269,7 @@ fromDashOffset x = encodeNum x
 attsLine :: LineStyle -> Attributes
 attsLine o =
   mconcat $
-    singleAtt
+    attribute
       <$> [ ("stroke-width", encodeNum $ o ^. #size),
             ("stroke", showRGB $ o ^. #color),
             ("stroke-opacity", showOpacity $ o ^. #color),
@@ -317,7 +284,7 @@ attsLine o =
 attsRect :: RectStyle -> Attributes
 attsRect o =
   foldMap
-    singleAtt
+    attribute
     [ ("stroke-width", encodeNum $ o ^. #borderSize),
       ("stroke", showRGB $ o ^. #borderColor),
       ("stroke-opacity", showOpacity $ o ^. #borderColor),
@@ -329,9 +296,7 @@ attsRect o =
 attsText :: TextStyle -> Attributes
 attsText o =
   Attributes $
-    Map.fromList $
-      fmap
-        (first Attribute)
+    Map.fromList
         [ ("stroke-width", "0.0"),
           ("stroke", "none"),
           ("fill", showRGB $ o ^. #color),
@@ -350,7 +315,6 @@ attsGlyph :: GlyphStyle -> Attributes
 attsGlyph o =
   Attributes $
     Map.fromList $
-      fmap (first Attribute) $
         [ ("stroke-width", encodeNum sw),
           ("stroke", showRGB $ o ^. #borderColor),
           ("stroke-opacity", showOpacity $ o ^. #borderColor),
@@ -368,9 +332,7 @@ attsGlyph o =
 attsPath :: PathStyle -> Attributes
 attsPath o =
   Attributes $
-    Map.fromList $
-      fmap
-        (first Attribute)
+    Map.fromList
         [ ("stroke-width", encodeNum $ o ^. #borderSize),
           ("stroke", showRGB $ o ^. #borderColor),
           ("stroke-opacity", showOpacity $ o ^. #borderColor),
@@ -389,9 +351,7 @@ markupShape_ CircleGlyph s (Point x y) = Markup "circle" as mempty
   where
     as =
       Attributes $
-        Map.fromList $
-          fmap
-            (first Attribute)
+        Map.fromList
             [ ("cx", encodeNum x),
               ("cy", encodeNum $ -y),
               ("r", encodeNum $ 0.5 * s)
@@ -404,9 +364,7 @@ markupShape_ (RectRoundedGlyph x' rx ry) s p = Markup "rect" as mempty
   where
     as =
       Attributes $
-        Map.fromList $
-          fmap
-            (first Attribute)
+        Map.fromList
             [ ("width", encodeNum $ z - x),
               ("height", encodeNum $ w - y),
               ("x", encodeNum x),
@@ -420,9 +378,7 @@ markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   where
     as =
       Attributes $
-        Map.fromList $
-          fmap
-            (first Attribute)
+        Map.fromList
             [ ("transform", toTranslateText p),
               ("points", encodeNum (s * xa) <> "," <> encodeNum (-(s * ya)) <> " " <> encodeNum (s * xb) <> "," <> encodeNum (-(s * yb)) <> " " <> encodeNum (s * xc) <> "," <> encodeNum (-(s * yc)))
             ]
@@ -431,31 +387,29 @@ markupShape_ (EllipseGlyph x') s (Point x y) =
   where
     as =
       Attributes $
-        Map.fromList $
-          fmap
-            (first Attribute)
+        Map.fromList
             [ ("cx", (pack . show) x),
               ("cy", (pack . show) $ -y),
               ("rx", (pack . show) $ 0.5 * s),
               ("ry", (pack . show) $ 0.5 * s * x')
             ]
 markupShape_ VLineGlyph s (Point x y) =
-  Markup "polyline" (foldMap singleAtt [("points", encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2)))]) mempty
+  Markup "polyline" (foldMap attribute [("points", encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2)))]) mempty
 markupShape_ HLineGlyph s (Point x y) =
-  Markup "polyline" (foldMap singleAtt [("points", encodeNum (x - s / 2) <> "," <> encodeNum (-y) <> "\n" <> encodeNum (x + s / 2) <> "," <> encodeNum (-y))]) mempty
+  Markup "polyline" (foldMap attribute [("points", encodeNum (x - s / 2) <> "," <> encodeNum (-y) <> "\n" <> encodeNum (x + s / 2) <> "," <> encodeNum (-y))]) mempty
 markupShape_ (PathGlyph path _) s p =
-  Markup "path" (foldMap singleAtt [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)]) mempty
+  Markup "path" (foldMap attribute [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)]) mempty
 
 -- | Create the classic SVG element
 --
 -- >>> header 100 one [Markup "foo" mempty mempty]
--- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","100"),(Attribute "viewBox","-0.5 -0.5 1.0 1.0"),(Attribute "width","100"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = []})]}
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [("height","100"),("viewBox","-0.5 -0.5 1.0 1.0"),("width","100"),("xmlns","http://www.w3.org/2000/svg"),("xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = []})]}
 header :: Double -> Rect Double -> [Markup] -> Markup
 header markupheight viewbox content' =
   Markup
     "svg"
     ( foldMap
-        singleAtt
+        attribute
         [ ("xmlns", "http://www.w3.org/2000/svg"),
           ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
           ("width", encodePx w''),
@@ -602,7 +556,7 @@ data ChartOptions = ChartOptions
 -- | Convert ChartOptions to Markup
 --
 -- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
+-- Markup {tag = "svg", atts = Attributes {attMap = fromList [("height","300"),("viewBox","-0.75 -0.5 1.5 1.0"),("width","450"),("xmlns","http://www.w3.org/2000/svg"),("xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("class","chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("class","hud")]}, contents = []})]}
 markupChartOptions :: ChartOptions -> Markup
 markupChartOptions co =
   header

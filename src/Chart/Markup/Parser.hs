@@ -45,7 +45,7 @@ import Chart.FlatParse
 import Chart.Markup
   ( Content (..),
     Markup (Markup),
-    singleAtt,
+    attribute,
   )
 import Data.ByteString (ByteString)
 import Data.String.Interpolate
@@ -391,10 +391,10 @@ xmlDocument = XmlDocument <$> (ws_ *> xmlProlog) <*> markupP <*> many xmlMisc
 -- OK (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = [Content "Hello World."]}) ""
 markupP :: Parser Error Markup
 markupP =
-  ((\(n, as) -> Markup n (mconcat $ singleAtt <$> as) mempty) <$> emptyElemTag)
+  ((\(n, as) -> Markup n (mconcat $ attribute <$> as) mempty) <$> emptyElemTag)
     <|>
     -- no close tag = open tag test
-    ((\(n, as) c _ -> Markup n (mconcat $ singleAtt <$> as) c) <$> openTag <*> many contentP <*> closeTag `cut` ["open tag", "content", "close tag"])
+    ((\(n, as) c _ -> Markup n (mconcat $ attribute <$> as) c) <$> openTag <*> many contentP <*> closeTag `cut` ["open tag", "content", "close tag"])
 
 -- | inner contents of a xml element.
 --

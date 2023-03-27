@@ -132,44 +132,44 @@ patchExamples =
   ]
 
 m0 :: Markup
-m0 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
+m0 = Markup "top" (Attributes (fromList [("class", "a"), ("b", "c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
 
 -- Changing class
 m1 :: Markup
-m1 = Markup "top" (Attributes (fromList [(Class, "b"), (Attribute "b", "c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
+m1 = Markup "top" (Attributes (fromList [("class", "b"), ("b", "c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
 
 -- deleting an attribute
 m2 :: Markup
-m2 = Markup "top" (Attributes (fromList [(Class, "a")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
+m2 = Markup "top" (Attributes (fromList [("class", "a")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
 
 -- inserting an attribute
 m3 :: Markup
-m3 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b", "c"), (Attribute "d", "e")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
+m3 = Markup "top" (Attributes (fromList [("class", "a"), ("b", "c"), ("d", "e")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
 
 -- changing a tag
 m4 :: Markup
-m4 = Markup "newtop" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
+m4 = Markup "newtop" (Attributes (fromList [("class", "a"), ("b", "c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
 
 -- changing a leaf
 m5 :: Markup
-m5 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) [MarkupLeaf (Markup "newleaf" mempty mempty), Content "text"]
+m5 = Markup "top" (Attributes (fromList [("class", "a"), ("b", "c")])) [MarkupLeaf (Markup "newleaf" mempty mempty), Content "text"]
 
 -- deleting a leaf
 m6 :: Markup
-m6 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) [Content "text"]
+m6 = Markup "top" (Attributes (fromList [("class", "a"), ("b", "c")])) [Content "text"]
 
 -- inserting a leaf
 m7 :: Markup
-m7 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) [MarkupLeaf (Markup "newleaf" mempty mempty), MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
+m7 = Markup "top" (Attributes (fromList [("class", "a"), ("b", "c")])) [MarkupLeaf (Markup "newleaf" mempty mempty), MarkupLeaf (Markup "leaf" mempty mempty), Content "text"]
 
 -- inserting Attributes
 m8 :: Markup
-m8 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) [MarkupLeaf (Markup "leaf" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) mempty), Content "text"]
+m8 = Markup "top" (Attributes (fromList [("class", "a"), ("b", "c")])) [MarkupLeaf (Markup "leaf" (Attributes (fromList [("class", "a"), ("b", "c")])) mempty), Content "text"]
 
 -- modifying content
 m9 :: Markup
-m9 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "textual content"]
+m9 = Markup "top" (Attributes (fromList [("class", "a"), ("b", "c")])) [MarkupLeaf (Markup "leaf" mempty mempty), Content "textual content"]
 
 -- inserting a leaf deeper down
 m10 :: Markup
-m10 = Markup "top" (Attributes (fromList [(Class, "a"), (Attribute "b", "c")])) [MarkupLeaf (Markup "leaf" mempty [MarkupLeaf (Markup "newdeepleaf" mempty [Content "deeper content"])]), Content "textual content"]
+m10 = Markup "top" (Attributes (fromList [("class", "a"), ("b", "c")])) [MarkupLeaf (Markup "leaf" mempty [MarkupLeaf (Markup "newdeepleaf" mempty [Content "deeper content"])]), Content "textual content"]
