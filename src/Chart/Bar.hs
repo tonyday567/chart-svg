@@ -235,14 +235,14 @@ barTicks bd
           (bd ^. #barRowLabels) <> repeat ""
 
 -- | A bar legend
-barLegendContent :: BarOptions -> BarData -> [(Text, Chart)]
+barLegendContent :: BarOptions -> BarData -> [(Text, [Chart])]
 barLegendContent bo bd
   | null (bd ^. #barData) = []
   | null (bd ^. #barColumnLabels) = []
   | otherwise =
       zip
         (view #barColumnLabels bd <> repeat "")
-        ((\s -> RectChart s [one]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
+        ((\s -> [RectChart s [one]]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
 
 flipPoint :: Orientation -> Point a -> Point a
 flipPoint Vert p = p

@@ -687,7 +687,7 @@ data LegendOptions = LegendOptions
     frame :: Maybe RectStyle,
     place :: Place,
     overallScale :: Double,
-    content :: [(Text, Chart)]
+    content :: [(Text, [Chart])]
   }
   deriving (Show, Eq, Generic)
 
@@ -1106,15 +1106,15 @@ legendChart l = legendFrame l content'
     content' =
       vert
         (l ^. #hgap)
-        ( ( \(a, t) ->
+        ( ( \(t, a) ->
               hori
                 ((l ^. #vgap) + twidth - gapwidth t)
-                (fmap unnamed [[t], [a]])
+                (fmap unnamed [[t], a])
           )
             <$> es
         )
     es = reverse $ uncurry (legendEntry l) <$> view #content l
-    twidth = maybe zero (\(Rect _ z _ _) -> z) (styleBoxes (snd <$> es))
+    twidth = maybe zero (\(Rect _ z _ _) -> z) (styleBoxes (fst <$> es))
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (sbox t)
 
 legendText ::
@@ -1152,9 +1152,7 @@ legendizeChart l c =
 legendEntry ::
   LegendOptions ->
   Text ->
-  Chart ->
-  (Chart, Chart)
-legendEntry l t c =
-  ( legendizeChart l c,
-    legendText l t
-  )
+  [Chart] ->
+  (Chart, [Chart])
+legendEntry l t cs =
+  ( legendText l t, cs & fmap (legendizeChart l))

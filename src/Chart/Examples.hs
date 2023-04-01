@@ -123,7 +123,7 @@ lineExample =
                 & over #frame (fmap (set #color white))
                 & set #place (PlaceAbsolute (Point 0.45 (-0.35)))
                 & set (#textStyle % #size) 0.20
-                & set #content (zip ["palette1 0", "palette1 1", "palette1 2"] cs)
+                & set #content (zipWith (\t c -> (t,[c])) ["palette1 0", "palette1 1", "palette1 2"] cs)
             )
           ]
     cs =
@@ -332,7 +332,7 @@ ellipseExample a =
     yals = defaultLineStyle & #color .~ palette1 5 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound
     fullels = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
     els = defaultLineStyle & #size .~ 0.005 & #color .~ palette1 2
-    lrows =
+    lrows = second (:[]) <$>
       [ ("Major Axis", LineChart xals [[zero]]),
         ("Minor Axis", LineChart yals [[zero]]),
         ("Full Ellipse", LineChart fullels [[zero]]),
@@ -462,7 +462,7 @@ quadExample =
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 0 0.05 & #borderColor .~ grey 0.4 1
     pathStyle = defaultPathStyle & #color .~ palette1a 2 0.2 & #borderColor .~ transparent
     controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
-    lrows =
+    lrows = second (:[]) <$>
       [ ("Path Fill", PathChart pathStyle [StartP zero]),
         ("Path Chord", LineChart curveStyle [[zero]]),
         ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
@@ -493,7 +493,7 @@ cubicExample =
     pathStyle = defaultPathStyle & #color .~ palette1a 3 0.2 & #borderColor .~ transparent
     controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
     curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 7
-    lrows =
+    lrows = second (:[]) <$>
       [ ("Path Fill", PathChart pathStyle [StartP zero]),
         ("Path Chord", LineChart curveStyle [[zero]]),
         ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
