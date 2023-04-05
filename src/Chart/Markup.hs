@@ -44,11 +44,13 @@ import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
 import Data.ByteString.Char8 (pack)
 import Data.Colour
+-- import GHC.Exts
+
+import Data.FormatN
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Path
--- import GHC.Exts
 import Data.Path.Parser
 import Data.String.Interpolate
 import Data.Text (Text)
@@ -58,7 +60,6 @@ import Data.TreeDiff
 import GHC.Generics
 import Optics.Core hiding (element)
 import Prelude
-import Data.FormatN
 
 -- $setup
 --
@@ -219,11 +220,11 @@ markupRect (Rect x z y w) =
     as =
       Attributes $
         Map.fromList
-            [ ("width", encodeNum (z - x)),
-                  ("height", encodeNum (w - y)),
-                  ("x", encodeNum x),
-                  ("y", encodeNum (-w))
-                ]
+          [ ("width", encodeNum (z - x)),
+            ("height", encodeNum (w - y)),
+            ("x", encodeNum x),
+            ("y", encodeNum (-w))
+          ]
 
 -- | Convert a Chart to Markup
 --
@@ -297,13 +298,13 @@ attsText :: TextStyle -> Attributes
 attsText o =
   Attributes $
     Map.fromList
-        [ ("stroke-width", "0.0"),
-          ("stroke", "none"),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color),
-          ("font-size", encodeNum $ o ^. #size),
-          ("text-anchor", toTextAnchor $ o ^. #anchor)
-        ]
+      [ ("stroke-width", "0.0"),
+        ("stroke", "none"),
+        ("fill", showRGB $ o ^. #color),
+        ("fill-opacity", showOpacity $ o ^. #color),
+        ("font-size", encodeNum $ o ^. #size),
+        ("text-anchor", toTextAnchor $ o ^. #anchor)
+      ]
   where
     toTextAnchor :: Anchor -> ByteString
     toTextAnchor AnchorMiddle = "middle"
@@ -315,13 +316,13 @@ attsGlyph :: GlyphStyle -> Attributes
 attsGlyph o =
   Attributes $
     Map.fromList $
-        [ ("stroke-width", encodeNum sw),
-          ("stroke", showRGB $ o ^. #borderColor),
-          ("stroke-opacity", showOpacity $ o ^. #borderColor),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color)
-        ]
-          <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
+      [ ("stroke-width", encodeNum sw),
+        ("stroke", showRGB $ o ^. #borderColor),
+        ("stroke-opacity", showOpacity $ o ^. #borderColor),
+        ("fill", showRGB $ o ^. #color),
+        ("fill-opacity", showOpacity $ o ^. #color)
+      ]
+        <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
   where
     sw = case o ^. #shape of
       PathGlyph _ NoScaleBorder -> o ^. #borderSize
@@ -333,17 +334,17 @@ attsPath :: PathStyle -> Attributes
 attsPath o =
   Attributes $
     Map.fromList
-        [ ("stroke-width", encodeNum $ o ^. #borderSize),
-          ("stroke", showRGB $ o ^. #borderColor),
-          ("stroke-opacity", showOpacity $ o ^. #borderColor),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color)
-        ]
+      [ ("stroke-width", encodeNum $ o ^. #borderSize),
+        ("stroke", showRGB $ o ^. #borderColor),
+        ("stroke-opacity", showOpacity $ o ^. #borderColor),
+        ("fill", showRGB $ o ^. #color),
+        ("fill-opacity", showOpacity $ o ^. #color)
+      ]
 
 -- | includes a flip of the y dimension.
 toTranslateText :: Point Double -> ByteString
 toTranslateText (Point x y) =
-    "translate(" <> encodeNum x <> ", " <> encodeNum (-y) <> ")"
+  "translate(" <> encodeNum x <> ", " <> encodeNum (-y) <> ")"
 
 -- | GlyphShape to markup Tree
 markupShape_ :: GlyphShape -> Double -> Point Double -> Markup
@@ -352,10 +353,10 @@ markupShape_ CircleGlyph s (Point x y) = Markup "circle" as mempty
     as =
       Attributes $
         Map.fromList
-            [ ("cx", encodeNum x),
-              ("cy", encodeNum $ -y),
-              ("r", encodeNum $ 0.5 * s)
-            ]
+          [ ("cx", encodeNum x),
+            ("cy", encodeNum $ -y),
+            ("r", encodeNum $ 0.5 * s)
+          ]
 markupShape_ SquareGlyph s p =
   markupRect (move p ((s *) <$> one :: Rect Double))
 markupShape_ (RectSharpGlyph x') s p =
@@ -365,13 +366,13 @@ markupShape_ (RectRoundedGlyph x' rx ry) s p = Markup "rect" as mempty
     as =
       Attributes $
         Map.fromList
-            [ ("width", encodeNum $ z - x),
-              ("height", encodeNum $ w - y),
-              ("x", encodeNum x),
-              ("y", encodeNum $ -w),
-              ("rx", encodeNum rx),
-              ("ry", encodeNum ry)
-            ]
+          [ ("width", encodeNum $ z - x),
+            ("height", encodeNum $ w - y),
+            ("x", encodeNum x),
+            ("y", encodeNum $ -w),
+            ("rx", encodeNum rx),
+            ("ry", encodeNum ry)
+          ]
     (Rect x z y w) = move p (scale (Point s (x' * s)) one)
 markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
   Markup "polygon" as mempty
@@ -379,20 +380,20 @@ markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
     as =
       Attributes $
         Map.fromList
-            [ ("transform", toTranslateText p),
-              ("points", encodeNum (s * xa) <> "," <> encodeNum (-(s * ya)) <> " " <> encodeNum (s * xb) <> "," <> encodeNum (-(s * yb)) <> " " <> encodeNum (s * xc) <> "," <> encodeNum (-(s * yc)))
-            ]
+          [ ("transform", toTranslateText p),
+            ("points", encodeNum (s * xa) <> "," <> encodeNum (-(s * ya)) <> " " <> encodeNum (s * xb) <> "," <> encodeNum (-(s * yb)) <> " " <> encodeNum (s * xc) <> "," <> encodeNum (-(s * yc)))
+          ]
 markupShape_ (EllipseGlyph x') s (Point x y) =
   Markup "ellipse" as mempty
   where
     as =
       Attributes $
         Map.fromList
-            [ ("cx", (pack . show) x),
-              ("cy", (pack . show) $ -y),
-              ("rx", (pack . show) $ 0.5 * s),
-              ("ry", (pack . show) $ 0.5 * s * x')
-            ]
+          [ ("cx", (pack . show) x),
+            ("cy", (pack . show) $ -y),
+            ("rx", (pack . show) $ 0.5 * s),
+            ("ry", (pack . show) $ 0.5 * s * x')
+          ]
 markupShape_ VLineGlyph s (Point x y) =
   Markup "polyline" (foldMap attribute [("points", encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2)))]) mempty
 markupShape_ HLineGlyph s (Point x y) =
@@ -475,7 +476,8 @@ cssPreferColorScheme (_, cd) PreferDark =
 cssPreferColorScheme _ PreferNormal = mempty
 
 fillSwitch :: (Colour, Colour) -> ByteString -> ByteString -> ByteString
-fillSwitch (colorNormal, colorPrefer) prefer item = [i|
+fillSwitch (colorNormal, colorPrefer) prefer item =
+  [i|
 {
   .#{item} g {
     fill: #{showRGB colorNormal};

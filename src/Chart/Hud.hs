@@ -90,6 +90,7 @@ import qualified Data.List as List
 import Data.Maybe
 import Data.Path
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Tuple
 import GHC.Generics hiding (to)
 import qualified NumHask.Prelude as NH
@@ -110,10 +111,6 @@ import Prelude
 -- Lower priority (higher values) huds will tend to be placed on the outside of a chart.
 --
 -- Hud elements are rendered in order from high to low priority and the positioning of hud elements can depend on the positioning of elements that have already been included. Equal priority values will be placed in the same process step.
---
---
-
-
 
 --
 -- The first example below, based in 'lineExample' but with the legend placed on the right and coloured frames to help accentuate effects, includes (in order of priority):
@@ -137,7 +134,7 @@ import Prelude
 -- > priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (const (Priority 51)))
 --
 -- ![priorityv2 example](other/priorityv2.svg)
-newtype Priority = Priority { priority :: Double } deriving (Eq, Ord, Show, Generic)
+newtype Priority = Priority {priority :: Double} deriving (Eq, Ord, Show, Generic)
 
 instance Num Priority where
   (*) (Priority a) (Priority b) = Priority (a * b)
@@ -348,7 +345,6 @@ instance Monoid HudOptions where
 -- - A high 'Priority' (and thus inner), low-opacity frame, representing the data area of the chart.
 --
 -- - A low priority (outer), transparent frame, providing some padding around the chart.
---
 defaultHudOptions :: HudOptions
 defaultHudOptions =
   HudOptions
@@ -357,7 +353,8 @@ defaultHudOptions =
       (5, defaultAxisOptions & set #place PlaceLeft)
     ]
     [ (1, defaultFrameOptions),
-      (20, defaultFrameOptions & #buffer .~ 0.04)]
+      (20, defaultFrameOptions & #buffer .~ 0.04)
+    ]
     []
     []
 
@@ -1131,7 +1128,7 @@ legendizeChart ::
 legendizeChart l c =
   case c of
     (RectChart rs _) -> RectChart rs [Rect 0 (l ^. #size) 0 (l ^. #size)]
-    (TextChart ts _) -> TextChart (ts & #size .~ (l ^. #size)) [("text", zero)]
+    (TextChart ts t) -> let txt = fromMaybe "text" (listToMaybe (fst <$> t)) in TextChart (ts & #size .~ (l ^. #size / fromIntegral (Text.length txt))) [(txt, Point (0.5 * l ^. #size) (0.33 * l ^. #size))]
     (GlyphChart gs _) -> GlyphChart (gs & #size .~ (l ^. #size)) [Point (0.5 * l ^. #size) (0.33 * l ^. #size)]
     (LineChart ls _) ->
       LineChart
@@ -1155,4 +1152,4 @@ legendEntry ::
   [Chart] ->
   (Chart, [Chart])
 legendEntry l t cs =
-  ( legendText l t, cs & fmap (legendizeChart l))
+  (legendText l t, cs & fmap (legendizeChart l))

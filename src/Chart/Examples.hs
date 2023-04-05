@@ -123,7 +123,7 @@ lineExample =
                 & over #frame (fmap (set #color white))
                 & set #place (PlaceAbsolute (Point 0.45 (-0.35)))
                 & set (#textStyle % #size) 0.20
-                & set #content (zipWith (\t c -> (t,[c])) ["palette1 0", "palette1 1", "palette1 2"] cs)
+                & set #content (zipWith (\t c -> (t, [c])) ["palette1 0", "palette1 1", "palette1 2"] cs)
             )
           ]
     cs =
@@ -332,15 +332,16 @@ ellipseExample a =
     yals = defaultLineStyle & #color .~ palette1 5 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound
     fullels = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
     els = defaultLineStyle & #size .~ 0.005 & #color .~ palette1 2
-    lrows = second (:[]) <$>
-      [ ("Major Axis", LineChart xals [[zero]]),
-        ("Minor Axis", LineChart yals [[zero]]),
-        ("Full Ellipse", LineChart fullels [[zero]]),
-        ("Arc", LineChart els [[zero]]),
-        ("Centroid", GlyphChart (g0 & #size .~ 0.01) [zero]),
-        ("Endpoints", GlyphChart (g1 & #size .~ 0.01) [zero]),
-        ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [fmap (2 *) one])
-      ]
+    lrows =
+      second (: [])
+        <$> [ ("Major Axis", LineChart xals [[zero]]),
+              ("Minor Axis", LineChart yals [[zero]]),
+              ("Full Ellipse", LineChart fullels [[zero]]),
+              ("Arc", LineChart els [[zero]]),
+              ("Centroid", GlyphChart (g0 & #size .~ 0.01) [zero]),
+              ("Endpoints", GlyphChart (g1 & #size .~ 0.01) [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [fmap (2 *) one])
+            ]
 
 -- | Reproduction of the flag explanation chart in <https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths>
 --
@@ -462,13 +463,14 @@ quadExample =
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 0 0.05 & #borderColor .~ grey 0.4 1
     pathStyle = defaultPathStyle & #color .~ palette1a 2 0.2 & #borderColor .~ transparent
     controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
-    lrows = second (:[]) <$>
-      [ ("Path Fill", PathChart pathStyle [StartP zero]),
-        ("Path Chord", LineChart curveStyle [[zero]]),
-        ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
-        ("Path Control Point", GlyphChart controlStyle [zero]),
-        ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
-      ]
+    lrows =
+      second (: [])
+        <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
+              ("Path Chord", LineChart curveStyle [[zero]]),
+              ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
+              ("Path Control Point", GlyphChart controlStyle [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
+            ]
 
 -- | cubic example
 --
@@ -493,13 +495,14 @@ cubicExample =
     pathStyle = defaultPathStyle & #color .~ palette1a 3 0.2 & #borderColor .~ transparent
     controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
     curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 7
-    lrows = second (:[]) <$>
-      [ ("Path Fill", PathChart pathStyle [StartP zero]),
-        ("Path Chord", LineChart curveStyle [[zero]]),
-        ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
-        ("Path Control Point", GlyphChart controlStyle [zero]),
-        ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
-      ]
+    lrows =
+      second (: [])
+        <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
+              ("Path Chord", LineChart curveStyle [[zero]]),
+              ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
+              ("Path Control Point", GlyphChart controlStyle [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
+            ]
 
 -- | The common way to create a surface chart (or contour chart or heat map) is usually a grid over a function, a process reified in 'surfacef'.
 --

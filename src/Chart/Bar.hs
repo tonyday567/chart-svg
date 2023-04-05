@@ -86,7 +86,7 @@ cols NonStacked xs = length xs
 
 -- | Number of rows
 rows :: [[Double]] -> Int
-rows xs = maximum $ (0:) $ length <$> xs
+rows xs = maximum $ (0 :) $ length <$> xs
 
 -- | Width of each bar
 barWidth :: BarOptions -> [[Double]] -> Double
@@ -96,7 +96,7 @@ barWidth o xs = ((1 - outerGap o) / c) - (innerGap o * (c - 1))
 
 -- | Placement for the ith row jth column bar (x axis for vertical bars)
 barX0 :: BarOptions -> [[Double]] -> Int -> Int -> Double
-barX0 o xs i j = outerGap o/ 2 + fromIntegral i + fromIntegral j * (barWidth o xs + innerGap o)
+barX0 o xs i j = outerGap o / 2 + fromIntegral i + fromIntegral j * (barWidth o xs + innerGap o)
 
 -- | Make bars from the double list values.
 --
@@ -106,7 +106,7 @@ barX0 o xs i j = outerGap o/ 2 + fromIntegral i + fromIntegral j * (barWidth o x
 -- >>> barRects defaultBarOptions [[]]
 -- []
 barRects :: BarOptions -> [[Double]] -> [[Rect Double]]
-barRects o xs = fmap (flipRect (barOrientation o)) <$> zip2With (\y x0 -> abs (Rect x0 (x0+barWidth o xs) 0 y)) xs' (barX0s o xs')
+barRects o xs = fmap (flipRect (barOrientation o)) <$> zip2With (\y x0 -> abs (Rect x0 (x0 + barWidth o xs) 0 y)) xs' (barX0s o xs')
   where
     xs' = bool id accRows (barStacked o == Stacked) (appendZeros xs)
 
@@ -119,7 +119,7 @@ iter2 f xs ys = f <$> xs <&> flip fmap ys -- or (\a -> f a <$> ys) <$> xs
 
 -- | Placements for the bars (x axis for vertical bars)
 barX0s :: BarOptions -> [[Double]] -> [[Double]]
-barX0s o xs = transpose $ iter2 (barX0 o xs) [0..(rows xs - 1)] [0..cols (barStacked o) xs - 1]
+barX0s o xs = transpose $ iter2 (barX0 o xs) [0 .. (rows xs - 1)] [0 .. cols (barStacked o) xs - 1]
 
 flipRect :: Orientation -> Rect Double -> Rect Double
 flipRect Vert r = r
@@ -136,6 +136,7 @@ appendZeros xs =
 
 accRows :: [[Double]] -> [[Double]]
 accRows xs = transpose $ drop 1 . scanl' (+) 0 <$> transpose (fmap toList $ toList xs)
+
 -- | A bar chart.
 --
 -- >>> emptyBar = barChart defaultBarOptions (BarData [] [] [])
@@ -218,10 +219,11 @@ bars :: BarOptions -> BarData -> [Chart]
 bars bo bd = bool cs [] (null $ mconcat $ view #barData bd)
   where
     cs =
-      zipWith (\o d -> RectChart o d)
-      (bo ^. #barRectStyles <> repeat defaultRectStyle)
-      (barRects bo (bd ^. #barData)) <>
-      [BlankChart [barRange (bd ^. #barData)]]
+      zipWith
+        (\o d -> RectChart o d)
+        (bo ^. #barRectStyles <> repeat defaultRectStyle)
+        (barRects bo (bd ^. #barData))
+        <> [BlankChart [barRange (bd ^. #barData)]]
 
 -- | Sensible ticks for a bar chart.
 barTicks :: BarData -> TickStyle
@@ -249,10 +251,10 @@ flipPoint Vert p = p
 flipPoint Hori (Point x y) = Point y x
 
 maxAbsValue :: [[Double]] -> Double
-maxAbsValue xs = maximum $ fmap abs (0:mconcat xs)
+maxAbsValue xs = maximum $ fmap abs (0 : mconcat xs)
 
 barTexts :: BarOptions -> [[Double]] -> [[(Text, Point Double)]]
-barTexts o xs = zip2With (\t (Rect x z y w) -> (t, flipPoint (barOrientation o) (Point ((x+z)/2) (bool (w + gap) (y - gapn) (y<0))))) (fmap (formatN (valueFormatN o)) <$> xs) (barRects o xs)
+barTexts o xs = zip2With (\t (Rect x z y w) -> (t, flipPoint (barOrientation o) (Point ((x + z) / 2) (bool (w + gap) (y - gapn) (y < 0))))) (fmap (formatN (valueFormatN o)) <$> xs) (barRects o xs)
   where
     gap = textGap o * maxAbsValue xs
     gapn = textGapNegative o * maxAbsValue xs

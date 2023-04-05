@@ -2,6 +2,8 @@
 
 [[https://hackage.haskell.org/package/chart-svg][file:https://img.shields.io/hackage/v/chart-svg.svg]] [[https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci][file:https://github.com/tonyday567/chart-svg/workflows/haskell-ci/badge.svg]]
 
+[[file:other/banner.svg]]
+
 A charting library targetting SVG.
 
 * Usage
@@ -21,14 +23,12 @@ writeChartOptions "other/usage.svg" lineExample
 #+RESULTS:
 [[file:other/usage.svg]]
 
-See the haddock documentation for a detailed overview and [[file:gallery.md][the gallery]] for some potential inspiration.
+See the haddock documentation for a detailed overview.
 
 * ChangeLog
 :PROPERTIES:
 :EXPORT_FILE_NAME: chart-svg-changelog
 :END:
-
-[[file:other/banner.svg]]
 
 ** 0.4
 
