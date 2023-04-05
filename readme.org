@@ -190,6 +190,10 @@ The structure and interaction of addHud and runHudWith makes implementation prob
 
 * Development
 
+This readme is also a nice self-documenting R&D environment.
+
+This is the current state of library development; flatparse and tree-diff experimentation.
+
 #+begin_src haskell :results output
 :reload
 :set prompt "> "
@@ -222,7 +226,7 @@ writeAllExamples
 
 ** basic ChartOptions ==> Markup ==> ByteString rendering pipeline
 
-#+begin_src haskell
+#+begin_src haskell :exports both
 let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
 c0
 #+end_src
@@ -230,30 +234,27 @@ c0
 #+RESULTS:
 : ChartOptions {markupOptions = MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferNormal, cssExtra = ""}}, hudOptions = HudOptions {chartAspect = FixedAspect 1.5, axes = [], frames = [], legends = [], titles = []}, charts = ChartTree {tree = Node {rootLabel = (Nothing,[]), subForest = []}}}
 
-#+begin_src haskell
+ChartOptions to Markup
+
+#+begin_src haskell :exports both
 markupChartOptions c0
 #+end_src
 
 #+RESULTS:
 : Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
 
-#+begin_src haskell
+Markup to ByteString
+
+#+begin_src haskell :exports both
 encodeMarkup $ markupChartOptions c0
 #+end_src
 
 #+RESULTS:
 : <svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>
 
-*** checking round trip iso for encodeMarkup . parseMarkup
+*** round trip iso for encodeMarkup . parseMarkup
 
-#+begin_src haskell
-writeAllExamples
-#+end_src
-
-#+RESULTS:
-: ok
-
-#+begin_src haskell
+#+begin_src haskell :exports both
 fileList fp =  fmap (filter (/= ".DS_Store")) (listDirectory fp)
 fps <- fileList "other"
 fps
@@ -262,7 +263,7 @@ fps
 #+RESULTS:
 | rect.svg | sbar.svg | debug.svg | unit.svg | path.svg | arrow.svg | arcflags.svg | wheel.svg | hudoptions.svg | ellipse.svg | surface.svg | cubic.svg | gradient.svg | text.svg | bar.svg | line.svg | glyphs.svg | venn.svg | quad.svg | ellipse2.svg | usage.svg | wave.svg | date.svg |
 
- #+begin_src haskell
+ #+begin_src haskell :exports both
 :{
 isoMarkupParse :: BS.ByteString -> Bool
 isoMarkupParse x = case runParser markupP x of
@@ -281,7 +282,7 @@ isoFile fp = do
 : ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci|
 
 
-#+begin_src haskell
+#+begin_src haskell :exports both
 fok <- mapM isoFile (("other/"<>) <$> fps)
 zip fps fok
 #+end_src
@@ -311,8 +312,11 @@ zip fps fok
 | wave.svg       | True |
 | date.svg       | True |
 
+* tree-diff
 
-* Test
+tree-diff is being used in `cabal test`.
+
+To spelunk into this:
 
 #+begin_src elisp
 (setq haskell-process-args-cabal-repl '("chart-svg:test"))
@@ -325,7 +329,7 @@ import Main
 
 ** creating a proper tree-diff patch
 
-To be a real patch:
+tree-diff doesn't have a patch function. For ediff to be a real patch:
 
 - count tree levels for changes
 - count insertion, deletion index for lists, and store record name for recs
@@ -335,23 +339,21 @@ To be a real patch:
 let diff1 = ediff m0 m1
 #+end_src
 
-#+RESULTS:
-
-#+begin_src haskell
+#+begin_src haskell :exports both
 diff1
 #+end_src
 
 #+RESULTS:
 : Cpy (EditRec "Markup" (fromList [("tag",Cpy (EditExp (App "\"top\"" []))),("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])])),("contents",Cpy (EditExp (Lst [App "MarkupLeaf" [Rec "Markup" (fromList [("tag",App "\"g\"" []),("atts",App "Attributes" [App "Map.fromList" [Lst []]]),("contents",Lst [])])],App "Content" [App "\"text\"" []]])))]))
 
-#+begin_src haskell
+#+begin_src haskell :exports both
 fmap prettyEditExpr $ filterChangedEdit diff1
 #+end_src
 
 #+RESULTS:
 : Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
 
-#+begin_src haskell
+#+begin_src haskell :exports both
 prettyEditExpr diff1
 #+end_src
 
