@@ -20,6 +20,7 @@ module Data.Colour
     trimColour,
     showRGBA,
     showRGB,
+    showOpacity,
     opac',
     opac,
     hex,
@@ -78,18 +79,19 @@ import Chart.Data
 import qualified Data.Attoparsec.Text as A
 import Data.Bifunctor
 import Data.Bool (bool)
+import Data.ByteString (ByteString)
 import Data.Char
 import Data.Either
 import Data.FormatN
 import Data.Functor.Rep
 import qualified Data.List as List
+import Data.String.Interpolate
 import Data.Text (Text, pack)
 import qualified Data.Text as Text
 import GHC.Exts
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model as M hiding (LCH)
 import qualified Graphics.Color.Space as S
-import NeatInterpolation
 import NumHask.Algebra.Metric
 import NumHask.Array.Fixed
 import Optics.Core
@@ -130,9 +132,9 @@ instance Show Colour where
         <> fixed (Just 2) a
 
 -- | CSS-style representation
-showRGBA :: Colour -> Text
+showRGBA :: Colour -> ByteString
 showRGBA (Colour r' g' b' a') =
-  [trimming|rgba($r, $g, $b, $a)|]
+  [i|rgba(#{r}, #{g}, #{b}, #{a})|]
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'
     g = percent (fixedSF (Just 0)) (Just 2) g'
@@ -140,9 +142,9 @@ showRGBA (Colour r' g' b' a') =
     a = fixed (Just 2) a'
 
 -- | CSS-style representation
-showRGB :: Colour -> Text
+showRGB :: Colour -> ByteString
 showRGB (Colour r' g' b' _) =
-  [trimming|rgb($r, $g, $b)|]
+  [i|rgb(#{r}, #{g}, #{b})|]
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'
     g = percent (fixedSF (Just 0)) (Just 2) g'
@@ -174,6 +176,13 @@ validate c = bool Nothing (Just c) (validColour c)
 -- | Opacity or alpha
 opac :: Colour -> Double
 opac (Colour _ _ _ o) = o
+
+-- | CSS-style representation
+showOpacity :: Colour -> ByteString
+showOpacity c =
+  [i|#{o}|]
+  where
+    o = formatOrShow (FixedStyle 2) Nothing (opac c)
 
 -- | lens for opacity (or alpha channel)
 opac' :: Lens' Colour Double
@@ -217,13 +226,13 @@ toHex c =
     (ColorRGBA r g b _) = fromIntegral . toWord8 <$> color' c
 
 hex' :: Int -> Text
-hex' i
-  | i < 0 = "-" <> go (-i)
-  | otherwise = go i
+hex' n
+  | n < 0 = "-" <> go (-n)
+  | otherwise = go n
   where
-    go n
-      | n < 16 = hexDigit n
-      | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
+    go n'
+      | n' < 16 = hexDigit n'
+      | otherwise = go (n' `quot` 16) <> hexDigit (n' `rem` 16)
 
 hexDigit :: Int -> Text
 hexDigit n
@@ -231,7 +240,7 @@ hexDigit n
   | otherwise = Text.singleton $! toEnum (n + 87)
 
 i2d :: Int -> Char
-i2d i = chr (ord '0' + i)
+i2d x = chr (ord '0' + x)
 
 -- | Select a Colour from the palette
 --
@@ -596,12 +605,12 @@ mixLCHA x (LCHA l c h a) (LCHA l' c' h' a') = LCHA l'' c'' h'' a''
 mixes :: Double -> [Colour] -> Colour
 mixes _ [] = light
 mixes _ [c] = c
-mixes x cs = mix r (cs List.!! i) (cs List.!! (i + 1))
+mixes x cs = mix r (cs List.!! i') (cs List.!! (i' + 1))
   where
     l = length cs - 1
     x' = x * fromIntegral l
-    i = max 0 (min (floor x') (l - 1))
-    r = x' - fromIntegral i
+    i' = max 0 (min (floor x') (l - 1))
+    r = x' - fromIntegral i'
 
 -- * Colour manipulation
 
@@ -639,17 +648,17 @@ hue' = re lcha2colour' % lch' % hLCH'
 -- "<div class=swatch style=\"background:rgba(5%, 5%, 5%, 1.00);\">swatch</div>"
 showSwatch :: Text -> Colour -> Text
 showSwatch label c =
-  [trimming|<div class=swatch style="background:$rgba;">$label</div>|]
+  [i|<div class=swatch style="background:#{rgba};">#{label}</div>|]
   where
     rgba = showRGBA c
 
 -- | Show multiple colors with embedded text.
 showSwatches :: Text -> Text -> [(Text, Colour)] -> Text
 showSwatches pref suff hs =
-  [trimming|<div>
-$pref
-$divs
-$suff
+  [i|<div>
+#{pref}
+#{divs}
+#{suff}
 </div>
 |]
   where

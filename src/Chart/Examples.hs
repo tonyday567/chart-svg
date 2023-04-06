@@ -19,6 +19,7 @@ module Chart.Examples
 
     -- * Compounds
     barExample,
+    barDataExample,
     sbarExample,
     waveExample,
     surfaceExample,
@@ -37,6 +38,7 @@ module Chart.Examples
 
     -- * Debugging
     debugExample,
+    pathChartOptions,
     writeAllExamples,
     writeAllExamplesDark,
   )
@@ -45,40 +47,41 @@ where
 import Chart
 import Data.Bifunctor
 import Data.Bool
+import Data.ByteString (ByteString)
 import Data.Function
-import Data.Text (Text, pack)
+import Data.String.Interpolate
+import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Time
-import NeatInterpolation
 import Optics.Core
 import Prelude hiding (abs)
 
 -- | unit example
 --
 -- ![unit example](other/unit.svg)
-unitExample :: ChartSvg
+unitExample :: ChartOptions
 unitExample = mempty & #charts .~ named "unit" [RectChart defaultRectStyle [one]] & #hudOptions .~ defaultHudOptions
 
 -- | A 'BlankChart', 'defaultHudOptions' example.
 --
 -- ![hudoptions example](other/hudoptions.svg)
-hudOptionsExample :: ChartSvg
+hudOptionsExample :: ChartOptions
 hudOptionsExample =
   mempty
-    & #hudOptions .~ colourHudOptions (rgb dark) defaultHudOptions
+    & #hudOptions .~ defaultHudOptions
     & #charts .~ blank one
 
 -- | rect example
 --
 -- ![rect example](other/rect.svg)
-rectExample :: ChartSvg
+rectExample :: ChartOptions
 rectExample =
   mempty
     & #hudOptions
       .~ ( mempty
              & set
                #axes
-               [(1, defaultAxisOptions & #ticks % #ltick .~ Nothing)]
+               [(defaultPriority, defaultAxisOptions & #ticks % #ltick .~ Nothing)]
          )
     & #charts .~ named "rect" (zipWith RectChart ropts rss)
 
@@ -97,7 +100,7 @@ ropts =
 -- | line example
 --
 -- ![line example](other/line.svg)
-lineExample :: ChartSvg
+lineExample :: ChartOptions
 lineExample =
   mempty & set #hudOptions ho & #charts .~ named "line" cs
   where
@@ -113,7 +116,6 @@ lineExample =
                 & set #anchor AnchorEnd
             )
           ]
-        & over #frames (<> [(20, defaultFrameOptions & #buffer .~ 0.04)])
         & set
           #legends
           [ ( 12,
@@ -121,7 +123,7 @@ lineExample =
                 & over #frame (fmap (set #color white))
                 & set #place (PlaceAbsolute (Point 0.45 (-0.35)))
                 & set (#textStyle % #size) 0.20
-                & set #content (zip ["palette1 0", "palette1 1", "palette1 2"] cs)
+                & set #content (zipWith (\t c -> (t, [c])) ["palette1 0", "palette1 1", "palette1 2"] cs)
             )
           ]
     cs =
@@ -142,10 +144,16 @@ lineExample =
         [Point 0.5 4.0, Point 0.5 0]
       ]
 
+priorityv1Example :: ChartOptions
+priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)] & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+
+priorityv2Example :: ChartOptions
+priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (const (Priority 51))) & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+
 -- | text example
 --
 -- ![text example](other/text.svg)
-textExample :: ChartSvg
+textExample :: ChartOptions
 textExample =
   mempty
     & #charts
@@ -156,8 +164,8 @@ textExample =
             ts
         ]
     & #hudOptions .~ defaultHudOptions
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #svgOptions % #cssOptions % #cssExtra .~ textSwitch (light, dark)
+    & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #markupOptions % #cssOptions % #cssExtra .~ fillSwitch (dark, light) "dark" "text"
   where
     ts :: [(Text, Point Double)]
     ts =
@@ -165,31 +173,14 @@ textExample =
         (fmap Text.singleton ['a' .. 'z'])
         ((\x -> Point (sin (x * 0.1)) x) <$> [0 .. 25])
 
-    textSwitch :: (Colour, Colour) -> Text
-    textSwitch (cl, cd) =
-      [trimming|
-{
-  .text g {
-    fill: $hexDark;
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .text g {
-    fill: $hexLight;
-  }
-}
-|]
-      where
-        hexLight = hex cl
-        hexDark = hex cd
-
 -- | glyphs example
 --
 -- ![glyphs example](other/glyphs.svg)
-glyphsExample :: ChartSvg
+glyphsExample :: ChartOptions
 glyphsExample =
   mempty
-    & set (#svgOptions % #svgHeight) 400
+    & set (#markupOptions % #markupHeight) 50
+    & set (#hudOptions % #chartAspect) (FixedAspect 12)
     & set
       #charts
       ( named "glyphs" $
@@ -197,21 +188,21 @@ glyphsExample =
             ( \(sh, bs) p ->
                 GlyphChart
                   ( defaultGlyphStyle
-                      & #size .~ (0.1 :: Double)
+                      & #size .~ (0.8 :: Double)
                       & #borderSize .~ bs
                       & #shape .~ sh
                   )
                   [p]
             )
-            [ (CircleGlyph, 0.01 :: Double),
-              (SquareGlyph, 0.01),
-              (RectSharpGlyph 0.75, 0.01),
-              (RectRoundedGlyph 0.75 0.01 0.01, 0.01),
-              (EllipseGlyph 0.75, 0.01),
-              (VLineGlyph, 0.01),
-              (HLineGlyph, 0.01),
-              (TriangleGlyph (Point 0.0 (0.5 * sqrt 2)) (Point (-cos (pi / 3)) (-sin (pi / 3) / 2)) (Point (cos (pi / 3)) (-sin (pi / 3) / 2)), 0.01),
-              (PathGlyph "M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" ScaleBorder, 0.01)
+            [ (CircleGlyph, 0.02 :: Double),
+              (SquareGlyph, 0.02),
+              (RectSharpGlyph 0.75, 0.02),
+              (RectRoundedGlyph 0.75 0.01 0.01, 0.02),
+              (EllipseGlyph 0.75, 0.02),
+              (VLineGlyph, 0.02),
+              (HLineGlyph, 0.02),
+              (TriangleGlyph (Point 0.0 (0.5 * sqrt 2)) (Point (-cos (pi / 3)) (-sin (pi / 3) / 2)) (Point (cos (pi / 3)) (-sin (pi / 3) / 2)), 0.02),
+              (PathGlyph "M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" ScaleBorder, 0.02)
             ]
             [Point x 0 | x <- [0 .. (8 :: Double)]]
       )
@@ -221,31 +212,31 @@ barDataExample :: BarData
 barDataExample =
   BarData
     [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]]
-    (("row " <>) . pack . show <$> [1 .. 11 :: Int])
-    (("column " <>) . pack . show <$> [1 .. 2 :: Int])
+    (("row " <>) . Text.pack . show <$> [1 .. 11 :: Int])
+    (("column " <>) . Text.pack . show <$> [1 .. 2 :: Int])
 
 -- | Bar chart example.
 --
 -- ![bar example](other/bar.svg)
-barExample :: ChartSvg
+barExample :: ChartOptions
 barExample = barChart defaultBarOptions barDataExample
 
 -- | Stacked bar chart example.
 --
 -- ![sbar example](other/sbar.svg)
-sbarExample :: ChartSvg
+sbarExample :: ChartOptions
 sbarExample = barChart (defaultBarOptions & set #barOrientation Vert & set #barStacked Stacked & #displayValues .~ False & #barRectStyles %~ fmap (#borderSize .~ 0)) barDataExample
 
 -- | wave example
 --
 -- ![wave example](other/wave.svg)
-waveExample :: ChartSvg
+waveExample :: ChartOptions
 waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ gridP sin (Range 0 (2 * pi)) 30] & #hudOptions .~ defaultHudOptions
 
 -- | venn diagram
 --
 -- ![venn diagram](other/venn.svg)
-vennExample :: ChartSvg
+vennExample :: ChartOptions
 vennExample =
   mempty
     & #charts .~ named "venn" (zipWith (\c x -> PathChart (defaultPathStyle & #borderSize .~ 0.005 & #color .~ palette1a c 0.2 & over #borderColor (set opac' 1)) x) [0 ..] (svgToPathData <$> vennSegs))
@@ -264,7 +255,7 @@ These were originally based on:
       ("corner3", Point -1 -0.5) -- corner 3
     ]
 -}
-vennSegs :: [Text]
+vennSegs :: [ByteString]
 vennSegs =
   [ "M0.0,-1.2320508075688774 A0.5 0.5 0.0 1 1 1.0,0.5 1.0 1.0 0.0 0 0 0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 0.0,-1.2320508075688774 Z",
     "M-1.0,0.5 A0.5 0.5 0.0 1 0 1.0,0.5 1.0 1.0 0.0 0 1 0.0,0.5 1.0 1.0 0.0 0 1 -1.0,0.5 Z",
@@ -278,14 +269,14 @@ vennSegs =
 -- | Compound path example.
 --
 -- ![path test](other/path.svg)
-pathExample :: ChartSvg
+pathExample :: ChartOptions
 pathExample =
   mempty
     & #charts .~ named "path" [path', c0] <> named "pathtext" [t0]
     & #hudOptions .~ defaultHudOptions
     & #hudOptions % #chartAspect .~ ChartAspect
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #svgOptions % #cssOptions % #cssExtra .~ classSwitch (light, dark) "pathtext"
+    & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #markupOptions % #cssOptions % #cssExtra .~ fillSwitch (dark, light) "dark" "pathtext"
   where
     ps =
       [ StartP (Point 0 0),
@@ -307,24 +298,6 @@ pathExample =
     offp = [Point 0 0.05, Point 0 0, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
     t0 = TextChart (defaultTextStyle & set #size 0.05) (zip ts (zipWith addp offp midp))
 
-classSwitch :: (Colour, Colour) -> Text -> Text
-classSwitch (cl, cd) class' =
-  [trimming|
-{
-  .$class' g {
-    fill: $hexDark;
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .$class' g {
-    fill: $hexLight;
-  }
-}
-|]
-  where
-    hexLight = hex cl
-    hexDark = hex cd
-
 -- | ellipse example
 --
 -- Under scaling, angles are not invariant, and this effects the shape of ellipses and thus SVG arc paths. Compare the effect of aspect changes to the axes of this ellipse:
@@ -334,7 +307,7 @@ classSwitch (cl, cd) class' =
 -- Below is the same ellipse with FixedAspect 2. Points scale exactly, but the original points that represent the end points of the axes are no longer on the new axes of the ellipse.
 --
 -- ![ellipse2 example](other/ellipse2.svg)
-ellipseExample :: ChartAspect -> ChartSvg
+ellipseExample :: ChartAspect -> ChartOptions
 ellipseExample a =
   mempty
     & #charts .~ named "ellipse" [ell, ellFull, c0, c1, bbox, xradii, yradii]
@@ -360,19 +333,20 @@ ellipseExample a =
     fullels = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
     els = defaultLineStyle & #size .~ 0.005 & #color .~ palette1 2
     lrows =
-      [ ("Major Axis", LineChart xals [[zero]]),
-        ("Minor Axis", LineChart yals [[zero]]),
-        ("Full Ellipse", LineChart fullels [[zero]]),
-        ("Arc", LineChart els [[zero]]),
-        ("Centroid", GlyphChart (g0 & #size .~ 0.01) [zero]),
-        ("Endpoints", GlyphChart (g1 & #size .~ 0.01) [zero]),
-        ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [fmap (2 *) one])
-      ]
+      second (: [])
+        <$> [ ("Major Axis", LineChart xals [[zero]]),
+              ("Minor Axis", LineChart yals [[zero]]),
+              ("Full Ellipse", LineChart fullels [[zero]]),
+              ("Arc", LineChart els [[zero]]),
+              ("Centroid", GlyphChart (g0 & #size .~ 0.01) [zero]),
+              ("Endpoints", GlyphChart (g1 & #size .~ 0.01) [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [fmap (2 *) one])
+            ]
 
 -- | Reproduction of the flag explanation chart in <https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths>
 --
 -- ![arc flags example](other/arcflags.svg)
-arcFlagsExample :: ChartSvg
+arcFlagsExample :: ChartOptions
 arcFlagsExample =
   mempty
     & set
@@ -384,29 +358,27 @@ arcFlagsExample =
           ]
       )
     & #hudOptions % #chartAspect .~ ChartAspect
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #svgOptions % #cssOptions % #cssExtra
-      .~ [trimming|
+    & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #markupOptions % #cssOptions % #cssExtra
+      .~ [i|
 {
   .chart g {
-    stroke: $hexDark;
+    stroke: #{showRGBA dark};
   }
   .chart g text {
-    fill: $hexDark;
+    fill: #{showRGBA dark};
   }
 }
 @media (prefers-color-scheme:dark) {
   .chart g {
-    stroke: $hexLight;
+    stroke: #{showRGBA light};
   }
   .chart g text {
-    fill: $hexLight;
+    fill: #{showRGBA light};
   }
 }
 |]
   where
-    hexDark = hex dark
-    hexLight = hex light
     rowLarge =
       unnamed
         [ BlankChart [Rect 0 9 (-2.75) (-3.25)],
@@ -471,7 +443,7 @@ checkFlags large' sweep co = [c1, c2, ell, arc1]
 -- | quad example
 --
 -- ![quad example](other/quad.svg)
-quadExample :: ChartSvg
+quadExample :: ChartOptions
 quadExample =
   mempty
     & #charts .~ named "quad" [path', curve, c0, c1, bbox]
@@ -492,17 +464,18 @@ quadExample =
     pathStyle = defaultPathStyle & #color .~ palette1a 2 0.2 & #borderColor .~ transparent
     controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
     lrows =
-      [ ("Path Fill", PathChart pathStyle [StartP zero]),
-        ("Path Chord", LineChart curveStyle [[zero]]),
-        ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
-        ("Path Control Point", GlyphChart controlStyle [zero]),
-        ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
-      ]
+      second (: [])
+        <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
+              ("Path Chord", LineChart curveStyle [[zero]]),
+              ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
+              ("Path Control Point", GlyphChart controlStyle [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
+            ]
 
 -- | cubic example
 --
 -- ![cubic example](other/cubic.svg)
-cubicExample :: ChartSvg
+cubicExample :: ChartOptions
 cubicExample =
   mempty
     & #charts .~ named "cubic" [path', curve, c0, c1, bbox]
@@ -523,74 +496,63 @@ cubicExample =
     controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
     curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 7
     lrows =
-      [ ("Path Fill", PathChart pathStyle [StartP zero]),
-        ("Path Chord", LineChart curveStyle [[zero]]),
-        ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
-        ("Path Control Point", GlyphChart controlStyle [zero]),
-        ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
-      ]
+      second (: [])
+        <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
+              ("Path Chord", LineChart curveStyle [[zero]]),
+              ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
+              ("Path Control Point", GlyphChart controlStyle [zero]),
+              ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
+            ]
 
 -- | The common way to create a surface chart (or contour chart or heat map) is usually a grid over a function, a process reified in 'surfacef'.
 --
 -- This is also an example of 'mix' and 'mixes'. In this example, colors with the same lightness have been chosen in the gradient and the result should appear a fairly uniform lightness across the surface.
 --
 -- ![surface example](other/surface.svg)
-surfaceExample :: ChartSvg
+surfaceExample :: ChartOptions
 surfaceExample =
   mempty
-    & #extraHuds .~ h
     & #charts .~ named "surface" cs
-    & #svgOptions .~ (defaultSvgOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
+    & #markupOptions .~ (defaultMarkupOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
   where
-    t = "rosenbrock"
     grain = Point 100 100
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     evenColors = trimColour . over lightness' (const 0.55) . palette1 <$> [0 .. 5]
-    (cs, h) =
-      surfacefl
-        f
-        ( defaultSurfaceOptions
-            & #soGrain .~ grain
-            & #soRange .~ r
-            & #soStyle % #surfaceColors .~ evenColors
-        )
-        ( defaultSurfaceLegendOptions dark t
-            & #sloStyle % #surfaceColors .~ evenColors
-            & #sloLegendOptions % #textStyle % #color .~ dark
-            & #sloAxisOptions .~ surfaceAxisOptions dark
-            & #sloLegendOptions % #frame %~ fmap (#borderColor .~ dark)
-        )
+    so =
+      defaultSurfaceOptions
+        & #soGrain .~ grain
+        & #soRange .~ r
+        & #soStyle % #surfaceColors .~ evenColors
+    (cs, _) = surfacef f so
 
 -- | arrow example
 --
 -- Which happens to be the gradient of the surface example.
 --
 -- ![arrow example](other/arrow.svg)
-arrowExample :: ChartSvg
+arrowExample :: ChartOptions
 arrowExample =
   mempty
     & #hudOptions .~ (defaultHudOptions & #axes %~ fmap (second (#ticks % #ltick .~ Nothing)))
     & #charts .~ named "arrow" ((\p -> gchart (tail' . f $ p) (angle . f $ p) p) <$> ps)
-    & #svgOptions % #cssOptions % #preferColorScheme .~ PreferHud
-    & #svgOptions % #cssOptions % #cssExtra
-      .~ [trimming|
+    & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
+    & #markupOptions % #cssOptions % #cssExtra
+      .~ [i|
 {
   .arrow g {
-    fill: $hexDark;
-    stroke: $hexDark;
+    fill: #{showRGBA dark};
+    stroke: #{showRGBA dark};
   }
 }
 @media (prefers-color-scheme:dark) {
   .arrow g {
-    fill: $hexLight;
-    stroke: $hexLight;
+    fill: #{showRGBA light};
+    stroke: #{showRGBA light};
   }
 }
 |]
   where
-    hexLight = hex light
-    hexDark = hex dark
     f = snd . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     ps = grid MidPos (one :: Rect Double) (Point 10 10 :: Point Int) :: [Point Double]
     arrow = PathGlyph "M -1 0 L 1 0 M 1 0 L 0.4 0.3 M 1 0 L 0.4 -0.3" NoScaleBorder
@@ -623,7 +585,7 @@ rosenbrock a b (Point x y) = (a ** 2 - 2 * a * x + x ** 2 + b * y ** 2 - b * 2 *
 -- A hud that has date as the x-axis, and time as the y-axis. See 'placedTimeLabelContinuous'.
 --
 -- ![date example](other/date.svg)
-dateExample :: ChartSvg
+dateExample :: ChartOptions
 dateExample =
   mempty
     & #charts .~ blank (Rect 0 1 0 1)
@@ -631,20 +593,20 @@ dateExample =
       .~ ( mempty
              & #chartAspect .~ FixedAspect 1.5
              & #axes
-               .~ [ (1, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
-                    (1, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
+               .~ [ (defaultPriority, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
+                    (defaultPriority, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
                   ]
          )
   where
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
-    tsDate = placedTimeLabelContinuous PosIncludeBoundaries (Just (pack "%d %b")) 2 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2022 3 13) (toDiffTime 0)))
+    tsDate = placedTimeLabelContinuous PosIncludeBoundaries (Just (Text.pack "%d %b")) 2 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2022 3 13) (toDiffTime 0)))
 
 -- | gradient example
 --
 -- Mixing Colours using the <https://bottosson.github.io/posts/oklab/ oklch> color model.
 --
 -- ![gradient example](other/gradient.svg)
-gradientExample :: ChartSvg
+gradientExample :: ChartOptions
 gradientExample = gradient (Just (orig / 360)) 100 6 100 c0 c1
   where
     ok = LCHA 0.5 0.12 127 1
@@ -660,17 +622,17 @@ gradientChart_ grain c0 c1 =
   where
     d = 1 / fromIntegral grain
 
-gradient :: Maybe Double -> Double -> Double -> Int -> LCHA -> LCHA -> ChartSvg
+gradient :: Maybe Double -> Double -> Double -> Int -> LCHA -> LCHA -> ChartOptions
 gradient marker h fa grain ok0 ok1 =
   mempty
-    & #svgOptions % #svgHeight
+    & #markupOptions % #markupHeight
       .~ h
-    & #svgOptions % #cssOptions % #shapeRendering
+    & #markupOptions % #cssOptions % #shapeRendering
       .~ UseCssCrisp
     & #hudOptions
       .~ ( mempty
              & #chartAspect .~ FixedAspect fa
-             & #frames .~ [(20, FrameOptions (Just (border 0.004 white)) 0.1)]
+             & #frames .~ [(Priority 1, FrameOptions (Just (border 0.004 white)) 0.1)]
          )
     & #charts
       .~ named "gradient" (gradientChart_ grain ok0 ok1) <> strip
@@ -688,13 +650,13 @@ borderStrip w c r = RectChart (defaultRectStyle & #color .~ transparent & #borde
 -- | Color wheel displaying palette1 choices
 --
 -- -- ![wheel example](other/wheel.svg)
-wheelExample :: ChartSvg
+wheelExample :: ChartOptions
 wheelExample = dotMap 0.01 50 0.5 0.5 (palette1 <$> [0 .. 7])
 
 -- | The dotMap
 --
 -- > dotMap 0.01 20 0.8 0.3
-dotMap :: Double -> Int -> Double -> Double -> [Colour] -> ChartSvg
+dotMap :: Double -> Int -> Double -> Double -> [Colour] -> ChartOptions
 dotMap s grain l maxchroma cs =
   mempty
     & #hudOptions
@@ -728,17 +690,20 @@ wheelPoints grain l maxchroma =
 -- | Adding reference points and bounding boxes to visualize chart alignment for use in debugging charts.
 --
 -- -- ![debug example](other/debug.svg)
-debugExample :: ChartSvg -> ChartSvg
+debugExample :: ChartOptions -> ChartOptions
 debugExample cs =
   mempty
+    & set #markupOptions (view #markupOptions cs)
+    & set (#hudOptions % #chartAspect) (view (#hudOptions % #chartAspect) cs)
     & set #charts (e1 <> e2 <> e3)
   where
-    e1 = toChartTree cs
+    e1 = addHud (view #hudOptions cs) (view #charts cs)
     e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 
-pathChartSvg :: [(FilePath, ChartSvg)]
-pathChartSvg =
+-- | All the examples and the associated filepaths
+pathChartOptions :: [(FilePath, ChartOptions)]
+pathChartOptions =
   [ ("other/unit.svg", unitExample),
     ("other/rect.svg", rectExample),
     ("other/text.svg", textExample),
@@ -760,24 +725,29 @@ pathChartSvg =
     ("other/date.svg", dateExample),
     ("other/gradient.svg", gradientExample),
     ("other/wheel.svg", wheelExample),
-    ("other/debug.svg", debugExample lineExample)
+    ("other/debug.svg", debugExample lineExample),
+    ("other/priorityv1.svg", priorityv1Example),
+    ("other/priorityv2.svg", priorityv2Example)
   ]
 
 -- | Run this to refresh example SVG's.
 writeAllExamples :: IO ()
 writeAllExamples = do
-  mapM_ (uncurry writeChartSvg) pathChartSvg
+  mapM_ (uncurry writeChartOptions) pathChartOptions
   putStrLn "ok"
 
 -- | Version of charts with a dark-friendly hud
 writeAllExamplesDark :: IO ()
 writeAllExamplesDark = do
-  mapM_ (uncurry writeChartSvg
-      . bimap
-        ((<> "d.svg") . reverse . drop 4 . reverse)
-        ( \x ->
-            x
-              & #hudOptions %~ colourHudOptions (rgb light)
-              & #svgOptions % #cssOptions % #preferColorScheme .~ PreferDark
-        )) pathChartSvg
+  mapM_
+    ( uncurry writeChartOptions
+        . bimap
+          ((<> "d.svg") . reverse . drop 4 . reverse)
+          ( \x ->
+              x
+                & #hudOptions %~ colourHudOptions (rgb light)
+                & #markupOptions % #cssOptions % #preferColorScheme .~ PreferDark
+          )
+    )
+    pathChartOptions
   putStrLn "dark version, ok"

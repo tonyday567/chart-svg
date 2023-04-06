@@ -49,7 +49,10 @@ jobs:
           cabal update
           cabal configure --enable-tests
           cabal build
-          cabal test
       - if: matrix.docspec
         name: run cabal-docspec
         run: cabal-docspec
+      - if: matrix.os == 'macOS-latest'
+        name: cabal test
+        run: |
+          cabal test

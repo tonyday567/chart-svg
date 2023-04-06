@@ -3,37 +3,40 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# HLINT ignore "Use unwords" #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | SVG path manipulation
 module Data.Path.Parser
   ( -- * Parsing
     -- $parsing
     parsePath,
+    pathParser,
+    command,
+    manyComma,
     svgToPathData,
     pathDataToSvg,
     PathCommand (..),
     Origin (..),
+    toPathDatas,
   )
 where
 
 import Chart.Data
-import Control.Applicative
+import Chart.FlatParse
+import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
-import qualified Data.Attoparsec.Text as A
-import Data.Either
+import Data.ByteString (ByteString, intercalate)
 import Data.FormatN
-import Data.Functor
 import Data.Path (ArcInfo (ArcInfo), PathData (..))
-import Data.Scientific (toRealFloat)
-import Data.Text (Text, pack)
-import qualified Data.Text as Text
+import Data.Text.Encoding (encodeUtf8)
+import FlatParse.Basic
 import GHC.Generics
 import GHC.OverloadedLabels
 import NumHask.Prelude
 import Optics.Core hiding ((<|))
-
--- import qualified Data.List as List
 
 -- $parsing
 -- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
@@ -48,88 +51,109 @@ import Optics.Core hiding ((<|))
 --
 -- >>> let outerseg1 = "M-1.0,0.5 A0.5 0.5 0.0 1 1 0.0,-1.2320508075688774 1.0 1.0 0.0 0 0 -0.5,-0.3660254037844387 1.0 1.0 0.0 0 0 -1.0,0.5 Z"
 -- >>> parsePath outerseg1
--- Right [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
-parsePath :: Text -> Either String [PathCommand]
-parsePath = A.parseOnly pathParser
+-- Just [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
+parsePath :: ByteString -> Maybe [PathCommand]
+parsePath bs = case runParser pathParser bs of
+  OK x _ -> Just x
+  _ -> Nothing
 
-commaWsp :: A.Parser ()
-commaWsp = A.skipSpace *> A.option () (A.string "," $> ()) <* A.skipSpace
+isWs' :: Char -> Bool
+isWs' x =
+  (x == ' ')
+    || (x == '\n')
+    || (x == '\t')
+    || (x == '\r')
 
-point :: A.Parser (Point Double)
+ws' :: Parser e Char
+ws' = satisfy isWs'
+
+comma' :: Parser e ()
+comma' = $(char ',')
+
+commaWsp :: Parser e (Maybe ())
+commaWsp = many ws' *> optional comma' <* many ws'
+
+num :: Parser e Double
+num = signed double
+
+point :: Parser e (Point Double)
 point = Point <$> num <* commaWsp <*> num
 
-points :: A.Parser [Point Double]
-points = fromList <$> point `A.sepBy1` commaWsp
+numComma :: Parser e Double
+numComma = num <* commaWsp
 
-pointPair :: A.Parser (Point Double, Point Double)
+points :: Parser e [Point Double]
+points = (:) <$> point <*> many (commaWsp *> point) <|> pure []
+
+pointPair :: Parser e (Point Double, Point Double)
 pointPair = (,) <$> point <* commaWsp <*> point
 
-pointPairs :: A.Parser [(Point Double, Point Double)]
-pointPairs = fromList <$> pointPair `A.sepBy1` commaWsp
+pointPairs :: Parser e [(Point Double, Point Double)]
+pointPairs = (:) <$> pointPair <*> many (commaWsp *> pointPair) <|> pure []
 
-pathParser :: A.Parser [PathCommand]
-pathParser = fromList <$> (A.skipSpace *> A.many1 command)
+nums :: Parser e [Double]
+nums = (:) <$> num <*> many (commaWsp *> num) <|> pure []
 
-num :: A.Parser Double
-num = realToFrac <$> (A.skipSpace *> plusMinus <* A.skipSpace)
-  where
-    doubleNumber :: A.Parser Double
-    doubleNumber = toRealFloat <$> A.scientific <|> shorthand
+flag :: Parser e Bool
+flag = fmap (/= 0) digit
 
-    plusMinus =
-      negate <$ A.string "-" <*> doubleNumber
-        <|> A.string "+" *> doubleNumber
-        <|> doubleNumber
+-- | Items separated by a comma and one or more whitespace tokens either side.
+manyComma :: Parser e a -> Parser e [a]
+manyComma a = (:) <$> a <*> many (commaWsp *> a) <|> pure []
 
-    shorthand = process' <$> (A.string "." *> A.many1 A.digit)
-    process' = fromRight 0 . A.parseOnly doubleNumber . pack . (++) "0."
+flagComma :: Parser e Bool
+flagComma = flag <* commaWsp
 
-nums :: A.Parser [Double]
-nums = num `A.sepBy1` commaWsp
+curveToArgs ::
+  Parser
+    e
+    (Point Double, Point Double, Point Double)
+curveToArgs =
+  (,,)
+    <$> (point <* commaWsp)
+    <*> (point <* commaWsp)
+    <*> point
 
-flag :: A.Parser Bool
-flag = fmap (/= '0') A.digit
+ellipticalArgs ::
+  Parser
+    e
+    (Double, Double, Double, Bool, Bool, Point Double)
+ellipticalArgs =
+  (,,,,,)
+    <$> numComma
+    <*> numComma
+    <*> numComma
+    <*> flagComma
+    <*> flagComma
+    <*> point
 
-command :: A.Parser PathCommand
+-- | Parser for PathCommands
+pathParser :: Parser e [PathCommand]
+pathParser = many ws' *> manyComma command
+
+-- | Parser for a 'PathCommand'
+command :: Parser e PathCommand
 command =
-  MoveTo OriginAbsolute <$ A.string "M" <*> points
-    <|> MoveTo OriginRelative <$ A.string "m" <*> points
-    <|> LineTo OriginAbsolute <$ A.string "L" <*> points
-    <|> LineTo OriginRelative <$ A.string "l" <*> points
-    <|> HorizontalTo OriginAbsolute <$ A.string "H" <*> nums
-    <|> HorizontalTo OriginRelative <$ A.string "h" <*> nums
-    <|> VerticalTo OriginAbsolute <$ A.string "V" <*> nums
-    <|> VerticalTo OriginRelative <$ A.string "v" <*> nums
-    <|> CurveTo OriginAbsolute <$ A.string "C" <*> fmap fromList (manyComma curveToArgs)
-    <|> CurveTo OriginRelative <$ A.string "c" <*> fmap fromList (manyComma curveToArgs)
-    <|> SmoothCurveTo OriginAbsolute <$ A.string "S" <*> pointPairs
-    <|> SmoothCurveTo OriginRelative <$ A.string "s" <*> pointPairs
-    <|> QuadraticBezier OriginAbsolute <$ A.string "Q" <*> pointPairs
-    <|> QuadraticBezier OriginRelative <$ A.string "q" <*> pointPairs
-    <|> SmoothQuadraticBezierCurveTo OriginAbsolute <$ A.string "T" <*> points
-    <|> SmoothQuadraticBezierCurveTo OriginRelative <$ A.string "t" <*> points
-    <|> EllipticalArc OriginAbsolute <$ A.string "A" <*> manyComma ellipticalArgs
-    <|> EllipticalArc OriginRelative <$ A.string "a" <*> manyComma ellipticalArgs
-    <|> EndPath <$ A.string "Z" <* commaWsp
-    <|> EndPath <$ A.string "z" <* commaWsp
-  where
-    curveToArgs =
-      (,,)
-        <$> (point <* commaWsp)
-        <*> (point <* commaWsp)
-        <*> point
-    manyComma a = fromList <$> a `A.sepBy1` commaWsp
-
-    numComma = num <* commaWsp
-    flagComma = flag <* commaWsp
-    ellipticalArgs =
-      (,,,,,)
-        <$> numComma
-        <*> numComma
-        <*> numComma
-        <*> flagComma
-        <*> flagComma
-        <*> point
+  (MoveTo OriginAbsolute <$ $(char 'M') <*> (ws_ *> points))
+    <|> (MoveTo OriginRelative <$ $(char 'm') <*> (ws_ *> points))
+    <|> (LineTo OriginAbsolute <$ $(char 'L') <*> (ws_ *> points))
+    <|> (LineTo OriginRelative <$ $(char 'l') <*> (ws_ *> points))
+    <|> (HorizontalTo OriginAbsolute <$ $(char 'H') <*> (ws_ *> nums))
+    <|> (HorizontalTo OriginRelative <$ $(char 'h') <*> (ws_ *> nums))
+    <|> (VerticalTo OriginAbsolute <$ $(char 'V') <*> (ws_ *> nums))
+    <|> (VerticalTo OriginRelative <$ $(char 'v') <*> (ws_ *> nums))
+    <|> (CurveTo OriginAbsolute <$ $(char 'C') <*> (ws_ *> manyComma curveToArgs))
+    <|> (CurveTo OriginRelative <$ $(char 'c') <*> (ws_ *> manyComma curveToArgs))
+    <|> (SmoothCurveTo OriginAbsolute <$ $(char 'S') <*> (ws_ *> pointPairs))
+    <|> (SmoothCurveTo OriginRelative <$ $(char 's') <*> (ws_ *> pointPairs))
+    <|> (QuadraticBezier OriginAbsolute <$ $(char 'Q') <*> (ws_ *> pointPairs))
+    <|> (QuadraticBezier OriginRelative <$ $(char 'q') <*> (ws_ *> pointPairs))
+    <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ $(char 'T') <*> (ws_ *> points))
+    <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ $(char 't') <*> (ws_ *> points))
+    <|> (EllipticalArc OriginAbsolute <$ $(char 'A') <*> (ws_ *> manyComma ellipticalArgs))
+    <|> (EllipticalArc OriginRelative <$ $(char 'a') <*> (ws_ *> manyComma ellipticalArgs))
+    <|> (EndPath <$ $(char 'Z') <* commaWsp)
+    <|> (EndPath <$ $(char 'z') <* commaWsp)
 
 -- | Path command definition (ripped from reanimate-svg).
 data PathCommand
@@ -200,41 +224,49 @@ svgCoords (ArcP i p) = ArcP i (pointToSvgCoords p)
 toPathAbsolute ::
   PathData Double ->
   -- | path text
-  Text
-toPathAbsolute (StartP p) = "M " <> pp p
-toPathAbsolute (LineP p) = "L " <> pp p
+  ByteString
+toPathAbsolute (StartP p) = "M " <> pp' p
+toPathAbsolute (LineP p) = "L " <> pp' p
 toPathAbsolute (CubicP c1 c2 p) =
   "C "
-    <> pp c1
+    <> pp' c1
     <> " "
-    <> pp c2
+    <> pp' c2
     <> " "
-    <> pp p
+    <> pp' p
 toPathAbsolute (QuadP control p) =
   "Q "
-    <> pp control
+    <> pp' control
     <> " "
-    <> pp p
+    <> pp' p
+-- FIXME: check why y doesn't need swapping into SVG coord system
 toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
   "A "
-    <> (pack . show) x
+    <> pv' x
     <> " "
-    <> (pack . show) y
+    <> pv' y
     <> " "
-    <> (pack . show) (-phi' * 180 / pi)
+    <> pv' (-phi' * 180 / pi)
     <> " "
     <> bool "0" "1" l
     <> " "
     <> bool "0" "1" sw
     <> " "
-    <> pp x2
+    <> pp' x2
+
+-- | Render a value to 4 SigFigs
+pv' :: Double -> ByteString
+pv' x =
+  encodeUtf8 $
+    formatOrShow (FixedStyle 4) Nothing x
 
 -- | Render a point (including conversion to SVG Coordinates).
-pp :: Point Double -> Text
-pp (Point x y) =
-  formatOrShow (FixedStyle 4) Nothing x
-    <> ","
-    <> formatOrShow (FixedStyle 4) Nothing (bool (-y) y (y == zero))
+pp' :: Point Double -> ByteString
+pp' (Point x y) =
+  encodeUtf8 $
+    formatOrShow (FixedStyle 4) Nothing x
+      <> ","
+      <> formatOrShow (FixedStyle 4) Nothing (bool (-y) y (y == zero))
 
 data PathCursor = PathCursor
   { -- | previous position
@@ -250,12 +282,12 @@ stateCur0 :: PathCursor
 stateCur0 = PathCursor zero zero Nothing
 
 -- | Convert from an SVG d attribute text snippet to a [`PathData` `Double`]
-svgToPathData :: Text -> [PathData Double]
-svgToPathData = toPathDatas . either error id . parsePath
+svgToPathData :: ByteString -> [PathData Double]
+svgToPathData = foldMap toPathDatas . parsePath
 
 -- | Convert from [`PathData` `Double`] to an SVG d path text snippet.
-pathDataToSvg :: [PathData Double] -> Text
-pathDataToSvg xs = Text.intercalate " " $ fmap toPathAbsolute xs
+pathDataToSvg :: [PathData Double] -> ByteString
+pathDataToSvg xs = intercalate " " $ fmap toPathAbsolute xs
 
 -- | Convert from a path command list to a PathA specification
 toPathDatas :: [PathCommand] -> [PathData Double]

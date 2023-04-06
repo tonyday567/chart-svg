@@ -11,7 +11,8 @@
 module Chart.Hud
   ( -- * Hud
     Hud (..),
-    Priority,
+    Priority (..),
+    defaultPriority,
     HudBox,
     CanvasBox,
     DataBox,
@@ -28,6 +29,8 @@ module Chart.Hud
     -- * HudOptions
     HudOptions (..),
     defaultHudOptions,
+    addHud,
+    initialCanvas,
     colourHudOptions,
     toHuds,
 
@@ -85,6 +88,7 @@ import qualified Data.List as List
 import Data.Maybe
 import Data.Path
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Tuple
 import GHC.Generics hiding (to)
 import qualified NumHask.Prelude as NH
@@ -104,8 +108,49 @@ import Prelude
 --
 -- Lower priority (higher values) huds will tend to be placed on the outside of a chart.
 --
--- Equal priority values will be placed in the same process step.
-type Priority = Double
+-- Hud elements are rendered in order from high to low priority and the positioning of hud elements can depend on the positioning of elements that have already been included. Equal priority values will be placed in the same process step.
+--
+-- The first example below, based in 'Chart.Examples.lineExample' but with the legend placed on the right and coloured frames to help accentuate effects, includes (in order of priority):
+--
+-- - an inner frame, representing the core data area of the chart (Priority 1)
+--
+-- - the axes (defaultPriority (5))
+--
+-- - the titles (Priority 12)
+--
+-- - the legend (Priority 50)
+--
+-- - an outer frame which is transparent and used to pad out the chart (Priority 100).
+--
+-- > priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)] & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+--
+-- ![priorityv1 example](other/priorityv1.svg)
+--
+-- The second variation below drops the title priorities to below the legend:
+--
+-- > priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (const (Priority 51)))
+--
+-- ![priorityv2 example](other/priorityv2.svg)
+newtype Priority = Priority {priority :: Double} deriving (Eq, Ord, Show, Generic)
+
+instance Num Priority where
+  (*) (Priority a) (Priority b) = Priority (a * b)
+  (+) (Priority a) (Priority b) = Priority (a + b)
+  negate (Priority a) = Priority (negate a)
+  abs (Priority a) = Priority (Prelude.abs a)
+  signum (Priority a) = Priority (signum a)
+  fromInteger x = Priority (fromInteger x)
+
+instance Fractional Priority where
+  fromRational x = Priority (fromRational x)
+  recip (Priority x) = Priority (recip x)
+
+-- | An arbitrary 5.0
+--
+-- >>> defaultPriority
+-- Priority {priority = 5.0}
+defaultPriority :: Priority
+defaultPriority = Priority 5.0
 
 -- | Heads-up display additions to charts
 --
@@ -282,6 +327,16 @@ instance Monoid HudOptions where
   mempty = HudOptions (FixedAspect 1.5) [] [] [] []
 
 -- | The official hud options.
+--
+-- - A fixed chart aspect (width:height) of 1.5
+--
+-- - An x axis at the bottom and y axis at the left.
+--
+-- - The default tick style for each axis of an axis bar, tick glyphs (or marks), automated tick labels, and tick (or grid) lines.
+--
+-- - A high 'Priority' (and thus inner), low-opacity frame, representing the data area of the chart.
+--
+-- - A low priority (outer), transparent frame, providing some padding around the chart.
 defaultHudOptions :: HudOptions
 defaultHudOptions =
   HudOptions
@@ -289,9 +344,31 @@ defaultHudOptions =
     [ (5, defaultAxisOptions),
       (5, defaultAxisOptions & set #place PlaceLeft)
     ]
-    [(1, defaultFrameOptions)]
+    [ (1, defaultFrameOptions),
+      (20, defaultFrameOptions & #buffer .~ 0.04)
+    ]
     []
     []
+
+-- | Decorate a ChartTree with HudOptions
+addHud :: HudOptions -> ChartTree -> ChartTree
+addHud ho cs =
+  runHudWith
+    (initialCanvas (view #chartAspect ho) cs)
+    db'
+    hs
+    (cs <> blank db')
+  where
+    (hs, db') = toHuds ho (singletonGuard $ view box' cs)
+
+-- | The initial canvas before applying Huds
+--
+-- >>> initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
+-- Rect -0.75 0.75 -0.5 0.5
+initialCanvas :: ChartAspect -> ChartTree -> Rect Double
+initialCanvas (FixedAspect a) _ = aspect a
+initialCanvas (CanvasAspect a) _ = aspect a
+initialCanvas ChartAspect cs = singletonGuard $ view box' cs
 
 priorities :: HudOptions -> [Priority]
 priorities o =
@@ -341,12 +418,12 @@ makePlacedTicks s r =
     TickRound f n e ->
       ( zip
           ticks0
-          (formatNs 4 f ticks0),
+          (formatNs f ticks0),
         bool (space1 ticks0) Nothing (e == NoTickExtend)
       )
       where
         ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
-    TickExact f n -> (zip ticks0 (formatNs 4 f ticks0), Nothing)
+    TickExact f n -> (zip ticks0 (formatNs f ticks0), Nothing)
       where
         ticks0 = grid OuterPos r n
     TickLabels ls ->
@@ -497,7 +574,7 @@ defaultTitle txt =
 -- | xy coordinate markings
 --
 -- >>> defaultTicks
--- Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 2, addLPad = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
+-- Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
 data Ticks = Ticks
   { style :: TickStyle,
     gtick :: Maybe (GlyphStyle, Double),
@@ -551,8 +628,11 @@ data TickStyle
   deriving (Show, Eq, Generic)
 
 -- | The official tick style
+--
+-- >>> defaultTickStyle
+-- TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 8 TickExtend
 defaultTickStyle :: TickStyle
-defaultTickStyle = TickRound defaultFormatN 8 TickExtend
+defaultTickStyle = TickRound (FormatN FSCommaPrec (Just 1) 4 True True) 8 TickExtend
 
 -- | textifier
 tickStyleText :: TickStyle -> Text
@@ -596,7 +676,7 @@ data LegendOptions = LegendOptions
     frame :: Maybe RectStyle,
     place :: Place,
     overallScale :: Double,
-    content :: [(Text, Chart)]
+    content :: [(Text, [Chart])]
   }
   deriving (Show, Eq, Generic)
 
@@ -800,10 +880,10 @@ ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
 ticksR s d r =
   case s of
     TickNone -> []
-    TickRound f n e -> zip (project r d <$> ticks0) (formatNs 4 f ticks0)
+    TickRound f n e -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
         ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
-    TickExact f n -> zip (project r d <$> ticks0) (formatNs 4 f ticks0)
+    TickExact f n -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
         ticks0 = grid OuterPos r n
     TickLabels ls ->
@@ -1015,15 +1095,15 @@ legendChart l = legendFrame l content'
     content' =
       vert
         (l ^. #hgap)
-        ( ( \(a, t) ->
+        ( ( \(t, a) ->
               hori
                 ((l ^. #vgap) + twidth - gapwidth t)
-                (fmap unnamed [[t], [a]])
+                (fmap unnamed [[t], a])
           )
             <$> es
         )
     es = reverse $ uncurry (legendEntry l) <$> view #content l
-    twidth = maybe zero (\(Rect _ z _ _) -> z) (styleBoxes (snd <$> es))
+    twidth = maybe zero (\(Rect _ z _ _) -> z) (styleBoxes (fst <$> es))
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (sbox t)
 
 legendText ::
@@ -1040,7 +1120,7 @@ legendizeChart ::
 legendizeChart l c =
   case c of
     (RectChart rs _) -> RectChart rs [Rect 0 (l ^. #size) 0 (l ^. #size)]
-    (TextChart ts _) -> TextChart (ts & #size .~ (l ^. #size)) [("text", zero)]
+    (TextChart ts t) -> let txt = fromMaybe "text" (listToMaybe (fst <$> t)) in TextChart (ts & #size .~ (l ^. #size / fromIntegral (Text.length txt))) [(txt, Point (0.5 * l ^. #size) (0.33 * l ^. #size))]
     (GlyphChart gs _) -> GlyphChart (gs & #size .~ (l ^. #size)) [Point (0.5 * l ^. #size) (0.33 * l ^. #size)]
     (LineChart ls _) ->
       LineChart
@@ -1061,9 +1141,7 @@ legendizeChart l c =
 legendEntry ::
   LegendOptions ->
   Text ->
-  Chart ->
-  (Chart, Chart)
-legendEntry l t c =
-  ( legendizeChart l c,
-    legendText l t
-  )
+  [Chart] ->
+  (Chart, [Chart])
+legendEntry l t cs =
+  (legendText l t, cs & fmap (legendizeChart l))

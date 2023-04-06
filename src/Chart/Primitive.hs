@@ -79,7 +79,7 @@ import Prelude
 
 -- | There are 6 Chart primitives, unified as the Chart type.
 --
--- - 'RectChart': a rectangle in the XY-domain. For example, a @'Rect' 0 1 0 1@ is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on 'Rect' 'Double''s but the base types are polymorphic.
+-- - 'RectChart': a rectangle in the XY-domain. For example, a @'Rect' 0 1 0 1@ is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on 'Rect' 'Double's but the base types are polymorphic.
 -- - 'LineChart': a list of points which represent connected straight lines. ['Point' 0 0, 'Point' 1 1, 'Point' 2 2, 'Point' 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
 -- - 'GlyphChart': a 'GlyphShape' which is a predefined shaped centered at a 'Point' in XY space.
 -- - 'TextChart': text centered at a 'Point' in XY space.
@@ -98,7 +98,7 @@ import Prelude
 --
 -- Using the defaults, this chart is rendered as:
 --
--- > writeChartSvg "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #charts .~ unnamed [r]
+-- > writeChartOptions "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #charts .~ unnamed [r]
 --
 -- ![unit example](other/unit.svg)
 data Chart where
@@ -312,38 +312,6 @@ styleRebox_ cs r =
 -- Note that a round trip may be only approximately isomorphic ie
 --
 -- > forall c r. \c -> view styleBox' . set styleBox r c ~= r
---
--- - SVG is, in general, an additive model eg a border adds a constant amount no matter the scale or aspect. Text charts, in particular, can have small data boxes but large style additions to the box.
---
--- - rescaling of style here is, in juxtaposition, a multiplicative model.
---
--- In practice, this can lead to weird corner cases and unrequited distortion.
---
--- The example below starts with the unit chart, and a simple axis bar, with a dynamic overhang, so that the axis bar represents the x-axis extremity.
---
--- >>> t1 = unnamed [RectChart defaultRectStyle [one]]
--- >>> x1 h = toChartTree $ mempty & set #charts t1 & set (#hudOptions % #chartAspect) (ChartAspect) & set (#hudOptions % #axes) [(1,defaultAxisOptions & over #bar (fmap (set #overhang h)) & set (#ticks % #ttick) Nothing & set (#ticks % #gtick) Nothing & set (#ticks % #ltick) Nothing)]
---
--- With a significant overhang, the axis bar dominates the extrema:
---
--- >>> view styleBox' $ set styleBox' (Just one) (x1 0.1)
--- Just Rect -0.5 0.5 -0.5 0.5
---
--- With no overhang, the style additions caused by the chart dominates:
---
--- >>> view styleBox' $ set styleBox' (Just one) (x1 0)
--- Just Rect -0.5 0.5 -0.5 0.5
---
--- In between:
---
--- >>> view styleBox' $ set styleBox' (Just one) (x1 0.002)
--- Just Rect -0.5000199203187251 0.5000199203187251 -0.5 0.5
---
---
--- If having an exact box is important, try running set styleBox' multiple times eg
---
--- >>> view styleBox' $ foldr ($) (x1 0.002) (replicate 10 (set styleBox' (Just one)))
--- Just Rect -0.5 0.5000000000000001 -0.5 0.4999999999999999
 styleBox' :: Lens' ChartTree (Maybe (Rect Double))
 styleBox' =
   lens styleBox_ styleRebox_

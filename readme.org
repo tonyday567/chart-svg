@@ -2,12 +2,13 @@
 
 [[https://hackage.haskell.org/package/chart-svg][file:https://img.shields.io/hackage/v/chart-svg.svg]] [[https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci][file:https://github.com/tonyday567/chart-svg/workflows/haskell-ci/badge.svg]]
 
+[[file:other/banner.svg]]
+
 A charting library targetting SVG.
 
 * Usage
 
 #+begin_src haskell :file other/usage.svg :results output graphics file :exports both
-:set prompt "> "
 :set -XOverloadedLabels
 :set -XOverloadedStrings
 import Chart
@@ -15,26 +16,59 @@ import Optics.Core
 lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
 styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
 cs = zipWith (\s x -> LineChart s [x]) styles lines
-lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartSvg
-writeChartSvg "other/usage.svg" lineExample
+lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+writeChartOptions "other/usage.svg" lineExample
 #+end_src
 
 #+RESULTS:
 [[file:other/usage.svg]]
 
-See the haddock documentation for a detailed overview and [[file:gallery.md][the gallery]] for some potential inspiration.
+See the haddock documentation for a detailed overview.
 
+* Related projects
 
-* chart-svg changelog
+Downstream projects, where usage of chart-svg in various states of development can be found, include:
+
+[[https://github.com/tonyday567/color-adjust][color-adjust]] - experimenting with the [[https://bottosson.github.io/posts/oklab/][oklab]] colour space. Some of this has been incorporated in to chart-svg.
+
+[[https://github.com/tonyday567/dotparse][dotparse]] - a chart-svg <-> graphviz bridge
+
+[[https://github.com/tonyday567/prettychart][prettychart]] - a chart-svg <-> ghci bridge
+
+* ChangeLog
 :PROPERTIES:
 :EXPORT_FILE_NAME: chart-svg-changelog
 :END:
 
-[[file:other/banner.svg]]
+** 0.4
+
+0.4 is a major breaking change to the API, whilst being mostly concerned with plumbing.
+
+The most important change has been the introduction of the Markup type, which represents an abstract markup DSL that could be described as simplified but non-compliant XML.
+
+This will enable diffing of the resultant Markup tree so that ChartOption diffs can be sent over a web socket rather than entire charts.
+
+As a result of his change:
+  - Chart.Markup replaces Chart.Svg functionality
+  - ChartOptions replaces ChartSvg
+  - writeChartOptions replaces writeChartSvg
+
+There now exists an extra step in the chart rendering pipeline, which now goes:
+  - from ChartOptions to Markup using markupChartOptions
+  - from Markup to ByteString via encodeMarkup, or
+  - from Markup to Text via renderMarkup
+
+Changes to dependencies include:
+  - lucid removed.
+  - tree-diff introduced in the test routines.
+  - flatparse replaces attoparsec
+  - string-interpolate replaces neat-interpolation
+
+** 0.3
 
 [[https://hackage.haskell.org/package/chart-svg][chart-svg-0.3]] is a major rewrite of a library I've had in the toolkit for a while. This has been a major refactoring and I'd like to share a few highlights.
 
-** Monomorphic primitives
+*** Monomorphic primitives
 
 Chart primitives boil down to a very short list. Charts consist of:
 
@@ -92,7 +126,7 @@ The new Chart sum type may not cover a useful primitive, or there may be ideas t
 
 ~ChartTree~ is in constrast to the prior usage of a ~[Chart]~ as the basic chart type, and fits in well with the notion of chart as svg, and thus xml tree. The rose-tree bundling and naming of chart components enables easy downstream manipulation with tools like reanimate and CSS.
 
-** Browser-centric
+*** Browser-centric
 
 #+attr_html: :width 400
 #+caption: A LineChart
@@ -100,29 +134,219 @@ The new Chart sum type may not cover a useful primitive, or there may be ideas t
 
 Existing chart ecosystems, such as excel, [[https://d3js.org/][d3js]] or [[https://github.com/plotly/plotly.js][plotly]], were built in earlier times and don't tend to have regard for modern browser conventions. One addition to the library is to try and fit in with user color scheme preferences. ~Chart-svg~ charts can respect [[https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme][prefers-color-scheme]] and once [[https://github.com/haskell-infra/www.haskell.org/issues/8][this Hackage ticket]] gets done, should look superb in a haddock.
 
-The design flexibility you get from thinking of a chart as primitive shapes to be rendered in a browser also helps expand any definition of what a chart is. A recent example of this can be found in the [[https://hackage.haskell.org/package/dotparse][dotparse]] library which includes production of a [[https://hackage.haskell.org/package/numhask-0.10.1.0][chart]] I added to the numhask docs. Given the constraints of Haddock, the chart is not (yet) clickable, but is clickable in the [[https://hackage.haskell.org/package/numhask-0.10.1.0/docs/other/nh.svg][docs]] ...
 
+The design flexibility you get from thinking of a chart as primitive shapes to be rendered in a browser also helps expand any definition of what a chart is. A recent example of this can be found in the [[https://hackage.haskell.org/package/dotparse][dotparse]] library which includes production of a [[https://hackage.haskell.org/package/numhask-0.10.1.0][chart]] I added to the numhask docs. Given the constraints of Haddock, the chart is not (yet) clickable, but is clickable in the [[https://hackage.haskell.org/package/numhask-0.10.1.0/docs/other/nh.svg][docs]] ...
 This is very difficult to do in other chart libraries outside of direct javascript hacking. Imagine a future where visualisations of class hierarchies help us to tooltip, backlink and navigate complex code bases such as lens.
 
-** Better Colors
+* Bugz
+** styleBox' imprecision
 
-#+caption: Default palette experiments from color-adjust
-#+attr_html: :width 400
-[[file:other/wheel.svg]]
+- SVG is, in general, an additive model eg a border adds a constant amount no matter the scale or aspect. Text charts, in particular, can have small data boxes but large style additions to the box.
+- rescaling of style here is, in juxtaposition, a multiplicative model.
 
-Default colors have been modified with the help of the [[https://bottosson.github.io/posts/oklab/][oklab color space]]. oklab has recently been introduced to the CSS standards and will become important in the coming years. You can read more about the development of this in a [recent]({{< relref "color-adjust" >}}) post, but I'm more than happy with the look and feel improvements you get from better lumination and saturation scaling.
+In practice, this can lead to weird corner cases and unrequited distortion.
 
-** Future development
+The example below starts with the unit chart, and a simple axis bar, with a dynamic overhang, so that the axis bar represents the x-axis extremity.
 
-#+attr_html: :width 200
-#+caption: An example from dotparse
-[[file:other/ex.svg]]
+#+begin_src haskell :results output
+exHud h = defaultHudOptions & set #chartAspect ChartAspect & set #axes [(1,defaultAxisOptions & over #bar (fmap (set #overhang h)) & set (#ticks % #ttick) Nothing & set (#ticks % #gtick) Nothing & set (#ticks % #ltick) Nothing)]
+:t exHud
+x1 h = addHud (exHud h) t1
+:t x1
+#+end_src
+
+#+begin_src haskell
+view styleBox' $ set styleBox' (Just one) (x1 0.1)
+#+end_src
+
+#+RESULTS:
+: Just Rect -0.5 0.5 -0.5 0.5001171875000001
+
+#+begin_src haskell
+view styleBox' $ set styleBox' (Just one) (x1 0)
+#+end_src
+
+#+RESULTS:
+: Just Rect -0.500049504950495 0.5000495049504949 -0.5 0.5001171875000001
+
+** style elements and the axes
+
+Hud elements (and especially axes) do not take into account the increase in the data area due to style elements.
+
+The structure and interaction of addHud and runHudWith makes implementation problematic.
+
+* Development
+
+This readme is also a nice self-documenting R&D environment.
+
+This import list reflects the current state of library development; flatparse and tree-diff experimentation.
+
+#+begin_src haskell :results output
+:reload
+:set prompt "> "
+:set -XOverloadedLabels
+:set -XOverloadedStrings
+import Chart
+import Chart.Examples
+import Optics.Core
+import FlatParse.Basic
+import qualified Data.ByteString as BS
+import GHC.Exts
+import Data.TreeDiff
+import qualified Data.TreeDiff.OMap as O
+import qualified Data.Set
+import Data.FormatN
+#+end_src
+
+#+RESULTS:
+: Ok, 14 modules loaded.
+: >
+
+** basic ChartOptions ==> Markup ==> ByteString rendering pipeline
+
+#+begin_src haskell :exports both
+let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
+c0
+#+end_src
+
+#+RESULTS:
+: ChartOptions {markupOptions = MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferNormal, cssExtra = ""}}, hudOptions = HudOptions {chartAspect = FixedAspect 1.5, axes = [], frames = [], legends = [], titles = []}, charts = ChartTree {tree = Node {rootLabel = (Nothing,[]), subForest = []}}}
+
+ChartOptions to Markup
+
+#+begin_src haskell :exports both
+markupChartOptions c0
+#+end_src
+
+#+RESULTS:
+: Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
+
+Markup to ByteString
+
+#+begin_src haskell :exports both
+encodeMarkup $ markupChartOptions c0
+#+end_src
+
+#+RESULTS:
+: <svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>
+
+*** round trip iso for encodeMarkup . parseMarkup
+
+#+begin_src haskell :exports both
+fileList fp =  fmap (filter (/= ".DS_Store")) (listDirectory fp)
+fps <- fileList "other"
+fps
+#+end_src
+
+#+RESULTS:
+| rect.svg | sbar.svg | debug.svg | unit.svg | path.svg | arrow.svg | arcflags.svg | wheel.svg | hudoptions.svg | ellipse.svg | surface.svg | cubic.svg | gradient.svg | text.svg | bar.svg | line.svg | glyphs.svg | venn.svg | quad.svg | ellipse2.svg | usage.svg | wave.svg | date.svg |
+
+ #+begin_src haskell
+:{
+isoMarkupParse :: BS.ByteString -> Bool
+isoMarkupParse x = case runParser markupP x of
+  OK l "" -> encodeMarkup l == x
+  _ -> False
+
+isoFile :: FilePath -> IO Bool
+isoFile fp = do
+  bs <- BS.readFile fp
+  pure $ isoMarkupParse bs
+:}
+
+ #+end_src
 
 
-[[https://hackage.haskell.org/package/dotparse][Dotparse]] has been a useful test of interoperability, utilising a centuries-old schema and the wonderful new parsing paradigm that is [[https://hackage.haskell.org/package/flatparse][flatparse]], to create a modern web page artifact. If the ideas there are combined with the direction [[https://jonascarpay.com/posts/2022-04-26-calligraphy-tutorial.html][calligraphy]] is taking, we could make clickable visualizations of module, class and call graph heirarchies. That could take performance benchmarking, testing, Haddocks and Hackage to another level, and a unique one compared with other languages.
+#+begin_src haskell :exports both
+fok <- mapM isoFile (("other/"<>) <$> fps)
+zip fps fok
+#+end_src
 
-Some [[https://hackage.haskell.org/package/reanimate][reanimate]] experiments have been carved out of the project in the interests of complexity management, but can still be found in [[https://github.com/tonyday567/chart-reanimate][chart-reanimate]]. ~chart-svg~ handles text well, and the gap between what is a chart and what is text rendering is getting smaller. I'm personally string diagram blind (a rare but real affliction), but animation of string diagrams would look good on the page and be very benficial to documentation.
+#+RESULTS:
+| rect.svg       | True |
+| sbar.svg       | True |
+| debug.svg      | True |
+| unit.svg       | True |
+| path.svg       | True |
+| arrow.svg      | True |
+| arcflags.svg   | True |
+| wheel.svg      | True |
+| hudoptions.svg | True |
+| ellipse.svg    | True |
+| surface.svg    | True |
+| cubic.svg      | True |
+| gradient.svg   | True |
+| text.svg       | True |
+| bar.svg        | True |
+| line.svg       | True |
+| glyphs.svg     | True |
+| venn.svg       | True |
+| quad.svg       | True |
+| ellipse2.svg   | True |
+| usage.svg      | True |
+| wave.svg       | True |
+| date.svg       | True |
 
-I'm pretty happy with the recent refactorings and I suspect the integration of visualization with documentation will remain a weird hobby of mine for a good while. The library is nine parts aesthetics and zero parts commercial, but if it ever gets sponsorship it could be an interesting alternative to Excel, d3js and their clones.
+** tree-diff
 
-Any ideas or criticisms are gratefully appreciated.
+tree-diff is being used in `cabal test`.
+
+To spelunk into this:
+
+#+begin_src elisp
+(setq haskell-process-args-cabal-repl '("chart-svg:test"))
+#+end_src
+
+#+begin_src haskell
+:set prompt "> "
+import Main
+#+end_src
+
+** creating a proper tree-diff patch
+
+tree-diff doesn't have a patch function. For ediff to be a real patch:
+
+- count tree levels for changes
+- count insertion, deletion index for lists, and store record name for recs
+- invent javascript actions for identified changes
+
+ediff is the current hack.
+
+#+begin_src haskell
+let diff1 = ediff m0 m1
+#+end_src
+
+#+begin_src haskell :exports both
+diff1
+#+end_src
+
+#+RESULTS:
+: Cpy (EditRec "Markup" (fromList [("tag",Cpy (EditExp (App "\"top\"" []))),("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])])),("contents",Cpy (EditExp (Lst [App "MarkupLeaf" [Rec "Markup" (fromList [("tag",App "\"g\"" []),("atts",App "Attributes" [App "Map.fromList" [Lst []]]),("contents",Lst [])])],App "Content" [App "\"text\"" []]])))]))
+
+#+begin_src haskell :exports both
+prettyEditExpr diff1
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Markup {
+  tag = "top",
+  atts =
+  Attributes
+    (Map.fromList [_×_ Class -"a" +"b", _×_ (Attribute "b") "2"]),
+  contents =
+  [ MarkupLeaf
+      Markup {
+        tag = "g", atts = Attributes (Map.fromList []), contents = []},
+    Content "text"]}
+#+end_example
+
+filterChangedEdit filters the edit expression to just the changed bits.
+
+#+begin_src haskell :exports both
+fmap prettyEditExpr $ filterChangedEdit diff1
+#+end_src
+
+#+RESULTS:
+: Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
+
