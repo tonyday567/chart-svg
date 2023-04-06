@@ -25,6 +25,16 @@ writeChartOptions "other/usage.svg" lineExample
 
 See the haddock documentation for a detailed overview.
 
+* Related projects
+
+Downstream projects, where usage of chart-svg in various states of development can be found, include:
+
+[[https://github.com/tonyday567/color-adjust][color-adjust]] - experimenting with the [[https://bottosson.github.io/posts/oklab/][oklab]] colour space. Some of this has been incorporated in to chart-svg.
+
+[[https://github.com/tonyday567/dotparse][dotparse]] - a chart-svg <-> graphviz bridge
+
+[[https://github.com/tonyday567/prettychart][prettychart]] - a chart-svg <-> ghci bridge
+
 * ChangeLog
 :PROPERTIES:
 :EXPORT_FILE_NAME: chart-svg-changelog
@@ -32,28 +42,27 @@ See the haddock documentation for a detailed overview.
 
 ** 0.4
 
-0.4 is a plumbing release.
+0.4 is a major breaking change to the API, whilst being mostly concerned with plumbing.
 
-*** Text ==> ByteString
+The most important change has been the introduction of the Markup type, which represents an abstract markup DSL that could be described as simplified but non-compliant XML.
 
-Attoparsec ==> FlatParse
-neat-interpolation ==> string-interpolate
+This will enable diffing of the resultant Markup tree so that ChartOption diffs can be sent over a web socket rather than entire charts.
 
-text is hardcoded as Text, which has biased design towards Text everywhere. 0.4 includes a move to bytestring with a few library changes:
-  - parsing with flatparse (replacing attoparsec). The ergonomics of flatparse is very nice to work with in a Haskell setting, especially with chainr, and easy but restricted template-haskell magic.
-  - quasi-quotation is via string-interpolate, (replacing neat-interpolation).
+As a result of his change:
+  - Chart.Markup replaces Chart.Svg functionality
+  - ChartOptions replaces ChartSvg
+  - writeChartOptions replaces writeChartSvg
 
-*** lucid ==> Svg
+There now exists an extra step in the chart rendering pipeline, which now goes:
+  - from ChartOptions to Markup using markupChartOptions
+  - from Markup to ByteString via encodeMarkup, or
+  - from Markup to Text via renderMarkup
 
-Printing SVG has moved internal to the library, replacing lucid (and blaze-svg under the hood).
-
-Charts now render to Markup, which can be thought of as a restricted subset of XML, with SVG headers and trimmings.
-
-The charts are formed from a very few svg tags and attributes: class, polyline, rect, point, d paths, ellipse, and then style as attributes and text as content.
-
-*** tree-diff
-
-In part, this has been done to introduce https://hackage.haskell.org/package/tree-diff into the machinery. Instead of sending entirely new *.svg's to a web browser, we will be able to send a diff of the raw SVG as a change to a chart. HUD elements becomes much more stable in this setup, and traffic over the websocket reduces by an order or so, resulting in a smoother rendering onscreen. In local tests, FPS can approach 90 or so when zooming on chart detail.
+Changes to dependencies include:
+  - lucid removed.
+  - tree-diff introduced in the test routines.
+  - flatparse replaces attoparsec
+  - string-interpolate replaces neat-interpolation
 
 ** 0.3
 
@@ -129,28 +138,6 @@ Existing chart ecosystems, such as excel, [[https://d3js.org/][d3js]] or [[https
 The design flexibility you get from thinking of a chart as primitive shapes to be rendered in a browser also helps expand any definition of what a chart is. A recent example of this can be found in the [[https://hackage.haskell.org/package/dotparse][dotparse]] library which includes production of a [[https://hackage.haskell.org/package/numhask-0.10.1.0][chart]] I added to the numhask docs. Given the constraints of Haddock, the chart is not (yet) clickable, but is clickable in the [[https://hackage.haskell.org/package/numhask-0.10.1.0/docs/other/nh.svg][docs]] ...
 This is very difficult to do in other chart libraries outside of direct javascript hacking. Imagine a future where visualisations of class hierarchies help us to tooltip, backlink and navigate complex code bases such as lens.
 
-** Better Colors
-
-#+caption: Default palette experiments from color-adjust
-#+attr_html: :width 400
-[[file:other/wheel.svg]]
-
-Default colors have been modified with the help of the [[https://bottosson.github.io/posts/oklab/][oklab color space]]. oklab has recently been introduced to the CSS standards and will become important in the coming years. You can read more about the development of this in a [recent]({{< relref "color-adjust" >}}) post, but I'm more than happy with the look and feel improvements you get from better lumination and saturation scaling.
-
-** Future development
-
-#+attr_html: :width 200
-#+caption: An example from dotparse
-[[file:other/ex.svg]]
-
-
-[[https://hackage.haskell.org/package/dotparse][Dotparse]] has been a useful test of interoperability, utilising a centuries-old schema and the wonderful new parsing paradigm that is [[https://hackage.haskell.org/package/flatparse][flatparse]], to create a modern web page artifact. If the ideas there are combined with the direction [[https://jonascarpay.com/posts/2022-04-26-calligraphy-tutorial.html][calligraphy]] is taking, we could make clickable visualizations of module, class and call graph heirarchies. That could take performance benchmarking, testing, Haddocks and Hackage to another level, and a unique one compared with other languages.
-
-Some [[https://hackage.haskell.org/package/reanimate][reanimate]] experiments have been carved out of the project in the interests of complexity management, but can still be found in [[https://github.com/tonyday567/chart-reanimate][chart-reanimate]]. ~chart-svg~ handles text well, and the gap between what is a chart and what is text rendering is getting smaller. I'm personally string diagram blind (a rare but real affliction), but animation of string diagrams would look good on the page and be very benficial to documentation.
-
-I'm pretty happy with the recent refactorings and I suspect the integration of visualization with documentation will remain a weird hobby of mine for a good while. The library is nine parts aesthetics and zero parts commercial, but if it ever gets sponsorship it could be an interesting alternative to Excel, d3js and their clones.
-
-Any ideas or criticisms are gratefully appreciated.
 * Bugz
 ** styleBox' imprecision
 
@@ -192,7 +179,7 @@ The structure and interaction of addHud and runHudWith makes implementation prob
 
 This readme is also a nice self-documenting R&D environment.
 
-This is the current state of library development; flatparse and tree-diff experimentation.
+This import list reflects the current state of library development; flatparse and tree-diff experimentation.
 
 #+begin_src haskell :results output
 :reload
@@ -214,15 +201,6 @@ import Data.FormatN
 #+RESULTS:
 : Ok, 14 modules loaded.
 : >
-
-** write examples
-
-  #+begin_src haskell
-writeAllExamples
-  #+end_src
-
-#+RESULTS:
-: ok
 
 ** basic ChartOptions ==> Markup ==> ByteString rendering pipeline
 
@@ -263,7 +241,7 @@ fps
 #+RESULTS:
 | rect.svg | sbar.svg | debug.svg | unit.svg | path.svg | arrow.svg | arcflags.svg | wheel.svg | hudoptions.svg | ellipse.svg | surface.svg | cubic.svg | gradient.svg | text.svg | bar.svg | line.svg | glyphs.svg | venn.svg | quad.svg | ellipse2.svg | usage.svg | wave.svg | date.svg |
 
- #+begin_src haskell :exports both
+ #+begin_src haskell
 :{
 isoMarkupParse :: BS.ByteString -> Bool
 isoMarkupParse x = case runParser markupP x of
@@ -277,9 +255,6 @@ isoFile fp = do
 :}
 
  #+end_src
-
-#+RESULTS:
-: ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci| ghci|
 
 
 #+begin_src haskell :exports both
@@ -312,7 +287,7 @@ zip fps fok
 | wave.svg       | True |
 | date.svg       | True |
 
-* tree-diff
+** tree-diff
 
 tree-diff is being used in `cabal test`.
 
@@ -335,6 +310,8 @@ tree-diff doesn't have a patch function. For ediff to be a real patch:
 - count insertion, deletion index for lists, and store record name for recs
 - invent javascript actions for identified changes
 
+ediff is the current hack.
+
 #+begin_src haskell
 let diff1 = ediff m0 m1
 #+end_src
@@ -345,13 +322,6 @@ diff1
 
 #+RESULTS:
 : Cpy (EditRec "Markup" (fromList [("tag",Cpy (EditExp (App "\"top\"" []))),("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])])),("contents",Cpy (EditExp (Lst [App "MarkupLeaf" [Rec "Markup" (fromList [("tag",App "\"g\"" []),("atts",App "Attributes" [App "Map.fromList" [Lst []]]),("contents",Lst [])])],App "Content" [App "\"text\"" []]])))]))
-
-#+begin_src haskell :exports both
-fmap prettyEditExpr $ filterChangedEdit diff1
-#+end_src
-
-#+RESULTS:
-: Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
 
 #+begin_src haskell :exports both
 prettyEditExpr diff1
@@ -370,3 +340,13 @@ Markup {
         tag = "g", atts = Attributes (Map.fromList []), contents = []},
     Content "text"]}
 #+end_example
+
+filterChangedEdit filters the edit expression to just the changed bits.
+
+#+begin_src haskell :exports both
+fmap prettyEditExpr $ filterChangedEdit diff1
+#+end_src
+
+#+RESULTS:
+: Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
+

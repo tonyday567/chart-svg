@@ -1,6 +1,17 @@
+0.4
+===
 
+- Markup type introduced, representing an abstract markup DSL that could be described as simplified but non-compliant XML
+  - Chart.Svg replaced by Chart.Markup & Chart.Markup.Parser
+  - ChartSvg replaced by ChartOptions
+  - functionality includes both printing and parsing.
+  - the rendering pipeline is now ChartOptions => Markup => ByteString
+- lucid removed as a dependency.
+- tree-diff introduced in the test routines.
+- flatparse replaces attoparsec
+- string-interpolate replaces neat-interpolation
 
-0.3.0
+0.3
 ===
 
 - Chart type rewritten
