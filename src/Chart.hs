@@ -8,15 +8,20 @@ module Chart
     --
     -- $usage
 
-    -- * Overview
+    -- * What is a chart?
 
     --
     -- $overview
 
-    -- * Hud
+    -- * What is a Hud?
 
     --
     -- $hud
+
+    -- * What is Markup?
+
+    --
+    -- $markup
 
     -- * Optics Usage
 
@@ -75,11 +80,9 @@ import Data.Path.Parser
 --
 -- Charting consists of three tightly-coupled domains:
 --
--- 1. /data domain/: the data to be represented.
--- 2. /screen syntax/: the syntactics of the data. How and where data is to be represented on a screen (or page), and.
+-- 1. /the data domain/: the data to be represented.
+-- 2. /the screen syntax/: the syntactics of the data. How and where data is to be represented on a screen (or page), and.
 -- 3. /the hud/: visual aids that help interpret the screened data; such as axes, gridlines and titles.
---
--- == What is a 'Chart'?
 --
 -- A 'Chart' in this library consists of a specification of the first two items in the above list; data and its syntax.
 --
@@ -106,7 +109,7 @@ import Data.Path.Parser
 
 -- $hud
 --
--- Axes, titles, tick marks, grid lines and legends are chart elements that exist to provide references to help explain the data being represented. The collective noun used by the library for these elements is /hud/. Hud elements can usually be distinguished from data syntax, but need information from the chart domain (data domain and style domain) to function. A tick mark and tick value on an axis need to know the range of the data to be placed properly on the screen. A chart border needs to know the syntactic range of the entire data representation inclusive of representational artifacts that might extend beyond the data domain. A glyph representing a one-dimensional point exists in 2 dimensions, or we wouldn't be able to see it.
+-- A 'Hud' is the collection of axes, titles, tick marks, grid lines and legends for a 'Chart', which do not explicitly represent the data but, instead, exist to provide references to help explain the data being represented. The collective noun used by the library for these elements is /hud/. Hud elements can usually be distinguished from data syntax, but need information from the chart domain (data domain and style domain) to function. A tick mark and tick value on an axis need to know the range of the data to be placed properly on the screen. A chart border needs to know the syntactic range of the entire data representation inclusive of representational artifacts that might extend beyond the data domain. A glyph representing a one-dimensional point exists in 2 dimensions, or we wouldn't be able to see it.
 --
 -- Apart from this functional usage, however, hud elements are pretty much the same as data elements. They are typically composed of the same stuff; rectangles and lines and text and colors.
 --
@@ -124,12 +127,21 @@ import Data.Path.Parser
 --
 --   3. The domain of the chart, inclusive of Hud or decorative elements.
 --
--- This process is reified in 'runHudWith'. The most common Hud concepts, such as axes and titles, have been collected into the 'HudOptions' type.
+-- This protocol is reified in 'runHudWith'. The most common Hud concepts, such as axes and titles, have been collected into the 'HudOptions' type.
 --
--- An important quality of 'runHud' (and conversion of charts to svg in general) is that this is the point at which chart data is converted from the data domain to the page domain.
+-- An important quality of 'runHud' (and conversion of charts to svg in general) is that this is the point at which chart data is converted from the data domain to the page domain, and is destructive. Typically, at that point of the pipeline, information about the data disappears, so that we no longer can tell what is chart and what is hud.
+
+-- $markup
+--
+-- 'Markup' is, essentially, SVG (or XML) sufficient to turn a chart into SVG text, but insufficiently standards compliant to call it that. The pipeline from chart to screen is approximately:
+--
+-- - Create a 'ChartOptions' which is a product of a 'ChartTree', 'HudOptions' and 'MarkupOptions', which is SVG specific configuration details.
+-- - Convert this to 'Markup' via 'markupChartOptions'
+-- - Convert 'Markup' to ByteString via 'encodeMarkup',or
+-- - Convert 'Markup' to Text via 'renderMarkup'
 
 -- $optics
 --
 -- Usage suggests the use of optics-core and OverloadedLabels, but this is not required. 'Chart', 'HudOptions' and associated chart configuration types are big and sometimes deep syntax trees, and simple optics; getting, setting and modding, makes manipulation more pleasant. Lens works as well, and the library is perfectly capable of being used with records.
 --
--- Lenses are supplied, for the optics-core library, but can be easily modified for lens. The chart-svg convention is that lenses are either OverloadedLabels, or suffixed with a single quote /'/.
+-- Lenses are supplied, for the optics-core library, but can be easily modified for lens. The chart-svg convention is that lenses are either OverloadedLabels, and thus prefixed with a #, or suffixed with a single quote /'/.

@@ -13,8 +13,6 @@ module Chart.Hud
     Hud (..),
     Priority (..),
     defaultPriority,
-    highPriority,
-    lowPriority,
     HudBox,
     CanvasBox,
     DataBox,
@@ -111,9 +109,8 @@ import Prelude
 -- Lower priority (higher values) huds will tend to be placed on the outside of a chart.
 --
 -- Hud elements are rendered in order from high to low priority and the positioning of hud elements can depend on the positioning of elements that have already been included. Equal priority values will be placed in the same process step.
-
 --
--- The first example below, based in 'lineExample' but with the legend placed on the right and coloured frames to help accentuate effects, includes (in order of priority):
+-- The first example below, based in 'Chart.Examples.lineExample' but with the legend placed on the right and coloured frames to help accentuate effects, includes (in order of priority):
 --
 -- - an inner frame, representing the core data area of the chart (Priority 1)
 --
@@ -149,16 +146,11 @@ instance Fractional Priority where
   recip (Priority x) = Priority (recip x)
 
 -- | An arbitrary 5.0
+--
 -- >>> defaultPriority
 -- Priority {priority = 5.0}
 defaultPriority :: Priority
 defaultPriority = Priority 5.0
-
-highPriority :: Priority
-highPriority = Priority 1.0
-
-lowPriority :: Priority
-lowPriority = Priority 20.0
 
 -- | Heads-up display additions to charts
 --

@@ -632,7 +632,7 @@ gradient marker h fa grain ok0 ok1 =
     & #hudOptions
       .~ ( mempty
              & #chartAspect .~ FixedAspect fa
-             & #frames .~ [(lowPriority, FrameOptions (Just (border 0.004 white)) 0.1)]
+             & #frames .~ [(Priority 1, FrameOptions (Just (border 0.004 white)) 0.1)]
          )
     & #charts
       .~ named "gradient" (gradientChart_ grain ok0 ok1) <> strip
@@ -701,6 +701,7 @@ debugExample cs =
     e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 
+-- | All the examples and the associated filepaths
 pathChartOptions :: [(FilePath, ChartOptions)]
 pathChartOptions =
   [ ("other/unit.svg", unitExample),

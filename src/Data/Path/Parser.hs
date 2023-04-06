@@ -97,6 +97,7 @@ nums = (:) <$> num <*> many (commaWsp *> num) <|> pure []
 flag :: Parser e Bool
 flag = fmap (/= 0) digit
 
+-- | Items separated by a comma and one or more whitespace tokens either side.
 manyComma :: Parser e a -> Parser e [a]
 manyComma a = (:) <$> a <*> many (commaWsp *> a) <|> pure []
 
@@ -126,9 +127,11 @@ ellipticalArgs =
     <*> flagComma
     <*> point
 
+-- | Parser for PathCommands
 pathParser :: Parser e [PathCommand]
 pathParser = many ws' *> manyComma command
 
+-- | Parser for a 'PathCommand'
 command :: Parser e PathCommand
 command =
   (MoveTo OriginAbsolute <$ $(char 'M') <*> (ws_ *> points))

@@ -18,6 +18,7 @@ module Chart.Markup.Parser
     xmlProlog,
     xmlXMLDecl,
     xmlDoctypedecl,
+    XmlMiscType,
     XmlMisc (..),
     xmlMisc,
     xmlComment,
@@ -138,7 +139,7 @@ wrappedQ =
 wrappedQNoGuard :: Parser e a -> Parser e a
 wrappedQNoGuard p = wrapped dq p <|> wrapped sq p
 
--- | = (xml production [25])
+-- | xml production [25]
 --
 -- >>> runParserMaybe eq " = "
 -- Just ()
@@ -302,15 +303,17 @@ xmlXMLDecl =
 xmlVersionInfo :: Parser e ByteString
 xmlVersionInfo = byteStringOf $ wss >> $(string "version") >> eq >> wrappedQNoGuard xmlVersionNum
 
--- xml production [26]
+-- | xml production [26]
 xmlVersionNum :: Parser e ByteString
 xmlVersionNum =
   byteStringOf ($(string "1.") >> some (satisfy isDigit))
 
--- | A comment or whitespace outside of the main document [27]
--- not as per [27] (missing PI)
+-- | Whether an 'XmlMisc' is comment or whitespace
 data XmlMiscType = XMiscComment | XMiscS deriving (Generic, Show, Eq)
 
+-- | A comment or whitespace outside of the main document [27]
+--
+--   not as per [27] (missing PI)
 data XmlMisc = XmlMisc {xmiscType :: XmlMiscType, xmiscContent :: ByteString} deriving (Generic, Show, Eq)
 
 -- | Parser for miscellaneous guff
@@ -319,6 +322,7 @@ xmlMisc =
   (XmlMisc XMiscComment <$> xmlComment)
     <|> (XmlMisc XMiscS <$> wss)
 
+-- | Typical xml header text
 exampleDocument :: ByteString
 exampleDocument =
   [i|
@@ -385,7 +389,7 @@ data XmlDocument = XmlDocument ByteString Markup [XmlMisc] deriving (Show, Eq)
 xmlDocument :: Parser Error XmlDocument
 xmlDocument = XmlDocument <$> (ws_ *> xmlProlog) <*> markupP <*> many xmlMisc
 
--- | main parser for a single tagged, xml element
+-- | Main parser for a single Markup (xml-like) element
 --
 -- >>> runParser markupP "<foo>Hello World.</foo>"
 -- OK (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = [Content "Hello World."]}) ""
@@ -396,7 +400,7 @@ markupP =
     -- no close tag = open tag test
     ((\(n, as) c _ -> Markup n (mconcat $ attribute <$> as) c) <$> openTag <*> many contentP <*> closeTag `cut` ["open tag", "content", "close tag"])
 
--- | inner contents of a xml element.
+-- | Inner contents of an element.
 --
 -- >>> runParser (some contentP) "<foo>Hello World.</foo>content<!-- comment -->"
 -- OK [MarkupLeaf (Markup {tag = "foo", atts = Attributes {attMap = fromList []}, contents = [Content "Hello World."]}),Content "content",Comment " comment "] ""

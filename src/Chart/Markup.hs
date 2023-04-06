@@ -35,8 +35,6 @@ module Chart.Markup
 where
 
 import Chart.Data
--- import Data.Text hiding (unpack, pack, filter, intercalate, empty)
-
 import Chart.Hud
 import Chart.Primitive hiding (tree)
 import Chart.Style
@@ -44,8 +42,6 @@ import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
 import Data.ByteString.Char8 (pack)
 import Data.Colour
--- import GHC.Exts
-
 import Data.FormatN
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -114,6 +110,7 @@ attribute (k, v) = Attributes $ Map.singleton k v
 
 -- | A representation of SVG (and XML) markup with no specific knowledge of SVG or XML syntax rules.
 --
+-- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
 -- >>> markupChartOptions c0
 -- Markup {tag = "svg", atts = Attributes {attMap = fromList [("height","300"),("viewBox","-0.75 -0.5 1.5 1.0"),("width","450"),("xmlns","http://www.w3.org/2000/svg"),("xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("class","chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [("class","hud")]}, contents = []})]}
 data Markup = Markup
@@ -475,6 +472,12 @@ cssPreferColorScheme (_, cd) PreferDark =
     }|]
 cssPreferColorScheme _ PreferNormal = mempty
 
+-- | CSS snippet to switch between dark and light mode
+--
+-- > fillSwitch (color1, color2) "dark" "stuff"
+--
+-- ... will default to color1 for elements of the "stuff" class, but switch to color2 if "dark" mode is preferred by the user.
+--
 fillSwitch :: (Colour, Colour) -> ByteString -> ByteString -> ByteString
 fillSwitch (colorNormal, colorPrefer) prefer item =
   [i|
@@ -547,7 +550,7 @@ markupShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPr
 markupShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 markupShapeRendering NoShapeRendering = mempty
 
--- | A sum type representing charts, hud options and markup options, which can be transformed into SVG.
+-- | A product type representing charts, hud options and markup options, which can be transformed into 'Markup'.
 data ChartOptions = ChartOptions
   { markupOptions :: MarkupOptions,
     hudOptions :: HudOptions,
