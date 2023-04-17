@@ -566,9 +566,9 @@ arrowExample =
     gchart s r' p = GlyphChart (gs s r') [p]
 
     tail' :: Point Double -> Double
-    tail' = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . norm
+    tail' = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . magnitude
 
-    avmag = sum (norm . f <$> ps) / fromIntegral (length ps)
+    avmag = sum (magnitude . f <$> ps) / fromIntegral (length ps)
 
 -- | function for testing
 --

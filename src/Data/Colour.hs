@@ -438,12 +438,14 @@ lcha2colour' =
 
 -- * lab to lch
 
--- | Lens between generic XY color representations and CH ones, which are polar version of the XY.
+-- | Lens between generic XY color representations and CH ones, which are polar versions of the XY.
+-- FIXME:
+-- build a better iso in or around numhask
 xy2ch' :: Iso' (Double, Double) (Double, Double)
 xy2ch' =
   iso
-    (\(x, y) -> (norm (Point x y), 180 / pi * mod_ (angle (Point x y)) (2 * pi)))
-    (\(c, h) -> let (Point x y) = coord (Polar c (pi / 180 * h)) in (x, y))
+    (\(x, y) -> (magnitude (Point x y), 180 / pi * mod_ (angle (Point x y)) (2 * pi)))
+    (\(c, h) -> let (Point x y) = fmap (c*) (ray (pi / 180 * h)) in (x, y))
 
 mod_ :: Double -> Double -> Double
 mod_ x d = x - fromIntegral (floor (x / d) :: Integer) * d

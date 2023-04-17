@@ -1,2 +1,5 @@
 packages:
   chart-svg.cabal
+  ../numhask-space/numhask-space.cabal
+  ../numhask-array/numhask-array.cabal
+  ../numhask/numhask.cabal

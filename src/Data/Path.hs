@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RebindableSyntax #-}
@@ -232,7 +233,7 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' lar
 -- - angle diff is pi and large is True
 --
 -- - radii are less than they should be and thus get scaled up.
-arcPosition :: (Ord a, Signed a, TrigField a) => ArcCentroid a -> ArcPosition a
+arcPosition :: (Ord a, Absolute a, TrigField a) => ArcCentroid a -> ArcPosition a
 arcPosition (ArcCentroid c r phi' ang1 angd) =
   ArcPosition p1 p2 (ArcInfo r phi' large' clockwise')
   where
@@ -255,7 +256,7 @@ arcPosition (ArcCentroid c r phi' ang1 angd) =
 -- > c + (rotate phi |. (r * ray theta))
 --
 -- See also: [wolfram](https://mathworld.wolfram.com/Ellipse.html)
-ellipse :: (Direction b a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
+ellipse :: (Direction b, Dir b ~ a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
 ellipse c r phi' theta = c + (rotate phi' |. (r * ray theta))
 
 -- | compute the bounding box for an arcBox
@@ -314,7 +315,7 @@ data QuadPolar a = QuadPolar
     -- | ending point
     qpolEnd :: Point a,
     -- | control point in terms of distance from and angle to the qp0 - qp2 line
-    qpolControl :: Polar a a
+    qpolControl :: Polar a
   }
   deriving (Eq, Show, Generic)
 
@@ -393,9 +394,9 @@ data CubicPolar a = CubicPolar
     -- | ending point
     cpolEnd :: Point a,
     -- | control point in terms of distance from and angle to the start end line
-    cpolControl1 :: Polar a a,
+    cpolControl1 :: Polar a,
     -- | control point in terms of distance from and angle to the start end line
-    cpolControl2 :: Polar a a
+    cpolControl2 :: Polar a
   }
   deriving (Eq, Show, Generic)
 
@@ -410,8 +411,8 @@ cubicPolar :: (Eq a, ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
 cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end control1' control2'
   where
     mp = (start' + end) /. two
-    control1' = polar $ (control1 - mp) /. norm (end - start')
-    control2' = polar $ (control2 - mp) /. norm (end - start')
+    control1' = polar $ (control1 - mp) /. magnitude (end - start')
+    control2' = polar $ (control2 - mp) /. magnitude (end - start')
 
 -- | Convert from a polar to a positional representation of a cubic bezier.
 --
@@ -423,8 +424,8 @@ cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end 
 cubicPosition :: (Eq a, TrigField a, ExpField a) => CubicPolar a -> CubicPosition a
 cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' end control1' control2'
   where
-    control1' = norm (end - start') .* coord control1 + (start' + end) /. two
-    control2' = norm (end - start') .* coord control2 + (start' + end) /. two
+    control1' = magnitude (end - start') .* coord control1 + (start' + end) /. two
+    control2' = magnitude (end - start') .* coord control2 + (start' + end) /. two
 
 -- | The cubic bezier equation
 --
@@ -504,6 +505,6 @@ projectArcPosition :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInf
 projectArcPosition new old (ArcPosition _ _ (ArcInfo (Point rx ry) phi' l cl)) = ArcInfo (Point rx'' ry'') phi' l cl
   where
     rx' = rotateP phi' (Point rx zero)
-    rx'' = norm $ rx' * width new / width old
+    rx'' = magnitude $ rx' * width new / width old
     ry' = rotateP phi' (Point zero ry)
-    ry'' = norm $ ry' * width new / width old
+    ry'' = magnitude $ ry' * width new / width old

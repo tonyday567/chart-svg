@@ -422,7 +422,7 @@ makePlacedTicks s r =
         bool (space1 ticks0) Nothing (e == NoTickExtend)
       )
       where
-        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
+        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n)
     TickExact f n -> (zip ticks0 (formatNs f ticks0), Nothing)
       where
         ticks0 = grid OuterPos r n
@@ -882,7 +882,7 @@ ticksR s d r =
     TickNone -> []
     TickRound f n e -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
-        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
+        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n)
     TickExact f n -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
         ticks0 = grid OuterPos r n

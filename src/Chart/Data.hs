@@ -23,10 +23,9 @@ module Chart.Data
     -- | Note that (+) and (*) from numhask are not actually re-exported.
     Multiplicative (one),
     Additive (zero),
-    Direction (..),
-    Norm (..),
-    Signed (..),
-
+    abs,
+    angle,
+    magnitude,
     -- * Re-exports
     module NumHask.Space,
   )
