@@ -15,9 +15,9 @@ module Chart.Surface
     mkSurfaceData,
     surfaces,
     surfacef,
-    surfacefl,
     SurfaceLegendOptions (..),
     defaultSurfaceLegendOptions,
+    surfaceLegendChart,
     surfaceAxisOptions,
   )
 where
@@ -96,12 +96,13 @@ mkSurfaceData ::
   Grid (Rect Double) ->
   [Colour] ->
   ([SurfaceData], Range Double)
-mkSurfaceData f r g cs = (zipWith SurfaceData rects (flip mixes cs <$> proj), unsafeSpace1 vs)
+mkSurfaceData f r g cs = (zipWith SurfaceData rects (flip mixes cs <$> proj), rx)
   where
     ps = gridF f r g
     rects = fst <$> ps
     vs = snd <$> ps
-    proj = project (unsafeSpace1 vs :: Range Double) (Range 0 1) <$> vs
+    rx = unsafeSpace1 vs :: Range Double
+    proj = project rx (Range 0 1) <$> vs
 
 -- | Create a surface chart from a function.
 surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart], Range Double)
@@ -112,15 +113,6 @@ surfacef f cfg =
       (cfg ^. #soRange)
       (cfg ^. #soGrain)
       (toList $ cfg ^. #soStyle % #surfaceColors)
-
--- | Create a surface chart and accompanying legend from a function.
-surfacefl :: (Point Double -> Double) -> SurfaceOptions -> SurfaceLegendOptions -> ([Chart], [Hud])
-surfacefl f po slo =
-  ( cs,
-    [Hud 10 (legendHud (slo ^. #sloLegendOptions) (surfaceLegendChart dr slo))]
-  )
-  where
-    (cs, dr) = surfacef f po
 
 -- | Legend specialization for a surface chart.
 data SurfaceLegendOptions = SurfaceLegendOptions
