@@ -189,20 +189,79 @@ This import list reflects the current state of library development; flatparse an
 import Chart
 import Chart.Examples
 import Optics.Core
-import FlatParse.Basic
-import qualified Data.ByteString as BS
-import GHC.Exts
-import Data.TreeDiff
-import qualified Data.TreeDiff.OMap as O
-import qualified Data.Set
-import Data.FormatN
 #+end_src
 
 #+RESULTS:
 : Ok, 14 modules loaded.
 : >
 
-** basic ChartOptions ==> Markup ==> ByteString rendering pipeline
+** tree-diff
+
+tree-diff is being used in `cabal test`.
+
+To spelunk into this:
+
+#+begin_src elisp
+(setq haskell-process-args-cabal-repl '("chart-svg:test"))
+#+end_src
+
+#+begin_src haskell
+:set prompt "> "
+import Main
+#+end_src
+
+** creating a proper tree-diff patch
+
+tree-diff doesn't have a patch function. For ediff to be a real patch:
+
+- count tree levels for changes
+- count insertion, deletion index for lists, and store record name for recs
+- invent javascript actions for identified changes
+
+ediff is the current hack.
+
+#+begin_src haskell
+let diff1 = ediff m0 m1
+#+end_src
+
+#+begin_src haskell :exports both
+diff1
+#+end_src
+
+#+RESULTS:
+: Cpy (EditRec "Markup" (fromList [("tag",Cpy (EditExp (App "\"top\"" []))),("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])])),("contents",Cpy (EditExp (Lst [App "MarkupLeaf" [Rec "Markup" (fromList [("tag",App "\"g\"" []),("atts",App "Attributes" [App "Map.fromList" [Lst []]]),("contents",Lst [])])],App "Content" [App "\"text\"" []]])))]))
+
+#+begin_src haskell :exports both
+prettyEditExpr diff1
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Markup {
+  tag = "top",
+  atts =
+  Attributes
+    (Map.fromList [_×_ Class -"a" +"b", _×_ (Attribute "b") "2"]),
+  contents =
+  [ MarkupLeaf
+      Markup {
+        tag = "g", atts = Attributes (Map.fromList []), contents = []},
+    Content "text"]}
+#+end_example
+
+filterChangedEdit filters the edit expression to just the changed bits.
+
+#+begin_src haskell :exports both
+fmap prettyEditExpr $ filterChangedEdit diff1
+#+end_src
+
+#+RESULTS:
+: Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
+
+
+
+* Test
+** ChartOptions ==> Markup ==> ByteString rendering pipeline
 
 #+begin_src haskell :exports both
 let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
@@ -287,66 +346,48 @@ zip fps fok
 | wave.svg       | True |
 | date.svg       | True |
 
-** tree-diff
 
-tree-diff is being used in `cabal test`.
 
-To spelunk into this:
 
-#+begin_src elisp
-(setq haskell-process-args-cabal-repl '("chart-svg:test"))
-#+end_src
+* chart-svg Hud Refactor
 
-#+begin_src haskell
+Surface Chart example
+
+#+begin_src haskell :results output
+:reload
 :set prompt "> "
-import Main
-#+end_src
-
-** creating a proper tree-diff patch
-
-tree-diff doesn't have a patch function. For ediff to be a real patch:
-
-- count tree levels for changes
-- count insertion, deletion index for lists, and store record name for recs
-- invent javascript actions for identified changes
-
-ediff is the current hack.
-
-#+begin_src haskell
-let diff1 = ediff m0 m1
-#+end_src
-
-#+begin_src haskell :exports both
-diff1
-#+end_src
-
-#+RESULTS:
-: Cpy (EditRec "Markup" (fromList [("tag",Cpy (EditExp (App "\"top\"" []))),("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])])),("contents",Cpy (EditExp (Lst [App "MarkupLeaf" [Rec "Markup" (fromList [("tag",App "\"g\"" []),("atts",App "Attributes" [App "Map.fromList" [Lst []]]),("contents",Lst [])])],App "Content" [App "\"text\"" []]])))]))
-
-#+begin_src haskell :exports both
-prettyEditExpr diff1
+:set -XOverloadedLabels
+:set -XOverloadedStrings
+import Chart
+import Chart.Examples
+import Optics.Core
 #+end_src
 
 #+RESULTS:
 #+begin_example
-Markup {
-  tag = "top",
-  atts =
-  Attributes
-    (Map.fromList [_×_ Class -"a" +"b", _×_ (Attribute "b") "2"]),
-  contents =
-  [ MarkupLeaf
-      Markup {
-        tag = "g", atts = Attributes (Map.fromList []), contents = []},
-    Content "text"]}
+Loaded GHCi configuration from /Users/tonyday/haskell/chart-svg/.ghci
+[ 1 of 14] Compiling Chart.Data       ( src/Chart/Data.hs, interpreted )
+[ 2 of 14] Compiling Chart.FlatParse  ( src/Chart/FlatParse.hs, interpreted )
+[ 3 of 14] Compiling Data.Colour      ( src/Data/Colour.hs, interpreted )
+[ 4 of 14] Compiling Data.Path        ( src/Data/Path.hs, interpreted )
+[ 5 of 14] Compiling Data.Path.Parser ( src/Data/Path/Parser.hs, interpreted )
+[ 6 of 14] Compiling Chart.Style      ( src/Chart/Style.hs, interpreted )
+[ 7 of 14] Compiling Chart.Primitive  ( src/Chart/Primitive.hs, interpreted )
+[ 8 of 14] Compiling Chart.Hud        ( src/Chart/Hud.hs, interpreted )
+[ 9 of 14] Compiling Chart.Surface    ( src/Chart/Surface.hs, interpreted )
+[10 of 14] Compiling Chart.Markup     ( src/Chart/Markup.hs, interpreted )
+[11 of 14] Compiling Chart.Markup.Parser ( src/Chart/Markup/Parser.hs, interpreted )
+[12 of 14] Compiling Chart.Bar        ( src/Chart/Bar.hs, interpreted )
+[13 of 14] Compiling Chart            ( src/Chart.hs, interpreted )
+[14 of 14] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted )
+Ok, 14 modules loaded.
+>>Ok, 14 modules loaded.
+>>
 #+end_example
 
-filterChangedEdit filters the edit expression to just the changed bits.
-
-#+begin_src haskell :exports both
-fmap prettyEditExpr $ filterChangedEdit diff1
+#+begin_src haskell :results output
+:t surfaceExample
 #+end_src
 
 #+RESULTS:
-: Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
-
+: surfaceExample :: ChartOptions
