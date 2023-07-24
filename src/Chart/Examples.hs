@@ -515,13 +515,14 @@ surfaceExample =
   mempty
     & #charts .~ named "surface" cs
     & #markupOptions .~ (defaultMarkupOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
-    & #hudOptions % #legends .~ [(30,defaultLegendOptions & #content .~ [("", foldOf charts' $ surfaceLegendChart rangef (defaultSurfaceLegendOptions dark "text"))])]
+    -- FIXME: surface legends are broken as.
+    -- & #hudOptions % #legends .~ [(30,defaultLegendOptions & #content .~ [("", foldOf charts' $ surfaceLegendChart rangef (defaultSurfaceLegendOptions dark "text"))])]
   where
     grain = Point 100 100
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     evenColors = trimColour . over lightness' (const 0.55) . palette1 <$> [0 .. 5]
-    (cs, rangef) = surfacef f so
+    (cs, _) = surfacef f so
     so =
       defaultSurfaceOptions
         & #soGrain .~ grain

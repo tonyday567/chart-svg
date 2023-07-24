@@ -322,7 +322,7 @@ data QuadPolar a = QuadPolar
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
 -- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
--- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {magnitude = 2.1213203435596424, direction = -0.7853981633974483}}
+-- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {radial = 2.1213203435596424, azimuth = -0.7853981633974483}}
 quadPolar :: (Eq a, TrigField a, ExpField a) => QuadPosition a -> QuadPolar a
 quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
   where
@@ -406,7 +406,7 @@ data CubicPolar a = CubicPolar
 -- > cubicPolar . cubicPosition == id
 --
 -- >>> cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
--- CubicPolar {cpolStart = Point 0.0 0.0, cpolEnd = Point 1.0 1.0, cpolControl1 = Polar {magnitude = 1.1180339887498947, direction = -1.2490457723982544}, cpolControl2 = Polar {magnitude = 1.1180339887498947, direction = 1.8925468811915387}}
+-- CubicPolar {cpolStart = Point 0.0 0.0, cpolEnd = Point 1.0 1.0, cpolControl1 = Polar {radial = 1.1180339887498947, azimuth = -1.2490457723982544}, cpolControl2 = Polar {radial = 1.1180339887498947, azimuth = 1.8925468811915387}}
 cubicPolar :: (Eq a, ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
 cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end control1' control2'
   where

@@ -35,7 +35,7 @@ import Data.Text.Encoding (encodeUtf8)
 import FlatParse.Basic
 import GHC.Generics
 import GHC.OverloadedLabels
-import NumHask.Prelude
+import NumHask.Prelude hiding ((<|>), optional)
 import Optics.Core hiding ((<|))
 
 -- $parsing
