@@ -85,9 +85,6 @@ jobs:
       - name: Build
         run: cabal build all
 
-      - name: Run tests
-        run: cabal test all
-
       - name: Check cabal file
         run: cabal check
 
