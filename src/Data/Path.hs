@@ -1,4 +1,5 @@
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | SVG path manipulation
 module Data.Path
