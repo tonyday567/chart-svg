@@ -1,3 +1,8 @@
+0.4.1
+===
+* Changes due to numhask-0.11 upgrade
+* remove broken surface legend
+
 0.4
 ===
 

@@ -1,8 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TupleSections #-}
 
 -- | An intermediary representation not unlike SVG or XML but only forming a subset of these standards.
 module Chart.Markup
@@ -44,7 +42,7 @@ import Data.ByteString.Char8 (pack)
 import Data.Colour
 import Data.FormatN
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
+import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Path
 import Data.Path.Parser
@@ -477,7 +475,6 @@ cssPreferColorScheme _ PreferNormal = mempty
 -- > fillSwitch (color1, color2) "dark" "stuff"
 --
 -- ... will default to color1 for elements of the "stuff" class, but switch to color2 if "dark" mode is preferred by the user.
---
 fillSwitch :: (Colour, Colour) -> ByteString -> ByteString -> ByteString
 fillSwitch (colorNormal, colorPrefer) prefer item =
   [i|

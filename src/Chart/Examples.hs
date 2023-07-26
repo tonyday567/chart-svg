@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TupleSections #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | Examples of chart construction.
 module Chart.Examples
@@ -49,9 +47,10 @@ import Data.Bifunctor
 import Data.Bool
 import Data.ByteString (ByteString)
 import Data.Function
+import Data.Maybe
 import Data.String.Interpolate
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import Data.Time
 import Optics.Core
 import Prelude hiding (abs)
@@ -515,16 +514,19 @@ surfaceExample =
     & #charts .~ named "surface" cs
     & #markupOptions .~ (defaultMarkupOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
   where
+    -- FIXME: surface legends are broken as.
+    -- & #hudOptions % #legends .~ [(30,defaultLegendOptions & #content .~ [("", foldOf charts' $ surfaceLegendChart rangef (defaultSurfaceLegendOptions dark "text"))])]
+
     grain = Point 100 100
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     evenColors = trimColour . over lightness' (const 0.55) . palette1 <$> [0 .. 5]
+    (cs, _) = surfacef f so
     so =
       defaultSurfaceOptions
         & #soGrain .~ grain
         & #soRange .~ r
         & #soStyle % #surfaceColors .~ evenColors
-    (cs, _) = surfacef f so
 
 -- | arrow example
 --
@@ -566,9 +568,9 @@ arrowExample =
     gchart s r' p = GlyphChart (gs s r') [p]
 
     tail' :: Point Double -> Double
-    tail' = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . norm
+    tail' = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . magnitude
 
-    avmag = sum (norm . f <$> ps) / fromIntegral (length ps)
+    avmag = sum (magnitude . f <$> ps) / fromIntegral (length ps)
 
 -- | function for testing
 --

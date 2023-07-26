@@ -1,12 +1,7 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# HLINT ignore "Use unwords" #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | SVG path manipulation
 module Data.Path.Parser
@@ -35,7 +30,7 @@ import Data.Text.Encoding (encodeUtf8)
 import FlatParse.Basic
 import GHC.Generics
 import GHC.OverloadedLabels
-import NumHask.Prelude
+import NumHask.Prelude hiding (optional, (<|>))
 import Optics.Core hiding ((<|))
 
 -- $parsing
@@ -239,7 +234,6 @@ toPathAbsolute (QuadP control p) =
     <> pp' control
     <> " "
     <> pp' p
--- FIXME: check why y doesn't need swapping into SVG coord system
 toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
   "A "
     <> pv' x

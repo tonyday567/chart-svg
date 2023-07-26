@@ -1,7 +1,5 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | SVG path manipulation
 module Data.Path
@@ -46,10 +44,10 @@ module Data.Path
 where
 
 import Chart.Data
-import qualified Control.Foldl as L
+import Control.Foldl qualified as L
 import Control.Monad.State.Lazy
 import GHC.Generics
-import qualified Geom2D.CubicBezier as B
+import Geom2D.CubicBezier qualified as B
 import NumHask.Prelude
 
 -- $setup
@@ -199,7 +197,7 @@ data ArcCentroid a = ArcCentroid
 arcCentroid :: (Ord a, FromInteger a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' large' clockwise')) = ArcCentroid c (Point rx ry) phi' ang1 angd
   where
-    (Point x1' y1') = rotateP (-phi') ((p1 - p2) /. two)
+    (Point x1' y1') = rotateP (-phi') ((p1 - p2) |/ two)
     (Point rx' ry') = rad
     l = x1' ** 2 / rx' ** 2 + y1' ** 2 / ry' ** 2
     (rx, ry) = bool (rx', ry') (rx' * sqrt l, ry' * sqrt l) (l > 1)
@@ -232,7 +230,7 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' lar
 -- - angle diff is pi and large is True
 --
 -- - radii are less than they should be and thus get scaled up.
-arcPosition :: (Ord a, Signed a, TrigField a) => ArcCentroid a -> ArcPosition a
+arcPosition :: (Ord a, Absolute a, TrigField a) => ArcCentroid a -> ArcPosition a
 arcPosition (ArcCentroid c r phi' ang1 angd) =
   ArcPosition p1 p2 (ArcInfo r phi' large' clockwise')
   where
@@ -255,7 +253,7 @@ arcPosition (ArcCentroid c r phi' ang1 angd) =
 -- > c + (rotate phi |. (r * ray theta))
 --
 -- See also: [wolfram](https://mathworld.wolfram.com/Ellipse.html)
-ellipse :: (Direction b a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
+ellipse :: (Direction b, Dir b ~ a, Affinity b a, TrigField a) => b -> b -> a -> a -> b
 ellipse c r phi' theta = c + (rotate phi' |. (r * ray theta))
 
 -- | compute the bounding box for an arcBox
@@ -314,18 +312,18 @@ data QuadPolar a = QuadPolar
     -- | ending point
     qpolEnd :: Point a,
     -- | control point in terms of distance from and angle to the qp0 - qp2 line
-    qpolControl :: Polar a a
+    qpolControl :: Polar a
   }
   deriving (Eq, Show, Generic)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
 -- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
--- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {magnitude = 2.1213203435596424, direction = -0.7853981633974483}}
+-- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {radial = 2.1213203435596424, azimuth = -0.7853981633974483}}
 quadPolar :: (Eq a, TrigField a, ExpField a) => QuadPosition a -> QuadPolar a
 quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
   where
-    mp = (start' + end) /. two
+    mp = (start' + end) |/ two
     control' = polar (control - mp)
 
 -- | Convert from a polar to a positional representation of a quadratic bezier.
@@ -338,7 +336,7 @@ quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
 quadPosition :: (TrigField a) => QuadPolar a -> QuadPosition a
 quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
   where
-    control' = coord control + (start' + end) /. two
+    control' = coord control + (start' + end) |/ two
 
 -- | The quadratic bezier equation
 --
@@ -346,9 +344,16 @@ quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
 -- Point 0.9999999933333332 -0.33333333333333326
 quadBezier :: (FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start' end control) theta =
-  (1 - theta) ^ 2 .* start'
-    + 2 * (1 - theta) * theta .* control
-    + theta ^ 2 .* end
+  (1 - theta)
+    ^ 2
+    *| start'
+    + 2
+    * (1 - theta)
+    * theta
+    *| control
+    + theta
+    ^ 2
+    *| end
 
 -- | QuadPosition turning points.
 --
@@ -357,7 +362,7 @@ quadBezier (QuadPosition start' end control) theta =
 quadDerivs :: QuadPosition Double -> [Double]
 quadDerivs (QuadPosition start' end control) = [x', y']
   where
-    (Point detx dety) = start' - 2 .* control + end
+    (Point detx dety) = start' - 2 *| control + end
     x' = bool ((_x start' - _x control) / detx) (2 * (_x control - _x start')) (detx == 0)
     y' = bool ((_y start' - _y control) / dety) (2 * (_y control - _y start')) (dety == 0)
 
@@ -393,9 +398,9 @@ data CubicPolar a = CubicPolar
     -- | ending point
     cpolEnd :: Point a,
     -- | control point in terms of distance from and angle to the start end line
-    cpolControl1 :: Polar a a,
+    cpolControl1 :: Polar a,
     -- | control point in terms of distance from and angle to the start end line
-    cpolControl2 :: Polar a a
+    cpolControl2 :: Polar a
   }
   deriving (Eq, Show, Generic)
 
@@ -405,13 +410,13 @@ data CubicPolar a = CubicPolar
 -- > cubicPolar . cubicPosition == id
 --
 -- >>> cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
--- CubicPolar {cpolStart = Point 0.0 0.0, cpolEnd = Point 1.0 1.0, cpolControl1 = Polar {magnitude = 1.1180339887498947, direction = -1.2490457723982544}, cpolControl2 = Polar {magnitude = 1.1180339887498947, direction = 1.8925468811915387}}
+-- CubicPolar {cpolStart = Point 0.0 0.0, cpolEnd = Point 1.0 1.0, cpolControl1 = Polar {radial = 1.1180339887498947, azimuth = -1.2490457723982544}, cpolControl2 = Polar {radial = 1.1180339887498947, azimuth = 1.8925468811915387}}
 cubicPolar :: (Eq a, ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
 cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end control1' control2'
   where
-    mp = (start' + end) /. two
-    control1' = polar $ (control1 - mp) /. norm (end - start')
-    control2' = polar $ (control2 - mp) /. norm (end - start')
+    mp = (start' + end) |/ two
+    control1' = polar $ (control1 - mp) |/ magnitude (end - start')
+    control2' = polar $ (control2 - mp) |/ magnitude (end - start')
 
 -- | Convert from a polar to a positional representation of a cubic bezier.
 --
@@ -423,8 +428,8 @@ cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end 
 cubicPosition :: (Eq a, TrigField a, ExpField a) => CubicPolar a -> CubicPosition a
 cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' end control1' control2'
   where
-    control1' = norm (end - start') .* coord control1 + (start' + end) /. two
-    control2' = norm (end - start') .* coord control2 + (start' + end) /. two
+    control1' = magnitude (end - start') *| coord control1 + (start' + end) |/ two
+    control2' = magnitude (end - start') *| coord control2 + (start' + end) |/ two
 
 -- | The cubic bezier equation
 --
@@ -432,10 +437,22 @@ cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' e
 -- Point 0.6767766952966369 1.2071067811865475
 cubicBezier :: (FromInteger a, TrigField a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start' end control1 control2) theta =
-  (1 - theta) ^ 3 .* start'
-    + 3 * (1 - theta) ^ 2 * theta .* control1
-    + 3 * (1 - theta) * theta ^ 2 .* control2
-    + theta ^ 3 .* end
+  (1 - theta)
+    ^ 3
+    *| start'
+    + 3
+    * (1 - theta)
+    ^ 2
+    * theta
+    *| control1
+    + 3
+    * (1 - theta)
+    * theta
+    ^ 2
+    *| control2
+    + theta
+    ^ 3
+    *| end
 
 -- | Turning point positions for a CubicPosition (0,1 or 2)
 --
@@ -504,6 +521,6 @@ projectArcPosition :: Rect Double -> Rect Double -> ArcPosition Double -> ArcInf
 projectArcPosition new old (ArcPosition _ _ (ArcInfo (Point rx ry) phi' l cl)) = ArcInfo (Point rx'' ry'') phi' l cl
   where
     rx' = rotateP phi' (Point rx zero)
-    rx'' = norm $ rx' * width new / width old
+    rx'' = magnitude $ rx' * width new / width old
     ry' = rotateP phi' (Point zero ry)
-    ry'' = norm $ ry' * width new / width old
+    ry'' = magnitude $ ry' * width new / width old

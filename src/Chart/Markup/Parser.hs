@@ -1,9 +1,7 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections #-}
 
 -- | Much of the parsing logic is based on the XML productions found in https://www.w3.org/TR/xml/#NT-content
 --
@@ -51,7 +49,7 @@ import Chart.Markup
 import Data.ByteString (ByteString)
 import Data.String.Interpolate
 import FlatParse.Basic hiding (cut)
-import qualified FlatParse.Basic.Text as T
+import FlatParse.Basic.Text qualified as T
 import GHC.Generics
 import Prelude
 

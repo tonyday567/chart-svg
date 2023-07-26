@@ -1,14 +1,9 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | Colour representations and combinations.
 module Data.Colour
@@ -76,7 +71,7 @@ module Data.Colour
 where
 
 import Chart.Data
-import qualified Data.Attoparsec.Text as A
+import Data.Attoparsec.Text qualified as A
 import Data.Bifunctor
 import Data.Bool (bool)
 import Data.ByteString (ByteString)
@@ -84,14 +79,14 @@ import Data.Char
 import Data.Either
 import Data.FormatN
 import Data.Functor.Rep
-import qualified Data.List as List
+import Data.List qualified as List
 import Data.String.Interpolate
 import Data.Text (Text, pack)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import GHC.Exts
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model as M hiding (LCH)
-import qualified Graphics.Color.Space as S
+import Graphics.Color.Space qualified as S
 import NumHask.Algebra.Metric
 import NumHask.Array.Fixed
 import Optics.Core
@@ -438,12 +433,12 @@ lcha2colour' =
 
 -- * lab to lch
 
--- | Lens between generic XY color representations and CH ones, which are polar version of the XY.
+-- | Lens between generic XY color representations and CH ones, which are polar versions of the XY.
 xy2ch' :: Iso' (Double, Double) (Double, Double)
 xy2ch' =
   iso
-    (\(x, y) -> (norm (Point x y), 180 / pi * mod_ (angle (Point x y)) (2 * pi)))
-    (\(c, h) -> let (Point x y) = coord (Polar c (pi / 180 * h)) in (x, y))
+    (\(x, y) -> (magnitude (Point x y), 180 / pi * mod_ (angle (Point x y)) (2 * pi)))
+    (\(c, h) -> let (Point x y) = fmap (c *) (ray (pi / 180 * h)) in (x, y))
 
 mod_ :: Double -> Double -> Double
 mod_ x d = x - fromIntegral (floor (x / d) :: Integer) * d
@@ -656,9 +651,9 @@ showSwatch label c =
 showSwatches :: Text -> Text -> [(Text, Colour)] -> Text
 showSwatches pref suff hs =
   [i|<div>
-#{pref}
-#{divs}
-#{suff}
+ #{pref}
+ #{divs}
+ #{suff}
 </div>
 |]
   where

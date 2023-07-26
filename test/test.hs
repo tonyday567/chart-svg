@@ -7,11 +7,11 @@ module Main (main) where
 import Chart.Examples
 import Chart.Markup
 import Chart.Markup.Parser
-import qualified Data.ByteString as BS
+import Data.ByteString qualified as BS
 import Data.Foldable
 import Data.Maybe
 import Data.TreeDiff
-import qualified Data.TreeDiff.OMap as O
+import Data.TreeDiff.OMap qualified as O
 import FlatParse.Basic
 import GHC.Exts
 import Test.Tasty (TestTree, defaultMain, testGroup)

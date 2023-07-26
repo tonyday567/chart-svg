@@ -1,10 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | Base 'Chart' and 'ChartTree' types and support
 module Chart.Primitive
@@ -65,7 +61,7 @@ import Data.Path
 import Data.Text (Text)
 import Data.Tree
 import GHC.Generics
-import qualified NumHask.Prelude as NH
+import NumHask.Prelude qualified as NH
 import Optics.Core
 import Prelude
 

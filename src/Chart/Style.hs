@@ -1,8 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | Stylistic or syntactical options for chart elements.
 module Chart.Style
@@ -50,13 +48,13 @@ where
 import Chart.Data
 import Data.ByteString (ByteString)
 import Data.Colour
-import qualified Data.List as List
+import Data.List qualified as List
 import Data.Maybe
 import Data.Path
 import Data.Path.Parser
 import Data.String
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import GHC.Generics
 import Optics.Core
 import Prelude

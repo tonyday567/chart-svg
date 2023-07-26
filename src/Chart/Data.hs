@@ -1,10 +1,9 @@
 {-# LANGUAGE RebindableSyntax #-}
-{-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_HADDOCK prune #-}
 
 -- | Data primitives and utilities
 --
--- Whilst the library makes use of <https://hackage.haskell.org/package/numhask numhask>, it does not re-export, to avoid clashes with Prelude, with the exception of 'zero', 'one', 'angle', 'norm' & 'abs'.
+-- Whilst the library makes use of <https://hackage.haskell.org/package/numhask numhask>, it does not re-export, to avoid clashes with Prelude, with the exception of 'zero', 'one', 'angle' & 'abs'.
 --
 -- 'Rect' and 'Point', from <https://hackage.haskell.org/package/numhask-space numhask-space>, make up the base elements of many chart primitives, and all of numhask-space is re-exported.
 module Chart.Data
@@ -18,14 +17,12 @@ module Chart.Data
 
     -- * NumHask Exports
 
-    --
-
     -- | Note that (+) and (*) from numhask are not actually re-exported.
     Multiplicative (one),
     Additive (zero),
-    Direction (..),
-    Norm (..),
-    Signed (..),
+    abs,
+    angle,
+    magnitude,
 
     -- * Re-exports
     module NumHask.Space,

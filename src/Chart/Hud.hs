@@ -1,9 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | A hud stands for <https://en.wikipedia.org/wiki/Head-up_display head-up display>, and is a collective noun used to name chart elements that assist in data interpretation or otherwise annotate and decorate data.
 --
@@ -84,14 +81,14 @@ import Data.Bool
 import Data.Colour
 import Data.Foldable hiding (sum)
 import Data.FormatN
-import qualified Data.List as List
+import Data.List qualified as List
 import Data.Maybe
 import Data.Path
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import Data.Tuple
 import GHC.Generics hiding (to)
-import qualified NumHask.Prelude as NH
+import NumHask.Prelude qualified as NH
 import Optics.Core
 import Prelude
 
@@ -422,7 +419,7 @@ makePlacedTicks s r =
         bool (space1 ticks0) Nothing (e == NoTickExtend)
       )
       where
-        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
+        ticks0 = gridSensible OuterPos (e == NoTickExtend) r n
     TickExact f n -> (zip ticks0 (formatNs f ticks0), Nothing)
       where
         ticks0 = grid OuterPos r n
@@ -882,7 +879,7 @@ ticksR s d r =
     TickNone -> []
     TickRound f n e -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
-        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n :: Integer)
+        ticks0 = gridSensible OuterPos (e == NoTickExtend) r n
     TickExact f n -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
         ticks0 = grid OuterPos r n
