@@ -30,7 +30,7 @@ copyright:       Tony Day (c) 2017
 license:         BSD-3-Clause
 license-file:    LICENSE
 build-type:      Simple
-extra-doc-files: other/*.svg
+extra-doc-files: other/*.svg ChangeLog.md
 tested-with:     GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2
 
 source-repository head
