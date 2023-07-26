@@ -1,9 +1,7 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections #-}
 
 -- | Much of the parsing logic is based on the XML productions found in https://www.w3.org/TR/xml/#NT-content
 --

@@ -1,9 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | A hud stands for <https://en.wikipedia.org/wiki/Head-up_display head-up display>, and is a collective noun used to name chart elements that assist in data interpretation or otherwise annotate and decorate data.
 --
@@ -422,7 +419,7 @@ makePlacedTicks s r =
         bool (space1 ticks0) Nothing (e == NoTickExtend)
       )
       where
-        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n)
+        ticks0 = gridSensible OuterPos (e == NoTickExtend) r n
     TickExact f n -> (zip ticks0 (formatNs f ticks0), Nothing)
       where
         ticks0 = grid OuterPos r n
@@ -882,7 +879,7 @@ ticksR s d r =
     TickNone -> []
     TickRound f n e -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
-        ticks0 = gridSensible OuterPos (e == NoTickExtend) r (fromIntegral n)
+        ticks0 = gridSensible OuterPos (e == NoTickExtend) r n
     TickExact f n -> zip (project r d <$> ticks0) (formatNs f ticks0)
       where
         ticks0 = grid OuterPos r n

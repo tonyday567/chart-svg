@@ -1,14 +1,9 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | Colour representations and combinations.
 module Data.Colour
@@ -439,8 +434,6 @@ lcha2colour' =
 -- * lab to lch
 
 -- | Lens between generic XY color representations and CH ones, which are polar versions of the XY.
--- FIXME:
--- build a better iso in or around numhask
 xy2ch' :: Iso' (Double, Double) (Double, Double)
 xy2ch' =
   iso

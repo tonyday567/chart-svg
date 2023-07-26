@@ -347,8 +347,6 @@ zip fps fok
 | date.svg       | True |
 
 
-
-
 * chart-svg Hud Refactor
 
 Surface Chart example

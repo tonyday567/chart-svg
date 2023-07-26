@@ -1,8 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TupleSections #-}
 
 -- | An intermediary representation not unlike SVG or XML but only forming a subset of these standards.
 module Chart.Markup

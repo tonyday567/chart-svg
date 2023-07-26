@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TupleSections #-}
-{-# OPTIONS_GHC -Wall #-}
 
 -- | Examples of chart construction.
 module Chart.Examples

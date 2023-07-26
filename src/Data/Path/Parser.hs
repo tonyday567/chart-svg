@@ -1,12 +1,7 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# HLINT ignore "Use unwords" #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | SVG path manipulation
 module Data.Path.Parser
@@ -239,7 +234,6 @@ toPathAbsolute (QuadP control p) =
     <> pp' control
     <> " "
     <> pp' p
--- FIXME: check why y doesn't need swapping into SVG coord system
 toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
   "A "
     <> pv' x
