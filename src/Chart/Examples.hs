@@ -50,7 +50,7 @@ import Data.Function
 import Data.Maybe
 import Data.String.Interpolate
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import Data.Time
 import Optics.Core
 import Prelude hiding (abs)
@@ -513,9 +513,10 @@ surfaceExample =
   mempty
     & #charts .~ named "surface" cs
     & #markupOptions .~ (defaultMarkupOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
+  where
     -- FIXME: surface legends are broken as.
     -- & #hudOptions % #legends .~ [(30,defaultLegendOptions & #content .~ [("", foldOf charts' $ surfaceLegendChart rangef (defaultSurfaceLegendOptions dark "text"))])]
-  where
+
     grain = Point 100 100
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10

@@ -43,10 +43,10 @@ module Data.Path
 where
 
 import Chart.Data
-import qualified Control.Foldl as L
+import Control.Foldl qualified as L
 import Control.Monad.State.Lazy
 import GHC.Generics
-import qualified Geom2D.CubicBezier as B
+import Geom2D.CubicBezier qualified as B
 import NumHask.Prelude
 
 -- $setup
@@ -343,9 +343,16 @@ quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
 -- Point 0.9999999933333332 -0.33333333333333326
 quadBezier :: (FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start' end control) theta =
-  (1 - theta) ^ 2 *| start'
-    + 2 * (1 - theta) * theta *| control
-    + theta ^ 2 *| end
+  (1 - theta)
+    ^ 2
+    *| start'
+    + 2
+    * (1 - theta)
+    * theta
+    *| control
+    + theta
+    ^ 2
+    *| end
 
 -- | QuadPosition turning points.
 --
@@ -429,10 +436,22 @@ cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' e
 -- Point 0.6767766952966369 1.2071067811865475
 cubicBezier :: (FromInteger a, TrigField a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start' end control1 control2) theta =
-  (1 - theta) ^ 3 *| start'
-    + 3 * (1 - theta) ^ 2 * theta *| control1
-    + 3 * (1 - theta) * theta ^ 2 *| control2
-    + theta ^ 3 *| end
+  (1 - theta)
+    ^ 3
+    *| start'
+    + 3
+    * (1 - theta)
+    ^ 2
+    * theta
+    *| control1
+    + 3
+    * (1 - theta)
+    * theta
+    ^ 2
+    *| control2
+    + theta
+    ^ 3
+    *| end
 
 -- | Turning point positions for a CubicPosition (0,1 or 2)
 --

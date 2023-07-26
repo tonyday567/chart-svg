@@ -49,7 +49,7 @@ import Chart.Markup
 import Data.ByteString (ByteString)
 import Data.String.Interpolate
 import FlatParse.Basic hiding (cut)
-import qualified FlatParse.Basic.Text as T
+import FlatParse.Basic.Text qualified as T
 import GHC.Generics
 import Prelude
 

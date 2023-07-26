@@ -81,14 +81,14 @@ import Data.Bool
 import Data.Colour
 import Data.Foldable hiding (sum)
 import Data.FormatN
-import qualified Data.List as List
+import Data.List qualified as List
 import Data.Maybe
 import Data.Path
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import Data.Tuple
 import GHC.Generics hiding (to)
-import qualified NumHask.Prelude as NH
+import NumHask.Prelude qualified as NH
 import Optics.Core
 import Prelude
 
