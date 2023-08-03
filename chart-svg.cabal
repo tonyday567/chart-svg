@@ -1,164 +1,163 @@
-cabal-version:   3.0
-name:            chart-svg
-version:         0.4.1.1
-synopsis:        Charting library targetting SVGs.
+cabal-version: 3.0
+name: chart-svg
+version: 0.4.1.1
+license: BSD-3-Clause
+license-file: LICENSE
+copyright: Tony Day (c) 2017
+category: graphics
+author: Tony Day
+maintainer: tonyday567@gmail.com
+homepage: https://github.com/tonyday567/chart-svg#readme
+bug-reports: https://github.com/tonyday567/chart-svg/issues
+synopsis: Charting library targetting SVGs.
 description:
-  This package provides a charting library targetting SVG as the rendered output.
+    This package provides a charting library targetting SVG as the rendered output.
 
-  == Usage
+    == Usage
 
-  >>> :set -XOverloadedLabels
-  >>> :set -XOverloadedStrings
-  >>> import Chart
-  >>> import Optics.Core
-  >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
-  >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
-  >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
-  >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
-  >>> writeChartOptions "other/usage.svg" lineExample
+    >>> :set -XOverloadedLabels
+    >>> :set -XOverloadedStrings
+    >>> import Chart
+    >>> import Optics.Core
+    >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
+    >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
+    >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
+    >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+    >>> writeChartOptions "other/usage.svg" lineExample
 
-  ![usage example](docs/other/usage.svg)
+    ![usage example](docs/other/usage.svg)
 
-  See "Chart" for a broad overview of concepts, and "Chart.Examples" for practical examples.
+    See "Chart" for a broad overview of concepts, and "Chart.Examples" for practical examples.
 
-category:        charts
-homepage:        https://github.com/tonyday567/chart-svg#readme
-bug-reports:     https://github.com/tonyday567/chart-svg/issues
-author:          Tony Day
-maintainer:      tonyday567@gmail.com
-copyright:       Tony Day (c) 2017
-license:         BSD-3-Clause
-license-file:    LICENSE
-build-type:      Simple
-extra-doc-files: other/*.svg
-                 ChangeLog.md
-                 readme.org
-tested-with:     GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2
+build-type: Simple
+tested-with: GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2
+extra-doc-files:
+    ChangeLog.md
+    other/*.svg
+    readme.org
 
 source-repository head
-  type:     git
-  location: https://github.com/tonyday567/chart-svg
-
-common ghc2021-stanza
-  if impl(ghc >=9.2)
-    default-language:
-      GHC2021
-  if impl(ghc <9.2)
-    default-language:
-      Haskell2010
-    default-extensions:
-      BangPatterns
-      BinaryLiterals
-      ConstrainedClassMethods
-      ConstraintKinds
-      DeriveDataTypeable
-      DeriveFoldable
-      DeriveFunctor
-      DeriveGeneric
-      DeriveLift
-      DeriveTraversable
-      DoAndIfThenElse
-      EmptyCase
-      EmptyDataDecls
-      EmptyDataDeriving
-      ExistentialQuantification
-      ExplicitForAll
-      FlexibleContexts
-      FlexibleInstances
-      ForeignFunctionInterface
-      GADTSyntax
-      GeneralisedNewtypeDeriving
-      HexFloatLiterals
-      ImplicitPrelude
-      InstanceSigs
-      KindSignatures
-      MonomorphismRestriction
-      MultiParamTypeClasses
-      NamedFieldPuns
-      NamedWildCards
-      NumericUnderscores
-      PatternGuards
-      PolyKinds
-      PostfixOperators
-      RankNTypes
-      RelaxedPolyRec
-      ScopedTypeVariables
-      StandaloneDeriving
-      StarIsType
-      TraditionalRecordSyntax
-      TupleSections
-      TypeApplications
-      TypeOperators
-      TypeSynonymInstances
-  if impl(ghc <9.2) && impl(ghc >=8.10)
-    default-extensions:
-      ImportQualifiedPost
-      StandaloneKindSignatures
+    type: git
+    location: https://github.com/tonyday567/chart-svg
 
 common ghc-options-stanza
-  ghc-options:
-    -Wall
-    -Wcompat
-    -Wincomplete-record-updates
-    -Wincomplete-uni-patterns
-    -Wredundant-constraints
-    -Widentities
-    -Wpartial-fields
+    ghc-options:
+        -Wall
+        -Wcompat
+        -Widentities
+        -Wincomplete-record-updates
+        -Wincomplete-uni-patterns
+        -Wpartial-fields
+        -Wredundant-constraints
+
+common ghc2021-stanza
+    if impl ( ghc >= 9.2 )
+        default-language: GHC2021
+
+    if impl ( ghc < 9.2 )
+        default-language: Haskell2010
+        default-extensions:
+            BangPatterns
+            BinaryLiterals
+            ConstrainedClassMethods
+            ConstraintKinds
+            DeriveDataTypeable
+            DeriveFoldable
+            DeriveFunctor
+            DeriveGeneric
+            DeriveLift
+            DeriveTraversable
+            DoAndIfThenElse
+            EmptyCase
+            EmptyDataDecls
+            EmptyDataDeriving
+            ExistentialQuantification
+            ExplicitForAll
+            FlexibleContexts
+            FlexibleInstances
+            ForeignFunctionInterface
+            GADTSyntax
+            GeneralisedNewtypeDeriving
+            HexFloatLiterals
+            ImplicitPrelude
+            InstanceSigs
+            KindSignatures
+            MonomorphismRestriction
+            MultiParamTypeClasses
+            NamedFieldPuns
+            NamedWildCards
+            NumericUnderscores
+            PatternGuards
+            PolyKinds
+            PostfixOperators
+            RankNTypes
+            RelaxedPolyRec
+            ScopedTypeVariables
+            StandaloneDeriving
+            StarIsType
+            TraditionalRecordSyntax
+            TupleSections
+            TypeApplications
+            TypeOperators
+            TypeSynonymInstances
+
+    if impl ( ghc < 9.2 ) && impl ( ghc >= 8.10 )
+        default-extensions:
+            ImportQualifiedPost
+            StandaloneKindSignatures
 
 library
-  import: ghc2021-stanza
-  import: ghc-options-stanza
-  exposed-modules:
-    Chart
-    Chart.Bar
-    Chart.Data
-    Chart.Examples
-    Chart.FlatParse
-    Chart.Hud
-    Chart.Markup
-    Chart.Markup.Parser
-    Chart.Primitive
-    Chart.Style
-    Chart.Surface
-    Data.Colour
-    Data.Path
-    Data.Path.Parser
-
-  hs-source-dirs:     src
-  build-depends:
-    Color ^>=0.3,
-    adjunctions ^>=4.4,
-    attoparsec >=0.13.2 && <0.15,
-    base >=4.7 && <5,
-    bytestring >=0.11.3 && <0.13,
-    containers ^>=0.6,
-    cubicbezier ^>=0.6,
-    flatparse >=0.4 && <0.6,
-    foldl ^>=1.4,
-    formatn >=0.3 && < 0.4,
-    mtl >=2.2.2 && <2.4,
-    numhask ^>=0.11,
-    numhask-array ^>=0.11,
-    numhask-space ^>=0.11,
-    optics-core ^>=0.4,
-    random ^>=1.2.1,
-    string-interpolate ^>=0.3,
-    text >=1.2 && <2.1,
-    time >=1.9 && <2,
-    tree-diff >=0.3 && <0.4,
+    import: ghc-options-stanza
+    import: ghc2021-stanza
+    hs-source-dirs: src
+    build-depends:
+        , Color              ^>=0.3
+        , adjunctions        >=4.0 && <5
+        , attoparsec         >=0.13.2 && <0.15
+        , base               >=4.7 && <5
+        , bytestring         >=0.11.3 && <0.13
+        , containers         >=0.6 && <0.7
+        , cubicbezier        ^>=0.6
+        , flatparse          >=0.3.5 && <0.6
+        , foldl              ^>=1.4
+        , formatn            >=0.2.1 && <0.4
+        , mtl                >=2.2.2 && <2.4
+        , numhask            >=0.10 && <0.12
+        , numhask-array      >=0.10 && <0.12
+        , numhask-space      >=0.10 && <0.12
+        , optics-core        >=0.4 && <0.5
+        , random             >=1.2 && <1.3
+        , string-interpolate >=0.3 && <0.4
+        , text               >=1.2 && <2.1
+        , time               >=1.9 && <1.13
+        , tree-diff          >=0.3 && <0.4
+    exposed-modules:
+        Chart
+        Chart.Bar
+        Chart.Data
+        Chart.Examples
+        Chart.FlatParse
+        Chart.Hud
+        Chart.Markup
+        Chart.Markup.Parser
+        Chart.Primitive
+        Chart.Style
+        Chart.Surface
+        Data.Colour
+        Data.Path
+        Data.Path.Parser
 
 test-suite test
-  import: ghc2021-stanza
-  import: ghc-options-stanza
-  type: exitcode-stdio-1.0
-  main-is: test.hs
-  hs-source-dirs:
-    test
-  build-depends:
-    base >=4.7 && <5,
-    bytestring >=0.11.3 && <0.13,
-    chart-svg,
-    flatparse >=0.4 && <0.6,
-    tasty >=1.2 && <1.5,
-    tasty-golden ^>=2.3.1.1,
-    tree-diff >=0.3 && <0.4,
+    import: ghc-options-stanza
+    import: ghc2021-stanza
+    main-is: test.hs
+    hs-source-dirs: test
+    build-depends:
+        , base         >=4.7 && <5
+        , bytestring   >=0.11.3 && <0.13
+        , chart-svg
+        , flatparse    >=0.3.5 && <0.6
+        , tasty        >=1.2 && <1.5
+        , tasty-golden >=2.3.1.1 && <2.4
+        , tree-diff    >=0.3 && <0.4
+    type: exitcode-stdio-1.0
