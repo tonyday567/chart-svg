@@ -20,7 +20,6 @@ module Data.Path.Parser
 where
 
 import Chart.Data
-import Chart.FlatParse
 import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
 import Data.ByteString (ByteString, intercalate)
@@ -30,6 +29,7 @@ import Data.Text.Encoding (encodeUtf8)
 import FlatParse.Basic
 import GHC.Generics
 import GHC.OverloadedLabels
+import MarkupParse.FlatParse
 import NumHask.Prelude hiding (optional, (<|>))
 import Optics.Core hiding ((<|))
 

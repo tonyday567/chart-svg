@@ -192,73 +192,24 @@ import Optics.Core
 #+end_src
 
 #+RESULTS:
-: Ok, 14 modules loaded.
-: >
-
-** tree-diff
-
-tree-diff is being used in `cabal test`.
-
-To spelunk into this:
-
-#+begin_src elisp
-(setq haskell-process-args-cabal-repl '("chart-svg:test"))
-#+end_src
-
-#+begin_src haskell
-:set prompt "> "
-import Main
-#+end_src
-
-** creating a proper tree-diff patch
-
-tree-diff doesn't have a patch function. For ediff to be a real patch:
-
-- count tree levels for changes
-- count insertion, deletion index for lists, and store record name for recs
-- invent javascript actions for identified changes
-
-ediff is the current hack.
-
-#+begin_src haskell
-let diff1 = ediff m0 m1
-#+end_src
-
-#+begin_src haskell :exports both
-diff1
-#+end_src
-
-#+RESULTS:
-: Cpy (EditRec "Markup" (fromList [("tag",Cpy (EditExp (App "\"top\"" []))),("atts",Cpy (EditApp "Attributes" [Cpy (EditApp "Map.fromList" [Cpy (EditLst [Cpy (EditApp "_\215_" [Cpy (EditExp (App "Class" [])),Swp (EditExp (App "\"a\"" [])) (EditExp (App "\"b\"" []))]),Cpy (EditExp (App "_\215_" [App "Attribute" [App "\"b\"" []],App "\"2\"" []]))])])])),("contents",Cpy (EditExp (Lst [App "MarkupLeaf" [Rec "Markup" (fromList [("tag",App "\"g\"" []),("atts",App "Attributes" [App "Map.fromList" [Lst []]]),("contents",Lst [])])],App "Content" [App "\"text\"" []]])))]))
-
-#+begin_src haskell :exports both
-prettyEditExpr diff1
-#+end_src
-
-#+RESULTS:
 #+begin_example
-Markup {
-  tag = "top",
-  atts =
-  Attributes
-    (Map.fromList [_×_ Class -"a" +"b", _×_ (Attribute "b") "2"]),
-  contents =
-  [ MarkupLeaf
-      Markup {
-        tag = "g", atts = Attributes (Map.fromList []), contents = []},
-    Content "text"]}
+Loaded GHCi configuration from /Users/tonyday/haskell/chart-svg/.ghci
+[ 1 of 12] Compiling Chart.Data       ( src/Chart/Data.hs, interpreted )
+[ 2 of 12] Compiling Data.Colour      ( src/Data/Colour.hs, interpreted )
+[ 3 of 12] Compiling Data.Path        ( src/Data/Path.hs, interpreted )
+[ 4 of 12] Compiling Data.Path.Parser ( src/Data/Path/Parser.hs, interpreted )
+[ 5 of 12] Compiling Chart.Style      ( src/Chart/Style.hs, interpreted )
+[ 6 of 12] Compiling Chart.Primitive  ( src/Chart/Primitive.hs, interpreted )
+[ 7 of 12] Compiling Chart.Hud        ( src/Chart/Hud.hs, interpreted )
+[ 8 of 12] Compiling Chart.Surface    ( src/Chart/Surface.hs, interpreted )
+[ 9 of 12] Compiling Chart.Markup     ( src/Chart/Markup.hs, interpreted )
+[10 of 12] Compiling Chart.Bar        ( src/Chart/Bar.hs, interpreted )
+[11 of 12] Compiling Chart            ( src/Chart.hs, interpreted )
+[12 of 12] Compiling Chart.Examples   ( src/Chart/Examples.hs, interpreted )
+Ok, 12 modules loaded.
+>>Ok, 12 modules loaded.
+>>
 #+end_example
-
-filterChangedEdit filters the edit expression to just the changed bits.
-
-#+begin_src haskell :exports both
-fmap prettyEditExpr $ filterChangedEdit diff1
-#+end_src
-
-#+RESULTS:
-: Just Markup {atts = Attributes (Map.fromList [_×_ -"a" +"b"])}
-
-
 
 * Test
 ** ChartOptions ==> Markup ==> ByteString rendering pipeline
@@ -278,16 +229,25 @@ markupChartOptions c0
 #+end_src
 
 #+RESULTS:
-: Markup {tag = "svg", atts = Attributes {attMap = fromList [(Attribute "height","300.0"),(Attribute "viewBox","-0.75 -0.5 1.5 1.0"),(Attribute "width","450.0"),(Attribute "xmlns","http://www.w3.org/2000/svg"),(Attribute "xmlns:xlink","http://www.w3.org/1999/xlink")]}, contents = [MarkupLeaf (Markup {tag = "style", atts = Attributes {attMap = fromList []}, contents = [Content ""]}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"chart")]}, contents = []}),MarkupLeaf (Markup {tag = "g", atts = Attributes {attMap = fromList [(Class,"hud")]}, contents = []})]}
+: Markup {standard = Xml, markupTree = [Node {rootLabel = StartTag "svg" [Attr "xmlns" "http://www.w3.org/2000/svg",Attr "xmlns:xlink" "http://www.w3.org/1999/xlink",Attr "width" "450",Attr "height" "300",Attr "viewBox" "-0.75 -0.5 1.5 1.0"], subForest = [Node {rootLabel = StartTag "style" [], subForest = [Node {rootLabel = Content "", subForest = []}]},Node {rootLabel = StartTag "g" [Attr "class" "chart"], subForest = []},Node {rootLabel = StartTag "g" [Attr "class" "hud"], subForest = []}]}]}
 
 Markup to ByteString
 
 #+begin_src haskell :exports both
-encodeMarkup $ markupChartOptions c0
+import MarkupParse
+import Data.ByteString qualified as B
+B.putStr $ markdown (Indented 4) $ markupChartOptions c0
 #+end_src
 
 #+RESULTS:
-: <svg height=\"300.0\" viewBox=\"-0.75 -0.5 1.5 1.0\" width=\"450.0\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><style></style><g class=\"chart\"/><g class=\"hud\"/></svg>
+: <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="450" height="300" viewBox="-0.75 -0.5 1.5 1.0">
+:     <style>
+:     </style>
+:     <g class="chart">
+:     </g>
+:     <g class="hud">
+:     </g>
+: </svg>
 
 *** round trip iso for encodeMarkup . parseMarkup
 
@@ -346,6 +306,24 @@ zip fps fok
 | wave.svg       | True |
 | date.svg       | True |
 
+** Markup testing
+
+#+begin_src haskell :results output
+bs <- B.readFile "other/unit.svg"
+#+end_src
+
+#+RESULTS:
+: <interactive>:48:1: warning: [GHC-63397] [-Wname-shadowing]
+:     This binding for ‘bs’ shadows the existing binding
+:       defined at <interactive>:44:1
+
+#+begin_src haskell :results output
+import MarkupParse.Patch
+patch (normalize $ markup_ Xml bs) (normalize $ markupChartOptions unitExample)
+#+end_src
+
+#+RESULTS:
+: Nothing
 
 * chart-svg Hud Refactor
 
