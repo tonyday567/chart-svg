@@ -20,7 +20,6 @@ module Data.Path.Parser
 where
 
 import Chart.Data
-import MarkupParse.FlatParse
 import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
 import Data.ByteString (ByteString, intercalate)
@@ -30,6 +29,7 @@ import Data.Text.Encoding (encodeUtf8)
 import FlatParse.Basic
 import GHC.Generics
 import GHC.OverloadedLabels
+import MarkupParse.FlatParse
 import NumHask.Prelude hiding (optional, (<|>))
 import Optics.Core hiding ((<|))
 
@@ -91,7 +91,6 @@ nums = (:) <$> num <*> many (commaWsp *> num) <|> pure []
 
 flag :: Parser e Bool
 flag = fmap (/= 0) digit
-
 
 -- | Items separated by a comma and one or more whitespace tokens either side.
 manyComma :: Parser e a -> Parser e [a]

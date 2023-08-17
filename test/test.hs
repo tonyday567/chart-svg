@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Main (main) where
@@ -8,11 +7,11 @@ import Chart.Examples
 import Chart.Markup
 import Data.ByteString qualified as BS
 import Data.TreeDiff
+import MarkupParse
+import MarkupParse.Patch
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.Golden.Advanced (goldenTest)
 import Prelude
-import MarkupParse.Patch
-import MarkupParse
 
 main :: IO ()
 main =
