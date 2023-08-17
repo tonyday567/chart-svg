@@ -121,6 +121,7 @@ library
         , flatparse          >=0.3.5 && <0.6
         , foldl              ^>=1.4
         , formatn            >=0.2.1 && <0.4
+        , markup-parse       >=0.0 && <0.1
         , mtl                >=2.2.2 && <2.4
         , numhask            >=0.10 && <0.12
         , numhask-array      >=0.10 && <0.12
@@ -136,10 +137,8 @@ library
         Chart.Bar
         Chart.Data
         Chart.Examples
-        Chart.FlatParse
         Chart.Hud
         Chart.Markup
-        Chart.Markup.Parser
         Chart.Primitive
         Chart.Style
         Chart.Surface
@@ -157,6 +156,7 @@ test-suite test
         , bytestring   >=0.11.3 && <0.13
         , chart-svg
         , flatparse    >=0.3.5 && <0.6
+        , markup-parse >=0.0 && <0.1
         , tasty        >=1.2 && <1.5
         , tasty-golden >=2.3.1.1 && <2.4
         , tree-diff    >=0.3 && <0.4

@@ -33,7 +33,6 @@ module Chart
     module Chart.Hud,
     module Chart.Style,
     module Chart.Markup,
-    module Chart.Markup.Parser,
     module Chart.Bar,
     module Chart.Surface,
     module Data.Colour,
@@ -47,7 +46,6 @@ import Chart.Bar
 import Chart.Data
 import Chart.Hud
 import Chart.Markup
-import Chart.Markup.Parser
 import Chart.Primitive
 import Chart.Style
 import Chart.Surface
