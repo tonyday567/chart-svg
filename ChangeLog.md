@@ -1,3 +1,7 @@
+0.5.0
+===
+* Library split into markup-parse and chart-svg.
+
 0.4.1
 ===
 * Changes due to numhask-0.11 upgrade
