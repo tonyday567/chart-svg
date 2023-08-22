@@ -26,7 +26,7 @@ import Data.ByteString (ByteString, intercalate)
 import Data.FormatN
 import Data.Path (ArcInfo (ArcInfo), PathData (..))
 import Data.Text.Encoding (encodeUtf8)
-import FlatParse.Basic
+import FlatParse.Basic (char, optional, (<|>))
 import GHC.Generics
 import GHC.OverloadedLabels
 import MarkupParse.FlatParse
@@ -48,25 +48,10 @@ import Optics.Core hiding ((<|))
 -- >>> parsePath outerseg1
 -- Just [MoveTo OriginAbsolute [Point -1.0 0.5],EllipticalArc OriginAbsolute [(0.5,0.5,0.0,True,True,Point 0.0 -1.2320508075688774),(1.0,1.0,0.0,False,False,Point -0.5 -0.3660254037844387),(1.0,1.0,0.0,False,False,Point -1.0 0.5)],EndPath]
 parsePath :: ByteString -> Maybe [PathCommand]
-parsePath bs = case runParser pathParser bs of
-  OK x _ -> Just x
-  _ -> Nothing
-
-isWs' :: Char -> Bool
-isWs' x =
-  (x == ' ')
-    || (x == '\n')
-    || (x == '\t')
-    || (x == '\r')
-
-ws' :: Parser e Char
-ws' = satisfy isWs'
-
-comma' :: Parser e ()
-comma' = $(char ',')
+parsePath = runParserMaybe pathParser
 
 commaWsp :: Parser e (Maybe ())
-commaWsp = many ws' *> optional comma' <* many ws'
+commaWsp = ws_ *> optional MarkupParse.FlatParse.comma <* ws_
 
 num :: Parser e Double
 num = signed double
@@ -124,7 +109,7 @@ ellipticalArgs =
 
 -- | Parser for PathCommands
 pathParser :: Parser e [PathCommand]
-pathParser = many ws' *> manyComma command
+pathParser = ws_ *> manyComma command
 
 -- | Parser for a 'PathCommand'
 command :: Parser e PathCommand

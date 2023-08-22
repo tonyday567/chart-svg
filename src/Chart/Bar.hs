@@ -160,7 +160,7 @@ barHudOptions bo bd =
       .~ [ (1, axis1)
          ]
     & #legends
-      .~ [ (10, o & #content .~ barLegendContent bo bd)
+      .~ [ (10, o & #legendCharts .~ barLegendContent bo bd)
          ]
   where
     o = view #barLegendOptions bo
