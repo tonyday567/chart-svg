@@ -33,7 +33,6 @@ import Chart.Primitive hiding (tree)
 import Chart.Style
 import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
-import Data.ByteString.Char8 (pack)
 import Data.Colour
 import Data.FormatN
 import Data.Maybe
@@ -41,10 +40,7 @@ import Data.Path
 import Data.Path.Parser
 import Data.String.Interpolate
 import Data.Text (Text)
-import Data.Text qualified as Text
-import Data.Text.Encoding (encodeUtf8)
-import Data.Tree (Tree (..))
-import FlatParse.Basic (utf8ToStr)
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.Generics
 import MarkupParse
 import Optics.Core hiding (element)
@@ -75,24 +71,21 @@ encodeNum = encodeUtf8 . formatOrShow (FixedStyle 4) Nothing
 -- >>> encodePx 300.0
 -- "300"
 encodePx :: Double -> ByteString
-encodePx = pack . show . (floor :: Double -> Int)
+encodePx = strToUtf8 . show . (floor :: Double -> Int)
 
 -- | Convert a ChartTree to markup
 --
--- >>> lineExample & view #charts & markupChartTree
--- [Node {rootLabel = StartTag "g" [Attr "class" "line"], subForest = [Node {rootLabel = StartTag "g" [Attr "stroke-width" "0.0150",Attr "stroke" "rgb(2%, 73%, 80%)",Attr "stroke-opacity" "1.0",Attr "fill" "none"], subForest = [Node {rootLabel = EmptyElemTag "polyline" [Attr "points" "0,-1.0 1.0,-1.0 2.0,-5.0"], subForest = []}]},Node {rootLabel = StartTag "g" [Attr "stroke-width" "0.0150",Attr "stroke" "rgb(2%, 29%, 48%)",Attr "stroke-opacity" "1.0",Attr "fill" "none"], subForest = [Node {rootLabel = EmptyElemTag "polyline" [Attr "points" "0,0 2.8,-3.0"], subForest = []}]},Node {rootLabel = StartTag "g" [Attr "stroke-width" "0.0150",Attr "stroke" "rgb(66%, 7%, 55%)",Attr "stroke-opacity" "1.0",Attr "fill" "none"], subForest = [Node {rootLabel = EmptyElemTag "polyline" [Attr "points" "0.5,-4.0 0.5,0"], subForest = []}]}]}]
-markupChartTree :: ChartTree -> [Tree Token]
+-- >>> lineExample & view #charts & markupChartTree & markdown_ Compact Xml
+-- "<g class=\"line\"><g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g><g stroke-width=\"0.0150\" stroke=\"rgb(2%, 29%, 48%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,0 2.8,-3.0\"/></g><g stroke-width=\"0.0150\" stroke=\"rgb(66%, 7%, 55%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0.5,-4.0 0.5,0\"/></g></g>"
+markupChartTree :: ChartTree -> Markup
 markupChartTree cs =
-  case (xs', label) of
-    ([], Nothing) -> mempty
-    (xs'', Nothing) -> xs''
-    (xs'', Just l) -> [Node (StartTag "g" [Attr "class" (encodeUtf8 l)]) xs'']
+  maybe xs' (\l -> element "g" [Attr "class" (encodeUtf8 l)] xs') label
   where
     (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
     xs' = mconcat $ fmap markupChart cs' <> (markupChartTree . ChartTree <$> xs)
 
-markupText :: TextStyle -> Text -> Point Double -> Tree Token
-markupText s t p@(Point x y) = Node (StartTag "text" as) (xs <> [pure (Content c)])
+markupText :: TextStyle -> Text -> Point Double -> Markup
+markupText s t p@(Point x y) = element "text" as (frame' <> content c)
   where
     as =
       uncurry Attr
@@ -100,8 +93,8 @@ markupText s t p@(Point x y) = Node (StartTag "text" as) (xs <> [pure (Content c
               ("y", encodeNum $ -y)
             ]
           <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> (s ^. #rotation))
-    xs = case view #frame s of
-      Nothing -> []
+    frame' = case view #frame s of
+      Nothing -> Markup mempty
       Just f -> markupChart (RectChart (f & over #borderSize (* view #size s)) [styleBoxText s t p])
     c = encodeUtf8 t
 
@@ -123,9 +116,9 @@ toScaleText x =
   "scale(" <> encodeNum x <> ")"
 
 -- | Convert a Rect to Markup
-markupRect :: Rect Double -> Token
+markupRect :: Rect Double -> Markup
 markupRect (Rect x z y w) =
-  EmptyElemTag "rect" as
+  emptyElem "rect" as
   where
     as =
       uncurry Attr
@@ -137,40 +130,37 @@ markupRect (Rect x z y w) =
 
 -- | Convert a Chart to Markup
 --
--- >>> lineExample & view #charts & foldOf charts' & head & markupChart
--- [Node {rootLabel = StartTag "g" [Attr "stroke-width" "0.0150",Attr "stroke" "rgb(2%, 73%, 80%)",Attr "stroke-opacity" "1.0",Attr "fill" "none"], subForest = [Node {rootLabel = EmptyElemTag "polyline" [Attr "points" "0,-1.0 1.0,-1.0 2.0,-5.0"], subForest = []}]}]
-markupChart :: Chart -> [Tree Token]
-markupChart (RectChart s xs) =
-  [Node (StartTag "g" (attsRect s)) (pure . markupRect <$> xs)]
-markupChart (TextChart s xs) =
-  [Node (StartTag "g" (attsText s)) (uncurry (markupText s) <$> xs)]
-markupChart (GlyphChart s xs) =
-  [Node (StartTag "g" (attsGlyph s)) (fmap (markupGlyph s) xs)]
-markupChart (PathChart s xs) =
-  [Node (StartTag "g" (attsPath s)) [pure $ markupPath xs]]
-markupChart (LineChart s xs) =
-  [Node (StartTag "g" (attsLine s)) (pure <$> markupLine xs)]
-markupChart (BlankChart _) = []
+-- >>> lineExample & view #charts & foldOf charts' & head & markupChart & markdown_ Compact Xml
+-- "<g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g>"
+markupChart :: Chart -> Markup
+markupChart = uncurry (element "g") . f
+  where
+    f (RectChart s xs) = (attsRect s, mconcat (markupRect <$> xs))
+    f (TextChart s xs) = (attsText s, mconcat (uncurry (markupText s) <$> xs))
+    f (GlyphChart s xs) = (attsGlyph s, mconcat (markupGlyph s <$> xs))
+    f (PathChart s xs) = (attsPath s, markupPath xs)
+    f (LineChart s xs) = (attsLine s, markupLine xs)
+    f (BlankChart _) = ([], mempty)
 
-markupLine :: [[Point Double]] -> [Token]
+markupLine :: [[Point Double]] -> Markup
 markupLine lss =
-  EmptyElemTag "polyline" . (: []) . Attr "points" . toPointsText <$> lss
+  mconcat $ emptyElem "polyline" . (: []) . Attr "points" . toPointsText <$> lss
 
 toPointsText :: [Point Double] -> ByteString
 toPointsText xs = intercalate " " $ (\(Point x y) -> encodeNum x <> "," <> encodeNum (-y)) <$> xs
 
 -- | Path markup
-markupPath :: [PathData Double] -> Token
+markupPath :: [PathData Double] -> Markup
 markupPath ps =
-  EmptyElemTag "path" [Attr "d" (pathDataToSvg ps)]
+  emptyElem "path" [Attr "d" (pathDataToSvg ps)]
 
 -- | GlyphStyle to markup Tree
 -- Note rotation on the outside not the inside.
-markupGlyph :: GlyphStyle -> Point Double -> Tree Token
+markupGlyph :: GlyphStyle -> Point Double -> Markup
 markupGlyph s p =
   case view #rotation s of
-    Nothing -> pure gl
-    Just r -> Node (StartTag "g" [Attr "transform" (toRotateText r p)]) [pure gl]
+    Nothing -> gl
+    Just r -> element "g" [Attr "transform" (toRotateText r p)] gl
   where
     gl = markupShape_ (s ^. #shape) (s ^. #size) p
 
@@ -256,8 +246,8 @@ toTranslateText (Point x y) =
   "translate(" <> encodeNum x <> ", " <> encodeNum (-y) <> ")"
 
 -- | GlyphShape to markup Tree
-markupShape_ :: GlyphShape -> Double -> Point Double -> Token
-markupShape_ CircleGlyph s (Point x y) = EmptyElemTag "circle" as
+markupShape_ :: GlyphShape -> Double -> Point Double -> Markup
+markupShape_ CircleGlyph s (Point x y) = emptyElem "circle" as
   where
     as =
       uncurry Attr
@@ -269,7 +259,7 @@ markupShape_ SquareGlyph s p =
   markupRect (move p ((s *) <$> one :: Rect Double))
 markupShape_ (RectSharpGlyph x') s p =
   markupRect (move p (scale (Point s (x' * s)) one :: Rect Double))
-markupShape_ (RectRoundedGlyph x' rx ry) s p = EmptyElemTag "rect" as
+markupShape_ (RectRoundedGlyph x' rx ry) s p = emptyElem "rect" as
   where
     as =
       uncurry Attr
@@ -282,7 +272,7 @@ markupShape_ (RectRoundedGlyph x' rx ry) s p = EmptyElemTag "rect" as
             ]
     (Rect x z y w) = move p (scale (Point s (x' * s)) one)
 markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
-  EmptyElemTag "polygon" as
+  emptyElem "polygon" as
   where
     as =
       uncurry Attr
@@ -290,39 +280,37 @@ markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =
               ("points", encodeNum (s * xa) <> "," <> encodeNum (-(s * ya)) <> " " <> encodeNum (s * xb) <> "," <> encodeNum (-(s * yb)) <> " " <> encodeNum (s * xc) <> "," <> encodeNum (-(s * yc)))
             ]
 markupShape_ (EllipseGlyph x') s (Point x y) =
-  EmptyElemTag "ellipse" as
+  emptyElem "ellipse" as
   where
     as =
       uncurry Attr
-        <$> [ ("cx", (pack . show) x),
-              ("cy", (pack . show) $ -y),
-              ("rx", (pack . show) $ 0.5 * s),
-              ("ry", (pack . show) $ 0.5 * s * x')
+        <$> [ ("cx", (strToUtf8 . show) x),
+              ("cy", (strToUtf8 . show) $ -y),
+              ("rx", (strToUtf8 . show) $ 0.5 * s),
+              ("ry", (strToUtf8 . show) $ 0.5 * s * x')
             ]
 markupShape_ VLineGlyph s (Point x y) =
-  EmptyElemTag "polyline" [Attr "points" $ encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2))]
+  emptyElem "polyline" [Attr "points" $ encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2))]
 markupShape_ HLineGlyph s (Point x y) =
-  EmptyElemTag "polyline" [Attr "points" $ encodeNum (x - s / 2) <> "," <> encodeNum (-y) <> "\n" <> encodeNum (x + s / 2) <> "," <> encodeNum (-y)]
+  emptyElem "polyline" [Attr "points" $ encodeNum (x - s / 2) <> "," <> encodeNum (-y) <> "\n" <> encodeNum (x + s / 2) <> "," <> encodeNum (-y)]
 markupShape_ (PathGlyph path _) s p =
-  EmptyElemTag "path" (uncurry Attr <$> [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)])
+  emptyElem "path" (uncurry Attr <$> [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)])
 
 -- | Create the classic SVG element
 --
--- >>> header 100 one [pure (StartTag "foo" [])]
--- Node {rootLabel = StartTag "svg" [Attr "xmlns" "http://www.w3.org/2000/svg",Attr "xmlns:xlink" "http://www.w3.org/1999/xlink",Attr "width" "100",Attr "height" "100",Attr "viewBox" "-0.5 -0.5 1.0 1.0"], subForest = [Node {rootLabel = StartTag "foo" [], subForest = []}]}
-header :: Double -> Rect Double -> [Tree Token] -> Tree Token
+-- >>> header 100 one (element_ "foo" []) & markdown_ Compact Xml
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"100\" height=\"100\" viewBox=\"-0.5 -0.5 1.0 1.0\"><foo></foo></svg>"
+header :: Double -> Rect Double -> Markup -> Markup
 header markupheight viewbox content' =
-  Node
-    ( StartTag
-        "svg"
-        ( uncurry Attr
-            <$> [ ("xmlns", "http://www.w3.org/2000/svg"),
-                  ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
-                  ("width", encodePx w''),
-                  ("height", encodePx h'),
-                  ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
-                ]
-        )
+  element
+    "svg"
+    ( uncurry Attr
+        <$> [ ("xmlns", "http://www.w3.org/2000/svg"),
+              ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
+              ("width", encodePx w''),
+              ("height", encodePx h'),
+              ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
+            ]
     )
     content'
   where
@@ -404,16 +392,17 @@ fillSwitch (colorNormal, colorPrefer) prefer item =
 -- | Markup options.
 --
 -- >>> defaultMarkupOptions
--- MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}}
+-- MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}, renderStyle = Compact}
 data MarkupOptions = MarkupOptions
   { markupHeight :: Double,
-    cssOptions :: CssOptions
+    cssOptions :: CssOptions,
+    renderStyle :: RenderStyle
   }
   deriving (Eq, Show, Generic)
 
 -- | The official markup options
 defaultMarkupOptions :: MarkupOptions
-defaultMarkupOptions = MarkupOptions 300 defaultCssOptions
+defaultMarkupOptions = MarkupOptions 300 defaultCssOptions Compact
 
 -- | CSS shape rendering options
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
@@ -438,19 +427,12 @@ defaultCssOptions :: CssOptions
 defaultCssOptions = CssOptions NoShapeRendering PreferHud mempty
 
 -- | Convert CssOptions to Markup
---
--- >>> markupCssOptions defaultCssOptions
--- Node {rootLabel = StartTag "style" [], subForest = [Node {rootLabel = Content "svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgb(5%, 5%, 5%);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgb(5%, 5%, 5%);\n  }\n  .legendBorder g {\n    fill: rgb(94%, 94%, 94%);\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgb(94%, 94%, 94%);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgb(94%, 94%, 94%);\n  }\n  .legendBorder g {\n    fill: rgb(5%, 5%, 5%);\n  }\n}", subForest = []}]}
-markupCssOptions :: CssOptions -> Tree Token
+markupCssOptions :: CssOptions -> Markup
 markupCssOptions css =
-  Node
-    (StartTag "style" [])
-    [ pure $
-        Content $
-          cssPreferColorScheme (light, dark) (view #preferColorScheme css)
-            <> markupShapeRendering (view #shapeRendering css)
-            <> view #cssExtra css
-    ]
+  elementc "style" [] $
+    cssPreferColorScheme (light, dark) (view #preferColorScheme css)
+      <> markupShapeRendering (view #shapeRendering css)
+      <> view #cssExtra css
 
 -- | CSS shape rendering text snippet
 markupShapeRendering :: CssShapeRendering -> ByteString
@@ -468,17 +450,16 @@ data ChartOptions = ChartOptions
 
 -- | Convert ChartOptions to Markup
 --
--- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- Markup {standard = Xml, markupTree = [Node {rootLabel = StartTag "svg" [Attr "xmlns" "http://www.w3.org/2000/svg",Attr "xmlns:xlink" "http://www.w3.org/1999/xlink",Attr "width" "450",Attr "height" "300",Attr "viewBox" "-0.75 -0.5 1.5 1.0"], subForest = [Node {rootLabel = StartTag "style" [], subForest = [Node {rootLabel = Content "", subForest = []}]},Node {rootLabel = StartTag "g" [Attr "class" "chart"], subForest = []},Node {rootLabel = StartTag "g" [Attr "class" "hud"], subForest = []}]}]}
+-- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty) & markdown_ Compact Xml
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"450\" height=\"300\" viewBox=\"-0.75 -0.5 1.5 1.0\"><style></style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 markupChartOptions :: ChartOptions -> Markup
 markupChartOptions co =
-  Markup Xml . (: []) $
-    header
-      (view (#markupOptions % #markupHeight) co)
-      viewbox
-      ( [markupCssOptions (view (#markupOptions % #cssOptions) co)]
-          <> markupChartTree csAndHud
-      )
+  header
+    (view (#markupOptions % #markupHeight) co)
+    viewbox
+    ( markupCssOptions (view (#markupOptions % #cssOptions) co)
+        <> markupChartTree csAndHud
+    )
   where
     viewbox = singletonGuard (view styleBox' csAndHud)
     csAndHud = addHud (view #hudOptions co) (view #charts co)
@@ -488,14 +469,14 @@ markupChartOptions co =
 -- >>> encodeChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
 -- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"450\" height=\"300\" viewBox=\"-0.75 -0.5 1.5 1.0\"><style></style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 encodeChartOptions :: ChartOptions -> ByteString
-encodeChartOptions = markdown Compact . markupChartOptions
+encodeChartOptions co = markdown_ (view (#markupOptions % #renderStyle) co) Xml $ markupChartOptions co
 
 -- | Render ChartOptions to an SVG Text snippet
 --
 -- >>> renderChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
 -- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"450\" height=\"300\" viewBox=\"-0.75 -0.5 1.5 1.0\"><style></style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 renderChartOptions :: ChartOptions -> Text
-renderChartOptions = Text.pack . utf8ToStr . markdown Compact . markupChartOptions
+renderChartOptions = decodeUtf8 . encodeChartOptions
 
 instance Semigroup ChartOptions where
   (<>) (ChartOptions _ h c) (ChartOptions s' h' c') =

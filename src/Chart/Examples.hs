@@ -122,7 +122,7 @@ lineExample =
                 & over #frame (fmap (set #color white))
                 & set #place (PlaceAbsolute (Point 0.45 (-0.35)))
                 & set (#textStyle % #size) 0.20
-                & set #content (zipWith (\t c -> (t, [c])) ["palette1 0", "palette1 1", "palette1 2"] cs)
+                & set #legendCharts (zipWith (\t c -> (t, [c])) ["palette1 0", "palette1 1", "palette1 2"] cs)
             )
           ]
     cs =
@@ -312,7 +312,7 @@ ellipseExample a =
     & #charts .~ named "ellipse" [ell, ellFull, c0, c1, bbox, xradii, yradii]
     & #hudOptions .~ defaultHudOptions
     & #hudOptions % #chartAspect .~ a
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #content .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1)]
+    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1)]
     & #hudOptions % #titles .~ [(11, defaultTitle "ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)" & #style % #size .~ 0.08)]
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
@@ -448,7 +448,7 @@ quadExample =
     & #charts .~ named "quad" [path', curve, c0, c1, bbox]
     & #hudOptions .~ defaultHudOptions
     & #hudOptions % #chartAspect .~ FixedAspect 1.5
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #content .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
+    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
     & #hudOptions % #titles .~ [(11, defaultTitle "QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))" & #style % #size .~ 0.08)]
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))
@@ -480,7 +480,7 @@ cubicExample =
     & #charts .~ named "cubic" [path', curve, c0, c1, bbox]
     & #hudOptions .~ mempty
     & #hudOptions % #chartAspect .~ FixedAspect 1.5
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #content .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
+    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
     & #hudOptions % #titles .~ [(11, defaultTitle "CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)" & #style % #size .~ 0.08)]
   where
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
@@ -515,7 +515,7 @@ surfaceExample =
     & #markupOptions .~ (defaultMarkupOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
   where
     -- FIXME: surface legends are broken as.
-    -- & #hudOptions % #legends .~ [(30,defaultLegendOptions & #content .~ [("", foldOf charts' $ surfaceLegendChart rangef (defaultSurfaceLegendOptions dark "text"))])]
+    -- & #hudOptions % #legends .~ [(30,defaultLegendOptions & #legendCharts .~ [("", foldOf charts' $ surfaceLegendChart rangef (defaultSurfaceLegendOptions dark "text"))])]
 
     grain = Point 100 100
     r = one

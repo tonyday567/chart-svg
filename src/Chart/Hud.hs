@@ -661,7 +661,7 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- | Legend options
 --
 -- >>> defaultLegendOptions
--- LegendOptions {size = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = TextStyle {size = 0.18, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.05 0.05 0.05 1.00, color = Colour 0.05 0.05 0.05 0.00}), place = PlaceRight, overallScale = 0.25, content = []}
+-- LegendOptions {size = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = TextStyle {size = 0.18, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.05 0.05 0.05 1.00, color = Colour 0.05 0.05 0.05 0.00}), place = PlaceRight, overallScale = 0.25, legendCharts = []}
 data LegendOptions = LegendOptions
   { size :: Double,
     buffer :: Double,
@@ -673,7 +673,7 @@ data LegendOptions = LegendOptions
     frame :: Maybe RectStyle,
     place :: Place,
     overallScale :: Double,
-    content :: [(Text, [Chart])]
+    legendCharts :: [(Text, [Chart])]
   }
   deriving (Show, Eq, Generic)
 
@@ -1099,7 +1099,7 @@ legendChart l = legendFrame l content'
           )
             <$> es
         )
-    es = reverse $ uncurry (legendEntry l) <$> view #content l
+    es = reverse $ uncurry (legendEntry l) <$> view #legendCharts l
     twidth = maybe zero (\(Rect _ z _ _) -> z) (styleBoxes (fst <$> es))
     gapwidth t = maybe 0 (\(Rect _ z _ _) -> z) (sbox t)
 

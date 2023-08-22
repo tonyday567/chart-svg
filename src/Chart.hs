@@ -133,9 +133,9 @@ import Data.Path.Parser
 -- 'Markup' is, essentially, SVG (or XML) sufficient to turn a chart into SVG text, but insufficiently standards compliant to call it that. The pipeline from chart to screen is approximately:
 --
 -- - Create a 'ChartOptions' which is a product of a 'ChartTree', 'HudOptions' and 'MarkupOptions', which is SVG specific configuration details.
--- - Convert this to 'Markup' via 'markupChartOptions'
--- - Convert 'Markup' to ByteString via 'encodeMarkup',or
--- - Convert 'Markup' to Text via 'renderMarkup'
+-- - Convert this to 'Markup' via 'markupChartOptions', or
+-- - Convert this to ByteString via 'encodeChartOptions',or
+-- - Convert this to Text via 'renderChartOptions'
 
 -- $optics
 --

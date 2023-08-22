@@ -1,2 +1,3 @@
 packages:
   chart-svg.cabal
+  ../markup-parse/markup-parse.cabal

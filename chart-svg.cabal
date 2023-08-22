@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.5.0.0
+version: 0.5.1.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -121,7 +121,7 @@ library
         , flatparse          >=0.3.5 && <0.6
         , foldl              ^>=1.4
         , formatn            >=0.2.1 && <0.4
-        , markup-parse       >=0.0 && <0.1
+        , markup-parse       >=0.1 && <0.2
         , mtl                >=2.2.2 && <2.4
         , numhask            >=0.10 && <0.12
         , numhask-array      >=0.10 && <0.12
@@ -156,7 +156,7 @@ test-suite test
         , bytestring   >=0.11.3 && <0.13
         , chart-svg
         , flatparse    >=0.3.5 && <0.6
-        , markup-parse >=0.0 && <0.1
+        , markup-parse >=0.1 && <0.2
         , tasty        >=1.2 && <1.5
         , tasty-golden >=2.3.1.1 && <2.4
         , tree-diff    >=0.3 && <0.4
