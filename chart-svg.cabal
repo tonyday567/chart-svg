@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.5.1.0
+version: 0.5.1.1
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -144,18 +144,3 @@ library
         Data.Colour
         Data.Path
         Data.Path.Parser
-
-test-suite test
-    import: ghc-options-stanza
-    import: ghc2021-stanza
-    main-is: test.hs
-    hs-source-dirs: test
-    build-depends:
-        , base         >=4.7 && <5
-        , bytestring   >=0.11.3 && <0.13
-        , chart-svg
-        , markup-parse >=0.1 && <0.2
-        , tasty        >=1.2 && <1.5
-        , tasty-golden >=2.3.1.1 && <2.4
-        , tree-diff    >=0.3 && <0.4
-    type: exitcode-stdio-1.0

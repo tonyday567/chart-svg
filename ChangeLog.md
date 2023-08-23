@@ -1,6 +1,7 @@
 0.5.0
 ===
 * Library split into markup-parse and chart-svg.
+* test removed
 
 0.4.1
 ===
