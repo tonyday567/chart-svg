@@ -1,3 +1,14 @@
+0.5.1.1
+===
+* test suite removed
+
+0.5.1.0
+===
+* Bumped markup-parse lower bound to >=0.1
+* Renamed LegendOptions.content to LegendOptions.legendCharts
+* markup* functions now return Markup
+* renderStyle added as a MarkupOptions component
+
 0.5.0
 ===
 * Library split into markup-parse and chart-svg.
