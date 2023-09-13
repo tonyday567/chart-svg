@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.5.1.1
+version: 0.6
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -111,15 +111,15 @@ library
     import: ghc2021-stanza
     hs-source-dirs: src
     build-depends:
-        , Color              ^>=0.3
+        , Color              >=0.3 && <0.4
         , adjunctions        >=4.0 && <5
         , attoparsec         >=0.13.2 && <0.15
         , base               >=4.7 && <5
         , bytestring         >=0.11.3 && <0.13
         , containers         >=0.6 && <0.7
-        , cubicbezier        ^>=0.6
+        , cubicbezier        >=0.6 && <0.7
         , flatparse          >=0.3.5 && <0.6
-        , foldl              ^>=1.4
+        , foldl              >=1.4 && <1.5
         , formatn            >=0.2.1 && <0.4
         , markup-parse       >=0.1 && <0.2
         , mtl                >=2.2.2 && <2.4
@@ -129,7 +129,7 @@ library
         , optics-core        >=0.4 && <0.5
         , random             >=1.2 && <1.3
         , string-interpolate >=0.3 && <0.4
-        , text               >=1.2 && <2.1
+        , text               >=1.2 && <2.2
         , time               >=1.9 && <1.13
     exposed-modules:
         Chart
