@@ -39,6 +39,9 @@ module Chart.Examples
     pathChartOptions,
     writeAllExamples,
     writeAllExamplesDark,
+
+    -- * Compound Charts
+    compoundExample,
   )
 where
 
@@ -703,6 +706,12 @@ debugExample cs =
     e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 
+-- | A merge of lineExample and unitExample with the unitExample axes flipped to the oppoiste sides.
+--
+-- -- ![compound example](other/compound.svg)
+compoundExample :: ChartOptions
+compoundExample = compoundMerge [lineExample, unitExample & #hudOptions % #axes %~ fmap (_2 % #place %~ flipPlace)]
+
 -- | All the examples and the associated filepaths
 pathChartOptions :: [(FilePath, ChartOptions)]
 pathChartOptions =
@@ -729,7 +738,8 @@ pathChartOptions =
     ("other/wheel.svg", wheelExample),
     ("other/debug.svg", debugExample lineExample),
     ("other/priorityv1.svg", priorityv1Example),
-    ("other/priorityv2.svg", priorityv2Example)
+    ("other/priorityv2.svg", priorityv2Example),
+    ("other/compound.svg", compoundExample)
   ]
 
 -- | Run this to refresh example SVG's.

@@ -9,6 +9,8 @@ A charting library targetting SVG.
 * Usage
 
 #+begin_src haskell :file other/usage.svg :results output graphics file :exports both
+:r
+:set prompt "> "
 :set -XOverloadedLabels
 :set -XOverloadedStrings
 import Chart

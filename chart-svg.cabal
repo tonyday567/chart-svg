@@ -134,6 +134,7 @@ library
     exposed-modules:
         Chart
         Chart.Bar
+        Chart.Compound
         Chart.Data
         Chart.Examples
         Chart.Hud

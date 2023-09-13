@@ -44,6 +44,7 @@ module Chart.Hud
     FrameOptions (..),
     defaultFrameOptions,
     Place (..),
+    flipPlace,
     placeText,
     AxisBar (..),
     defaultAxisBar,
@@ -502,6 +503,17 @@ data Place
   | PlaceBottom
   | PlaceAbsolute (Point Double)
   deriving (Show, Eq, Generic)
+
+-- | Flip Place to the opposite side, or unchanged if 'PlaceAbsolute'.
+--
+-- >>> flipPlace PlaceLeft
+-- PlaceRight
+flipPlace :: Place -> Place
+flipPlace PlaceLeft = PlaceRight
+flipPlace PlaceRight = PlaceLeft
+flipPlace PlaceTop = PlaceBottom
+flipPlace PlaceBottom = PlaceTop
+flipPlace x = x
 
 -- | textifier
 placeText :: Place -> Text
