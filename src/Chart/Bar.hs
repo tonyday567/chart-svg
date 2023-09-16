@@ -202,7 +202,7 @@ data BarData = BarData
 -- Rect -0.5 0.5 -0.5 0.5
 barRange ::
   [[Double]] -> Rect Double
-barRange ys = singletonGuard $ Just $ Rect 0 (fromIntegral $ rows ys) (min 0 l) u
+barRange ys = padSingletons $ Rect 0 (fromIntegral $ rows ys) (min 0 l) u
   where
     (Range l u) = fromMaybe one $ space1 $ mconcat ys
 

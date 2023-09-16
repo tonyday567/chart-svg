@@ -22,6 +22,7 @@ import Data.List qualified as List
 import Optics.Core
 import Control.Monad.State.Lazy
 import MarkupParse
+import Data.Maybe
 
 -- | Write multiple charts to a single file sharing the canvas.
 writeChartOptionsCompound :: FilePath -> [ChartOptions] -> IO ()
@@ -39,12 +40,12 @@ markupChartOptionsCompound [] = mempty
 markupChartOptionsCompound cs@(co0 : _) =
     header
       (view (#markupOptions % #markupHeight) co0)
-      viewbox
+      (fromMaybe one viewbox)
       ( markupCssOptions (view (#markupOptions % #cssOptions) co0)
           <> markupChartTree csAndHuds
       )
   where
-    viewbox = singletonGuard (view styleBox' csAndHuds)
+    viewbox = padSingletons <$> view styleBox' csAndHuds
     csAndHuds = addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs))
 
 -- | Merge a list of ChartOptions, treating each element as charts to be merged. Note that this routine mempties the hud options and converts them to charts.
@@ -67,7 +68,8 @@ addHudCompound ts@((ho0, cs0) : _) =
     hss = zipWith (\i hs -> fmap (over #priority (+Priority (i*0.1))) hs) [0..] (fst <$> huds)
     dbs = snd <$> huds
     css = snd <$> ts -- <> (blank <$> dbs)
-    huds = (\(ho, cs) -> toHuds ho (singletonGuard $ view box' cs)) <$> ts
+    -- FIXME:: toHuds might deal with singletons better
+    huds = (\(ho, cs) -> toHuds ho (maybe one padSingletons (view box' cs))) <$> ts
 
 -- | Combine a collection of chart trees that share a canvas box.
 runHudCompoundWith ::

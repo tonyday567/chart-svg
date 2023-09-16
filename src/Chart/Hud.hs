@@ -91,7 +91,6 @@ import Data.Tuple
 import GHC.Generics hiding (to)
 import NumHask.Prelude qualified as NH
 import Optics.Core
-import Prelude
 
 -- $setup
 --
@@ -221,12 +220,18 @@ hudBox_ = boxes . (\x -> foldOf (#chart % charts') x <> foldOf (#hud % charts') 
 hudRebox_ :: HudChart -> Maybe HudBox -> HudChart
 hudRebox_ cs r =
   cs
-    & over #chart (over chart' (maybeProjectWith r' (hudBox_ cs)))
-    & over #hud (over chart' (maybeProjectWith r' (hudBox_ cs)))
+    & over #chart reprojectCharts
+    & over #hud reprojectCharts
   where
-    r' = (NH.-) <$> r <*> ((NH.-) <$> hudStyleBox_ cs <*> hudBox_ cs)
+    reprojectCharts = case (hudBox_ cs, hudStyleBox_ cs, r) of
+      (Just hb, Just hsb, Just rebox') ->
+        over chart' (projectWith (rebox' NH.- (hsb NH.- hb)) hb)
+      _ -> id
 
 -- | lens between a HudChart and its hud bounding box, not including style.
+--
+-- FIXME: Add doctest for this
+-- Will only reset a HudBox if all dimensions are non-singular.
 hudBox' :: Lens' HudChart (Maybe HudBox)
 hudBox' =
   lens hudBox_ hudRebox_
@@ -303,7 +308,7 @@ runHud ::
   ChartTree ->
   -- | integrated chart list
   ChartTree
-runHud ca hs cs = runHudWith ca (singletonGuard $ boxes (foldOf charts' cs)) hs cs
+runHud ca hs cs = runHudWith ca (fromMaybe one $ padSingletons <$> boxes (foldOf charts' cs)) hs cs
 
 -- | Typical, configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
@@ -355,9 +360,10 @@ addHud ho cs =
     (initialCanvas (view #chartAspect ho) cs)
     db'
     hs
-    (cs <> blank db')
+    (cs <> bool (blank db') mempty (db==db'))
   where
-    (hs, db') = toHuds ho (singletonGuard $ view box' cs)
+    db = fromMaybe one $ padSingletons <$> view box' cs
+    (hs, db') = toHuds ho db
 
 -- | The initial canvas before applying Huds
 --
@@ -366,7 +372,7 @@ addHud ho cs =
 initialCanvas :: ChartAspect -> ChartTree -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = singletonGuard $ view box' cs
+initialCanvas ChartAspect cs = fromMaybe one $ padSingletons <$> view box' cs
 
 priorities :: HudOptions -> [Priority]
 priorities o =

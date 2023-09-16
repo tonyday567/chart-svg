@@ -456,12 +456,12 @@ markupChartOptions :: ChartOptions -> Markup
 markupChartOptions co =
   header
     (view (#markupOptions % #markupHeight) co)
-    viewbox
+    (fromMaybe one viewbox)
     ( markupCssOptions (view (#markupOptions % #cssOptions) co)
         <> markupChartTree csAndHud
     )
   where
-    viewbox = singletonGuard (view styleBox' csAndHud)
+    viewbox = padSingletons <$> view styleBox' csAndHud
     csAndHud = addHud (view #hudOptions co) (view #charts co)
 
 -- | Render ChartOptions to an SVG ByteString

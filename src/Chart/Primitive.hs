@@ -193,16 +193,19 @@ sbox (BlankChart a) = foldRect a
 
 -- | projects a Chart to a new space from an old rectangular space, preserving linear metric structure.
 --
+-- FIXME: test singleton protections
+--
 -- >>> projectWith (fmap (2*) one) one r
 -- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -1.0 1.0 -1.0 1.0]
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old (RectChart s a) = RectChart s (projectOnR new old <$> a)
-projectWith new old (TextChart s a) = TextChart (projectX s) (second (projectOnP new old) <$> a)
+projectWith new old (TextChart s a) = TextChart projectS (second (projectOnP new old) <$> a)
   where
-    projectX :: TextStyle -> TextStyle
-    projectX s' = case view #scalex s' of
-      NoScaleX -> s' & over #hsize (* (width ox / width nx)) & over #vsize (* (width ox / width nx))
-      ScaleX -> s' & over #size (* (width nx / width ox))
+    projectS = bool s s' (width nx > 0)
+    s' = case view #scalex s of
+      NoScaleX -> s & over #hsize (* (width ox / width nx)) & over #vsize (* (width ox / width nx))
+      -- FIXME: test this
+      ScaleX -> s & over #size (* (width nx / width ox))
     (Ranges nx _) = new
     (Ranges ox _) = old
 projectWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$> a)
@@ -210,7 +213,7 @@ projectWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
 projectWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
 projectWith new old (PathChart s a) = PathChart s (projectPaths new old a)
 
--- | Maybe project a Chart to a new rectangular space from an old rectangular space, if both Rects exist.
+-- | Maybe project a Chart to a new rectangular space from an old rectangular space, as long as both Rects exist, and are not singular.
 maybeProjectWith :: Maybe (Rect Double) -> Maybe (Rect Double) -> Chart -> Chart
 maybeProjectWith new old = fromMaybe id (projectWith <$> new <*> old)
 

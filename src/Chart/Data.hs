@@ -11,7 +11,7 @@ module Chart.Data
     Rect (..),
     padRect,
     padSingletons,
-    singletonGuard,
+    isSingleton,
     Point (..),
     addp,
 
@@ -57,9 +57,9 @@ padSingletons (Rect x z y w)
   | y == w = Rect x z (y - 0.5) (y + 0.5)
   | otherwise = Rect x z y w
 
--- | Guard against an upstream Nothing or a singleton dimension
-singletonGuard :: Maybe (Rect Double) -> Rect Double
-singletonGuard = maybe one padSingletons
+-- | is any dimension singular?
+isSingleton :: Rect Double -> Bool
+isSingleton (Rect x z y w) = x==z || y==w
 
 -- | add Points, dimension-wise
 --
