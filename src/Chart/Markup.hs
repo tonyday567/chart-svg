@@ -85,7 +85,7 @@ markupChartTree cs =
     xs' = mconcat $ fmap markupChart cs' <> (markupChartTree . ChartTree <$> xs)
 
 markupText :: TextStyle -> Text -> Point Double -> Markup
-markupText s t p@(Point x y) = element "text" as (frame' <> content c)
+markupText s t p@(Point x y) = frame' <> element "text" as (content c)
   where
     as =
       uncurry Attr
@@ -298,25 +298,29 @@ markupShape_ (PathGlyph path _) s p =
 
 -- | Create the classic SVG element
 --
--- >>> header 100 one (element_ "foo" []) & markdown_ Compact Xml
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"100\" height=\"100\" viewBox=\"-0.5 -0.5 1.0 1.0\"><foo></foo></svg>"
-header :: Double -> Rect Double -> Markup -> Markup
+-- >>> header (Just 300) (Rect (-0.75) 0.75 (-0.5) 0.5) (element_ "foo" []) & markdown_ Compact Xml
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"450\" height=\"300\" viewBox=\"-0.75 -0.5 1.5 1.0\"><foo></foo></svg>"
+header :: Maybe Double -> Rect Double -> Markup -> Markup
 header markupheight viewbox content' =
   element
     "svg"
     ( uncurry Attr
-        <$> [ ("xmlns", "http://www.w3.org/2000/svg"),
-              ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
-              ("width", encodePx w''),
-              ("height", encodePx h'),
-              ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
-            ]
+        <$> ( [ ("xmlns", "http://www.w3.org/2000/svg"),
+              ("xmlns:xlink", "http://www.w3.org/1999/xlink")] <>
+            widthAndHeight <>
+            [ ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
+            ] )
     )
     content'
   where
     (Rect x z y w) = viewbox
     Point w' h = width viewbox
-    Point w'' h' = Point (markupheight / h * w') markupheight
+    widthAndHeight = case markupheight of
+      Nothing -> []
+      Just h' -> [ ("width", encodePx w''),
+                  ("height", encodePx h')]
+        where
+          w'' = h' / h * w'
 
 -- | CSS prefer-color-scheme text snippet
 --
@@ -392,9 +396,10 @@ fillSwitch (colorNormal, colorPrefer) prefer item =
 -- | Markup options.
 --
 -- >>> defaultMarkupOptions
--- MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}, renderStyle = Compact}
+-- MarkupOptions {markupHeight = Just 300.0, chartAspect = FixedAspect 1.5, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}, renderStyle = Compact}
 data MarkupOptions = MarkupOptions
-  { markupHeight :: Double,
+  { markupHeight :: Maybe Double,
+    chartAspect :: ChartAspect,
     cssOptions :: CssOptions,
     renderStyle :: RenderStyle
   }
@@ -402,7 +407,7 @@ data MarkupOptions = MarkupOptions
 
 -- | The official markup options
 defaultMarkupOptions :: MarkupOptions
-defaultMarkupOptions = MarkupOptions 300 defaultCssOptions Compact
+defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) defaultCssOptions Compact
 
 -- | CSS shape rendering options
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
@@ -456,13 +461,14 @@ markupChartOptions :: ChartOptions -> Markup
 markupChartOptions co =
   header
     (view (#markupOptions % #markupHeight) co)
-    (fromMaybe one viewbox)
+    viewbox
     ( markupCssOptions (view (#markupOptions % #cssOptions) co)
         <> markupChartTree csAndHud
     )
   where
-    viewbox = padSingletons <$> view styleBox' csAndHud
-    csAndHud = addHud (view #hudOptions co) (view #charts co)
+    asp = view (#markupOptions % #chartAspect) co
+    viewbox = maybe (initialCanvas asp mempty) padSingletons (view styleBox' csAndHud)
+    csAndHud = addHud (view #hudOptions co) asp (view #charts co)
 
 -- | Render ChartOptions to an SVG ByteString
 --

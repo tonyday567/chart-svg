@@ -181,8 +181,8 @@ textExample =
 glyphsExample :: ChartOptions
 glyphsExample =
   mempty
-    & set (#markupOptions % #markupHeight) 50
-    & set (#hudOptions % #chartAspect) (FixedAspect 12)
+    & set (#markupOptions % #markupHeight) (Just 50)
+    & set (#markupOptions % #chartAspect) (FixedAspect 12)
     & set
       #charts
       ( named "glyphs" $
@@ -243,7 +243,7 @@ vennExample =
   mempty
     & #charts .~ named "venn" (zipWith (\c x -> PathChart (defaultPathStyle & #borderSize .~ 0.005 & #color .~ palette1a c 0.2 & over #borderColor (set opac' 1)) x) [0 ..] (svgToPathData <$> vennSegs))
     & #hudOptions .~ defaultHudOptions
-    & #hudOptions % #chartAspect .~ FixedAspect 1
+    & #markupOptions % #chartAspect .~ FixedAspect 1
 
 {-
 These were originally based on:
@@ -276,7 +276,7 @@ pathExample =
   mempty
     & #charts .~ named "path" [path', c0] <> named "pathtext" [t0]
     & #hudOptions .~ defaultHudOptions
-    & #hudOptions % #chartAspect .~ ChartAspect
+    & #markupOptions % #chartAspect .~ ChartAspect
     & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
     & #markupOptions % #cssOptions % #cssExtra .~ fillSwitch (dark, light) "dark" "pathtext"
   where
@@ -314,7 +314,7 @@ ellipseExample a =
   mempty
     & #charts .~ named "ellipse" [ell, ellFull, c0, c1, bbox, xradii, yradii]
     & #hudOptions .~ defaultHudOptions
-    & #hudOptions % #chartAspect .~ a
+    & #markupOptions % #chartAspect .~ a
     & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1)]
     & #hudOptions % #titles .~ [(11, defaultTitle "ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)" & #style % #size .~ 0.08)]
   where
@@ -359,7 +359,7 @@ arcFlagsExample =
             rowLarge
           ]
       )
-    & #hudOptions % #chartAspect .~ ChartAspect
+    & #markupOptions % #chartAspect .~ ChartAspect
     & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
     & #markupOptions % #cssOptions % #cssExtra
       .~ [i|
@@ -450,7 +450,7 @@ quadExample =
   mempty
     & #charts .~ named "quad" [path', curve, c0, c1, bbox]
     & #hudOptions .~ defaultHudOptions
-    & #hudOptions % #chartAspect .~ FixedAspect 1.5
+    & #markupOptions % #chartAspect .~ FixedAspect 1.5
     & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
     & #hudOptions % #titles .~ [(11, defaultTitle "QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))" & #style % #size .~ 0.08)]
   where
@@ -482,7 +482,7 @@ cubicExample =
   mempty
     & #charts .~ named "cubic" [path', curve, c0, c1, bbox]
     & #hudOptions .~ mempty
-    & #hudOptions % #chartAspect .~ FixedAspect 1.5
+    & #markupOptions % #chartAspect .~ FixedAspect 1.5
     & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
     & #hudOptions % #titles .~ [(11, defaultTitle "CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)" & #style % #size .~ 0.08)]
   where
@@ -594,9 +594,9 @@ dateExample :: ChartOptions
 dateExample =
   mempty
     & #charts .~ blank (Rect 0 1 0 1)
+    & #markupOptions % #chartAspect .~ FixedAspect 1.5
     & #hudOptions
       .~ ( mempty
-             & #chartAspect .~ FixedAspect 1.5
              & #axes
                .~ [ (defaultPriority, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
                     (defaultPriority, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
@@ -631,12 +631,12 @@ gradient :: Maybe Double -> Double -> Double -> Int -> LCHA -> LCHA -> ChartOpti
 gradient marker h fa grain ok0 ok1 =
   mempty
     & #markupOptions % #markupHeight
-      .~ h
+      .~ Just h
     & #markupOptions % #cssOptions % #shapeRendering
       .~ UseCssCrisp
+    & #markupOptions % #chartAspect .~ FixedAspect fa
     & #hudOptions
       .~ ( mempty
-             & #chartAspect .~ FixedAspect fa
              & #frames .~ [(Priority 1, FrameOptions (Just (border 0.004 white)) 0.1)]
          )
     & #charts
@@ -654,7 +654,7 @@ borderStrip w c r = RectChart (defaultRectStyle & #color .~ transparent & #borde
 
 -- | Color wheel displaying palette1 choices
 --
--- -- ![wheel example](other/wheel.svg)
+-- ![wheel example](other/wheel.svg)
 wheelExample :: ChartOptions
 wheelExample = dotMap 0.01 50 0.5 0.5 (palette1 <$> [0 .. 7])
 
@@ -694,21 +694,22 @@ wheelPoints grain l maxchroma =
 
 -- | Adding reference points and bounding boxes to visualize chart alignment for use in debugging charts.
 --
--- -- ![debug example](other/debug.svg)
+-- ![debug example](other/debug.svg)
 debugExample :: ChartOptions -> ChartOptions
 debugExample cs =
   mempty
     & set #markupOptions (view #markupOptions cs)
-    & set (#hudOptions % #chartAspect) (view (#hudOptions % #chartAspect) cs)
+    & set (#markupOptions % #chartAspect) asp
     & set #charts (e1 <> e2 <> e3)
   where
-    e1 = addHud (view #hudOptions cs) (view #charts cs)
+    asp = view (#markupOptions % #chartAspect) cs
+    e1 = addHud (view #hudOptions cs) asp (view #charts cs)
     e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 
 -- | A merge of lineExample and unitExample with the unitExample axes flipped to the oppoiste sides.
 --
--- -- ![compound example](other/compound.svg)
+-- ![compound example](other/compound.svg)
 compoundExample :: ChartOptions
 compoundExample = compoundMerge [lineExample, unitExample & #hudOptions % #axes %~ fmap (_2 % #place %~ flipPlace)]
 

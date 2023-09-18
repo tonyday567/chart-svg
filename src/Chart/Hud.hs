@@ -226,11 +226,13 @@ hudRebox_ cs r =
     reprojectCharts = case (hudBox_ cs, hudStyleBox_ cs, r) of
       (Just hb, Just hsb, Just rebox') ->
         over chart' (projectWith (rebox' NH.- (hsb NH.- hb)) hb)
+      (Nothing, Just hsb, Just rebox') ->
+        over chart' (projectWith rebox' hsb)
       _ -> id
 
 -- | lens between a HudChart and its hud bounding box, not including style.
 --
--- FIXME: Add doctest for this
+-- FIXME: Add doctests for this, and other lenses
 -- Will only reset a HudBox if all dimensions are non-singular.
 hudBox' :: Lens' HudChart (Maybe HudBox)
 hudBox' =
@@ -290,7 +292,7 @@ runHudWith cb db hs cs =
     & flip
       execState
       ( HudChart
-          (cs & over chart' (projectWith cb db))
+          (cs & over chart' (projectWith cb (maybe one padSingletons $ view styleBox' cs)))
           mempty
           db
       )
@@ -308,14 +310,13 @@ runHud ::
   ChartTree ->
   -- | integrated chart list
   ChartTree
-runHud ca hs cs = runHudWith ca (fromMaybe one $ padSingletons <$> boxes (foldOf charts' cs)) hs cs
+runHud ca hs cs = runHudWith ca (maybe one padSingletons (boxes (foldOf charts' cs))) hs cs
 
 -- | Typical, configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
 -- ![hud example](other/hudoptions.svg)
 data HudOptions = HudOptions
-  { chartAspect :: ChartAspect,
-    axes :: [(Priority, AxisOptions)],
+  { axes :: [(Priority, AxisOptions)],
     frames :: [(Priority, FrameOptions)],
     legends :: [(Priority, LegendOptions)],
     titles :: [(Priority, Title)]
@@ -323,11 +324,11 @@ data HudOptions = HudOptions
   deriving (Eq, Show, Generic)
 
 instance Semigroup HudOptions where
-  (<>) (HudOptions _ a c l t) (HudOptions asp a' c' l' t') =
-    HudOptions asp (a <> a') (c <> c') (l <> l') (t <> t')
+  (<>) (HudOptions a c l t) (HudOptions a' c' l' t') =
+    HudOptions (a <> a') (c <> c') (l <> l') (t <> t')
 
 instance Monoid HudOptions where
-  mempty = HudOptions (FixedAspect 1.5) [] [] [] []
+  mempty = HudOptions [] [] [] []
 
 -- | The official hud options.
 --
@@ -343,7 +344,6 @@ instance Monoid HudOptions where
 defaultHudOptions :: HudOptions
 defaultHudOptions =
   HudOptions
-    (FixedAspect 1.5)
     [ (5, defaultAxisOptions),
       (5, defaultAxisOptions & set #place PlaceLeft)
     ]
@@ -354,16 +354,16 @@ defaultHudOptions =
     []
 
 -- | Decorate a ChartTree with HudOptions
-addHud :: HudOptions -> ChartTree -> ChartTree
-addHud ho cs =
+addHud :: HudOptions -> ChartAspect -> ChartTree -> ChartTree
+addHud ho asp cs =
   runHudWith
-    (initialCanvas (view #chartAspect ho) cs)
+    (initialCanvas asp cs)
     db'
     hs
     (cs <> bool (blank db') mempty (db==db'))
   where
-    db = fromMaybe one $ padSingletons <$> view box' cs
-    (hs, db') = toHuds ho db
+    db = maybe one padSingletons (view box' cs)
+    (hs, db') = toHuds ho asp db
 
 -- | The initial canvas before applying Huds
 --
@@ -372,7 +372,7 @@ addHud ho cs =
 initialCanvas :: ChartAspect -> ChartTree -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = fromMaybe one $ padSingletons <$> view box' cs
+initialCanvas ChartAspect cs = maybe one padSingletons (view box' cs)
 
 priorities :: HudOptions -> [Priority]
 priorities o =
@@ -387,15 +387,15 @@ lastPriority o = case priorities o of
   xs -> maximum xs
 
 -- | Make Huds and potential data box extension; from a HudOption and an initial data box.
-toHuds :: HudOptions -> DataBox -> ([Hud], DataBox)
-toHuds o db =
+toHuds :: HudOptions -> ChartAspect -> DataBox -> ([Hud], DataBox)
+toHuds o asp db =
   (,db''') $
     (as' & fmap (uncurry Hud . second axis))
       <> (view #frames o & fmap (uncurry Hud . second frameHud))
       <> (view #legends o & fmap (uncurry Hud . second legend))
       <> (view #titles o & fmap (uncurry Hud . second title))
       <> [ fromEffect (lastPriority o + 1) $
-             applyChartAspect (view #chartAspect o)
+             applyChartAspect asp
          ]
   where
     (as', db''') =

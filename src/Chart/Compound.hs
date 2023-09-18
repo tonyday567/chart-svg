@@ -46,7 +46,7 @@ markupChartOptionsCompound cs@(co0 : _) =
       )
   where
     viewbox = padSingletons <$> view styleBox' csAndHuds
-    csAndHuds = addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs))
+    csAndHuds = addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs)) (view (#markupOptions % #chartAspect) co0)
 
 -- | Merge a list of ChartOptions, treating each element as charts to be merged. Note that this routine mempties the hud options and converts them to charts.
 compoundMerge :: [ChartOptions] -> ChartOptions
@@ -54,22 +54,21 @@ compoundMerge [] = mempty
 compoundMerge cs@(c0 : _) =
   ChartOptions
     (view #markupOptions c0)
-    (mempty & set #chartAspect (view (#hudOptions % #chartAspect) c0))
-    (addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs)))
+    mempty
+    (addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs)) (view (#markupOptions % #chartAspect) c0))
 
 -- | Decorate a ChartTree with HudOptions, merging the individual hud options.
-addHudCompound :: [(HudOptions, ChartTree)] -> ChartTree
-addHudCompound [] = mempty
-addHudCompound ts@((ho0, cs0) : _) =
+addHudCompound :: [(HudOptions, ChartTree)] -> ChartAspect -> ChartTree
+addHudCompound [] _ = mempty
+addHudCompound ts@((_, cs0) : _) asp =
   runHudCompoundWith
-    (initialCanvas (view #chartAspect ho0) cs0)
+    (initialCanvas asp cs0)
     (zip3 dbs hss css)
   where
     hss = zipWith (\i hs -> fmap (over #priority (+Priority (i*0.1))) hs) [0..] (fst <$> huds)
     dbs = snd <$> huds
     css = snd <$> ts -- <> (blank <$> dbs)
-    -- FIXME:: toHuds might deal with singletons better
-    huds = (\(ho, cs) -> toHuds ho (maybe one padSingletons (view box' cs))) <$> ts
+    huds = (\(ho, cs) -> toHuds ho asp (maybe one padSingletons (view box' cs))) <$> ts
 
 -- | Combine a collection of chart trees that share a canvas box.
 runHudCompoundWith ::

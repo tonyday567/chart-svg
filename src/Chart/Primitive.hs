@@ -201,10 +201,10 @@ projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old (RectChart s a) = RectChart s (projectOnR new old <$> a)
 projectWith new old (TextChart s a) = TextChart projectS (second (projectOnP new old) <$> a)
   where
-    projectS = bool s s' (width nx > 0)
+    projectS = bool s s' (width nx > 0 && width ox > 0)
     s' = case view #scalex s of
+      -- FIXME: test ScaleX and NoScaleX
       NoScaleX -> s & over #hsize (* (width ox / width nx)) & over #vsize (* (width ox / width nx))
-      -- FIXME: test this
       ScaleX -> s & over #size (* (width nx / width ox))
     (Ranges nx _) = new
     (Ranges ox _) = old
