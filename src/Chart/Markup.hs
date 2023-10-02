@@ -6,6 +6,7 @@
 module Chart.Markup
   ( Markup (..),
     ChartOptions (..),
+    forgetHud,
     markupChartOptions,
     markupChartTree,
     markupChart,
@@ -85,7 +86,7 @@ markupChartTree cs =
     xs' = mconcat $ fmap markupChart cs' <> (markupChartTree . ChartTree <$> xs)
 
 markupText :: TextStyle -> Text -> Point Double -> Markup
-markupText s t p@(Point x y) = frame' <> element "text" as (content c)
+markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) (content c) (EscapeText == view #escapeText s))
   where
     as =
       uncurry Attr
@@ -453,6 +454,13 @@ data ChartOptions = ChartOptions
   }
   deriving (Generic, Eq, Show)
 
+-- | Processes the hud options and turns them into charts, rescales the existing charts, and resets the hud options to mempty. Destructive operation.
+forgetHud :: ChartOptions -> ChartOptions
+forgetHud co =
+  co &
+  set #hudOptions mempty &
+  set #charts (addHud (view #hudOptions co) (view (#markupOptions % #chartAspect) co) (view #charts co))
+
 -- | Convert ChartOptions to Markup
 --
 -- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty) & markdown_ Compact Xml
@@ -468,7 +476,7 @@ markupChartOptions co =
   where
     asp = view (#markupOptions % #chartAspect) co
     viewbox = maybe (initialCanvas asp mempty) padSingletons (view styleBox' csAndHud)
-    csAndHud = addHud (view #hudOptions co) asp (view #charts co)
+    csAndHud = view #charts (forgetHud co)
 
 -- | Render ChartOptions to an SVG ByteString
 --

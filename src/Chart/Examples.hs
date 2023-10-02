@@ -703,7 +703,7 @@ debugExample cs =
     & set #charts (e1 <> e2 <> e3)
   where
     asp = view (#markupOptions % #chartAspect) cs
-    e1 = addHud (view #hudOptions cs) asp (view #charts cs)
+    e1 = view #charts (forgetHud cs)
     e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 

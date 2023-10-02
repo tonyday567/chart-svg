@@ -16,6 +16,7 @@ module Chart.Style
     defaultTextStyle,
     styleBoxText,
     ScaleX (..),
+    EscapeText (..),
 
     -- * GlyphStyle
     GlyphStyle (..),
@@ -117,9 +118,13 @@ data TextStyle = TextStyle
     vshift :: Double,
     rotation :: Maybe Double,
     scalex :: ScaleX,
+    escapeText :: EscapeText,
     frame :: Maybe RectStyle
   }
   deriving (Show, Eq, Generic)
+
+-- | Whether to escape the common XML escaped characters.
+data EscapeText = EscapeText | NoEscapeText deriving (Eq, Show, Generic)
 
 -- | Whether to scale text given X-axis scaling
 data ScaleX = ScaleX | NoScaleX deriving (Eq, Show, Generic)
@@ -143,7 +148,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.12 dark AnchorMiddle 0.45 1.1 (-0.25) Nothing ScaleX Nothing
+  TextStyle 0.12 dark AnchorMiddle 0.45 1.1 (-0.25) Nothing ScaleX EscapeText Nothing
 
 -- | the extra area from text styling
 styleBoxText ::
