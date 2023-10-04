@@ -10,16 +10,18 @@ module Chart.Style
     blob,
     clear,
     border,
+    scaleRectStyle,
 
     -- * TextStyle
     TextStyle (..),
     defaultTextStyle,
     styleBoxText,
-    ScaleX (..),
+    scaleTextStyle,
     EscapeText (..),
 
     -- * GlyphStyle
     GlyphStyle (..),
+    scaleGlyphStyle,
     defaultGlyphStyle,
     styleBoxGlyph,
     gpalette1,
@@ -30,6 +32,7 @@ module Chart.Style
     -- * LineStyle
     LineStyle (..),
     defaultLineStyle,
+    scaleLineStyle,
     LineCap (..),
     fromLineCap,
     toLineCap,
@@ -43,6 +46,11 @@ module Chart.Style
     -- * PathStyle
     PathStyle (..),
     defaultPathStyle,
+    scalePathStyle,
+
+    -- * Style scaling
+    ScaleP(..),
+    scaleP,
   )
 where
 
@@ -59,6 +67,7 @@ import Data.Text qualified as Text
 import GHC.Generics
 import Optics.Core
 import Prelude
+import Data.Bool
 
 -- $setup
 --
@@ -76,34 +85,40 @@ import Prelude
 data RectStyle = RectStyle
   { borderSize :: Double,
     borderColor :: Colour,
-    color :: Colour
+    color :: Colour,
+    scaleRect :: ScaleP
   }
   deriving (Show, Eq, Generic)
 
 -- | the style
 defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (palette1a 1 1) (palette1a 0 0.1)
+defaultRectStyle = RectStyle 0.01 (palette1a 1 1) (palette1a 0 0.1) ScalePArea
 
 -- | solid rectangle, no border
 --
 -- >>> blob black
 -- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 1.00}
 blob :: Colour -> RectStyle
-blob = RectStyle 0 transparent
+blob c = defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ c
 
 -- | transparent rect
 --
 -- >>> clear
 -- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
 clear :: RectStyle
-clear = RectStyle 0 transparent transparent
+clear = defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ transparent
 
 -- | transparent rectangle, with border
 --
 -- >>> border 0.01 transparent
 -- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
 border :: Double -> Colour -> RectStyle
-border s c = RectStyle s c transparent
+border s c = defaultRectStyle & #borderSize .~ s & #borderColor .~ c & #color .~ transparent
+
+scaleRectStyle :: Double -> RectStyle -> RectStyle
+scaleRectStyle x s =
+  s &
+  over #borderSize (x*)
 
 -- | Text styling
 --
@@ -117,7 +132,7 @@ data TextStyle = TextStyle
     vsize :: Double,
     vshift :: Double,
     rotation :: Maybe Double,
-    scalex :: ScaleX,
+    scaleText :: ScaleP,
     escapeText :: EscapeText,
     frame :: Maybe RectStyle
   }
@@ -125,9 +140,6 @@ data TextStyle = TextStyle
 
 -- | Whether to escape the common XML escaped characters.
 data EscapeText = EscapeText | NoEscapeText deriving (Eq, Show, Generic)
-
--- | Whether to scale text given X-axis scaling
-data ScaleX = ScaleX | NoScaleX deriving (Eq, Show, Generic)
 
 -- | position anchor
 data Anchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
@@ -148,7 +160,7 @@ toAnchor _ = AnchorMiddle
 -- | the offical text style
 defaultTextStyle :: TextStyle
 defaultTextStyle =
-  TextStyle 0.12 dark AnchorMiddle 0.45 1.1 (-0.25) Nothing ScaleX EscapeText Nothing
+  TextStyle 0.12 dark AnchorMiddle 0.45 1.1 (-0.25) Nothing ScalePArea EscapeText Nothing
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -174,6 +186,16 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
       Nothing -> id
       Just f -> padRect (0.5 * view #borderSize f * view #size o)
 
+scaleTextStyle :: Double -> TextStyle -> TextStyle
+scaleTextStyle x s =
+  s &
+  over #size (x*) &
+  over #hsize (x*) &
+  over #vsize (x*)
+      -- FIXME: NoScaleX version
+      -- NoScaleX -> s & over #hsize (* (width ox / width nx)) & over #vsize (* (width ox / width nx))
+      -- ScaleX -> s & over #size (* (width nx / width ox))
+
 -- | Glyph styling
 --
 -- >>> defaultGlyphStyle
@@ -191,7 +213,8 @@ data GlyphStyle = GlyphStyle
     borderSize :: Double,
     shape :: GlyphShape,
     rotation :: Maybe Double,
-    translate :: Maybe (Point Double)
+    translate :: Maybe (Point Double),
+    scaleGlyph :: ScaleP
   }
   deriving (Show, Eq, Generic)
 
@@ -206,8 +229,16 @@ defaultGlyphStyle =
     SquareGlyph
     Nothing
     Nothing
+    ScalePArea
 
--- | Should glyph borders be scaled?
+scaleGlyphStyle :: Double -> GlyphStyle -> GlyphStyle
+scaleGlyphStyle x s =
+  s &
+  over #size (x*) &
+  over #borderSize (x*) &
+  over #translate (fmap (fmap (x*)))
+
+-- | Should glyph borders be scaled versus glyph size?
 data ScaleBorder = ScaleBorder | NoScaleBorder deriving (Show, Eq, Generic)
 
 -- | glyph shapes
@@ -326,13 +357,20 @@ data LineStyle = LineStyle
     linecap :: Maybe LineCap,
     linejoin :: Maybe LineJoin,
     dasharray :: Maybe [Double],
-    dashoffset :: Maybe Double
+    dashoffset :: Maybe Double,
+    scaleLine :: ScaleP
   }
   deriving (Show, Eq, Generic)
 
 -- | the official default line style
 defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
+defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing ScalePArea
+
+-- | Scale line scale on any projection.
+scaleLineStyle :: Double -> LineStyle -> LineStyle
+scaleLineStyle x s =
+  s &
+  over #size (x*)
 
 -- | Path styling
 --
@@ -341,11 +379,50 @@ defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing
 data PathStyle = PathStyle
   { borderSize :: Double,
     borderColor :: Colour,
-    color :: Colour
+    color :: Colour,
+    scalePath' :: ScaleP
   }
   deriving (Show, Eq, Generic)
 
 -- | the style
 defaultPathStyle :: PathStyle
 defaultPathStyle =
-  PathStyle 0.01 (palette1 1) (palette1 2)
+  PathStyle 0.01 (palette1 1) (palette1 2) ScalePArea
+
+-- | Scale path style on any projection.
+scalePathStyle :: Double -> PathStyle -> PathStyle
+scalePathStyle x s =
+  s &
+  over #borderSize (x*)
+
+-- | Scaling options
+--
+data ScaleP =
+  -- | Do not scale under projection.
+  NoScaleP |
+  -- | Scale based on the X axis ratio of a projection
+  ScalePX |
+  -- | Scale based on the Y axis ratio of a projection
+  ScalePY |
+  -- | Scale based on the area ratio of a projection
+  ScalePArea deriving (Generic, Eq, Show)
+
+-- | given a ScaleP and two Rects, what is the scaling factor for a projection
+--
+-- Guards against scaling to zero or infinity
+scaleP :: ScaleP -> Rect Double -> Rect Double -> Double
+scaleP NoScaleP _ _ = 1
+scaleP ScalePX new old = bool 1 (width nx / width ox) (width ox > 0 && width nx >0)
+  where
+    (Ranges nx _) = new
+    (Ranges ox _) = old
+scaleP ScalePY new old = bool 1 (width ny / width oy) (width oy > 0 && width ny >0)
+  where
+    (Ranges _ ny) = new
+    (Ranges _ oy) = old
+scaleP ScalePArea new old = bool 1 (sqrt (an / ao)) (an > 0 && ao > 0)
+  where
+    (Ranges nx ny) = new
+    (Ranges ox oy) = old
+    an = width nx * width ny
+    ao = width ox * width oy

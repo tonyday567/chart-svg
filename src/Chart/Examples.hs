@@ -83,7 +83,7 @@ rectExample =
       .~ ( mempty
              & set
                #axes
-               [(defaultPriority, defaultAxisOptions & #ticks % #ltick .~ Nothing)]
+               [(defaultPriority, defaultXAxisOptions & #ticks % #ltick .~ Nothing)]
          )
     & #charts .~ named "rect" (zipWith RectChart ropts rss)
 
@@ -359,7 +359,7 @@ arcFlagsExample =
             rowLarge
           ]
       )
-    & #markupOptions % #chartAspect .~ ChartAspect
+    & #markupOptions % #chartAspect .~ UnscaledAspect
     & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
     & #markupOptions % #cssOptions % #cssExtra
       .~ [i|
@@ -598,8 +598,8 @@ dateExample =
     & #hudOptions
       .~ ( mempty
              & #axes
-               .~ [ (defaultPriority, defaultAxisOptions & #place .~ PlaceLeft & #ticks % #style .~ TickPlaced tsTime),
-                    (defaultPriority, defaultAxisOptions & #ticks % #style .~ TickPlaced tsDate)
+               .~ [ (defaultPriority, defaultYAxisOptions & #ticks % #style .~ TickPlaced tsTime),
+                    (defaultPriority, defaultXAxisOptions & #ticks % #style .~ TickPlaced tsDate)
                   ]
          )
   where

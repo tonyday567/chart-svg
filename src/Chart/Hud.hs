@@ -39,7 +39,8 @@ module Chart.Hud
 
     -- * Hud primitives
     AxisOptions (..),
-    defaultAxisOptions,
+    defaultXAxisOptions,
+    defaultYAxisOptions,
     flipAxis,
     FrameOptions (..),
     defaultFrameOptions,
@@ -54,7 +55,8 @@ module Chart.Hud
     defaultGlyphTick,
     defaultTextTick,
     defaultLineTick,
-    defaultTicks,
+    defaultXTicks,
+    defaultYTicks,
     TickStyle (..),
     defaultTickStyle,
     tickStyleText,
@@ -257,7 +259,7 @@ applyChartAspect :: ChartAspect -> State HudChart ()
 applyChartAspect fa = do
   hc <- get
   case fa of
-    ChartAspect -> pure ()
+    UnscaledAspect -> pure ()
     _ -> modify (set hudBox' (getHudBox fa hc))
 
 -- | Supply the bounding box of the HudChart given a ChartAspect.
@@ -270,7 +272,8 @@ getHudBox fa c =
         (Nothing, _) -> Nothing
         (_, Nothing) -> Nothing
         (Just hb, Just cb) -> Just (aspect (a * ratio hb / ratio cb))
-    ChartAspect -> view hudBox' c
+    ChartAspect -> fmap (aspect . ratio) (view hudBox' c)
+    UnscaledAspect -> view hudBox' c
 
 -- | Combine huds and charts to form a new Chart using the supplied initial canvas and data dimensions. Note that chart data is transformed by this computation (a linear type might be useful here).
 runHudWith ::
@@ -344,11 +347,11 @@ instance Monoid HudOptions where
 defaultHudOptions :: HudOptions
 defaultHudOptions =
   HudOptions
-    [ (5, defaultAxisOptions),
-      (5, defaultAxisOptions & set #place PlaceLeft)
+    [ (5, defaultXAxisOptions),
+      (5, defaultYAxisOptions)
     ]
     [ (1, defaultFrameOptions),
-      (20, defaultFrameOptions & #buffer .~ 0.04)
+      (20, defaultFrameOptions & #buffer .~ 0.04 & #frame .~ Just clear)
     ]
     []
     []
@@ -372,7 +375,8 @@ addHud ho asp cs =
 initialCanvas :: ChartAspect -> ChartTree -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = maybe one padSingletons (view box' cs)
+initialCanvas ChartAspect cs = maybe one (padSingletons . aspect . ratio) (view box' cs)
+initialCanvas UnscaledAspect cs = maybe one padSingletons (view box' cs)
 
 priorities :: HudOptions -> [Priority]
 priorities o =
@@ -540,9 +544,13 @@ data AxisOptions = AxisOptions
   }
   deriving (Eq, Show, Generic)
 
--- | The official axis
-defaultAxisOptions :: AxisOptions
-defaultAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments) defaultTicks PlaceBottom
+-- | The official X-axis
+defaultXAxisOptions :: AxisOptions
+defaultXAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments) defaultXTicks PlaceBottom
+
+-- | The official Y-axis
+defaultYAxisOptions :: AxisOptions
+defaultYAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments) defaultYTicks PlaceLeft
 
 -- | The bar on an axis representing the x or y plane.
 --
@@ -559,7 +567,7 @@ data AxisBar = AxisBar
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (RectStyle 0 transparent (set opac' 0.4 dark)) 0.004 0.01 0.002
+defaultAxisBar = AxisBar (defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ set opac' 0.4 dark) 0.004 0.01 0.002
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
@@ -586,10 +594,9 @@ defaultTitle txt =
     AnchorMiddle
     0.04
 
--- | xy coordinate markings
+-- | axis tick markings
 --
--- >>> defaultTicks
--- Ticks {style = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 8 TickExtend, gtick = Just (GlyphStyle {size = 3.0e-2, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, borderSize = 4.0e-3, shape = VLineGlyph, rotation = Nothing, translate = Nothing},3.0e-2), ttick = Just (TextStyle {size = 5.0e-2, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing},3.3e-2), ltick = Just (LineStyle {size = 5.0e-3, color = Colour 0.05 0.05 0.05 0.05, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},0.0)}
+-- >>> defaultXTicks
 data Ticks = Ticks
   { style :: TickStyle,
     gtick :: Maybe (GlyphStyle, Double),
@@ -606,6 +613,7 @@ defaultGlyphTick =
     & #shape .~ VLineGlyph
     & #color .~ set opac' 0.4 dark
     & #borderColor .~ set opac' 0.4 dark
+    & #scaleGlyph .~ ScalePArea
 
 -- | The official text tick
 defaultTextTick :: TextStyle
@@ -618,13 +626,23 @@ defaultLineTick =
   defaultLineStyle
     & #size .~ 5.0e-3
     & #color %~ set opac' 0.05
+    & #scaleLine .~ ScalePArea
 
--- | The official tick
-defaultTicks :: Ticks
-defaultTicks =
+-- | The official X-axis tick
+defaultXTicks :: Ticks
+defaultXTicks =
   Ticks
     defaultTickStyle
-    (Just (defaultGlyphTick, 0.03))
+    (Just (defaultGlyphTick & #scaleGlyph .~ ScalePArea, 0.03))
+    (Just (defaultTextTick, 0.033))
+    (Just (defaultLineTick, 0))
+
+-- | The official Y-axis tick
+defaultYTicks :: Ticks
+defaultYTicks =
+  Ticks
+    defaultTickStyle
+    (Just (defaultGlyphTick & #scaleGlyph .~ ScalePArea, 0.03))
     (Just (defaultTextTick, 0.033))
     (Just (defaultLineTick, 0))
 
@@ -708,7 +726,7 @@ defaultLegendOptions =
     )
     0.1
     0.02
-    (Just (RectStyle 0.01 (set opac' 1 dark) (set opac' 0 dark)))
+    (Just (defaultRectStyle & #borderSize .~ 0.01 & #borderColor .~ (set opac' 1 dark) & #color .~ (set opac' 0 dark)))
     PlaceRight
     0.25
     []

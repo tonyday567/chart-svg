@@ -24,6 +24,7 @@ module Chart.Primitive
     -- $boxes
     box,
     sbox,
+    scaleP,
     projectWith,
     maybeProjectWith,
     moveChart,
@@ -47,6 +48,9 @@ module Chart.Primitive
     glyphize,
     overText,
     renamed,
+
+    -- * Style Accessors
+    glyphStyle',
   )
 where
 
@@ -105,6 +109,8 @@ data Chart where
   PathChart :: PathStyle -> [PathData Double] -> Chart
   BlankChart :: [Rect Double] -> Chart
   deriving (Eq, Show)
+
+
 
 -- | A group of charts represented by a 'Tree' of chart lists with labelled branches. The labelling is particularly useful downstream, when groupings become grouped SVG elements with classes or ids.
 newtype ChartTree = ChartTree {tree :: Tree (Maybe Text, [Chart])} deriving (Eq, Show, Generic)
@@ -198,20 +204,22 @@ sbox (BlankChart a) = foldRect a
 -- >>> projectWith (fmap (2*) one) one r
 -- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -1.0 1.0 -1.0 1.0]
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
-projectWith new old (RectChart s a) = RectChart s (projectOnR new old <$> a)
-projectWith new old (TextChart s a) = TextChart projectS (second (projectOnP new old) <$> a)
+projectWith new old (RectChart s a) = RectChart s' (projectOnR new old <$> a)
   where
-    projectS = bool s s' (width nx > 0 && width ox > 0)
-    s' = case view #scalex s of
-      -- FIXME: test ScaleX and NoScaleX
-      NoScaleX -> s & over #hsize (* (width ox / width nx)) & over #vsize (* (width ox / width nx))
-      ScaleX -> s & over #size (* (width nx / width ox))
-    (Ranges nx _) = new
-    (Ranges ox _) = old
-projectWith new old (LineChart s a) = LineChart s (fmap (projectOnP new old) <$> a)
-projectWith new old (GlyphChart s a) = GlyphChart s (projectOnP new old <$> a)
+    s' = scaleRectStyle (scaleP (view #scaleRect s) new old) s
+projectWith new old (TextChart s a) = TextChart s' (second (projectOnP new old) <$> a)
+  where
+    s' = scaleTextStyle (scaleP (view #scaleText s) new old) s
+projectWith new old (LineChart s a) = LineChart s' (fmap (projectOnP new old) <$> a)
+  where
+    s' = scaleLineStyle (scaleP (view #scaleLine s) new old) s
+projectWith new old (GlyphChart s a) = GlyphChart s' (projectOnP new old <$> a)
+  where
+    s' = scaleGlyphStyle (scaleP (view #scaleGlyph s) new old) s
 projectWith new old (BlankChart a) = BlankChart (projectOnR new old <$> a)
-projectWith new old (PathChart s a) = PathChart s (projectPaths new old a)
+projectWith new old (PathChart s a) = PathChart s' (projectPaths new old a)
+  where
+    s' = scalePathStyle (scaleP (view #scalePath' s) new old) s
 
 -- | Maybe project a Chart to a new rectangular space from an old rectangular space, as long as both Rects exist, and are not singular.
 maybeProjectWith :: Maybe (Rect Double) -> Maybe (Rect Double) -> Chart -> Chart
@@ -362,10 +370,10 @@ vert gap cs = foldl' step mempty cs
       [] -> zero
       xs -> maybe zero (\(Rect x' _ _ _) -> x') (styleBoxes xs)
 
--- | Stack a list of tree charts horizontally, then vertically
+-- | Stack a list of tree charts horizontally, then vertically (proceeding downwards which is opposite to the usual coordinate reference system but intuitively the way people read charts)
 stack :: Int -> Double -> [ChartTree] -> ChartTree
 stack _ _ [] = mempty
-stack n gap cs = vert gap (hori gap <$> group' cs [])
+stack n gap cs = vert gap (reverse $ hori gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
@@ -412,4 +420,19 @@ data ChartAspect
     CanvasAspect Double
   | -- | Rescale charts to a height of 1, preserving the existing x-y ratio of the underlying charts, inclusive of hud and style.
     ChartAspect
+  | -- | Do not rescale charts. The style values should make sense in relation to the data ranges.
+    UnscaledAspect
   deriving (Show, Eq, Generic)
+
+glyphStyle_ :: Chart -> Maybe GlyphStyle
+glyphStyle_ (GlyphChart s _) = Just s
+glyphStyle_ _ = Nothing
+
+glyphRestyle_ :: Chart -> Maybe GlyphStyle -> Chart
+glyphRestyle_ (GlyphChart _ a) (Just s') = GlyphChart s' a
+glyphRestyle_ c _ = c
+
+-- | Lens between a Chart and its (maybe) GlyphStyle.
+glyphStyle' :: Lens' Chart (Maybe GlyphStyle)
+glyphStyle' =
+  lens glyphStyle_ glyphRestyle_

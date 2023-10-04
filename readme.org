@@ -27,6 +27,21 @@ writeChartOptions "other/usage.svg" lineExample
 
 See the haddock documentation for a detailed overview.
 
+* Examples
+
+To redraw all the examples in Chart.Examples
+
+#+begin_src haskell :results output
+import Chart.Examples
+writeAllExamples
+#+end_src
+
+#+RESULTS:
+: ok
+
+
+
+
 * Related projects
 
 Downstream projects, where usage of chart-svg in various states of development can be found, include:

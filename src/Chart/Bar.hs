@@ -164,7 +164,7 @@ barHudOptions bo bd =
          ]
   where
     o = view #barLegendOptions bo
-    axis1 = bool id flipAxis (barOrientation bo == Hori) (defaultAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
+    axis1 = bool id flipAxis (barOrientation bo == Hori) (defaultXAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
 
 -- | The official bar options.
 defaultBarOptions :: BarOptions
@@ -182,7 +182,7 @@ defaultBarOptions =
     NonStacked
     defaultLegendOptions
   where
-    gs = (\x -> RectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    gs = (\x -> RectStyle 0.005 (palette1 x) (palette1a x 0.7) ScalePArea) <$> [1, 2, 6, 7, 5, 3, 4, 0]
     ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Two dimensional data, maybe with row and column labels.

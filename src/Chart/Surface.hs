@@ -207,5 +207,5 @@ makeSurfaceTick l pchart = case view styleBox' pchart of
   Just r' -> phud
     where
       r'' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
-      (hs, db) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) ChartAspect r'
+      (hs, db) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) UnscaledAspect r'
       phud = runHudWith r'' db hs pchart
