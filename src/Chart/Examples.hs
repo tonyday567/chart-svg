@@ -62,7 +62,7 @@ import Prelude hiding (abs)
 --
 -- ![unit example](other/unit.svg)
 unitExample :: ChartOptions
-unitExample = mempty & #charts .~ named "unit" [RectChart defaultRectStyle [one]] & #hudOptions .~ defaultHudOptions
+unitExample = mempty & #charts .~ named "unit" [Chart defaultRectStyle (RectData [one])] & #hudOptions .~ defaultHudOptions
 
 -- | A 'BlankChart', 'defaultHudOptions' example.
 --
@@ -85,7 +85,7 @@ rectExample =
                #axes
                [(defaultPriority, defaultXAxisOptions & #ticks % #ltick .~ Nothing)]
          )
-    & #charts .~ named "rect" (zipWith RectChart ropts rss)
+    & #charts .~ named "rect" (zipWith (\s x -> Chart s (RectData x)) ropts rss)
 
 rss :: [[Rect Double]]
 rss =
@@ -93,7 +93,7 @@ rss =
     gridR (\x -> 0.5 * exp (-x ** 2 / 8)) (Range (-5) 5) 50
   ]
 
-ropts :: [RectStyle]
+ropts :: [Style]
 ropts =
   [ blob (palette1a 1 0.4),
     blob (palette1a 2 0.4)
@@ -188,12 +188,12 @@ glyphsExample =
       ( named "glyphs" $
           zipWith
             ( \(sh, bs) p ->
-                GlyphChart
+                glyphChart1
                   ( defaultGlyphStyle
                       & #size .~ (0.8 :: Double)
                       & #borderSize .~ bs
-                      & #shape .~ sh
                   )
+                  sh
                   [p]
             )
             [ (CircleGlyph, 0.02 :: Double),
@@ -233,7 +233,7 @@ sbarExample = barChart (defaultBarOptions & set #barOrientation Vert & set #barS
 --
 -- ![wave example](other/wave.svg)
 waveExample :: ChartOptions
-waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ gridP sin (Range 0 (2 * pi)) 30] & #hudOptions .~ defaultHudOptions
+waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ (SquareGlyph,) <$> gridP sin (Range 0 (2 * pi)) 30] & #hudOptions .~ defaultHudOptions
 
 -- | venn diagram
 --
@@ -295,7 +295,7 @@ pathExample =
         "ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)"
       ]
     path' = PathChart (defaultPathStyle & #color .~ palette1a 0 0.1 & #borderColor .~ palette1a 1 1) ps
-    c0 = GlyphChart defaultGlyphStyle (pointPath <$> ps)
+    c0 = GlyphChart defaultGlyphStyle ((SquareGlyph,) . pointPath <$> ps)
     midp = Point 0 0 : zipWith (\(Point x y) (Point x' y') -> Point ((x + x') / 2) ((y + y') / 2)) (drop 1 (pointPath <$> ps)) (pointPath <$> ps)
     offp = [Point 0 0.05, Point 0 0, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
     t0 = TextChart (defaultTextStyle & set #size 0.05) (zip ts (zipWith addp offp midp))
@@ -322,10 +322,10 @@ ellipseExample a =
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
     ellFull = LineChart fullels [ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100]]
     ell = LineChart els [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
-    g0 = defaultGlyphStyle & #shape .~ CircleGlyph
-    c0 = GlyphChart g0 [c]
+    g0 = defaultGlyphStyle
+    c0 = GlyphChart g0 [(CircleGlyph, c)]
     g1 = defaultGlyphStyle & #color .~ palette1a 4 0.2
-    c1 = GlyphChart g1 [p1, p2]
+    c1 = GlyphChart g1 ((CircleGlyph,) <$> [p1, p2])
     bbox = RectChart bbs [arcBox p]
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 7 0.005 & #borderColor .~ grey 0.5 1
     xradii = LineChart xals [[ellipse c r phi' 0, ellipse c r phi' pi]]
@@ -340,8 +340,8 @@ ellipseExample a =
               ("Minor Axis", LineChart yals [[zero]]),
               ("Full Ellipse", LineChart fullels [[zero]]),
               ("Arc", LineChart els [[zero]]),
-              ("Centroid", GlyphChart (g0 & #size .~ 0.01) [zero]),
-              ("Endpoints", GlyphChart (g1 & #size .~ 0.01) [zero]),
+              ("Centroid", glyphChart1 (g0 & #size .~ 0.01) SquareGlyph [zero]),
+              ("Endpoints", glyphChart1 (g1 & #size .~ 0.01) SquareGlyph [zero]),
               ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [fmap (2 *) one])
             ]
 
@@ -383,7 +383,7 @@ arcFlagsExample =
   where
     rowLarge =
       unnamed
-        [ BlankChart [Rect 0 9 (-2.75) (-3.25)],
+        [ blankChart1 (Rect 0 9 (-2.75) (-3.25)),
           TextChart (defaultTextStyle & #size .~ 0.6) [("Large", Point 5.5 (-3.0))]
         ]
     colLargeFalse =
@@ -392,7 +392,7 @@ arcFlagsExample =
         [ unnamed (checkFlags False True (set opac' 0.3 dark)),
           unnamed (checkFlags False False (set opac' 0.3 dark)),
           unnamed
-            [ BlankChart [Rect (-1) 2 (-0.25) 0.25],
+            [ blankChart1 (Rect (-1) 2 (-0.25) 0.25),
               TextChart (defaultTextStyle & #size .~ 0.4) [("False", Point 0.5 (-0.1))]
             ]
         ]
@@ -402,13 +402,13 @@ arcFlagsExample =
         [ unnamed (checkFlags True True (set opac' 0.3 dark)),
           unnamed (checkFlags True False (set opac' 0.3 dark)),
           unnamed
-            [ BlankChart [Rect (-1) 2 (-0.25) 0.25],
+            [ blankChart1 (Rect (-1) 2 (-0.25) 0.25),
               TextChart (defaultTextStyle & #size .~ 0.4) [("True", Point 0.5 (-0.1))]
             ]
         ]
     colSweep =
       unnamed
-        [ BlankChart [Rect (-0.4) 0.4 (-1) 5],
+        [ blankChart1 (Rect (-0.4) 0.4 (-1) 5),
           TextChart
             (defaultTextStyle & #size .~ 0.6 & #rotation .~ Just (pi / 2))
             [("Sweep", Point 0.1 2)]
@@ -417,13 +417,13 @@ arcFlagsExample =
       vert
         0.02
         [ unnamed
-            [ BlankChart [Rect (-0.25) 0.25 (-1) 2],
+            [ blankChart1 (Rect (-0.25) 0.25 (-1) 2),
               TextChart
                 (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2))
                 [("True", Point 0.1 0.5)]
             ],
           unnamed
-            [ BlankChart [Rect (-0.25) 0.25 (-1) 2],
+            [ blankChart1 (Rect (-0.25) 0.25 (-1) 2),
               TextChart
                 (defaultTextStyle & #size .~ 0.4 & #rotation .~ Just (pi / 2))
                 [("False", Point 0.1 0.5)]
@@ -459,8 +459,8 @@ quadExample =
     path' = PathChart pathStyle ps
     curve = LineChart curveStyle [quadBezier p . (/ 100.0) <$> [0 .. 100]]
     curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
-    c0 = GlyphChart defaultGlyphStyle [start, end]
-    c1 = GlyphChart controlStyle [control]
+    c0 = glyphChart1 defaultGlyphStyle SquareGlyph [start, end]
+    c1 = glyphChart1 controlStyle CircleGlyph [control]
     bbox = RectChart bbs [quadBox p]
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 0 0.05 & #borderColor .~ grey 0.4 1
     pathStyle = defaultPathStyle & #color .~ palette1a 2 0.2 & #borderColor .~ transparent
@@ -469,8 +469,8 @@ quadExample =
       second (: [])
         <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
               ("Path Chord", LineChart curveStyle [[zero]]),
-              ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
-              ("Path Control Point", GlyphChart controlStyle [zero]),
+              ("Path Endpoints", glyphChart1 defaultGlyphStyle CircleGlyph [zero]),
+              ("Path Control Point", glyphChart1 controlStyle CircleGlyph [zero]),
               ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
             ]
 
@@ -490,19 +490,19 @@ cubicExample =
     ps = singletonCubic p
     path' = PathChart pathStyle ps
     curve = LineChart curveStyle [cubicBezier p . (/ 100.0) <$> [0 .. 100]]
-    c0 = GlyphChart defaultGlyphStyle [start, end]
-    c1 = GlyphChart controlStyle [control1, control2]
+    c0 = glyphChart1 defaultGlyphStyle CircleGlyph [start, end]
+    c1 = glyphChart1 controlStyle CircleGlyph [control1, control2]
     bbox = RectChart bbs [cubicBox p]
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 0 0.05 & #borderColor .~ grey 0.4 1
     pathStyle = defaultPathStyle & #color .~ palette1a 3 0.2 & #borderColor .~ transparent
-    controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
+    controlStyle = defaultGlyphStyle
     curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 7
     lrows =
       second (: [])
         <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
               ("Path Chord", LineChart curveStyle [[zero]]),
-              ("Path Endpoints", GlyphChart defaultGlyphStyle [zero]),
-              ("Path Control Point", GlyphChart controlStyle [zero]),
+              ("Path Endpoints", glyphChart1 defaultGlyphStyle CircleGlyph [zero]),
+              ("Path Control Point", glyphChart1 controlStyle CircleGlyph [zero]),
               ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
             ]
 
@@ -567,8 +567,7 @@ arrowExample =
         & #size .~ s
         & #borderColor .~ dark
         & #rotation .~ Just r'
-        & #shape .~ arrow
-    gchart s r' p = GlyphChart (gs s r') [p]
+    gchart s r' p = glyphChart1 (gs s r') arrow [p]
 
     tail' :: Point Double -> Double
     tail' = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . magnitude
@@ -671,19 +670,20 @@ dotMap s grain l maxchroma cs =
         <> named
           "wheel"
           ( ( \(p, c) ->
-                GlyphChart
+                glyphChart1
                   ( defaultGlyphStyle
                       & #size .~ s
                       & #color .~ c
                       & #borderSize .~ 0
                   )
+                  CircleGlyph
                   [p]
             )
               <$> filter (validColour . snd) (wheelPoints grain l maxchroma)
           )
 
 dot_ :: Colour -> Chart
-dot_ x = (\(p, c) -> GlyphChart (defaultGlyphStyle & #size .~ 0.08 & #color .~ c & #borderColor .~ Colour 0.5 0.5 0.5 1 & #shape .~ CircleGlyph) [p]) (colour2Point x, x)
+dot_ x = (\(p, c) -> glyphChart1 (defaultGlyphStyle & #size .~ 0.08 & #color .~ c & #borderColor .~ Colour 0.5 0.5 0.5 1) CircleGlyph [p]) (colour2Point x, x)
   where
     colour2Point c = review lcha2colour' c & (\(LCHA _ ch h _) -> uncurry Point (review xy2ch' (ch, h)))
 
@@ -704,7 +704,7 @@ debugExample cs =
   where
     asp = view (#markupOptions % #chartAspect) cs
     e1 = view #charts (forgetHud cs)
-    e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1
+    e2 = glyphize CircleGlyph (defaultGlyphStyle & #size .~ 0.01) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 
 -- | A merge of lineExample and unitExample with the unitExample axes flipped to the oppoiste sides.

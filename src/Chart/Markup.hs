@@ -82,10 +82,10 @@ markupChartTree :: ChartTree -> Markup
 markupChartTree cs =
   maybe xs' (\l -> element "g" [Attr "class" (encodeUtf8 l)] xs') label
   where
-    (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
+    (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart . chartData) cs
     xs' = mconcat $ fmap markupChart cs' <> (markupChartTree . ChartTree <$> xs)
 
-markupText :: TextStyle -> Text -> Point Double -> Markup
+markupText :: Style -> Text -> Point Double -> Markup
 markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) (content c) (EscapeText == view #escapeText s))
   where
     as =
@@ -96,7 +96,7 @@ markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) 
           <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> (s ^. #rotation))
     frame' = case view #frame s of
       Nothing -> Markup mempty
-      Just f -> markupChart (RectChart (f & over #borderSize (* view #size s)) [styleBoxText s t p])
+      Just f -> markupChart (Chart (f & over #borderSize (* view #size s)) (RectData [styleBoxText s t p]))
     c = encodeUtf8 t
 
 -- | Markup a text rotation about a point in radians.
@@ -136,12 +136,12 @@ markupRect (Rect x z y w) =
 markupChart :: Chart -> Markup
 markupChart = uncurry (element "g") . f
   where
-    f (RectChart s xs) = (attsRect s, mconcat (markupRect <$> xs))
-    f (TextChart s xs) = (attsText s, mconcat (uncurry (markupText s) <$> xs))
-    f (GlyphChart s xs) = (attsGlyph s, mconcat (markupGlyph s <$> xs))
-    f (PathChart s xs) = (attsPath s, markupPath xs)
-    f (LineChart s xs) = (attsLine s, markupLine xs)
-    f (BlankChart _) = ([], mempty)
+    f (Chart s (RectData xs)) = (attsRect s, mconcat (markupRect <$> xs))
+    f (Chart s (TextData xs)) = (attsText s, mconcat (uncurry (markupText s) <$> xs))
+    f (Chart s (GlyphData xs)) = (attsGlyph s, mconcat (markupGlyph s <$> xs))
+    f (Chart s (PathData xs)) = (attsPath s, markupPath xs)
+    f (Chart s (LineData xs)) = (attsLine s, markupLine xs)
+    f (Chart _ (BlankData _)) = ([], mempty)
 
 markupLine :: [[Point Double]] -> Markup
 markupLine lss =
@@ -157,13 +157,13 @@ markupPath ps =
 
 -- | GlyphStyle to markup Tree
 -- Note rotation on the outside not the inside.
-markupGlyph :: GlyphStyle -> Point Double -> Markup
-markupGlyph s p =
+markupGlyph :: Style -> (GlyphShape, Point Double) -> Markup
+markupGlyph s (shape, p) =
   case view #rotation s of
     Nothing -> gl
     Just r -> element "g" [Attr "transform" (toRotateText r p)] gl
   where
-    gl = markupShape_ (s ^. #shape) (s ^. #size) p
+    gl = markupShape_ shape (s ^. #size) p
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> ByteString
@@ -172,7 +172,7 @@ fromDashArray xs = intercalate " " $ encodeNum <$> xs
 fromDashOffset :: Double -> ByteString
 fromDashOffset x = encodeNum x
 
-attsLine :: LineStyle -> [Attr]
+attsLine :: Style -> [Attr]
 attsLine o =
   uncurry Attr
     <$> [ ("stroke-width", encodeNum $ o ^. #size),
@@ -186,7 +186,7 @@ attsLine o =
       <> foldMap (\x -> [("stroke-dasharray", fromDashArray x)]) (o ^. #dasharray)
       <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (o ^. #dashoffset)
 
-attsRect :: RectStyle -> [Attr]
+attsRect :: Style -> [Attr]
 attsRect o =
   uncurry Attr
     <$> [ ("stroke-width", encodeNum $ o ^. #borderSize),
@@ -197,7 +197,7 @@ attsRect o =
         ]
 
 -- | TextStyle to [Attr]
-attsText :: TextStyle -> [Attr]
+attsText :: Style -> [Attr]
 attsText o =
   uncurry Attr
     <$> [ ("stroke-width", "0.0"),
@@ -214,7 +214,7 @@ attsText o =
     toTextAnchor AnchorEnd = "end"
 
 -- | GlyphStyle to [Attr]
-attsGlyph :: GlyphStyle -> [Attr]
+attsGlyph :: Style -> [Attr]
 attsGlyph o =
   uncurry Attr
     <$> [ ("stroke-width", encodeNum sw),
@@ -225,13 +225,14 @@ attsGlyph o =
         ]
       <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
   where
+    -- FIXME: remove ScaleBorder
     sw = case o ^. #shape of
       PathGlyph _ NoScaleBorder -> o ^. #borderSize
       PathGlyph _ ScaleBorder -> min 0.2 (o ^. #borderSize / o ^. #size)
       _ -> o ^. #borderSize
 
 -- | PathStyle to [Attr]
-attsPath :: PathStyle -> [Attr]
+attsPath :: Style -> [Attr]
 attsPath o =
   uncurry Attr
     <$> [ ("stroke-width", encodeNum $ o ^. #borderSize),

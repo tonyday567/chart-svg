@@ -488,7 +488,7 @@ colourHudOptions f o =
         & over #bar (fmap (over (#style % #color) f))
         & over
           (#ticks % #gtick)
-          (fmap (first (over #color f . over #borderColor f)))
+          (fmap (\(x,y,z) -> (over #color f . over #borderColor f $ x,y,z)))
         & over
           (#ticks % #ttick)
           (fmap (first (over #color f)))
@@ -557,7 +557,7 @@ defaultYAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments
 -- >>> defaultAxisBar
 -- AxisBar {style = RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.05 0.05 0.05 0.40}, size = 4.0e-3, buffer = 1.0e-2, overhang = 2.0e-3}
 data AxisBar = AxisBar
-  { style :: RectStyle,
+  { style :: Style,
     size :: Double,
     buffer :: Double,
     -- | extension over the edges of the axis range
@@ -575,7 +575,7 @@ defaultAxisBar = AxisBar (defaultRectStyle & #borderSize .~ 0 & #borderColor .~ 
 -- Title {text = "title", style = TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}, place = PlaceTop, anchor = AnchorMiddle, buffer = 4.0e-2}
 data Title = Title
   { text :: Text,
-    style :: TextStyle,
+    style :: Style,
     place :: Place,
     anchor :: Anchor,
     buffer :: Double
@@ -599,41 +599,42 @@ defaultTitle txt =
 -- >>> defaultXTicks
 data Ticks = Ticks
   { style :: TickStyle,
-    gtick :: Maybe (GlyphStyle, Double),
-    ttick :: Maybe (TextStyle, Double),
-    ltick :: Maybe (LineStyle, Double)
+    gtick :: Maybe (Style, GlyphShape, Double),
+    ttick :: Maybe (Style, Double),
+    ltick :: Maybe (Style, Double)
   }
   deriving (Show, Eq, Generic)
 
 -- | The official glyph tick
-defaultGlyphTick :: GlyphStyle
+defaultGlyphTick :: Style
 defaultGlyphTick =
   defaultGlyphStyle
     & #borderSize .~ 0.004
     & #shape .~ VLineGlyph
     & #color .~ set opac' 0.4 dark
     & #borderColor .~ set opac' 0.4 dark
-    & #scaleGlyph .~ ScalePArea
+    & #scaleP .~ ScalePArea
+
 
 -- | The official text tick
-defaultTextTick :: TextStyle
+defaultTextTick :: Style
 defaultTextTick =
   defaultTextStyle & #size .~ 0.05
 
 -- | The official line tick
-defaultLineTick :: LineStyle
+defaultLineTick :: Style
 defaultLineTick =
   defaultLineStyle
     & #size .~ 5.0e-3
     & #color %~ set opac' 0.05
-    & #scaleLine .~ ScalePArea
+    & #scaleP .~ ScalePArea
 
 -- | The official X-axis tick
 defaultXTicks :: Ticks
 defaultXTicks =
   Ticks
     defaultTickStyle
-    (Just (defaultGlyphTick & #scaleGlyph .~ ScalePArea, 0.03))
+    (Just (defaultGlyphTick & #scaleP .~ ScalePArea, VLineGlyph, 0.03))
     (Just (defaultTextTick, 0.033))
     (Just (defaultLineTick, 0))
 
@@ -642,7 +643,7 @@ defaultYTicks :: Ticks
 defaultYTicks =
   Ticks
     defaultTickStyle
-    (Just (defaultGlyphTick & #scaleGlyph .~ ScalePArea, 0.03))
+    (Just (defaultGlyphTick & #scaleP .~ ScalePArea, HLineGlyph, 0.03))
     (Just (defaultTextTick, 0.033))
     (Just (defaultLineTick, 0))
 
@@ -703,10 +704,10 @@ data LegendOptions = LegendOptions
     buffer :: Double,
     vgap :: Double,
     hgap :: Double,
-    textStyle :: TextStyle,
+    textStyle :: Style,
     innerPad :: Double,
     outerPad :: Double,
-    frame :: Maybe RectStyle,
+    frame :: Maybe Style,
     place :: Place,
     overallScale :: Double,
     legendCharts :: [(Text, [Chart])]
@@ -726,7 +727,7 @@ defaultLegendOptions =
     )
     0.1
     0.02
-    (Just (defaultRectStyle & #borderSize .~ 0.01 & #borderColor .~ (set opac' 1 dark) & #color .~ (set opac' 0 dark)))
+    (Just (defaultRectStyle & #borderSize .~ 0.01 & #borderColor .~ set opac' 1 dark & #color .~ set opac' 0 dark))
     PlaceRight
     0.25
     []
@@ -745,7 +746,7 @@ flipAxis ac = case ac ^. #place of
 -- >>> defaultFrameOptions
 -- FrameOptions {frame = Just (RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 1.00 1.00 1.00 0.02}), buffer = 0.0}
 data FrameOptions = FrameOptions
-  { frame :: Maybe RectStyle,
+  { frame :: Maybe Style,
     buffer :: Double
   }
   deriving (Eq, Show, Generic)
@@ -763,11 +764,11 @@ frameHud o = do
     Nothing -> pure (unnamed [])
     Just r' -> pure $ case view #frame o of
       Nothing -> blank r'
-      Just rs -> named "frame" [RectChart rs [r']]
+      Just rs -> named "frame" [Chart rs (RectData [r'])]
 
 bar_ :: Place -> AxisBar -> CanvasBox -> HudBox -> Chart
 bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
-  RectChart (view #style b) $
+  Chart (view #style b) . RectData $
     case pl of
       PlaceTop ->
         [ Rect
@@ -814,9 +815,9 @@ makeAxisBar pl b = do
 
 title_ :: Title -> HudBox -> Chart
 title_ t hb =
-  TextChart
+  Chart
     (style' & #rotation .~ bool (Just rot) Nothing (rot == 0))
-    [(t ^. #text, addp (placePosTitle t hb) (alignPosTitle t hb))]
+    (TextData [(t ^. #text, addp (placePosTitle t hb) (alignPosTitle t hb))])
   where
     style'
       | t ^. #anchor == AnchorStart =
@@ -883,7 +884,7 @@ placeRot pl = case pl of
   PlaceLeft -> Just (pi / 2)
   _ -> Nothing
 
-textPos :: Place -> TextStyle -> Double -> Point Double
+textPos :: Place -> Style -> Double -> Point Double
 textPos pl tt b = case pl of
   PlaceTop -> Point 0 b
   PlaceBottom -> Point 0 (-b - 0.5 * (tt ^. #vsize) * (tt ^. #size))
@@ -897,7 +898,7 @@ textPos pl tt b = case pl of
       ((tt ^. #vshift) * (tt ^. #vsize) * (tt ^. #size))
   PlaceAbsolute p -> p
 
-placeTextAnchor :: Place -> (TextStyle -> TextStyle)
+placeTextAnchor :: Place -> (Style -> Style)
 placeTextAnchor pl
   | pl == PlaceLeft = #anchor .~ AnchorEnd
   | pl == PlaceRight = #anchor .~ AnchorStart
@@ -933,11 +934,11 @@ ticksPlacedCanvas ts pl cb db =
   first (project (placeRange pl db) (placeRange pl cb))
     <$> fst (makePlacedTicks ts (placeRange pl db))
 
-tickGlyph_ :: Place -> (GlyphStyle, Double) -> TickStyle -> CanvasBox -> CanvasBox -> DataBox -> Maybe Chart
-tickGlyph_ pl (g, b) ts sb cb db =
+tickGlyph_ :: Place -> (Style, Double) -> GlyphShape -> TickStyle -> CanvasBox -> CanvasBox -> DataBox -> Maybe Chart
+tickGlyph_ pl (g, b) shape ts sb cb db =
   case l of
     [] -> Nothing
-    l' -> Just $ GlyphChart (g & #rotation .~ placeRot pl) l'
+    l' -> Just $ Chart (g & #rotation .~ placeRot pl) (GlyphData ((shape,) <$> l'))
   where
     l =
       addp (placePos pl b sb) . placeOrigin pl
@@ -946,19 +947,20 @@ tickGlyph_ pl (g, b) ts sb cb db =
 -- | aka marks
 tickGlyph ::
   Place ->
-  (GlyphStyle, Double) ->
+  (Style, Double) ->
+  GlyphShape ->
   TickStyle ->
   State HudChart ChartTree
-tickGlyph pl (g, b) ts = do
+tickGlyph pl (g, b) shape ts = do
   sb <- gets (view canvasStyleBox')
   cb <- gets (view canvasBox')
   db <- gets (view #dataBox)
-  let c = tickGlyph_ pl (g, b) ts <$> sb <*> cb <*> pure db
+  let c = tickGlyph_ pl (g, b) shape ts <$> sb <*> cb <*> pure db
   pure $ named "tickglyph" (catMaybes $ maybeToList c)
 
 tickText_ ::
   Place ->
-  (TextStyle, Double) ->
+  (Style, Double) ->
   TickStyle ->
   CanvasBox ->
   CanvasBox ->
@@ -967,7 +969,7 @@ tickText_ ::
 tickText_ pl (txts, b) ts sb cb db =
   case l of
     [] -> Nothing
-    _ -> Just $ TextChart (placeTextAnchor pl txts) l
+    _ -> Just $ Chart (placeTextAnchor pl txts) (TextData l)
   where
     l =
       swap . first (addp (addp (placePos pl b sb) (textPos pl txts b)) . placeOrigin pl)
@@ -976,7 +978,7 @@ tickText_ pl (txts, b) ts sb cb db =
 -- | aka tick labels
 tickText ::
   Place ->
-  (TextStyle, Double) ->
+  (Style, Double) ->
   TickStyle ->
   State HudChart ChartTree
 tickText pl (txts, b) ts = do
@@ -989,7 +991,7 @@ tickText pl (txts, b) ts = do
 -- | aka grid lines
 tickLine ::
   Place ->
-  (LineStyle, Double) ->
+  (Style, Double) ->
   TickStyle ->
   State HudChart ChartTree
 tickLine pl (ls, b) ts = do
@@ -999,7 +1001,7 @@ tickLine pl (ls, b) ts = do
     Nothing -> pure $ named "ticklines" []
     Just cb' -> do
       let l = (\x -> placeGridLines pl cb' x b) <$> fmap fst (ticksPlacedCanvas ts pl cb' db)
-      pure $ named "ticklines" (bool [LineChart ls l] [] (null l))
+      pure $ named "ticklines" (bool [Chart ls (LineData l)] [] (null l))
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
 applyTicks ::
@@ -1007,7 +1009,7 @@ applyTicks ::
   Ticks ->
   State HudChart ChartTree
 applyTicks pl t = do
-  g <- maybe (pure mempty) (\x -> tickGlyph pl x (t ^. #style)) (t ^. #gtick)
+  g <- maybe (pure mempty) (\(x, shape, b) -> tickGlyph pl (x,b) shape (t ^. #style)) (t ^. #gtick)
   l <- maybe (pure mempty) (\x -> tickText pl x (t ^. #style)) (t ^. #ttick)
   t' <- maybe (pure mempty) (\x -> tickLine pl x (t ^. #style)) (t ^. #ltick)
   pure $ group (Just "ticks") [g, l, t']
@@ -1144,7 +1146,7 @@ legendText ::
   Text ->
   Chart
 legendText l t =
-  TextChart (l ^. #textStyle & #anchor .~ AnchorStart) [(t, zero)]
+  Chart (l ^. #textStyle & #anchor .~ AnchorStart) (TextData [(t, zero)])
 
 legendizeChart ::
   LegendOptions ->
@@ -1152,14 +1154,14 @@ legendizeChart ::
   Chart
 legendizeChart l c =
   case c of
-    (RectChart rs _) -> RectChart rs [Rect 0 (l ^. #size) 0 (l ^. #size)]
-    (TextChart ts t) -> let txt = fromMaybe "text" (listToMaybe (fst <$> t)) in TextChart (ts & #size .~ (l ^. #size / fromIntegral (Text.length txt))) [(txt, Point (0.5 * l ^. #size) (0.33 * l ^. #size))]
-    (GlyphChart gs _) -> GlyphChart (gs & #size .~ (l ^. #size)) [Point (0.5 * l ^. #size) (0.33 * l ^. #size)]
-    (LineChart ls _) ->
-      LineChart
+    (Chart rs (RectData _)) -> Chart rs (RectData [Rect 0 (l ^. #size) 0 (l ^. #size)])
+    (Chart ts (TextData t)) -> let txt = fromMaybe "text" (listToMaybe (fst <$> t)) in Chart (ts & #size .~ (l ^. #size / fromIntegral (Text.length txt))) (TextData [(txt, Point (0.5 * l ^. #size) (0.33 * l ^. #size))])
+    (Chart gs (GlyphData gd)) -> Chart (gs & #size .~ (l ^. #size)) (GlyphData $ foldMap (\x -> [(x,Point (0.5 * l ^. #size) (0.33 * l ^. #size))]) $ listToMaybe $ fst <$> gd)
+    (Chart ls (LineData _)) ->
+      Chart
         (ls & #size %~ (/ (l ^. #overallScale)))
-        [[Point 0 (1 * l ^. #size), Point (2 * l ^. #size) (1 * l ^. #size)]]
-    (PathChart ps _) ->
+        (LineData [[Point 0 (1 * l ^. #size), Point (2 * l ^. #size) (1 * l ^. #size)]])
+    (Chart ps (PathData _)) ->
       ( let cs =
               singletonQuad
                 ( QuadPosition
@@ -1167,9 +1169,9 @@ legendizeChart l c =
                     (Point (l ^. #size) (l ^. #size))
                     (Point (2 * l ^. #size) ((-1) * l ^. #size))
                 )
-         in PathChart (ps & #borderSize .~ (l ^. #size)) cs
+         in Chart (ps & #borderSize .~ (l ^. #size)) (PathData cs)
       )
-    (BlankChart _) -> BlankChart [Rect 0 (l ^. #size) 0 (l ^. #size)]
+    _ -> blankChart (Rect 0 (l ^. #size) 0 (l ^. #size))
 
 legendEntry ::
   LegendOptions ->

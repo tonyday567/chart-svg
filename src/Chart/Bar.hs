@@ -56,8 +56,8 @@ import Prelude hiding (abs)
 --
 -- ![bar chart example](other/bar.svg)
 data BarOptions = BarOptions
-  { barRectStyles :: [RectStyle],
-    barTextStyles :: [TextStyle],
+  { barRectStyles :: [Style],
+    barTextStyles :: [Style],
     -- | gap between each bar collection row.
     outerGap :: Double,
     -- | gap between bars within a row collection, negative overlaps
@@ -182,7 +182,7 @@ defaultBarOptions =
     NonStacked
     defaultLegendOptions
   where
-    gs = (\x -> RectStyle 0.005 (palette1 x) (palette1a x 0.7) ScalePArea) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    gs = (\x -> rectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
     ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Two dimensional data, maybe with row and column labels.
@@ -209,7 +209,6 @@ barRange ys = padSingletons $ Rect 0 (fromIntegral $ rows ys) (min 0 l) u
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] [] [])
--- [RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.29 0.48 0.70}) [Rect 5.0e-2 0.5 0.0 1.0,Rect 1.05 1.5 0.0 2.0],RectChart (RectStyle {borderSize = 5.0e-3, borderColor = Colour 0.66 0.07 0.55 1.00, color = Colour 0.66 0.07 0.55 0.70}) [Rect 0.5 0.95 0.0 2.0,Rect 1.5 1.95 0.0 3.0],BlankChart [Rect 0.0 2.0 0.0 3.0]]
 --
 -- >>> bars defaultBarOptions (BarData [[]] [] [])
 -- []
@@ -221,7 +220,7 @@ bars bo bd = bool cs [] (null $ mconcat $ view #barData bd)
         (\o d -> RectChart o d)
         (bo ^. #barRectStyles <> repeat defaultRectStyle)
         (barRects bo (bd ^. #barData))
-        <> [BlankChart [barRange (bd ^. #barData)]]
+        <> [blankChart (barRange (bd ^. #barData))]
 
 -- | Sensible ticks for a bar chart.
 barTicks :: BarData -> TickStyle
@@ -242,7 +241,7 @@ barLegendContent bo bd
   | otherwise =
       zip
         (view #barColumnLabels bd <> repeat "")
-        ((\s -> [RectChart s [one]]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
+        ((\s -> [Chart s (RectData [one])]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
 
 flipPoint :: Orientation -> Point a -> Point a
 flipPoint Vert p = p

@@ -4,24 +4,23 @@
 
 -- | Stylistic or syntactical options for chart elements.
 module Chart.Style
-  ( -- * RectStyle
-    RectStyle (..),
+  ( Style (..),
+    defaultStyle,
+    scaleStyle,
+
+    -- * RectStyle
     defaultRectStyle,
+    rectStyle,
     blob,
     clear,
     border,
-    scaleRectStyle,
 
     -- * TextStyle
-    TextStyle (..),
     defaultTextStyle,
     styleBoxText,
-    scaleTextStyle,
     EscapeText (..),
 
     -- * GlyphStyle
-    GlyphStyle (..),
-    scaleGlyphStyle,
     defaultGlyphStyle,
     styleBoxGlyph,
     gpalette1,
@@ -30,9 +29,7 @@ module Chart.Style
     glyphText,
 
     -- * LineStyle
-    LineStyle (..),
     defaultLineStyle,
-    scaleLineStyle,
     LineCap (..),
     fromLineCap,
     toLineCap,
@@ -44,13 +41,11 @@ module Chart.Style
     toAnchor,
 
     -- * PathStyle
-    PathStyle (..),
     defaultPathStyle,
-    scalePathStyle,
 
     -- * Style scaling
     ScaleP(..),
-    scaleP,
+    scaleRatio,
   )
 where
 
@@ -76,67 +71,78 @@ import Data.Bool
 -- >>> import Chart
 -- >>> import Optics.Core
 
--- | Rectangle styling
---
--- >>> defaultRectStyle
--- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}
---
--- ![unit example](other/unit.svg)
-data RectStyle = RectStyle
-  { borderSize :: Double,
-    borderColor :: Colour,
+data Style = Style
+  {
+    size :: Double,
+    borderSize :: Double,
     color :: Colour,
-    scaleRect :: ScaleP
-  }
-  deriving (Show, Eq, Generic)
+    borderColor :: Colour,
+    scaleP :: ScaleP,
+    anchor :: Anchor,
+    rotation :: Maybe Double,
+    translate :: Maybe (Point Double),
+    escapeText :: EscapeText,
+    frame :: Maybe Style,
+    linecap :: Maybe LineCap,
+    linejoin :: Maybe LineJoin,
+    dasharray :: Maybe [Double],
+    dashoffset :: Maybe Double,
+    hsize :: Double,
+    vsize :: Double,
+    vshift :: Double,
+    shape :: GlyphShape
+  } deriving (Eq, Show, Generic)
 
--- | the style
-defaultRectStyle :: RectStyle
-defaultRectStyle = RectStyle 0.01 (palette1a 1 1) (palette1a 0 0.1) ScalePArea
+defaultStyle :: Style
+defaultStyle = Style 0.1 0.01 (palette1a 0 0.1) (palette1a 1 1) ScalePArea AnchorMiddle Nothing Nothing EscapeText Nothing Nothing Nothing Nothing Nothing 0.45 1.1 (-0.25) SquareGlyph
+
+defaultRectStyle :: Style
+defaultRectStyle = defaultStyle
+
+-- | common pattern for Rect chart style
+rectStyle :: Double -> Colour -> Colour -> Style
+rectStyle bs bc c = defaultStyle & #borderSize .~ bs & #color .~ c & #borderColor .~ bc
+
+defaultTextStyle :: Style
+defaultTextStyle = defaultStyle & #size .~ 0.12 & #color .~ dark
+
+defaultGlyphStyle :: Style
+defaultGlyphStyle = defaultStyle & #size .~ 0.03 & #color .~ palette1a 0 0.2 & #borderColor .~ (set lightness' 0.4 $ palette1a 1 1) & #borderSize .~ 0.003
+
+defaultLineStyle :: Style
+defaultLineStyle = defaultStyle & #size .~ 0.012 & #color .~ dark
+
+defaultPathStyle :: Style
+defaultPathStyle = defaultStyle & #color .~ palette1 2 & #borderColor .~ palette1 1
+
+scaleStyle :: Double -> Style -> Style
+scaleStyle x s =
+  s &
+  over #size (x*) &
+  over #hsize (x*) &
+  over #vsize (x*) &
+  over #translate (fmap (fmap (x*)))
 
 -- | solid rectangle, no border
 --
 -- >>> blob black
 -- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 1.00}
-blob :: Colour -> RectStyle
+blob :: Colour -> Style
 blob c = defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ c
 
 -- | transparent rect
 --
 -- >>> clear
 -- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
-clear :: RectStyle
+clear :: Style
 clear = defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ transparent
 
 -- | transparent rectangle, with border
 --
 -- >>> border 0.01 transparent
 -- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
-border :: Double -> Colour -> RectStyle
+border :: Double -> Colour -> Style
 border s c = defaultRectStyle & #borderSize .~ s & #borderColor .~ c & #color .~ transparent
-
-scaleRectStyle :: Double -> RectStyle -> RectStyle
-scaleRectStyle x s =
-  s &
-  over #borderSize (x*)
-
--- | Text styling
---
--- >>> defaultTextStyle
--- TextStyle {size = 0.12, color = Colour 0.05 0.05 0.05 1.00, anchor = AnchorMiddle, hsize = 0.45, vsize = 1.1, vshift = -0.25, rotation = Nothing, scalex = ScaleX, frame = Nothing}
-data TextStyle = TextStyle
-  { size :: Double,
-    color :: Colour,
-    anchor :: Anchor,
-    hsize :: Double,
-    vsize :: Double,
-    vshift :: Double,
-    rotation :: Maybe Double,
-    scaleText :: ScaleP,
-    escapeText :: EscapeText,
-    frame :: Maybe RectStyle
-  }
-  deriving (Show, Eq, Generic)
 
 -- | Whether to escape the common XML escaped characters.
 data EscapeText = EscapeText | NoEscapeText deriving (Eq, Show, Generic)
@@ -157,14 +163,9 @@ toAnchor "Start" = AnchorStart
 toAnchor "End" = AnchorEnd
 toAnchor _ = AnchorMiddle
 
--- | the offical text style
-defaultTextStyle :: TextStyle
-defaultTextStyle =
-  TextStyle 0.12 dark AnchorMiddle 0.45 1.1 (-0.25) Nothing ScalePArea EscapeText Nothing
-
 -- | the extra area from text styling
 styleBoxText ::
-  TextStyle ->
+  Style ->
   Text ->
   Point Double ->
   Rect Double
@@ -177,7 +178,7 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
     n1 = o ^. #vshift
     x' = s * h * fromIntegral (Text.length t)
     y' = s * v
-    n1' = -s * n1
+    n1' =(-s) * n1
     a' = case o ^. #anchor of
       AnchorStart -> 0.5
       AnchorEnd -> -0.5
@@ -185,58 +186,6 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
     mpad = case view #frame o of
       Nothing -> id
       Just f -> padRect (0.5 * view #borderSize f * view #size o)
-
-scaleTextStyle :: Double -> TextStyle -> TextStyle
-scaleTextStyle x s =
-  s &
-  over #size (x*) &
-  over #hsize (x*) &
-  over #vsize (x*)
-      -- FIXME: NoScaleX version
-      -- NoScaleX -> s & over #hsize (* (width ox / width nx)) & over #vsize (* (width ox / width nx))
-      -- ScaleX -> s & over #size (* (width nx / width ox))
-
--- | Glyph styling
---
--- >>> defaultGlyphStyle
--- GlyphStyle {size = 3.0e-2, color = Colour 0.02 0.73 0.80 0.20, borderColor = Colour 0.02 0.29 0.48 1.00, borderSize = 3.0e-3, shape = SquareGlyph, rotation = Nothing, translate = Nothing}
---
--- ![glyph example](other/glyphs.svg)
-data GlyphStyle = GlyphStyle
-  { -- | glyph radius
-    size :: Double,
-    -- | fill color
-    color :: Colour,
-    -- | stroke color
-    borderColor :: Colour,
-    -- | stroke width (adds a bit to the bounding box)
-    borderSize :: Double,
-    shape :: GlyphShape,
-    rotation :: Maybe Double,
-    translate :: Maybe (Point Double),
-    scaleGlyph :: ScaleP
-  }
-  deriving (Show, Eq, Generic)
-
--- | the offical glyph style
-defaultGlyphStyle :: GlyphStyle
-defaultGlyphStyle =
-  GlyphStyle
-    0.03
-    (palette1a 0 0.2)
-    (set lightness' 0.4 $ palette1a 1 1)
-    0.003
-    SquareGlyph
-    Nothing
-    Nothing
-    ScalePArea
-
-scaleGlyphStyle :: Double -> GlyphStyle -> GlyphStyle
-scaleGlyphStyle x s =
-  s &
-  over #size (x*) &
-  over #borderSize (x*) &
-  over #translate (fmap (fmap (x*)))
 
 -- | Should glyph borders be scaled versus glyph size?
 data ScaleBorder = ScaleBorder | NoScaleBorder deriving (Show, Eq, Generic)
@@ -270,7 +219,7 @@ glyphText sh =
     PathGlyph _ _ -> "Path"
 
 -- | the extra area from glyph styling
-styleBoxGlyph :: GlyphStyle -> Rect Double
+styleBoxGlyph :: Style -> Rect Double
 styleBoxGlyph s = move p' $
   rot' $
     sw $ case sh of
@@ -343,57 +292,6 @@ toLineJoin "bevel" = LineJoinBevel
 toLineJoin "round" = LineJoinRound
 toLineJoin _ = LineJoinMiter
 
--- | line style
---
--- >>> defaultLineStyle
--- LineStyle {size = 1.2e-2, color = Colour 0.05 0.05 0.05 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}
---
--- ![line example](other/line.svg)
---
--- See also <https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute>
-data LineStyle = LineStyle
-  { size :: Double,
-    color :: Colour,
-    linecap :: Maybe LineCap,
-    linejoin :: Maybe LineJoin,
-    dasharray :: Maybe [Double],
-    dashoffset :: Maybe Double,
-    scaleLine :: ScaleP
-  }
-  deriving (Show, Eq, Generic)
-
--- | the official default line style
-defaultLineStyle :: LineStyle
-defaultLineStyle = LineStyle 0.012 dark Nothing Nothing Nothing Nothing ScalePArea
-
--- | Scale line scale on any projection.
-scaleLineStyle :: Double -> LineStyle -> LineStyle
-scaleLineStyle x s =
-  s &
-  over #size (x*)
-
--- | Path styling
---
--- >>> defaultPathStyle
--- PathStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.66 0.07 0.55 1.00}
-data PathStyle = PathStyle
-  { borderSize :: Double,
-    borderColor :: Colour,
-    color :: Colour,
-    scalePath' :: ScaleP
-  }
-  deriving (Show, Eq, Generic)
-
--- | the style
-defaultPathStyle :: PathStyle
-defaultPathStyle =
-  PathStyle 0.01 (palette1 1) (palette1 2) ScalePArea
-
--- | Scale path style on any projection.
-scalePathStyle :: Double -> PathStyle -> PathStyle
-scalePathStyle x s =
-  s &
-  over #borderSize (x*)
 
 -- | Scaling options
 --
@@ -410,17 +308,17 @@ data ScaleP =
 -- | given a ScaleP and two Rects, what is the scaling factor for a projection
 --
 -- Guards against scaling to zero or infinity
-scaleP :: ScaleP -> Rect Double -> Rect Double -> Double
-scaleP NoScaleP _ _ = 1
-scaleP ScalePX new old = bool 1 (width nx / width ox) (width ox > 0 && width nx >0)
+scaleRatio :: ScaleP -> Rect Double -> Rect Double -> Double
+scaleRatio NoScaleP _ _ = 1
+scaleRatio ScalePX new old = bool 1 (width nx / width ox) (width ox > 0 && width nx >0)
   where
     (Ranges nx _) = new
     (Ranges ox _) = old
-scaleP ScalePY new old = bool 1 (width ny / width oy) (width oy > 0 && width ny >0)
+scaleRatio ScalePY new old = bool 1 (width ny / width oy) (width oy > 0 && width ny >0)
   where
     (Ranges _ ny) = new
     (Ranges _ oy) = old
-scaleP ScalePArea new old = bool 1 (sqrt (an / ao)) (an > 0 && ao > 0)
+scaleRatio ScalePArea new old = bool 1 (sqrt (an / ao)) (an > 0 && ao > 0)
   where
     (Ranges nx ny) = new
     (Ranges ox oy) = old

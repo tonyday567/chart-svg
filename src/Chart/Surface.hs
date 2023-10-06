@@ -59,7 +59,7 @@ defaultSurfaceOptions =
 data SurfaceStyle = SurfaceStyle
   { -- | list of colours to interpolate between.
     surfaceColors :: [Colour],
-    surfaceRectStyle :: RectStyle
+    surfaceRectStyle :: Style
   }
   deriving (Show, Eq, Generic)
 
@@ -78,12 +78,12 @@ data SurfaceData = SurfaceData
   deriving (Show, Eq, Generic)
 
 -- | surface chart without any hud trimmings
-surfaces :: RectStyle -> [SurfaceData] -> [Chart]
+surfaces :: Style -> [SurfaceData] -> [Chart]
 surfaces rs ps =
   ( \(SurfaceData r c) ->
-      RectChart
+      Chart
         (rs & #color .~ c)
-        [r]
+        (RectData [r])
   )
     <$> ps
 
@@ -133,7 +133,7 @@ surfaceAxisOptions c =
     Nothing
     ( Ticks
         (TickRound (FormatN FSPrec (Just 3) 4 True True) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c & #shape .~ VLineGlyph, 0.01))
+        (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c, VLineGlyph, 0.01))
         (Just (defaultTextTick & #color .~ c, 0.03))
         Nothing
     )
@@ -174,7 +174,7 @@ surfaceLegendChart dataRange l =
     vertGlyph :: [Chart]
     vertGlyph =
       zipWith
-        (\r c -> RectChart (blob c) [r])
+        (\r c -> Chart (blob c) (RectData [r]))
         ( (\xr -> Ranges xr (Range 0 (l ^. #sloWidth)))
             <$> gridSpace
               dataRange
@@ -186,7 +186,7 @@ surfaceLegendChart dataRange l =
     horiGlyph :: [Chart]
     horiGlyph =
       zipWith
-        (\r c -> RectChart (blob c) [r])
+        (\r c -> Chart (blob c) (RectData [r]))
         ( (\yr -> Ranges (Range 0 (l ^. #sloWidth)) yr)
             <$> gridSpace
               dataRange
