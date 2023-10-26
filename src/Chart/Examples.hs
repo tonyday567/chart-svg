@@ -42,6 +42,11 @@ module Chart.Examples
 
     -- * Compound Charts
     compoundExample,
+    stackExample,
+
+    -- * Priority
+    priorityv1Example,
+    priorityv2Example,
   )
 where
 
@@ -57,6 +62,7 @@ import Data.Text qualified as Text
 import Data.Time
 import Optics.Core
 import Prelude hiding (abs)
+import Control.Category ((>>>))
 
 -- | unit example
 --
@@ -110,10 +116,10 @@ lineExample =
       defaultHudOptions
         & set
           #titles
-          [ (6, defaultTitle "Line Chart" & set (#style % #size) 0.1),
-            ( 11,
-              defaultTitle "Made with love and chart-svg"
-                & set (#style % #size) 0.06
+          [ (6, defaultTitle "Line Chart" & set (#style % #size) 0.08),
+            ( 13,
+              defaultTitle "Made with 🧡 and chart-svg"
+                & set (#style % #size) 0.04
                 & set #place PlaceBottom
                 & set #anchor AnchorEnd
             )
@@ -122,10 +128,10 @@ lineExample =
           #legends
           [ ( 12,
               defaultLegendOptions
-                & over #frame (fmap (set #color white))
-                & set #place (PlaceAbsolute (Point 0.45 (-0.35)))
-                & set (#textStyle % #size) 0.20
-                & set #legendCharts (zipWith (\t c -> (t, [c])) ["palette1 0", "palette1 1", "palette1 2"] cs)
+                & over #frame (fmap (set #color white >>> set (#frame %? #borderSize) 0))
+                & set #place (PlaceAbsolute (Point 0.3 (-0.35)))
+                & set (#textStyle % #size) 0.16
+                & set #legendCharts (zipWith (\t c -> (t, [c])) ["palette #0", "palette #1", "palette #2"] cs)
             )
           ]
     cs =
@@ -162,7 +168,7 @@ textExample =
       .~ named
         "text"
         [ TextChart
-            (defaultTextStyle & #color .~ dark & #size .~ 0.05 & #vshift .~ 0)
+            (defaultTextStyle & #color .~ dark & #size .~ 0.25 & #vshift .~ 0)
             ts
         ]
     & #hudOptions .~ defaultHudOptions
@@ -713,6 +719,12 @@ debugExample cs =
 compoundExample :: ChartOptions
 compoundExample = compoundMerge [lineExample, unitExample & #hudOptions % #axes %~ fmap (_2 % #place %~ flipPlace)]
 
+-- | Usage of stack.
+--
+-- ![stack example](other/stack.svg)
+stackExample :: ChartOptions
+stackExample = mempty & set #charts (stack 5 0.1 (replicate 25 (view #charts $ forgetHud lineExample)))
+
 -- | All the examples and the associated filepaths
 pathChartOptions :: [(FilePath, ChartOptions)]
 pathChartOptions =
@@ -740,7 +752,9 @@ pathChartOptions =
     ("other/debug.svg", debugExample lineExample),
     ("other/priorityv1.svg", priorityv1Example),
     ("other/priorityv2.svg", priorityv2Example),
-    ("other/compound.svg", compoundExample)
+    -- FIXME: compound example
+    -- ("other/compound.svg", compoundExample),
+    ("other/stack.svg", stackExample)
   ]
 
 -- | Run this to refresh example SVG's.

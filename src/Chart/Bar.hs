@@ -77,6 +77,25 @@ data BarOptions = BarOptions
   }
   deriving (Show, Eq, Generic)
 
+-- | The official bar options.
+defaultBarOptions :: BarOptions
+defaultBarOptions =
+  BarOptions
+    gs
+    ts
+    0.1
+    0
+    0.02
+    0.04
+    True
+    (FormatN FSCommaPrec (Just 2) 4 True True)
+    Vert
+    NonStacked
+    (defaultLegendOptions & #textStyle % #frame .~ Just defaultRectStyle)
+  where
+    gs = (\x -> rectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+
 -- | Number of bars per row of data
 cols :: Stacked -> [[Double]] -> Int
 cols Stacked _ = 1
@@ -162,28 +181,11 @@ barHudOptions bo bd =
     & #legends
       .~ [ (10, o & #legendCharts .~ barLegendContent bo bd)
          ]
+    & #frames .~ [(30, defaultFrameOptions & #buffer .~ 0.05)]
   where
     o = view #barLegendOptions bo
-    axis1 = bool id flipAxis (barOrientation bo == Hori) (defaultXAxisOptions & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd)
+    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd
 
--- | The official bar options.
-defaultBarOptions :: BarOptions
-defaultBarOptions =
-  BarOptions
-    gs
-    ts
-    0.1
-    0
-    0.04
-    0.1
-    True
-    (FormatN FSCommaPrec (Just 2) 4 True True)
-    Vert
-    NonStacked
-    defaultLegendOptions
-  where
-    gs = (\x -> rectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
-    ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.24) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Two dimensional data, maybe with row and column labels.
 data BarData = BarData

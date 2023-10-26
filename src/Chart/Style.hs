@@ -94,7 +94,7 @@ data Style = Style
   } deriving (Eq, Show, Generic)
 
 defaultStyle :: Style
-defaultStyle = Style 0.1 0.01 (palette1a 0 0.1) (palette1a 1 1) ScalePArea AnchorMiddle Nothing Nothing EscapeText Nothing Nothing Nothing Nothing Nothing 0.45 1.1 (-0.25) SquareGlyph
+defaultStyle = Style 0.06 0.01 (palette1a 0 0.1) (palette1a 1 1) NoScaleP AnchorMiddle Nothing Nothing EscapeText Nothing Nothing Nothing Nothing Nothing 0.6 1.1 (-0.25) SquareGlyph
 
 defaultRectStyle :: Style
 defaultRectStyle = defaultStyle
@@ -119,9 +119,9 @@ scaleStyle :: Double -> Style -> Style
 scaleStyle x s =
   s &
   over #size (x*) &
-  over #hsize (x*) &
-  over #vsize (x*) &
-  over #translate (fmap (fmap (x*)))
+  over #borderSize (x*) &
+  over #translate (fmap (fmap (x*))) &
+  over #frame (fmap (scaleStyle x))
 
 -- | solid rectangle, no border
 --

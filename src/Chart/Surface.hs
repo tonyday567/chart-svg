@@ -33,6 +33,7 @@ import Data.Text (Text)
 import GHC.Generics
 import Optics.Core
 import Prelude
+import Data.Maybe
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
@@ -201,11 +202,13 @@ isHori l =
   l ^. #sloLegendOptions % #place == PlaceBottom
     || l ^. #sloLegendOptions % #place == PlaceTop
 
+-- | FIXME: makeSurfaceTick needs testing
 makeSurfaceTick :: SurfaceLegendOptions -> ChartTree -> ChartTree
 makeSurfaceTick l pchart = case view styleBox' pchart of
   Nothing -> pchart
   Just r' -> phud
     where
       r'' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
-      (hs, db) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) UnscaledAspect r'
-      phud = runHudWith r'' db hs pchart
+      (mdb, hs) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r'
+      -- FIXME: check usage of one here
+      phud = runHudWith (fromMaybe r'' mdb) one hs pchart

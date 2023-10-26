@@ -9,6 +9,12 @@ module Chart.Primitive
     Chart (..),
     ChartData (..),
 
+    rectData',
+    lineData',
+    glyphData',
+    textData',
+    pathData',
+    blankData',
     pattern RectChart,
     pattern LineChart,
     pattern GlyphChart,
@@ -42,7 +48,6 @@ module Chart.Primitive
     maybeProjectWith,
     moveChart,
     scaleChart,
-    scaleStyle,
     colourStyle,
     projectChartTree,
     boxes,
@@ -61,6 +66,8 @@ module Chart.Primitive
     glyphize,
     renamed,
     blankChart,
+    styleBoxN',
+    projectChartTreeN,
   )
 where
 
@@ -122,6 +129,66 @@ data ChartData =
   PathData [PathData Double] |
   BlankData [Rect Double]
   deriving (Eq, Show, Generic)
+
+-- | RectData partial lens
+rectData' :: Lens' ChartData (Maybe [Rect Double])
+rectData' =
+  lens getData setData
+    where
+      getData (RectData xs) = Just xs
+      getData _ = Nothing
+      setData (RectData _) (Just xs) = RectData xs
+      setData cd _ = cd
+
+-- | LineData partial lens
+lineData' :: Lens' ChartData (Maybe [[Point Double]])
+lineData' =
+  lens getData setData
+    where
+      getData (LineData xs) = Just xs
+      getData _ = Nothing
+      setData (LineData _) (Just xs) = LineData xs
+      setData cd _ = cd
+
+-- | GlyphData partial lens
+glyphData' :: Lens' ChartData (Maybe [(GlyphShape, Point Double)])
+glyphData' =
+  lens getData setData
+    where
+      getData (GlyphData xs) = Just xs
+      getData _ = Nothing
+      setData (GlyphData _) (Just xs) = GlyphData xs
+      setData cd _ = cd
+
+-- | TextData partial lens
+textData' :: Lens' ChartData (Maybe [(Text, Point Double)])
+textData' =
+  lens getData setData
+    where
+      getData (TextData xs) = Just xs
+      getData _ = Nothing
+      setData (TextData _) (Just xs) = TextData xs
+      setData cd _ = cd
+
+-- | PathData partial lens
+pathData' :: Lens' ChartData (Maybe [PathData Double])
+pathData' =
+  lens getData setData
+    where
+      getData (PathData xs) = Just xs
+      getData _ = Nothing
+      setData (PathData _) (Just xs) = PathData xs
+      setData cd _ = cd
+
+-- | BlankData partial lens
+blankData' :: Lens' ChartData (Maybe [Rect Double])
+blankData' =
+  lens getData setData
+    where
+      getData (BlankData xs) = Just xs
+      getData _ = Nothing
+      setData (BlankData _) (Just xs) = BlankData xs
+      setData cd _ = cd
 
 -- | pattern of a Chart with RectData
 pattern RectChart :: Style -> [Rect Double] -> Chart
@@ -273,7 +340,6 @@ projectChartDataWith new old (GlyphData a) = GlyphData (fmap (second (projectOnP
 projectChartDataWith new old (PathData a) = PathData (projectPaths new old a)
 projectChartDataWith new old (BlankData a) = BlankData (projectOnR new old <$> a)
 
-
 -- | Maybe project a Chart to a new rectangular space from an old rectangular space, as long as both Rects exist, and are not singular.
 maybeProjectWith :: Maybe (Rect Double) -> Maybe (Rect Double) -> Chart -> Chart
 maybeProjectWith new old = fromMaybe id (projectWith <$> new <*> old)
@@ -313,10 +379,15 @@ colourStyle :: (Colour -> Colour) -> Style -> Style
 colourStyle f s = s & #color %~ f & #borderColor %~ f
 
 -- | Project a chart tree to a new bounding box, guarding against singleton bounds.
-projectChartTree :: Rect Double -> [Chart] -> [Chart]
-projectChartTree new cs = case styleBoxes cs of
-  Nothing -> cs
-  Just b -> projectWith new b <$> cs
+projectChartTree :: Rect Double -> ChartTree -> ChartTree
+projectChartTree new ct = case view styleBox' ct of
+  Nothing -> ct
+  Just b -> ct & over charts' (fmap (projectWith new b))
+
+-- | Project a chart tree to a new bounding box N times.
+-- This can improve style fit compared with single application.
+projectChartTreeN :: Int -> Rect Double -> ChartTree -> ChartTree
+projectChartTreeN n new ct = foldr ($) ct (replicate n (projectChartTree new))
 
 -- | Compute the bounding box of a list of charts.
 boxes :: [Chart] -> Maybe (Rect Double)
@@ -353,10 +424,22 @@ styleRebox_ cs r =
 --
 -- Note that a round trip may be only approximately isomorphic ie
 --
--- > forall c r. \c -> view styleBox' . set styleBox r c ~= r
+-- > forall c r. \c -> view styleBox' . set styleBox' r c ~= r
 styleBox' :: Lens' ChartTree (Maybe (Rect Double))
 styleBox' =
   lens styleBox_ styleRebox_
+
+styleReboxN_ :: Int -> ChartTree -> Maybe (Rect Double) -> ChartTree
+styleReboxN_ n ct r = foldr ($) ct (replicate n (\x -> styleRebox_ x r))
+
+-- | Lens between a style bounding box and a ChartTree tree.
+--
+-- The setter repeats n times which sometimes helps converge to the desired size.
+--
+-- > forall c r. \c -> view styleBoxN' . set styleBoxN' r c ==> r sometimes
+styleBoxN' :: Int -> Lens' ChartTree (Maybe (Rect Double))
+styleBoxN' n =
+  lens styleBox_ (styleReboxN_ n)
 
 -- | Create a frame over some charts with (additive) padding.
 --

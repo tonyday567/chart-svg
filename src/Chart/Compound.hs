@@ -58,21 +58,27 @@ compoundMerge cs@(c0 : _) =
     (addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs)) (view (#markupOptions % #chartAspect) c0))
 
 -- | Decorate a ChartTree with HudOptions, merging the individual hud options.
+-- FIXME: align with addHud structure
 addHudCompound :: [(HudOptions, ChartTree)] -> ChartAspect -> ChartTree
 addHudCompound [] _ = mempty
-addHudCompound ts@((_, cs0) : _) asp =
+addHudCompound ts@((_, cs0) : _) asp = undefined
+
+{-
   runHudCompoundWith
-    (initialCanvas asp cs0)
+    -- FIXME:
+    (fromMaybe one $ initialCanvas asp)
     (zip3 dbs hss css)
   where
     hss = zipWith (\i hs -> fmap (over #priority (+Priority (i*0.1))) hs) [0..] (fst <$> huds)
     dbs = snd <$> huds
     css = snd <$> ts -- <> (blank <$> dbs)
-    huds = (\(ho, cs) -> toHuds ho asp (maybe one padSingletons (view box' cs))) <$> ts
+    huds = (\(ho, cs) -> toHuds ho (maybe one padSingletons (view box' cs))) <$> ts
+
+-}
 
 -- | Combine a collection of chart trees that share a canvas box.
 runHudCompoundWith ::
-  -- | initial canvas
+  -- | canvas
   CanvasBox ->
   -- | databox-huds-chart tuples representing independent chart trees occupying the same canvas space
   [(DataBox, [Hud], ChartTree)] ->

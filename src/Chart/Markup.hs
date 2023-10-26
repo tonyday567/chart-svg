@@ -94,6 +94,7 @@ markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) 
               ("y", encodeNum $ -y)
             ]
           <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> (s ^. #rotation))
+    -- This is very late for a chart creation. It is here so that the chart doesn't undergo scaling and thus picks up the local size of the text.
     frame' = case view #frame s of
       Nothing -> Markup mempty
       Just f -> markupChart (Chart (f & over #borderSize (* view #size s)) (RectData [styleBoxText s t p]))
@@ -402,6 +403,7 @@ fillSwitch (colorNormal, colorPrefer) prefer item =
 data MarkupOptions = MarkupOptions
   { markupHeight :: Maybe Double,
     chartAspect :: ChartAspect,
+    repeatAspect :: Int,
     cssOptions :: CssOptions,
     renderStyle :: RenderStyle
   }
@@ -409,7 +411,7 @@ data MarkupOptions = MarkupOptions
 
 -- | The official markup options
 defaultMarkupOptions :: MarkupOptions
-defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) defaultCssOptions Compact
+defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) 10 defaultCssOptions Compact
 
 -- | CSS shape rendering options
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
@@ -455,12 +457,17 @@ data ChartOptions = ChartOptions
   }
   deriving (Generic, Eq, Show)
 
--- | Processes the hud options and turns them into charts, rescales the existing charts, and resets the hud options to mempty. Destructive operation.
+-- | Processes the hud options and turns them into charts, rescales the existing charts, and resets the hud options to mempty.
+--
+-- FIXME: check this: Note that this is a destructive operation, and, in particular, that
+--
+-- view #charts (forgetHud (mempty & set #charts c)) /= c
+--
 forgetHud :: ChartOptions -> ChartOptions
 forgetHud co =
   co &
   set #hudOptions mempty &
-  set #charts (addHud (view #hudOptions co) (view (#markupOptions % #chartAspect) co) (view #charts co))
+  set #charts (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co))
 
 -- | Convert ChartOptions to Markup
 --
@@ -472,12 +479,13 @@ markupChartOptions co =
     (view (#markupOptions % #markupHeight) co)
     viewbox
     ( markupCssOptions (view (#markupOptions % #cssOptions) co)
-        <> markupChartTree csAndHud
+        <> markupChartTree finalCT
     )
   where
     asp = view (#markupOptions % #chartAspect) co
-    viewbox = maybe (initialCanvas asp mempty) padSingletons (view styleBox' csAndHud)
-    csAndHud = view #charts (forgetHud co)
+    viewbox = initialCanvas asp csAndHud
+    csAndHud = addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co)
+    finalCT = projectChartTreeN (view (#markupOptions % #repeatAspect) co) viewbox csAndHud
 
 -- | Render ChartOptions to an SVG ByteString
 --
