@@ -48,6 +48,7 @@ module Chart.Primitive
     maybeProjectWith,
     moveChart,
     scaleChart,
+    scaleChartData,
     colourStyle,
     projectChartTree,
     boxes,
@@ -236,6 +237,19 @@ blankChart1 r = Chart defaultStyle (BlankData [r])
 -- | A group of charts represented by a 'Tree' of chart lists with labelled branches. The labelling is particularly useful downstream, when groupings become grouped SVG elements with classes or ids.
 newtype ChartTree = ChartTree {tree :: Tree (Maybe Text, [Chart])} deriving (Eq, Show, Generic)
 
+-- | Group a list of trees into a new tree.
+group :: Maybe Text -> [ChartTree] -> ChartTree
+group name cs = ChartTree $ Node (name, []) (tree <$> cs)
+
+instance Semigroup ChartTree where
+  (<>) (ChartTree x@(Node (n, cs) xs)) (ChartTree x'@(Node (n', cs') xs')) =
+    case (n, n') of
+      (Nothing, Nothing) -> ChartTree $ Node (Nothing, cs <> cs') (xs <> xs')
+      _ -> ChartTree $ Node (Nothing, []) [x, x']
+
+instance Monoid ChartTree where
+  mempty = ChartTree $ Node (Nothing, []) []
+
 -- | Apply a filter to ChartTree
 filterChartTree :: (Chart -> Bool) -> ChartTree -> ChartTree
 filterChartTree p (ChartTree (Node (a, cs) xs)) =
@@ -279,18 +293,6 @@ blank r = unnamed [Chart defaultStyle (BlankData [r])]
 blankChart :: Rect Double -> Chart
 blankChart r = Chart defaultStyle (BlankData [r])
 
--- | Group a list of trees into a new tree.
-group :: Maybe Text -> [ChartTree] -> ChartTree
-group name cs = ChartTree $ Node (name, []) (tree <$> cs)
-
-instance Semigroup ChartTree where
-  (<>) (ChartTree x@(Node (n, cs) xs)) (ChartTree x'@(Node (n', cs') xs')) =
-    case (n, n') of
-      (Nothing, Nothing) -> ChartTree $ Node (Nothing, cs <> cs') (xs <> xs')
-      _ -> ChartTree $ Node (Nothing, []) [x, x']
-
-instance Monoid ChartTree where
-  mempty = ChartTree $ Node (Nothing, []) []
 
 -- $boxes
 --
@@ -318,7 +320,7 @@ sbox :: Chart -> Maybe (Rect Double)
 sbox (Chart s (RectData a)) = foldRect $ padRect (0.5 * view #borderSize s) <$> a
 sbox (Chart s (TextData a)) = foldRect $ uncurry (styleBoxText s) <$> a
 sbox (Chart s (LineData a)) = padRect (0.5 * s ^. #size) <$> (space1 $ mconcat a)
-sbox (Chart s (GlyphData a)) = foldRect $ (\p -> addPoint p (styleBoxGlyph s)) <$> fmap snd a
+sbox (Chart s (GlyphData a)) = foldRect $ (\x -> addPoint (snd x) (styleBoxGlyph s (fst x))) <$> a
 sbox (Chart s (PathData a)) = padRect (0.5 * view #borderSize s) <$> pathBoxes a
 sbox (Chart _ (BlankData a)) = foldRect a
 

@@ -62,8 +62,24 @@ compoundMerge cs@(c0 : _) =
 addHudCompound :: [(HudOptions, ChartTree)] -> ChartAspect -> ChartTree
 addHudCompound [] _ = mempty
 addHudCompound ts@((_, cs0) : _) asp = undefined
-
+  where
 {-
+    hss =
+      ts &
+      fmap (\(db,hs,_) -> fmap (over #hud (withStateT (#dataBox .~ db))) hs) &
+      mconcat &
+      prioritizeHuds &
+      mapM_ (closes . fmap (view #hud)) &
+      flip execState (HudChart css mempty undefined) &
+      (\x -> group (Just "chart") [view #chart x] <> group (Just "hud") [view #hud x])
+
+    css =
+      ts &
+      fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
+      mconcat
+
+
+-}{-
   runHudCompoundWith
     -- FIXME:
     (fromMaybe one $ initialCanvas asp)
@@ -84,7 +100,10 @@ runHudCompoundWith ::
   [(DataBox, [Hud], ChartTree)] ->
   -- | integrated chart tree
   ChartTree
-runHudCompoundWith cb ts = hss
+runHudCompoundWith cb ts = undefined
+
+{-
+hss
   where
     hss =
       ts &
@@ -99,6 +118,8 @@ runHudCompoundWith cb ts = hss
       ts &
       fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
       mconcat
+
+-}
 
 prioritizeHuds :: [Hud] -> [[Hud]]
 prioritizeHuds hss =

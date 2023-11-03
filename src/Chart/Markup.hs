@@ -482,10 +482,14 @@ markupChartOptions co =
         <> markupChartTree finalCT
     )
   where
+    -- FIXME: refactor these into stand-alone functions
     asp = view (#markupOptions % #chartAspect) co
     viewbox = initialCanvas asp csAndHud
     csAndHud = addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co)
     finalCT = projectChartTreeN (view (#markupOptions % #repeatAspect) co) viewbox csAndHud
+
+
+
 
 -- | Render ChartOptions to an SVG ByteString
 --

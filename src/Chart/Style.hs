@@ -104,7 +104,7 @@ rectStyle :: Double -> Colour -> Colour -> Style
 rectStyle bs bc c = defaultStyle & #borderSize .~ bs & #color .~ c & #borderColor .~ bc
 
 defaultTextStyle :: Style
-defaultTextStyle = defaultStyle & #size .~ 0.12 & #color .~ dark
+defaultTextStyle = defaultStyle & #size .~ 0.06 & #color .~ dark
 
 defaultGlyphStyle :: Style
 defaultGlyphStyle = defaultStyle & #size .~ 0.03 & #color .~ palette1a 0 0.2 & #borderColor .~ (set lightness' 0.4 $ palette1a 1 1) & #borderSize .~ 0.003
@@ -219,8 +219,8 @@ glyphText sh =
     PathGlyph _ _ -> "Path"
 
 -- | the extra area from glyph styling
-styleBoxGlyph :: Style -> Rect Double
-styleBoxGlyph s = move p' $
+styleBoxGlyph :: Style -> GlyphShape -> Rect Double
+styleBoxGlyph s sh = move p' $
   rot' $
     sw $ case sh of
       CircleGlyph -> (sz *) <$> one
@@ -233,7 +233,6 @@ styleBoxGlyph s = move p' $
       TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 ([a, b, c] :: [Point Double])
       PathGlyph path' _ -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
   where
-    sh = s ^. #shape
     sz = s ^. #size
     sw = padRect (0.5 * s ^. #borderSize)
     p' = fromMaybe (Point 0.0 0.0) (s ^. #translate)
