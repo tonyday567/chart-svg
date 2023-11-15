@@ -8,7 +8,6 @@ module Chart.Primitive
   ( -- * Charts
     Chart (..),
     ChartData (..),
-
     rectData',
     lineData',
     glyphData',
@@ -24,7 +23,6 @@ module Chart.Primitive
     pattern LineChart1,
     glyphChart1,
     blankChart1,
-
     ChartTree (..),
     tree',
     chart',
@@ -119,96 +117,99 @@ import Prelude
 -- > writeChartOptions "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #charts .~ unnamed [r]
 --
 -- ![unit example](other/unit.svg)
+data Chart = Chart {style :: Style, chartData :: ChartData} deriving (Eq, Show, Generic)
 
-data Chart = Chart { style :: Style, chartData :: ChartData } deriving (Eq, Show, Generic)
-
-data ChartData =
-  RectData [Rect Double] |
-  LineData [[Point Double]] |
-  GlyphData [(GlyphShape, Point Double)] |
-  TextData [(Text, Point Double)] |
-  PathData [PathData Double] |
-  BlankData [Rect Double]
+data ChartData
+  = RectData [Rect Double]
+  | LineData [[Point Double]]
+  | GlyphData [(GlyphShape, Point Double)]
+  | TextData [(Text, Point Double)]
+  | PathData [PathData Double]
+  | BlankData [Rect Double]
   deriving (Eq, Show, Generic)
 
 -- | RectData partial lens
 rectData' :: Lens' ChartData (Maybe [Rect Double])
 rectData' =
   lens getData setData
-    where
-      getData (RectData xs) = Just xs
-      getData _ = Nothing
-      setData (RectData _) (Just xs) = RectData xs
-      setData cd _ = cd
+  where
+    getData (RectData xs) = Just xs
+    getData _ = Nothing
+    setData (RectData _) (Just xs) = RectData xs
+    setData cd _ = cd
 
 -- | LineData partial lens
 lineData' :: Lens' ChartData (Maybe [[Point Double]])
 lineData' =
   lens getData setData
-    where
-      getData (LineData xs) = Just xs
-      getData _ = Nothing
-      setData (LineData _) (Just xs) = LineData xs
-      setData cd _ = cd
+  where
+    getData (LineData xs) = Just xs
+    getData _ = Nothing
+    setData (LineData _) (Just xs) = LineData xs
+    setData cd _ = cd
 
 -- | GlyphData partial lens
 glyphData' :: Lens' ChartData (Maybe [(GlyphShape, Point Double)])
 glyphData' =
   lens getData setData
-    where
-      getData (GlyphData xs) = Just xs
-      getData _ = Nothing
-      setData (GlyphData _) (Just xs) = GlyphData xs
-      setData cd _ = cd
+  where
+    getData (GlyphData xs) = Just xs
+    getData _ = Nothing
+    setData (GlyphData _) (Just xs) = GlyphData xs
+    setData cd _ = cd
 
 -- | TextData partial lens
 textData' :: Lens' ChartData (Maybe [(Text, Point Double)])
 textData' =
   lens getData setData
-    where
-      getData (TextData xs) = Just xs
-      getData _ = Nothing
-      setData (TextData _) (Just xs) = TextData xs
-      setData cd _ = cd
+  where
+    getData (TextData xs) = Just xs
+    getData _ = Nothing
+    setData (TextData _) (Just xs) = TextData xs
+    setData cd _ = cd
 
 -- | PathData partial lens
 pathData' :: Lens' ChartData (Maybe [PathData Double])
 pathData' =
   lens getData setData
-    where
-      getData (PathData xs) = Just xs
-      getData _ = Nothing
-      setData (PathData _) (Just xs) = PathData xs
-      setData cd _ = cd
+  where
+    getData (PathData xs) = Just xs
+    getData _ = Nothing
+    setData (PathData _) (Just xs) = PathData xs
+    setData cd _ = cd
 
 -- | BlankData partial lens
 blankData' :: Lens' ChartData (Maybe [Rect Double])
 blankData' =
   lens getData setData
-    where
-      getData (BlankData xs) = Just xs
-      getData _ = Nothing
-      setData (BlankData _) (Just xs) = BlankData xs
-      setData cd _ = cd
+  where
+    getData (BlankData xs) = Just xs
+    getData _ = Nothing
+    setData (BlankData _) (Just xs) = BlankData xs
+    setData cd _ = cd
 
 -- | pattern of a Chart with RectData
 pattern RectChart :: Style -> [Rect Double] -> Chart
 pattern RectChart s xs = Chart s (RectData xs)
+
 {-# COMPLETE RectChart #-}
 
 -- | pattern of a Chart with LineData
 pattern LineChart :: Style -> [[Point Double]] -> Chart
 pattern LineChart s xss = Chart s (LineData xss)
+
 {-# COMPLETE LineChart #-}
 
 -- | pattern of a Chart with a singleton LineData
 pattern LineChart1 :: Style -> [Point Double] -> Chart
 pattern LineChart1 s xs = Chart s (LineData [xs])
+
 {-# COMPLETE LineChart1 #-}
 
 -- | pattern of a Chart with GlyphData
 pattern GlyphChart :: Style -> [(GlyphShape, Point Double)] -> Chart
 pattern GlyphChart s xs = Chart s (GlyphData xs)
+
 {-# COMPLETE GlyphChart #-}
 
 -- | Create a Chart with GlyphData and a single shape
@@ -218,16 +219,19 @@ glyphChart1 s shape xs = Chart s (GlyphData (fmap (shape,) xs))
 -- | pattern of a Chart with TextData
 pattern TextChart :: Style -> [(Text, Point Double)] -> Chart
 pattern TextChart s xs = Chart s (TextData xs)
+
 {-# COMPLETE TextChart #-}
 
 -- | pattern of a Chart with PathData
 pattern PathChart :: Style -> [PathData Double] -> Chart
 pattern PathChart s xs = Chart s (PathData xs)
+
 {-# COMPLETE PathChart #-}
 
 -- | pattern of a Chart with BlankData
 pattern BlankChart :: Style -> [Rect Double] -> Chart
 pattern BlankChart s xs = Chart s (BlankData xs)
+
 {-# COMPLETE BlankChart #-}
 
 -- | Create a blank Chart with a single Rect
@@ -292,7 +296,6 @@ blank r = unnamed [Chart defaultStyle (BlankData [r])]
 -- | A blamk chart
 blankChart :: Rect Double -> Chart
 blankChart r = Chart defaultStyle (BlankData [r])
-
 
 -- $boxes
 --
@@ -539,4 +542,3 @@ data ChartAspect
   | -- | Do not rescale charts. The style values should make sense in relation to the data ranges.
     UnscaledAspect
   deriving (Show, Eq, Generic)
-

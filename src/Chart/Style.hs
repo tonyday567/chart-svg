@@ -44,12 +44,13 @@ module Chart.Style
     defaultPathStyle,
 
     -- * Style scaling
-    ScaleP(..),
+    ScaleP (..),
     scaleRatio,
   )
 where
 
 import Chart.Data
+import Data.Bool
 import Data.ByteString (ByteString)
 import Data.Colour
 import Data.List qualified as List
@@ -62,7 +63,6 @@ import Data.Text qualified as Text
 import GHC.Generics
 import Optics.Core
 import Prelude
-import Data.Bool
 
 -- $setup
 --
@@ -72,8 +72,7 @@ import Data.Bool
 -- >>> import Optics.Core
 
 data Style = Style
-  {
-    size :: Double,
+  { size :: Double,
     borderSize :: Double,
     color :: Colour,
     borderColor :: Colour,
@@ -91,7 +90,8 @@ data Style = Style
     vsize :: Double,
     vshift :: Double,
     shape :: GlyphShape
-  } deriving (Eq, Show, Generic)
+  }
+  deriving (Eq, Show, Generic)
 
 defaultStyle :: Style
 defaultStyle = Style 0.06 0.01 (palette1a 0 0.1) (palette1a 1 1) NoScaleP AnchorMiddle Nothing Nothing EscapeText Nothing Nothing Nothing Nothing Nothing 0.6 1.1 (-0.25) SquareGlyph
@@ -117,11 +117,11 @@ defaultPathStyle = defaultStyle & #color .~ palette1 2 & #borderColor .~ palette
 
 scaleStyle :: Double -> Style -> Style
 scaleStyle x s =
-  s &
-  over #size (x*) &
-  over #borderSize (x*) &
-  over #translate (fmap (fmap (x*))) &
-  over #frame (fmap (scaleStyle x))
+  s
+    & over #size (x *)
+    & over #borderSize (x *)
+    & over #translate (fmap (fmap (x *)))
+    & over #frame (fmap (scaleStyle x))
 
 -- | solid rectangle, no border
 --
@@ -178,7 +178,7 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
     n1 = o ^. #vshift
     x' = s * h * fromIntegral (Text.length t)
     y' = s * v
-    n1' =(-s) * n1
+    n1' = (-s) * n1
     a' = case o ^. #anchor of
       AnchorStart -> 0.5
       AnchorEnd -> -0.5
@@ -291,29 +291,28 @@ toLineJoin "bevel" = LineJoinBevel
 toLineJoin "round" = LineJoinRound
 toLineJoin _ = LineJoinMiter
 
-
 -- | Scaling options
---
-data ScaleP =
-  -- | Do not scale under projection.
-  NoScaleP |
-  -- | Scale based on the X axis ratio of a projection
-  ScalePX |
-  -- | Scale based on the Y axis ratio of a projection
-  ScalePY |
-  -- | Scale based on the area ratio of a projection
-  ScalePArea deriving (Generic, Eq, Show)
+data ScaleP
+  = -- | Do not scale under projection.
+    NoScaleP
+  | -- | Scale based on the X axis ratio of a projection
+    ScalePX
+  | -- | Scale based on the Y axis ratio of a projection
+    ScalePY
+  | -- | Scale based on the area ratio of a projection
+    ScalePArea
+  deriving (Generic, Eq, Show)
 
 -- | given a ScaleP and two Rects, what is the scaling factor for a projection
 --
 -- Guards against scaling to zero or infinity
 scaleRatio :: ScaleP -> Rect Double -> Rect Double -> Double
 scaleRatio NoScaleP _ _ = 1
-scaleRatio ScalePX new old = bool 1 (width nx / width ox) (width ox > 0 && width nx >0)
+scaleRatio ScalePX new old = bool 1 (width nx / width ox) (width ox > 0 && width nx > 0)
   where
     (Ranges nx _) = new
     (Ranges ox _) = old
-scaleRatio ScalePY new old = bool 1 (width ny / width oy) (width oy > 0 && width ny >0)
+scaleRatio ScalePY new old = bool 1 (width ny / width oy) (width oy > 0 && width ny > 0)
   where
     (Ranges _ ny) = new
     (Ranges _ oy) = old

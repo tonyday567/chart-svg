@@ -68,10 +68,8 @@ module Chart.Hud
     legend,
     legendHud,
     legendFrame,
-
     freezeAxes,
     freezeTicks,
-
   )
 where
 
@@ -257,7 +255,7 @@ getHudBox fa c =
     UnscaledAspect -> view hudBox' c
 
 makeHuds :: [HudChart -> ChartTree] -> HudChart -> HudChart
-makeHuds hs hc = over #hud ( <> mconcat (fmap ($ hc) hs) ) hc
+makeHuds hs hc = over #hud (<> mconcat (fmap ($ hc) hs)) hc
 
 fromHudChart :: HudChart -> ChartTree
 fromHudChart hc = group (Just "chart") [view #chart hc] <> group (Just "hud") [view #hud hc]
@@ -282,10 +280,11 @@ runHudWith cb db hs cs =
     & foldl' (\x a -> makeHuds a x) hc0
     & fromHudChart
   where
-    hc0 = HudChart
-          (cs & over chart' (projectWith cb (maybe one padSingletons $ view styleBox' cs)))
-          mempty
-          db
+    hc0 =
+      HudChart
+        (cs & over chart' (projectWith cb (maybe one padSingletons $ view box' cs)))
+        mempty
+        db
 
 -- | Combine huds and charts to form a new ChartTree with a supplied initial canvas dimension.
 --
@@ -312,7 +311,7 @@ addHud asp ho cs =
   where
     db = maybe one padSingletons (view box' cs)
     (mdb, hs) = toHuds ho db
-    cs' = cs <> maybe mempty (\r -> bool ( named "datapadding" [BlankChart defaultStyle [r]] ) mempty (r==db) ) mdb
+    cs' = cs <> maybe mempty (\r -> bool (named "datapadding" [BlankChart defaultStyle [r]]) mempty (r == db)) mdb
 
 -- | The initial canvas before applying Huds
 --
@@ -366,7 +365,6 @@ defaultHudOptions =
     []
 
 -- | Make Huds and potential data box extension; from a HudOption and an initial data box.
---
 toHuds :: HudOptions -> DataBox -> (Maybe DataBox, [Hud])
 toHuds o db =
   (db',) $
@@ -379,11 +377,12 @@ toHuds o db =
 
 freezeAxes :: DataBox -> [(Priority, AxisOptions)] -> (Maybe DataBox, [(Priority, AxisOptions)])
 freezeAxes db0 as =
-        foldr
-        ( \(p,ao) (dbm, as') ->
-            let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) ao in (dbm', as' <> [(p,ao')]))
-        (Nothing,[])
-        as
+  foldr
+    ( \(p, ao) (dbm, as') ->
+        let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) ao in (dbm', as' <> [(p, ao')])
+    )
+    (Nothing, [])
+    as
 
 freezeTicks :: DataBox -> AxisOptions -> (Maybe DataBox, AxisOptions)
 freezeTicks db a =
@@ -398,8 +397,7 @@ makePlacedTicks r s =
   case s of
     TickNone -> (Nothing, [])
     TickRound f n e ->
-      (
-        bool (space1 ticks0) Nothing (e == NoTickExtend),
+      ( bool (space1 ticks0) Nothing (e == NoTickExtend),
         zip ticks0 (formatNs f ticks0)
       )
       where
@@ -415,7 +413,7 @@ makePlacedTicks r s =
           )
           ls
       )
-    TickPlaced xs -> (Nothing,xs)
+    TickPlaced xs -> (Nothing, xs)
 
 placeTicks :: Range Double -> TickStyle -> (Maybe (Range Double), TickStyle)
 placeTicks r t@TickRound {} = (rExtended, TickPlaced tPlaced)
@@ -463,7 +461,7 @@ colourHudOptions f o =
         & over #bar (fmap (over (#style % #color) f))
         & over
           (#ticks % #gtick)
-          (fmap (\(x,y,z) -> (over #color f . over #borderColor f $ x,y,z)))
+          (fmap (\(x, y, z) -> (over #color f . over #borderColor f $ x, y, z)))
         & over
           (#ticks % #ttick)
           (fmap (first (over #color f)))
@@ -609,7 +607,7 @@ defaultXTicks :: Ticks
 defaultXTicks =
   Ticks
     defaultTickStyle
-    (Just (defaultGlyphTick, VLineGlyph, 0.0))
+    (Just (defaultGlyphTick, VLineGlyph, 0))
     (Just (defaultTextTick, 0.01))
     (Just (defaultLineTick, 0))
 
@@ -618,8 +616,8 @@ defaultYTicks :: Ticks
 defaultYTicks =
   Ticks
     defaultTickStyle
-    (Just (defaultGlyphTick, HLineGlyph, 0.03))
-    (Just (defaultTextTick, 0.033))
+    (Just (defaultGlyphTick, HLineGlyph, 0))
+    (Just (defaultTextTick, 0.01))
     (Just (defaultLineTick, 0))
 
 -- | Style of tick marks on an axis.
@@ -896,7 +894,6 @@ ticksPlacedCanvas ts pl cb db =
   first (project (placeRange pl db) (placeRange pl cb))
     <$> snd (makePlacedTicks (placeRange pl db) ts)
 
-
 tickGlyph_ :: Place -> (Style, Double) -> GlyphShape -> TickStyle -> CanvasBox -> CanvasBox -> DataBox -> Maybe Chart
 tickGlyph_ pl (g, b) shape ts sb cb db =
   case l of
@@ -973,8 +970,8 @@ tickLine pl (ls, b) ts hc =
   case cb of
     Nothing -> named "ticklines" []
     Just cb' ->
-      let l = (\x -> placeGridLines pl cb' x b) <$> fmap fst (ticksPlacedCanvas ts pl cb' db) in
-      named "ticklines" (bool [Chart ls (LineData l)] [] (null l))
+      let l = (\x -> placeGridLines pl cb' x b) <$> fmap fst (ticksPlacedCanvas ts pl cb' db)
+       in named "ticklines" (bool [Chart ls (LineData l)] [] (null l))
   where
     cb = view canvasBox' hc
     db = view #dataBox hc
@@ -987,7 +984,7 @@ applyTicks ::
   ChartTree
 applyTicks pl t hc = group (Just "ticks") [g, l, t']
   where
-    g = maybe mempty (\(x, shape, b) -> tickGlyph pl (x,b) shape (t ^. #style) hc) (t ^. #gtick)
+    g = maybe mempty (\(x, shape, b) -> tickGlyph pl (x, b) shape (t ^. #style) hc) (t ^. #gtick)
     l = maybe mempty (\x -> tickText pl x (t ^. #style) (appendHud g hc)) (t ^. #ttick)
     t' = maybe mempty (\x -> tickLine pl x (t ^. #style) hc) (t ^. #ltick)
 
@@ -1135,7 +1132,7 @@ legendizeChart l c =
   case c of
     (Chart rs (RectData _)) -> Chart rs (RectData [Rect 0 (l ^. #size) 0 (l ^. #size)])
     (Chart ts (TextData t)) -> let txt = fromMaybe "text" (listToMaybe (fst <$> t)) in Chart (ts & #size .~ (l ^. #size / fromIntegral (Text.length txt))) (TextData [(txt, Point (0.5 * l ^. #size) (0.33 * l ^. #size))])
-    (Chart gs (GlyphData gd)) -> Chart (gs & #size .~ (l ^. #size)) (GlyphData $ foldMap (\x -> [(x,Point (0.5 * l ^. #size) (0.33 * l ^. #size))]) $ listToMaybe $ fst <$> gd)
+    (Chart gs (GlyphData gd)) -> Chart (gs & #size .~ (l ^. #size)) (GlyphData $ foldMap (\x -> [(x, Point (0.5 * l ^. #size) (0.33 * l ^. #size))]) $ listToMaybe $ fst <$> gd)
     (Chart ls (LineData _)) ->
       Chart
         (ls & #size %~ (/ (l ^. #overallScale)))

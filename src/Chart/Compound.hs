@@ -12,17 +12,17 @@ module Chart.Compound
   )
 where
 
-import Prelude
 import Chart.Data
+import Chart.Hud
 import Chart.Markup
 import Chart.Primitive
-import Chart.Hud
+import Control.Monad.State.Lazy
 import Data.ByteString.Char8 qualified as C
 import Data.List qualified as List
-import Optics.Core
-import Control.Monad.State.Lazy
-import MarkupParse
 import Data.Maybe
+import MarkupParse
+import Optics.Core
+import Prelude
 
 -- | Write multiple charts to a single file sharing the canvas.
 writeChartOptionsCompound :: FilePath -> [ChartOptions] -> IO ()
@@ -31,19 +31,19 @@ writeChartOptionsCompound fp cs = C.writeFile fp (encodeChartOptionsCompound cs)
 -- | Encode multiple charts.
 encodeChartOptionsCompound :: [ChartOptions] -> C.ByteString
 encodeChartOptionsCompound [] = mempty
-encodeChartOptionsCompound cs@(c0:_) =
-  markdown_ (view (#markupOptions % #renderStyle) c0) Xml  (markupChartOptionsCompound cs)
+encodeChartOptionsCompound cs@(c0 : _) =
+  markdown_ (view (#markupOptions % #renderStyle) c0) Xml (markupChartOptionsCompound cs)
 
 -- | Create Markup representing multiple charts sharing a common canvas.
 markupChartOptionsCompound :: [ChartOptions] -> Markup
 markupChartOptionsCompound [] = mempty
 markupChartOptionsCompound cs@(co0 : _) =
-    header
-      (view (#markupOptions % #markupHeight) co0)
-      (fromMaybe one viewbox)
-      ( markupCssOptions (view (#markupOptions % #cssOptions) co0)
-          <> markupChartTree csAndHuds
-      )
+  header
+    (view (#markupOptions % #markupHeight) co0)
+    (fromMaybe one viewbox)
+    ( markupCssOptions (view (#markupOptions % #cssOptions) co0)
+        <> markupChartTree csAndHuds
+    )
   where
     viewbox = padSingletons <$> view styleBox' csAndHuds
     csAndHuds = addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs)) (view (#markupOptions % #chartAspect) co0)
@@ -63,6 +63,7 @@ addHudCompound :: [(HudOptions, ChartTree)] -> ChartAspect -> ChartTree
 addHudCompound [] _ = mempty
 addHudCompound ts@((_, cs0) : _) asp = undefined
   where
+
 {-
     hss =
       ts &
@@ -78,8 +79,8 @@ addHudCompound ts@((_, cs0) : _) asp = undefined
       fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
       mconcat
 
-
--}{-
+-}
+{-
   runHudCompoundWith
     -- FIXME:
     (fromMaybe one $ initialCanvas asp)
@@ -123,7 +124,6 @@ hss
 
 prioritizeHuds :: [Hud] -> [[Hud]]
 prioritizeHuds hss =
-      hss
-        & List.sortOn (view #priority)
-        & List.groupBy (\a b -> view #priority a == view #priority b)
-
+  hss
+    & List.sortOn (view #priority)
+    & List.groupBy (\a b -> view #priority a == view #priority b)

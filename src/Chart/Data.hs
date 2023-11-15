@@ -59,7 +59,7 @@ padSingletons (Rect x z y w)
 
 -- | is any dimension singular?
 isSingleton :: Rect Double -> Bool
-isSingleton (Rect x z y w) = x==z || y==w
+isSingleton (Rect x z y w) = x == z || y == w
 
 -- | add Points, dimension-wise
 --

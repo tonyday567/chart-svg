@@ -51,6 +51,7 @@ module Chart.Examples
 where
 
 import Chart
+import Control.Category ((>>>))
 import Data.Bifunctor
 import Data.Bool
 import Data.ByteString (ByteString)
@@ -62,7 +63,6 @@ import Data.Text qualified as Text
 import Data.Time
 import Optics.Core
 import Prelude hiding (abs)
-import Control.Category ((>>>))
 
 -- | unit example
 --

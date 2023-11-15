@@ -186,7 +186,6 @@ barHudOptions bo bd =
     o = view #barLegendOptions bo
     axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd
 
-
 -- | Two dimensional data, maybe with row and column labels.
 data BarData = BarData
   { barData :: [[Double]],

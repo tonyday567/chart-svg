@@ -309,10 +309,12 @@ header markupheight viewbox content' =
     "svg"
     ( uncurry Attr
         <$> ( [ ("xmlns", "http://www.w3.org/2000/svg"),
-              ("xmlns:xlink", "http://www.w3.org/1999/xlink")] <>
-            widthAndHeight <>
-            [ ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
-            ] )
+                ("xmlns:xlink", "http://www.w3.org/1999/xlink")
+              ]
+                <> widthAndHeight
+                <> [ ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
+                   ]
+            )
     )
     content'
   where
@@ -320,8 +322,10 @@ header markupheight viewbox content' =
     Point w' h = width viewbox
     widthAndHeight = case markupheight of
       Nothing -> []
-      Just h' -> [ ("width", encodePx w''),
-                  ("height", encodePx h')]
+      Just h' ->
+        [ ("width", encodePx w''),
+          ("height", encodePx h')
+        ]
         where
           w'' = h' / h * w'
 
@@ -462,12 +466,11 @@ data ChartOptions = ChartOptions
 -- FIXME: check this: Note that this is a destructive operation, and, in particular, that
 --
 -- view #charts (forgetHud (mempty & set #charts c)) /= c
---
 forgetHud :: ChartOptions -> ChartOptions
 forgetHud co =
-  co &
-  set #hudOptions mempty &
-  set #charts (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co))
+  co
+    & set #hudOptions mempty
+    & set #charts (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co))
 
 -- | Convert ChartOptions to Markup
 --
@@ -487,9 +490,6 @@ markupChartOptions co =
     viewbox = initialCanvas asp csAndHud
     csAndHud = addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co)
     finalCT = projectChartTreeN (view (#markupOptions % #repeatAspect) co) viewbox csAndHud
-
-
-
 
 -- | Render ChartOptions to an SVG ByteString
 --

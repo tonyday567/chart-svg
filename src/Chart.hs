@@ -44,10 +44,10 @@ module Chart
 where
 
 import Chart.Bar
+import Chart.Compound
 import Chart.Data
 import Chart.Hud
 import Chart.Markup
-import Chart.Compound
 import Chart.Primitive
 import Chart.Style
 import Chart.Surface

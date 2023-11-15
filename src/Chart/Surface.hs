@@ -29,11 +29,11 @@ import Data.Bool
 import Data.Colour
 import Data.Foldable
 import Data.FormatN
+import Data.Maybe
 import Data.Text (Text)
 import GHC.Generics
 import Optics.Core
 import Prelude
-import Data.Maybe
 
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
