@@ -77,6 +77,9 @@ module Chart.Hud
     numTicks',
     projectChartWith,
     placeLegend,
+
+    fromHudChart,
+    makeHuds,
   )
 where
 

@@ -23,6 +23,9 @@ import Data.Maybe
 import MarkupParse
 import Optics.Core
 import Prelude
+import Data.Foldable
+import Data.Bool
+import Chart.Style
 
 -- | Write multiple charts to a single file sharing the canvas.
 writeChartOptionsCompound :: FilePath -> [ChartOptions] -> IO ()
@@ -40,13 +43,24 @@ markupChartOptionsCompound [] = mempty
 markupChartOptionsCompound cs@(co0 : _) =
   header
     (view (#markupOptions % #markupHeight) co0)
-    (fromMaybe one viewbox)
+    viewbox
     ( markupCssOptions (view (#markupOptions % #cssOptions) co0)
-        <> markupChartTree csAndHuds
+        <> markupChartTree ctFinal
     )
   where
-    viewbox = padSingletons <$> view styleBox' csAndHuds
-    csAndHuds = addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs)) (view (#markupOptions % #chartAspect) co0)
+    viewbox = maybe one padSingletons (view styleBox' ctFinal)
+    ctFinal =
+      projectChartCompoundWith
+      10
+      (view (#markupOptions % #chartAspect) co0)
+      (zip (view #hudOptions <$> cs) (view #charts <$> cs))
+
+projectChartCompoundWith :: Int -> ChartAspect -> [(HudOptions,ChartTree)] -> ChartTree
+projectChartCompoundWith n asp css = ctFinal
+  where
+    csAndHud = addHudCompound asp css
+    viewbox = finalCanvas asp (Just csAndHud)
+    ctFinal = set (styleBoxN' n) (Just viewbox) csAndHud
 
 -- | Merge a list of ChartOptions, treating each element as charts to be merged. Note that this routine mempties the hud options and converts them to charts.
 compoundMerge :: [ChartOptions] -> ChartOptions
@@ -55,43 +69,28 @@ compoundMerge cs@(c0 : _) =
   ChartOptions
     (view #markupOptions c0)
     mempty
-    (addHudCompound (zip (view #hudOptions <$> cs) (view #charts <$> cs)) (view (#markupOptions % #chartAspect) c0))
+    (addHudCompound (view (#markupOptions % #chartAspect) c0) (zip (view #hudOptions <$> cs) (view #charts <$> cs)))
 
 -- | Decorate a ChartTree with HudOptions, merging the individual hud options.
--- FIXME: align with addHud structure
-addHudCompound :: [(HudOptions, ChartTree)] -> ChartAspect -> ChartTree
-addHudCompound [] _ = mempty
-addHudCompound ts@((_, cs0) : _) asp = undefined
-  where
-
-{-
-    hss =
-      ts &
-      fmap (\(db,hs,_) -> fmap (over #hud (withStateT (#dataBox .~ db))) hs) &
-      mconcat &
-      prioritizeHuds &
-      mapM_ (closes . fmap (view #hud)) &
-      flip execState (HudChart css mempty undefined) &
-      (\x -> group (Just "chart") [view #chart x] <> group (Just "hud") [view #hud x])
-
-    css =
-      ts &
-      fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
-      mconcat
-
--}
-{-
+addHudCompound :: ChartAspect -> [(HudOptions, ChartTree)] -> ChartTree
+addHudCompound _ [] = mempty
+addHudCompound asp ts@((_, cs0) : _) =
   runHudCompoundWith
-    -- FIXME:
-    (fromMaybe one $ canvas asp)
-    (zip3 dbs hss css)
+    (initialCanvas asp (Just cs0))
+    (zip3 dbs' hss' css')
   where
-    hss = zipWith (\i hs -> fmap (over #priority (+Priority (i*0.1))) hs) [0..] (fst <$> huds)
-    dbs = snd <$> huds
-    css = snd <$> ts -- <> (blank <$> dbs)
-    huds = (\(ho, cs) -> toHuds ho (maybe one padSingletons (view box' cs))) <$> ts
+    css :: [ChartTree]
+    css = snd <$> ts
+    hos = fst <$> ts
+    dbs = maybe one padSingletons . view box' <$> css
+    huds = zipWith toHuds hos dbs
+    mdbs = fst <$> huds
+    hss = snd <$> huds
+    hss' = zipWith (\i hs -> fmap (over #priority (+Priority (i*0.1))) hs) [0..] hss
+    dbs' = zipWith fromMaybe dbs mdbs
+    css' :: [ChartTree]
+    css' = zipWith3 (\cs mdb db -> cs <> maybe mempty (\r -> bool (named "datapadding" [BlankChart defaultStyle [r]]) mempty (r == db)) mdb) css mdbs dbs
 
--}
 -- | Combine a collection of chart trees that share a canvas box.
 runHudCompoundWith ::
   -- | initial canvas
@@ -104,7 +103,7 @@ runHudCompoundWith cb ts = hss
   where
     hss =
       ts &
-      fmap (\(db,hs,_) -> fmap (over #hud (withStateT (#dataBox .~ db))) hs) &
+      fmap (\(_,hs,_) -> hs) &
       mconcat &
       prioritizeHuds &
       fmap (fmap (view #hud)) &
