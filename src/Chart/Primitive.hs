@@ -43,6 +43,7 @@ module Chart.Primitive
     sbox,
     scaleP,
     projectWith,
+    projectChartDataWith,
     maybeProjectWith,
     moveChart,
     scaleChart,
@@ -81,9 +82,9 @@ import Data.Path
 import Data.Text (Text)
 import Data.Tree
 import GHC.Generics
-import NumHask.Prelude qualified as NH
 import Optics.Core
 import Prelude
+import NumHask.Prelude qualified as NH
 
 -- $setup
 --
@@ -329,13 +330,21 @@ sbox (Chart _ (BlankData a)) = foldRect a
 
 -- | projects a Chart to a new space from an old rectangular space, preserving linear metric structure.
 --
--- FIXME: test singleton protections
+-- FIXME: projectWith sucks
 --
 -- >>> projectWith (fmap (2*) one) one r
 -- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -1.0 1.0 -1.0 1.0]
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
-projectWith new old (Chart s a) =
-  Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
+projectWith new old c@(Chart s a) =
+  case view #scaleP s of
+    ScalePArea -> Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
+    NoScaleP -> Chart s (projectChartDataWith new' old' a)
+    ScaleMinDim -> Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
+    ScalePX -> Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
+    ScalePY -> Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
+   where
+     new' = fromMaybe one $ (NH.-) <$> Just new <*> ((NH.-) <$> sbox c <*> box (chartData c))
+     old' = fromMaybe one $ (NH.-) <$> Just old <*> ((NH.-) <$> sbox c <*> box (chartData c))
 
 projectChartDataWith :: Rect Double -> Rect Double -> ChartData -> ChartData
 projectChartDataWith new old (RectData a) = RectData (projectOnR new old <$> a)
@@ -375,9 +384,9 @@ scaleChartData p (PathData a) =
 scaleChartData p (BlankData a) =
   BlankData (fmap (fmap (* p)) a)
 
--- | Scale a chart (effecting both the chart data and the style).
+-- | Scale a chart (effecting both the chart data and the style, if #scaleP is a scaling value).
 scaleChart :: Double -> Chart -> Chart
-scaleChart p c = c & over #chartData (scaleChartData p) & over #style (scaleStyle p)
+scaleChart p c = c & over #chartData (scaleChartData p) & over #style (bool (scaleStyle p) id (view (#style % #scaleP) c == NoScaleP))
 
 -- | Modify chart colors, applying to both border and main colors.
 colourStyle :: (Colour -> Colour) -> Style -> Style
@@ -421,9 +430,7 @@ styleBox_ = styleBoxes . foldOf charts'
 styleRebox_ :: ChartTree -> Maybe (Rect Double) -> ChartTree
 styleRebox_ cs r =
   cs
-    & over chart' (fromMaybe id $ projectWith <$> r' <*> box_ cs)
-  where
-    r' = (NH.-) <$> r <*> ((NH.-) <$> styleBox_ cs <*> box_ cs)
+    & over chart' (fromMaybe id $ projectWith <$> r <*> styleBox_ cs)
 
 -- | Lens between a style bounding box and a ChartTree tree.
 --
@@ -450,12 +457,12 @@ styleBoxN' n =
 --
 -- >>> frameChart defaultRectStyle 0.1 [BlankChart []]
 -- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) []
-frameChart :: Style -> Double -> [Chart] -> Chart
-frameChart rs p cs = Chart rs (RectData (maybeToList (padRect p <$> styleBoxes cs)))
+frameChart :: Style -> Double -> ChartTree -> ChartTree
+frameChart rs p cs = named "frame" [Chart rs (RectData (maybeToList (padRect p <$> view styleBox' cs)))]
 
 -- | Additive padding, framing or buffering for a chart list.
-padChart :: Double -> [Chart] -> Chart
-padChart p cs = Chart defaultStyle (BlankData (maybeToList (padRect p <$> styleBoxes cs)))
+padChart :: Double -> ChartTree -> ChartTree
+padChart p ct = named "padding" [Chart defaultStyle (BlankData (maybeToList (padRect p <$> view styleBox' ct)))]
 
 -- | Whether a chart is empty of data to be represented.
 isEmptyChart :: ChartData -> Bool

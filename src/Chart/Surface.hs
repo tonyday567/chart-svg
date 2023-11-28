@@ -15,8 +15,9 @@ module Chart.Surface
     surfacef,
     SurfaceLegendOptions (..),
     defaultSurfaceLegendOptions,
-    surfaceLegendChart,
-    surfaceAxisOptions,
+    surfaceLegendAxisOptions,
+    gridReferenceChart,
+    addSurfaceLegend,
   )
 where
 
@@ -30,7 +31,6 @@ import Data.Colour
 import Data.Foldable
 import Data.FormatN
 import Data.Maybe
-import Data.Text (Text)
 import GHC.Generics
 import Optics.Core
 import Prelude
@@ -115,100 +115,64 @@ surfacef f cfg =
 
 -- | Legend specialization for a surface chart.
 data SurfaceLegendOptions = SurfaceLegendOptions
-  { sloStyle :: SurfaceStyle,
-    sloTitle :: Text,
+  { sloAxisOptions :: AxisOptions,
     -- | Width of the legend glyph
     sloWidth :: Double,
     -- | Resolution of the legend glyph
     sloResolution :: Int,
-    sloAxisOptions :: AxisOptions,
-    sloLegendOptions :: LegendOptions
+    sloDataRange :: Range Double,
+    -- | Placement of the legend versus normalised chart placement
+    sloRect :: Rect Double,
+    sloSurfaceStyle :: SurfaceStyle
   }
   deriving (Eq, Show, Generic)
 
--- | 'AxisOptions' for a surface chart.
-surfaceAxisOptions :: Colour -> AxisOptions
-surfaceAxisOptions c =
+-- | 'AxisOptions' for a surface chart legend.
+surfaceLegendAxisOptions :: AxisOptions
+surfaceLegendAxisOptions =
   AxisOptions
     Nothing
     Nothing
     ( Ticks
         (TickRound (FormatN FSPrec (Just 3) 4 True True) 4 NoTickExtend)
-        (Just (defaultGlyphTick & #borderColor .~ c & #color .~ c, VLineGlyph, 0.01))
-        (Just (defaultTextTick & #color .~ c, 0.03))
+        (Just (defaultGlyphTick, HLineGlyph, 0))
+        (Just (defaultTextTick, 0.05))
         Nothing
     )
     PlaceRight
 
 -- | official surface legend options
-defaultSurfaceLegendOptions :: Colour -> Text -> SurfaceLegendOptions
-defaultSurfaceLegendOptions c t =
-  SurfaceLegendOptions defaultSurfaceStyle t 0.05 100 (surfaceAxisOptions c) surfaceLegendOptions
+defaultSurfaceLegendOptions :: SurfaceLegendOptions
+defaultSurfaceLegendOptions =
+  SurfaceLegendOptions surfaceLegendAxisOptions 0.2 100 one (Rect 0.7 0.9 0 0.5) defaultSurfaceStyle
 
-surfaceLegendOptions :: LegendOptions
-surfaceLegendOptions =
-  defaultLegendOptions
-    & #place .~ PlaceRight
-    & #overallScale .~ 0.9
-    & #size .~ 0.5
-    & #vgap .~ 0.05
-    & #hgap .~ 0.01
-    & #innerPad .~ 0.05
-    & #outerPad .~ 0.02
-    & #textStyle % #hsize .~ 0.5
-    & #textStyle % #size .~ 0.1
-    & #frame .~ Nothing
-
--- | Creation of the classical heatmap glyph within a legend context.
-surfaceLegendChart :: Range Double -> SurfaceLegendOptions -> ChartTree
-surfaceLegendChart dataRange l =
-  legendFrame (view #sloLegendOptions l) hs
+gridReferenceChart :: SurfaceLegendOptions -> ChartTree
+gridReferenceChart slo = named "grid reference" $
+  zipWith (\r c -> Chart (blob c) (RectData [r]))
+     (gridf <$> spaceGrid)
+     colorGrid
   where
-    a = makeSurfaceTick l (named "pchart" pchart)
-    pchart
-      | l ^. #sloLegendOptions % #place == PlaceBottom
-          || l ^. #sloLegendOptions % #place == PlaceTop =
-          vertGlyph
-      | otherwise = horiGlyph
-    t = TextChart (l ^. #sloLegendOptions % #textStyle & #anchor .~ AnchorStart) [(l ^. #sloTitle, zero)]
-    hs = vert (l ^. #sloLegendOptions % #vgap) [a, unnamed [t]]
-    vertGlyph :: [Chart]
-    vertGlyph =
-      zipWith
-        (\r c -> Chart (blob c) (RectData [r]))
-        ( (\xr -> Ranges xr (Range 0 (l ^. #sloWidth)))
-            <$> gridSpace
-              dataRange
-              (l ^. #sloResolution)
-        )
-        ( (\x -> mixes x (toList $ l ^. #sloStyle % #surfaceColors))
-            <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
-        )
-    horiGlyph :: [Chart]
-    horiGlyph =
-      zipWith
-        (\r c -> Chart (blob c) (RectData [r]))
-        ( (\yr -> Ranges (Range 0 (l ^. #sloWidth)) yr)
-            <$> gridSpace
-              dataRange
-              (l ^. #sloResolution)
-        )
-        ( (\x -> mixes x (toList $ l ^. #sloStyle % #surfaceColors))
-            <$> grid MidPos (Range 0 1) (l ^. #sloResolution)
-        )
+    spaceGrid = gridSpace (view #sloDataRange slo) (slo ^. #sloResolution)
+    gridf =
+      bool
+        (\yr -> Ranges (Range 0 (slo ^. #sloWidth)) yr)
+        (\xr -> Ranges xr (Range 0 (slo ^. #sloWidth)))
+        (isHori slo)
+    colorGrid =
+      (\x -> mixes x (toList $ slo ^. #sloSurfaceStyle % #surfaceColors)) <$>
+      grid MidPos (Range 0 1) (slo ^. #sloResolution)
 
 isHori :: SurfaceLegendOptions -> Bool
-isHori l =
-  l ^. #sloLegendOptions % #place == PlaceBottom
-    || l ^. #sloLegendOptions % #place == PlaceTop
+isHori slo =
+  view (#sloAxisOptions % #place) slo == PlaceBottom ||
+  view (#sloAxisOptions % #place) slo == PlaceTop
 
--- | FIXME: makeSurfaceTick needs testing
-makeSurfaceTick :: SurfaceLegendOptions -> ChartTree -> ChartTree
-makeSurfaceTick l pchart = case view styleBox' pchart of
-  Nothing -> pchart
-  Just r' -> phud
-    where
-      r'' = bool (Rect 0 (l ^. #sloWidth) 0 (l ^. #sloLegendOptions % #size)) (Rect 0 (l ^. #sloLegendOptions % #size) 0 (l ^. #sloWidth)) (isHori l)
-      (mdb, hs) = toHuds (mempty & set #axes [(9, l ^. #sloAxisOptions & #place .~ bool PlaceRight PlaceBottom (isHori l))]) r'
-      -- FIXME: check usage of one here
-      phud = runHudWith (fromMaybe r'' mdb) one hs pchart
+addSurfaceLegend :: SurfaceLegendOptions -> ChartTree -> ChartTree
+addSurfaceLegend slo ct = ctBoth
+  where
+    grc = gridReferenceChart slo
+    hoLegend = (mempty :: HudOptions) & set #axes [(1, view #sloAxisOptions slo)]
+    grcLegend = addHud (FixedAspect (view #sloWidth slo)) hoLegend grc
+    ctbox = fromMaybe one (view styleBox' ct)
+    legbox = projectOnR ctbox one (view #sloRect slo)
+    ctBoth = mconcat [projectChartTree legbox grcLegend, ct]

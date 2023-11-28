@@ -1,6 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- | A hud stands for <https://en.wikipedia.org/wiki/Head-up_display head-up display>, and is a collective noun used to name chart elements that assist in data interpretation or otherwise annotate and decorate data.
 --
@@ -28,6 +29,7 @@ module Chart.Hud
     defaultHudOptions,
     addHud,
     initialCanvas,
+    finalCanvas,
     colourHudOptions,
     toHuds,
 
@@ -67,9 +69,14 @@ module Chart.Hud
     frameHud,
     legend,
     legendHud,
+    legendChart,
     legendFrame,
     freezeAxes,
     freezeTicks,
+    formatN',
+    numTicks',
+    projectChartWith,
+    placeLegend,
   )
 where
 
@@ -282,7 +289,7 @@ runHudWith cb db hs cs =
   where
     hc0 =
       HudChart
-        (cs & over chart' (projectWith cb (maybe one padSingletons $ view box' cs)))
+        (cs & set styleBox' (Just cb))
         mempty
         db
 
@@ -304,7 +311,7 @@ runHud ca hs cs = runHudWith ca (maybe one padSingletons (boxes (foldOf charts' 
 addHud :: ChartAspect -> HudOptions -> ChartTree -> ChartTree
 addHud asp ho cs =
   runHudWith
-    (initialCanvas asp cs')
+    (initialCanvas asp (Just cs'))
     (fromMaybe db mdb)
     hs
     cs'
@@ -313,15 +320,34 @@ addHud asp ho cs =
     (mdb, hs) = toHuds ho db
     cs' = cs <> maybe mempty (\r -> bool (named "datapadding" [BlankChart defaultStyle [r]]) mempty (r == db)) mdb
 
--- | The initial canvas before applying Huds
+-- | Compute a Rect representing the initial chart canvas from a 'ChartAspect' and maybe a 'ChartTree', typically before the addition of hud elements.
 --
--- >>> initialCanvas (FixedAspect 1.5) (unnamed [RectChart defaultRectStyle [one]])
+-- >>> canvas (FixedAspect 1.5) (Just $ unnamed [RectChart defaultRectStyle [one]])
 -- Rect -0.75 0.75 -0.5 0.5
-initialCanvas :: ChartAspect -> ChartTree -> Rect Double
+initialCanvas :: ChartAspect -> Maybe ChartTree -> Rect Double
 initialCanvas (FixedAspect a) _ = aspect a
 initialCanvas (CanvasAspect a) _ = aspect a
-initialCanvas ChartAspect cs = maybe one (padSingletons . aspect . ratio) (view styleBox' cs)
-initialCanvas UnscaledAspect cs = maybe one padSingletons (view styleBox' cs)
+initialCanvas ChartAspect cs = maybe one (maybe one (padSingletons . aspect . ratio) . view styleBox') cs
+initialCanvas UnscaledAspect cs = maybe one (maybe one padSingletons . view styleBox') cs
+
+-- | Compute a Rect representing the final chart canvas from a 'ChartAspect' and maybe a 'ChartTree'. The difference between 'initialCanvas' and finalCanvas is using the actual chart canvas for CanvasAspect.
+--
+-- >>> finalCanvas (CanvasAspect 1.5) (Just $ unnamed [RectChart defaultRectStyle [one]])
+-- Rect -0.5 0.5 -0.5 0.5
+finalCanvas :: ChartAspect -> Maybe ChartTree -> Rect Double
+finalCanvas (FixedAspect a) _ = aspect a
+finalCanvas (CanvasAspect a) Nothing = aspect a
+finalCanvas (CanvasAspect _) cs = finalCanvas ChartAspect cs
+finalCanvas ChartAspect cs = maybe one (maybe one (padSingletons . aspect . ratio) . view styleBox') cs
+finalCanvas UnscaledAspect cs = maybe one (maybe one padSingletons . view styleBox') cs
+
+projectChartWith :: Int -> ChartAspect -> HudOptions -> ChartTree -> ChartTree
+projectChartWith n asp ho ct = ctFinal
+  where
+    -- FIXME: refactor these into stand-alone functions
+    csAndHud = addHud asp ho ct
+    viewbox = finalCanvas asp (Just csAndHud)
+    ctFinal = set (styleBoxN' n) (Just viewbox) csAndHud
 
 -- | Typical, configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
@@ -540,7 +566,7 @@ data AxisBar = AxisBar
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ set opac' 0.4 dark & #scaleP .~ NoScaleP) 0.004 0.01 0.002
+defaultAxisBar = AxisBar (defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ set opac' 0.4 dark) 0.004 0.01 0.002
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
@@ -562,7 +588,6 @@ defaultTitle txt =
     txt
     ( defaultTextStyle
         & #size .~ 0.12
-        & #scaleP .~ NoScaleP
     )
     PlaceTop
     AnchorMiddle
@@ -587,12 +612,11 @@ defaultGlyphTick =
     & #shape .~ VLineGlyph
     & #color .~ set opac' 0.4 dark
     & #borderColor .~ set opac' 0.4 dark
-    & #scaleP .~ NoScaleP
 
 -- | The official text tick
 defaultTextTick :: Style
 defaultTextTick =
-  defaultTextStyle & #size .~ 0.04 & #scaleP .~ NoScaleP
+  defaultTextStyle & #size .~ 0.04
 
 -- | The official line tick
 defaultLineTick :: Style
@@ -600,7 +624,6 @@ defaultLineTick =
   defaultLineStyle
     & #size .~ 5.0e-3
     & #color %~ set opac' 0.05
-    & #scaleP .~ NoScaleP
 
 -- | The official X-axis tick
 defaultXTicks :: Ticks
@@ -633,6 +656,44 @@ data TickStyle
   | -- | specific labels and placement
     TickPlaced [(Double, Text)]
   deriving (Show, Eq, Generic)
+
+-- | Lens between a FormatN and a TickStyle.
+--
+formatN' :: Lens' TickStyle (Maybe FormatN)
+formatN' =
+  lens formatN_ reformatN_
+
+formatN_ :: TickStyle -> Maybe FormatN
+formatN_ = \case
+  TickRound f _ _ -> Just f
+  TickExact f _ -> Just f
+  _ -> Nothing
+
+reformatN_ :: TickStyle -> Maybe FormatN -> TickStyle
+reformatN_ ts Nothing = ts
+reformatN_ (TickRound _ n e) (Just f) = TickRound f n e
+reformatN_ (TickExact _ n) (Just f) = TickExact f n
+reformatN_ ts _ = ts
+
+-- | Lens between number of ticks and a TickStyle.
+--
+-- Only for TickRound and TickExact
+numTicks' :: Lens' TickStyle (Maybe Int)
+numTicks' =
+  lens numTicks_ renumTicks_
+
+numTicks_ :: TickStyle -> Maybe Int
+numTicks_ = \case
+  TickRound _ n _ -> Just n
+  TickExact _ n -> Just n
+  _ -> Nothing
+
+renumTicks_ :: TickStyle -> Maybe Int -> TickStyle
+renumTicks_ ts Nothing = ts
+renumTicks_ (TickRound f _ e) (Just n) = TickRound f n e
+renumTicks_ (TickExact f _) (Just n) = TickExact f n
+renumTicks_ ts _ = ts
+
 
 -- | The official tick style
 --
@@ -683,6 +744,7 @@ data LegendOptions = LegendOptions
     frame :: Maybe Style,
     place :: Place,
     overallScale :: Double,
+    scaleP :: ScaleP,
     legendCharts :: [(Text, [Chart])]
   }
   deriving (Show, Eq, Generic)
@@ -695,15 +757,13 @@ defaultLegendOptions =
     0.1
     0.2
     0.1
-    ( defaultTextStyle
-        & #size .~ 0.18
-        & #scaleP .~ NoScaleP
-    )
+    (defaultTextStyle & set #size 0.16)
     0.1
     0.02
-    (Just (defaultRectStyle & #borderSize .~ 0.01 & #borderColor .~ set opac' 1 dark & #color .~ set opac' 0 dark & #scaleP .~ NoScaleP))
+    (Just (defaultRectStyle & #borderSize .~ 0.005 & #borderColor .~ set opac' 1 dark & #color .~ set opac' 0 dark))
     PlaceRight
     0.25
+    ScalePArea
     []
 
 -- | Options for hud frames
@@ -1063,7 +1123,7 @@ makeTick c hc =
 
 -- | Make a legend from 'LegendOptions'
 legend :: LegendOptions -> HudChart -> ChartTree
-legend o hc = legendHud o (legendChart o) hc
+legend o hc = legendHud o (legendChart o) hc & set (charts' % each % #style % #scaleP) (view #scaleP o)
 
 -- | Make a legend hud element, from a bespoke ChartTree.
 legendHud :: LegendOptions -> ChartTree -> HudChart -> ChartTree
@@ -1092,12 +1152,12 @@ placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
 -- | frame a legend
 legendFrame :: LegendOptions -> ChartTree -> ChartTree
 legendFrame l content' =
-  group (Just "legend") [named "legendBorder" borders, rename (Just "legendContent") content']
+  group (Just "legend") [borders, rename (Just "legendContent") content']
   where
-    borders = [outer, inner] <> frame'
-    outer = padChart (view #outerPad l) [inner]
-    frame' = foldMap (\r -> [frameChart r 0 [inner]]) (view #frame l)
-    inner = padChart (view #innerPad l) (foldOf charts' content')
+    borders = mconcat $ [outer, inner] <> frame'
+    outer = padChart (view #outerPad l) inner
+    frame' = foldMap (\r -> [frameChart r 0 inner]) (view #frame l)
+    inner = padChart (view #innerPad l) content'
 
 -- | Make the contents portion of a legend
 legendChart :: LegendOptions -> ChartTree
@@ -1155,4 +1215,4 @@ legendEntry ::
   [Chart] ->
   (Chart, [Chart])
 legendEntry l t cs =
-  (legendText l t, cs & fmap (legendizeChart l))
+  (legendText l t, fmap (legendizeChart l) cs)

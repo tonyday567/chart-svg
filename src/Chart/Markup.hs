@@ -25,6 +25,7 @@ module Chart.Markup
     defaultMarkupOptions,
     encodeNum,
     encodePx,
+    defaultCssFontFamilies,
   )
 where
 
@@ -85,6 +86,8 @@ markupChartTree cs =
     (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart . chartData) cs
     xs' = mconcat $ fmap markupChart cs' <> (markupChartTree . ChartTree <$> xs)
 
+
+-- FIXME: check this lines up in svg with expected.
 markupText :: Style -> Text -> Point Double -> Markup
 markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) (content c) (EscapeText == view #escapeText s))
   where
@@ -94,10 +97,10 @@ markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) 
               ("y", encodeNum $ -y)
             ]
           <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> (s ^. #rotation))
-    -- This is very late for a chart creation. It is here so that the chart doesn't undergo scaling and thus picks up the local size of the text.
+    -- This is very late for a chart creation. It is here so that the chart doesn't undergo scaling and thus picks up the local size of the text, less the border size of the frame.
     frame' = case view #frame s of
       Nothing -> Markup mempty
-      Just f -> markupChart (Chart (f & over #borderSize (* view #size s)) (RectData [styleBoxText s t p]))
+      Just f -> markupChart (Chart (f & over #borderSize (* view #size s)) (RectData [styleBoxText (s & set #frame Nothing) t p]))
     c = encodeUtf8 t
 
 -- | Markup a text rotation about a point in radians.
@@ -417,6 +420,17 @@ data MarkupOptions = MarkupOptions
 defaultMarkupOptions :: MarkupOptions
 defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) 10 defaultCssOptions Compact
 
+defaultCssFontFamilies :: ByteString
+defaultCssFontFamilies =
+  [i|
+svg { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
+}
+
+ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+}
+
+|]
+
 -- | CSS shape rendering options
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
 
@@ -433,11 +447,11 @@ data CssPreferColorScheme
 --
 -- >>> defaultCssOptions
 -- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}
-data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: ByteString} deriving (Show, Eq, Generic)
+data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, fontFamilies :: ByteString, cssExtra :: ByteString} deriving (Show, Eq, Generic)
 
 -- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions
-defaultCssOptions = CssOptions NoShapeRendering PreferHud mempty
+defaultCssOptions = CssOptions NoShapeRendering PreferHud defaultCssFontFamilies mempty
 
 -- | Convert CssOptions to Markup
 markupCssOptions :: CssOptions -> Markup
@@ -445,6 +459,7 @@ markupCssOptions css =
   elementc "style" [] $
     cssPreferColorScheme (light, dark) (view #preferColorScheme css)
       <> markupShapeRendering (view #shapeRendering css)
+      <> view #fontFamilies css
       <> view #cssExtra css
 
 -- | CSS shape rendering text snippet
@@ -461,9 +476,9 @@ data ChartOptions = ChartOptions
   }
   deriving (Generic, Eq, Show)
 
--- | Processes the hud options and turns them into charts, rescales the existing charts, and resets the hud options to mempty.
+-- | Processes the hud options and turns them into charts, rescales the existing charts, resets the hud options to mempty, and turns on 'ScalePArea' in chart styles.
 --
--- FIXME: check this: Note that this is a destructive operation, and, in particular, that
+-- Note that this is a destructive operation, and, in particular, that
 --
 -- view #charts (forgetHud (mempty & set #charts c)) /= c
 forgetHud :: ChartOptions -> ChartOptions
@@ -471,6 +486,7 @@ forgetHud co =
   co
     & set #hudOptions mempty
     & set #charts (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co))
+    & set (#charts % charts' % each % #style % #scaleP) ScalePArea
 
 -- | Convert ChartOptions to Markup
 --
@@ -482,14 +498,16 @@ markupChartOptions co =
     (view (#markupOptions % #markupHeight) co)
     viewbox
     ( markupCssOptions (view (#markupOptions % #cssOptions) co)
-        <> markupChartTree finalCT
+        <> markupChartTree ctFinal
     )
   where
-    -- FIXME: refactor these into stand-alone functions
-    asp = view (#markupOptions % #chartAspect) co
-    viewbox = initialCanvas asp csAndHud
-    csAndHud = addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co)
-    finalCT = projectChartTreeN (view (#markupOptions % #repeatAspect) co) viewbox csAndHud
+    viewbox = fromMaybe one (view styleBox' ctFinal)
+    ctFinal =
+      projectChartWith
+      (view (#markupOptions % #repeatAspect) co)
+      (view (#markupOptions % #chartAspect) co)
+      (view #hudOptions co)
+      (view #charts co)
 
 -- | Render ChartOptions to an SVG ByteString
 --

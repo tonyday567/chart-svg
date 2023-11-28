@@ -83,7 +83,7 @@ addHudCompound ts@((_, cs0) : _) asp = undefined
 {-
   runHudCompoundWith
     -- FIXME:
-    (fromMaybe one $ initialCanvas asp)
+    (fromMaybe one $ canvas asp)
     (zip3 dbs hss css)
   where
     hss = zipWith (\i hs -> fmap (over #priority (+Priority (i*0.1))) hs) [0..] (fst <$> huds)

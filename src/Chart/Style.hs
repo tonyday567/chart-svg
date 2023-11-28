@@ -121,7 +121,8 @@ scaleStyle x s =
     & over #size (x *)
     & over #borderSize (x *)
     & over #translate (fmap (fmap (x *)))
-    & over #frame (fmap (scaleStyle x))
+    -- frames are scaled by #size so don't scale #borderSize twice.
+    -- & over #frame (fmap (scaleStyle x))
 
 -- | solid rectangle, no border
 --
@@ -299,6 +300,8 @@ data ScaleP
     ScalePX
   | -- | Scale based on the Y axis ratio of a projection
     ScalePY
+  | -- | Scale based on minimum of (X axis, Y axis) ratio
+    ScaleMinDim
   | -- | Scale based on the area ratio of a projection
     ScalePArea
   deriving (Generic, Eq, Show)
@@ -322,3 +325,12 @@ scaleRatio ScalePArea new old = bool 1 (sqrt (an / ao)) (an > 0 && ao > 0)
     (Ranges ox oy) = old
     an = width nx * width ny
     ao = width ox * width oy
+scaleRatio ScaleMinDim new old = closestToOne
+  where
+    x' = scaleRatio ScalePX new old
+    y' = scaleRatio ScalePY new old
+    closestToOne
+      | x' >=1 && y' >= 1 = bool x' y' (x' > y')
+      | x' >= 1 && y' < 1 = bool x' y' (x' > (1/y'))
+      | x' < 1 && y' >= 1 = bool x' y' ((1/x') > y')
+      | otherwise = bool x' y' ((1/x') > (1/y'))

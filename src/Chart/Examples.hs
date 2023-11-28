@@ -36,9 +36,6 @@ module Chart.Examples
 
     -- * Debugging
     debugExample,
-    pathChartOptions,
-    writeAllExamples,
-    writeAllExamplesDark,
 
     -- * Compound Charts
     compoundExample,
@@ -47,11 +44,15 @@ module Chart.Examples
     -- * Priority
     priorityv1Example,
     priorityv2Example,
+
+    -- * Writing to file
+    pathChartOptions,
+    writeAllExamples,
+    writeAllExamplesDark,
   )
 where
 
 import Chart
-import Control.Category ((>>>))
 import Data.Bifunctor
 import Data.Bool
 import Data.ByteString (ByteString)
@@ -128,9 +129,8 @@ lineExample =
           #legends
           [ ( 12,
               defaultLegendOptions
-                & over #frame (fmap (set #color white >>> set (#frame %? #borderSize) 0))
-                & set #place (PlaceAbsolute (Point 0.3 (-0.35)))
-                & set (#textStyle % #size) 0.16
+                & set #scaleP ScalePX
+                & set #place (PlaceAbsolute (Point 0.35 (-0.35)))
                 & set #legendCharts (zipWith (\t c -> (t, [c])) ["palette #0", "palette #1", "palette #2"] cs)
             )
           ]
@@ -168,7 +168,7 @@ textExample =
       .~ named
         "text"
         [ TextChart
-            (defaultTextStyle & #color .~ dark & #size .~ 0.25 & #vshift .~ 0)
+            (defaultTextStyle & #color .~ dark & #size .~ 0.1)
             ts
         ]
     & #hudOptions .~ defaultHudOptions
@@ -227,7 +227,8 @@ barDataExample =
 --
 -- ![bar example](other/bar.svg)
 barExample :: ChartOptions
-barExample = barChart defaultBarOptions barDataExample
+barExample = barChart defaultBarOptions barDataExample &
+  set (#hudOptions % #frames) [(101, defaultFrameOptions & set #buffer 0.02)]
 
 -- | Stacked bar chart example.
 --
@@ -304,7 +305,7 @@ pathExample =
     c0 = GlyphChart defaultGlyphStyle ((SquareGlyph,) . pointPath <$> ps)
     midp = Point 0 0 : zipWith (\(Point x y) (Point x' y') -> Point ((x + x') / 2) ((y + y') / 2)) (drop 1 (pointPath <$> ps)) (pointPath <$> ps)
     offp = [Point 0 0.05, Point 0 0, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
-    t0 = TextChart (defaultTextStyle & set #size 0.05) (zip ts (zipWith addp offp midp))
+    t0 = TextChart (defaultTextStyle & set #size 0.02) (zip ts (zipWith addp offp midp))
 
 -- | ellipse example
 --
@@ -321,8 +322,10 @@ ellipseExample a =
     & #charts .~ named "ellipse" [ell, ellFull, c0, c1, bbox, xradii, yradii]
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #chartAspect .~ a
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1)]
-    & #hudOptions % #titles .~ [(11, defaultTitle "ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)" & #style % #size .~ 0.08)]
+    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1 & #vgap .~ 0.3)]
+    & #hudOptions % #titles .~ [(11, defaultTitle "ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)" & #style % #size .~ 0.032)]
+    & #hudOptions % #axes % ix 1 % _2 % #ticks % #ttick %? _2 .~ 0.04
+    & #hudOptions % #axes % ix 1 % _2 % #ticks % #gtick %? _3 .~ 0.01
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
@@ -457,8 +460,10 @@ quadExample =
     & #charts .~ named "quad" [path', curve, c0, c1, bbox]
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
-    & #hudOptions % #titles .~ [(11, defaultTitle "QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))" & #style % #size .~ 0.08)]
+    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2 & #vgap .~ 0.3)]
+    & #hudOptions % #titles .~ [(11, defaultTitle "QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))" & #style % #size .~ 0.03)]
+    & #hudOptions % #axes % ix 1 % _2 % #ticks % #ttick %? _2 .~ 0.04
+    & #hudOptions % #axes % ix 1 % _2 % #ticks % #gtick %? _3 .~ 0.01
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))
     ps = singletonQuad p
@@ -475,7 +480,7 @@ quadExample =
       second (: [])
         <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
               ("Path Chord", LineChart curveStyle [[zero]]),
-              ("Path Endpoints", glyphChart1 defaultGlyphStyle CircleGlyph [zero]),
+              ("Path Endpoints", glyphChart1 defaultGlyphStyle SquareGlyph [zero]),
               ("Path Control Point", glyphChart1 controlStyle CircleGlyph [zero]),
               ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
             ]
@@ -489,14 +494,14 @@ cubicExample =
     & #charts .~ named "cubic" [path', curve, c0, c1, bbox]
     & #hudOptions .~ mempty
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2)]
-    & #hudOptions % #titles .~ [(11, defaultTitle "CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)" & #style % #size .~ 0.08)]
+    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2 & #vgap .~ 0.3)]
+    & #hudOptions % #titles .~ [(11, defaultTitle "CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)" & #style % #size .~ 0.03)]
   where
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
     ps = singletonCubic p
     path' = PathChart pathStyle ps
     curve = LineChart curveStyle [cubicBezier p . (/ 100.0) <$> [0 .. 100]]
-    c0 = glyphChart1 defaultGlyphStyle CircleGlyph [start, end]
+    c0 = glyphChart1 defaultGlyphStyle SquareGlyph [start, end]
     c1 = glyphChart1 controlStyle CircleGlyph [control1, control2]
     bbox = RectChart bbs [cubicBox p]
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 0 0.05 & #borderColor .~ grey 0.4 1
@@ -507,7 +512,7 @@ cubicExample =
       second (: [])
         <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
               ("Path Chord", LineChart curveStyle [[zero]]),
-              ("Path Endpoints", glyphChart1 defaultGlyphStyle CircleGlyph [zero]),
+              ("Path Endpoints", glyphChart1 defaultGlyphStyle SquareGlyph [zero]),
               ("Path Control Point", glyphChart1 controlStyle CircleGlyph [zero]),
               ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
             ]
@@ -518,24 +523,16 @@ cubicExample =
 --
 -- ![surface example](other/surface.svg)
 surfaceExample :: ChartOptions
-surfaceExample =
-  mempty
-    & #charts .~ named "surface" cs
-    & #markupOptions .~ (defaultMarkupOptions & #cssOptions % #shapeRendering .~ UseCssCrisp)
+surfaceExample = mempty & set #charts cs' & set #markupOptions (defaultMarkupOptions & set (#cssOptions % #shapeRendering) UseCssCrisp)
   where
-    -- FIXME: surface legends are broken as.
-    -- & #hudOptions % #legends .~ [(30,defaultLegendOptions & #legendCharts .~ [("", foldOf charts' $ surfaceLegendChart rangef (defaultSurfaceLegendOptions dark "text"))])]
-
     grain = Point 100 100
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     evenColors = trimColour . over lightness' (const 0.55) . palette1 <$> [0 .. 5]
-    (cs, _) = surfacef f so
-    so =
-      defaultSurfaceOptions
-        & #soGrain .~ grain
-        & #soRange .~ r
-        & #soStyle % #surfaceColors .~ evenColors
+    so = defaultSurfaceOptions & #soGrain .~ grain & #soRange .~ r & #soStyle % #surfaceColors .~ evenColors
+    (cs, rangef) = surfacef f so
+    slo = defaultSurfaceLegendOptions & set (#sloSurfaceStyle % #surfaceColors) evenColors & set #sloDataRange rangef
+    cs' = addSurfaceLegend slo (unnamed cs)
 
 -- | arrow example
 --
@@ -600,6 +597,7 @@ dateExample =
   mempty
     & #charts .~ blank (Rect 0 1 0 1)
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
+    & over (#hudOptions % #frames) (<> [(100,defaultFrameOptions & set #buffer 0.1)])
     & #hudOptions
       .~ ( mempty
              & #axes
@@ -741,7 +739,7 @@ pathChartOptions =
     ("other/venn.svg", vennExample),
     ("other/path.svg", pathExample),
     ("other/arcflags.svg", arcFlagsExample),
-    ("other/ellipse.svg", ellipseExample (FixedAspect 1.7)),
+    ("other/ellipse.svg", ellipseExample (FixedAspect 1.5)),
     ("other/ellipse2.svg", ellipseExample (FixedAspect 2)),
     ("other/quad.svg", quadExample),
     ("other/cubic.svg", cubicExample),
