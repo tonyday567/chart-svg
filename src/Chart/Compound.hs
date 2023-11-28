@@ -92,35 +92,29 @@ addHudCompound ts@((_, cs0) : _) asp = undefined
     huds = (\(ho, cs) -> toHuds ho (maybe one padSingletons (view box' cs))) <$> ts
 
 -}
-
 -- | Combine a collection of chart trees that share a canvas box.
 runHudCompoundWith ::
-  -- | canvas
+  -- | initial canvas
   CanvasBox ->
   -- | databox-huds-chart tuples representing independent chart trees occupying the same canvas space
   [(DataBox, [Hud], ChartTree)] ->
   -- | integrated chart tree
   ChartTree
-runHudCompoundWith cb ts = undefined
-
-{-
-hss
+runHudCompoundWith cb ts = hss
   where
     hss =
       ts &
       fmap (\(db,hs,_) -> fmap (over #hud (withStateT (#dataBox .~ db))) hs) &
       mconcat &
       prioritizeHuds &
-      mapM_ (closes . fmap (view #hud)) &
-      flip execState (HudChart css mempty undefined) &
-      (\x -> group (Just "chart") [view #chart x] <> group (Just "hud") [view #hud x])
-
+      fmap (fmap (view #hud)) &
+      foldl' (\x a -> makeHuds a x) hc0 &
+      fromHudChart
     css =
       ts &
       fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
       mconcat
-
--}
+    hc0 = HudChart (css & set styleBox' (Just cb)) mempty undefined
 
 prioritizeHuds :: [Hud] -> [[Hud]]
 prioritizeHuds hss =
