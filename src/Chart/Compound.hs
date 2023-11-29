@@ -26,6 +26,7 @@ import Prelude
 import Data.Foldable
 import Data.Bool
 import Chart.Style
+import GHC.Generics
 
 -- | Write multiple charts to a single file sharing the canvas.
 writeChartOptionsCompound :: FilePath -> [ChartOptions] -> IO ()
@@ -86,6 +87,7 @@ addHudCompound asp ts@((_, cs0) : _) =
     huds = zipWith toHuds hos dbs
     mdbs = fst <$> huds
     hss = snd <$> huds
+    -- FIXME: is this needed?
     hss' = zipWith (\i hs -> fmap (over #priority (+Priority (i*0.1))) hs) [0..] hss
     dbs' = zipWith fromMaybe dbs mdbs
     css' :: [ChartTree]
@@ -113,7 +115,8 @@ runHudCompoundWith cb ts = hss
       ts &
       fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
       mconcat
-    hc0 = HudChart (css & set styleBox' (Just cb)) mempty undefined
+    -- FIXME: one instead of a complicated data box
+    hc0 = HudChart (css & set styleBox' (Just cb)) mempty one
 
 prioritizeHuds :: [Hud] -> [[Hud]]
 prioritizeHuds hss =
