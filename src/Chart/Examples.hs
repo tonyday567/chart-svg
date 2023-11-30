@@ -304,8 +304,8 @@ pathExample =
     path' = PathChart (defaultPathStyle & #color .~ palette1a 0 0.1 & #borderColor .~ palette1a 1 1) ps
     c0 = GlyphChart defaultGlyphStyle ((SquareGlyph,) . pointPath <$> ps)
     midp = Point 0 0 : zipWith (\(Point x y) (Point x' y') -> Point ((x + x') / 2) ((y + y') / 2)) (drop 1 (pointPath <$> ps)) (pointPath <$> ps)
-    offp = [Point 0 0.05, Point 0 0, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
-    t0 = TextChart (defaultTextStyle & set #size 0.02) (zip ts (zipWith addp offp midp))
+    offp = [Point (-0.35) 0.05, Point 0 0.05, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
+    t0 = TextChart (defaultTextStyle & set #size 0.025) (zip ts (zipWith addp offp midp))
 
 -- | ellipse example
 --
@@ -750,8 +750,7 @@ pathChartOptions =
     ("other/debug.svg", debugExample lineExample),
     ("other/priorityv1.svg", priorityv1Example),
     ("other/priorityv2.svg", priorityv2Example),
-    -- FIXME: compound example
-    -- ("other/compound.svg", compoundExample),
+    ("other/compound.svg", compoundExample),
     ("other/stack.svg", stackExample)
   ]
 

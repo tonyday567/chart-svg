@@ -26,7 +26,6 @@ import Prelude
 import Data.Foldable
 import Data.Bool
 import Chart.Style
-import GHC.Generics
 
 -- | Write multiple charts to a single file sharing the canvas.
 writeChartOptionsCompound :: FilePath -> [ChartOptions] -> IO ()
@@ -116,7 +115,7 @@ runHudCompoundWith cb ts = hss
       fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
       mconcat
     -- FIXME: one instead of a complicated data box
-    hc0 = HudChart (css & set styleBox' (Just cb)) mempty one
+    hc0 = HudChart (css & set styleBox' (Just cb)) mempty
 
 prioritizeHuds :: [Hud] -> [[Hud]]
 prioritizeHuds hss =
