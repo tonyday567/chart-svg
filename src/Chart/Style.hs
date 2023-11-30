@@ -23,7 +23,7 @@ module Chart.Style
     -- * GlyphStyle
     defaultGlyphStyle,
     styleBoxGlyph,
-    gpalette1,
+    gpalette,
     GlyphShape (..),
     glyphText,
 
@@ -93,7 +93,7 @@ data Style = Style
   deriving (Eq, Show, Generic)
 
 defaultStyle :: Style
-defaultStyle = Style 0.06 0.01 (palette1a 0 0.1) (palette1a 1 1) NoScaleP AnchorMiddle Nothing Nothing EscapeText Nothing Nothing Nothing Nothing Nothing 0.6 1.1 (-0.25) SquareGlyph
+defaultStyle = Style 0.06 0.01 (paletteO 0 0.1) (paletteO 1 1) NoScaleP AnchorMiddle Nothing Nothing EscapeText Nothing Nothing Nothing Nothing Nothing 0.6 1.1 (-0.25) SquareGlyph
 
 defaultRectStyle :: Style
 defaultRectStyle = defaultStyle
@@ -106,13 +106,13 @@ defaultTextStyle :: Style
 defaultTextStyle = defaultStyle & #size .~ 0.06 & #color .~ dark
 
 defaultGlyphStyle :: Style
-defaultGlyphStyle = defaultStyle & #size .~ 0.03 & #color .~ palette1a 0 0.2 & #borderColor .~ (set lightness' 0.4 $ palette1a 1 1) & #borderSize .~ 0.003
+defaultGlyphStyle = defaultStyle & #size .~ 0.03 & #color .~ paletteO 0 0.2 & #borderColor .~ (set lightness' 0.4 $ paletteO 1 1) & #borderSize .~ 0.003
 
 defaultLineStyle :: Style
 defaultLineStyle = defaultStyle & #size .~ 0.012 & #color .~ dark
 
 defaultPathStyle :: Style
-defaultPathStyle = defaultStyle & #color .~ palette1 2 & #borderColor .~ palette1 1
+defaultPathStyle = defaultStyle & #color .~ palette 2 & #borderColor .~ palette 1
 
 scaleStyle :: Double -> Style -> Style
 scaleStyle x s =
@@ -239,8 +239,8 @@ styleBoxGlyph s sh = move p' $
 --
 -- >>> gpalette1 0
 -- CircleGlyph
-gpalette1 :: Int -> GlyphShape
-gpalette1 x = cycle gpalette1_ List.!! x
+gpalette :: Int -> GlyphShape
+gpalette x = cycle gpalette1_ List.!! x
 
 -- | finite list of glyphs
 gpalette1_ :: [GlyphShape]

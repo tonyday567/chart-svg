@@ -67,7 +67,7 @@ data SurfaceStyle = SurfaceStyle
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
 defaultSurfaceStyle =
-  SurfaceStyle (palette1 <$> [0 .. 1]) (blob dark)
+  SurfaceStyle (palette <$> [0 .. 1]) (blob dark)
 
 -- | Main surface data elements
 data SurfaceData = SurfaceData

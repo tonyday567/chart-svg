@@ -66,7 +66,6 @@ module Chart.Primitive
     glyphize,
     renamed,
     blankChart,
-    styleBoxN',
     projectChartTreeN,
   )
 where
@@ -438,18 +437,6 @@ styleRebox_ cs r =
 styleBox' :: Lens' ChartTree (Maybe (Rect Double))
 styleBox' =
   lens styleBox_ styleRebox_
-
-styleReboxN_ :: Int -> ChartTree -> Maybe (Rect Double) -> ChartTree
-styleReboxN_ n ct r = foldr ($) ct (replicate n (\x -> styleRebox_ x r))
-
--- | Lens between a style bounding box and a ChartTree tree.
---
--- The setter repeats n times which sometimes helps converge to the desired size.
---
--- > forall c r. \c -> view styleBoxN' . set styleBoxN' r c ==> r sometimes
-styleBoxN' :: Int -> Lens' ChartTree (Maybe (Rect Double))
-styleBoxN' n =
-  lens styleBox_ (styleReboxN_ n)
 
 -- | Create a frame over some charts with (additive) padding.
 --

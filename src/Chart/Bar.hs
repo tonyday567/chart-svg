@@ -98,8 +98,8 @@ defaultBarOptions =
     NonStacked
     defaultLegendOptions
   where
-    gs = (\x -> rectStyle 0.005 (palette1 x) (palette1a x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
-    ts = (\x -> defaultTextStyle & #color .~ palette1 x & #size .~ 0.03) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    gs = (\x -> rectStyle 0.005 (palette x) (paletteO x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    ts = (\x -> defaultTextStyle & #color .~ palette x & #size .~ 0.03) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Number of bars per row of data
 cols :: Stacked -> [[Double]] -> Int

@@ -102,8 +102,8 @@ rss =
 
 ropts :: [Style]
 ropts =
-  [ blob (palette1a 1 0.4),
-    blob (palette1a 2 0.4)
+  [ blob (paletteO 1 0.4),
+    blob (paletteO 2 0.4)
   ]
 
 -- | line example
@@ -139,7 +139,7 @@ lineExample =
         ( \c l ->
             LineChart
               ( defaultLineStyle
-                  & set #color (palette1 c)
+                  & set #color (palette c)
                   & set #size 0.015
               )
               [l]
@@ -153,7 +153,7 @@ lineExample =
       ]
 
 priorityv1Example :: ChartOptions
-priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)] & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette 4 & opac' .~ 0.05) & #borderColor .~ palette 4)) 0.1)] & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
 
 priorityv2Example :: ChartOptions
 priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (const (Priority 51))) & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
@@ -248,7 +248,7 @@ waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ (
 vennExample :: ChartOptions
 vennExample =
   mempty
-    & #charts .~ named "venn" (zipWith (\c x -> PathChart (defaultPathStyle & #borderSize .~ 0.005 & #color .~ palette1a c 0.2 & over #borderColor (set opac' 1)) x) [0 ..] (svgToPathData <$> vennSegs))
+    & #charts .~ named "venn" (zipWith (\c x -> PathChart (defaultPathStyle & #borderSize .~ 0.005 & #color .~ paletteO c 0.2 & over #borderColor (set opac' 1)) x) [0 ..] (svgToPathData <$> vennSegs))
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #chartAspect .~ FixedAspect 1
 
@@ -301,7 +301,7 @@ pathExample =
         "QuadP (Point (-1) 2) (Point 0 1)",
         "ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)"
       ]
-    path' = PathChart (defaultPathStyle & #color .~ palette1a 0 0.1 & #borderColor .~ palette1a 1 1) ps
+    path' = PathChart (defaultPathStyle & #color .~ paletteO 0 0.1 & #borderColor .~ paletteO 1 1) ps
     c0 = GlyphChart defaultGlyphStyle ((SquareGlyph,) . pointPath <$> ps)
     midp = Point 0 0 : zipWith (\(Point x y) (Point x' y') -> Point ((x + x') / 2) ((y + y') / 2)) (drop 1 (pointPath <$> ps)) (pointPath <$> ps)
     offp = [Point (-0.35) 0.05, Point 0 0.05, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
@@ -333,16 +333,16 @@ ellipseExample a =
     ell = LineChart els [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
     g0 = defaultGlyphStyle
     c0 = GlyphChart g0 [(CircleGlyph, c)]
-    g1 = defaultGlyphStyle & #color .~ palette1a 4 0.2
+    g1 = defaultGlyphStyle & #color .~ paletteO 4 0.2
     c1 = GlyphChart g1 ((CircleGlyph,) <$> [p1, p2])
     bbox = RectChart bbs [arcBox p]
-    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 7 0.005 & #borderColor .~ grey 0.5 1
+    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ paletteO 7 0.005 & #borderColor .~ grey 0.5 1
     xradii = LineChart xals [[ellipse c r phi' 0, ellipse c r phi' pi]]
     yradii = LineChart yals [[ellipse c r phi' (pi / 2), ellipse c r phi' (3 / 2 * pi)]]
-    xals = defaultLineStyle & #color .~ palette1 6 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound
-    yals = defaultLineStyle & #color .~ palette1 5 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound
-    fullels = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
-    els = defaultLineStyle & #size .~ 0.005 & #color .~ palette1 2
+    xals = defaultLineStyle & #color .~ palette 6 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound
+    yals = defaultLineStyle & #color .~ palette 5 & #size .~ 0.005 & #dasharray .~ Just [0.03, 0.01] & #linecap .~ Just LineCapRound
+    fullels = defaultLineStyle & #size .~ 0.002 & #color .~ palette 1
+    els = defaultLineStyle & #size .~ 0.005 & #color .~ palette 2
     lrows =
       second (: [])
         <$> [ ("Major Axis", LineChart xals [[zero]]),
@@ -469,12 +469,12 @@ quadExample =
     ps = singletonQuad p
     path' = PathChart pathStyle ps
     curve = LineChart curveStyle [quadBezier p . (/ 100.0) <$> [0 .. 100]]
-    curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 1
+    curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette 1
     c0 = glyphChart1 defaultGlyphStyle SquareGlyph [start, end]
     c1 = glyphChart1 controlStyle CircleGlyph [control]
     bbox = RectChart bbs [quadBox p]
-    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 0 0.05 & #borderColor .~ grey 0.4 1
-    pathStyle = defaultPathStyle & #color .~ palette1a 2 0.2 & #borderColor .~ transparent
+    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ paletteO 0 0.05 & #borderColor .~ grey 0.4 1
+    pathStyle = defaultPathStyle & #color .~ paletteO 2 0.2 & #borderColor .~ transparent
     controlStyle = defaultGlyphStyle & #shape .~ CircleGlyph
     lrows =
       second (: [])
@@ -504,10 +504,10 @@ cubicExample =
     c0 = glyphChart1 defaultGlyphStyle SquareGlyph [start, end]
     c1 = glyphChart1 controlStyle CircleGlyph [control1, control2]
     bbox = RectChart bbs [cubicBox p]
-    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ palette1a 0 0.05 & #borderColor .~ grey 0.4 1
-    pathStyle = defaultPathStyle & #color .~ palette1a 3 0.2 & #borderColor .~ transparent
+    bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ paletteO 0 0.05 & #borderColor .~ grey 0.4 1
+    pathStyle = defaultPathStyle & #color .~ paletteO 3 0.2 & #borderColor .~ transparent
     controlStyle = defaultGlyphStyle
-    curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette1 7
+    curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette 7
     lrows =
       second (: [])
         <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
@@ -528,7 +528,7 @@ surfaceExample = mempty & set #charts cs' & set #markupOptions (defaultMarkupOpt
     grain = Point 20 20
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
-    evenColors = trimColour . over lightness' (const 0.55) . palette1 <$> [0 .. 5]
+    evenColors = trimColour . over lightness' (const 0.55) . palette <$> [0 .. 5]
     so = defaultSurfaceOptions & #soGrain .~ grain & #soRange .~ r & #soStyle % #surfaceColors .~ evenColors
     (cs, rangef) = surfacef f so
     slo = defaultSurfaceLegendOptions & set (#sloSurfaceStyle % #surfaceColors) evenColors & set #sloDataRange rangef
@@ -597,14 +597,8 @@ dateExample =
   mempty
     & #charts .~ blank (Rect 0 1 0 1)
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
-    & over (#hudOptions % #frames) (<> [(100,defaultFrameOptions & set #buffer 0.2)])
-    & #hudOptions
-      .~ ( mempty
-             & #axes
-               .~ [ (defaultPriority, defaultYAxisOptions & #ticks % #style .~ TickPlaced tsTime),
-                    (defaultPriority, defaultXAxisOptions & #ticks % #style .~ TickPlaced tsDate)
-                  ]
-         )
+    & over (#hudOptions % #frames) (<> [(100,defaultFrameOptions & set #buffer 0.05)])
+    & set (#hudOptions % #axes) [ (defaultPriority, defaultYAxisOptions & #ticks % #style .~ TickPlaced tsTime), (defaultPriority, defaultXAxisOptions & #ticks % #style .~ TickPlaced tsDate)]
   where
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
     tsDate = placedTimeLabelContinuous PosIncludeBoundaries (Just (Text.pack "%d %b")) 2 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2022 3 13) (toDiffTime 0)))
@@ -655,11 +649,11 @@ gradient marker h fa grain ok0 ok1 =
 borderStrip :: Double -> Colour -> Rect Double -> Chart
 borderStrip w c r = RectChart (defaultRectStyle & #color .~ transparent & #borderSize .~ w & #borderColor .~ c) [r]
 
--- | Color wheel displaying palette1 choices
+-- | Color wheel displaying palette choices
 --
 -- ![wheel example](other/wheel.svg)
 wheelExample :: ChartOptions
-wheelExample = dotMap 0.01 50 0.5 0.5 (palette1 <$> [0 .. 7])
+wheelExample = dotMap 0.01 50 0.5 0.5 (palette <$> [0 .. 7])
 
 -- | The dotMap
 --
@@ -717,10 +711,10 @@ debugExample cs =
 compoundExample :: ChartOptions
 compoundExample = compoundMerge [c1,c2]
   where
-    ho1 = (mempty :: HudOptions) & set #titles [(3,defaultTitle "chart1")] & set #axes [(2,defaultXAxisOptions), (2,defaultYAxisOptions)] & colourHudOptions (const (palette1 0))
+    ho1 = (mempty :: HudOptions) & set #titles [(3,defaultTitle "chart1")] & set #axes [(2,defaultXAxisOptions), (2,defaultYAxisOptions)] & colourHudOptions (const (palette 0))
     c1 = (mempty :: ChartOptions) & set #hudOptions ho1 & set #charts (named "c1" [Chart defaultRectStyle (RectData [fmap (2*) one])])
-    ho2 = (mempty :: HudOptions) & set #titles [(3.1,defaultTitle "chart2")] & set #axes [(2,defaultXAxisOptions & set #place PlaceTop), (2,defaultYAxisOptions & set #place PlaceRight)] & colourHudOptions (const (palette1 3))
-    c2 = (mempty :: ChartOptions) & set #hudOptions ho2 & set #charts (named "c2" [Chart (blob (set opac' 0.3 $ palette1 3)) (RectData [fmap (*0.8) one]), BlankChart defaultStyle [one]])
+    ho2 = (mempty :: HudOptions) & set #titles [(3.1,defaultTitle "chart2")] & set #axes [(2,defaultXAxisOptions & set #place PlaceTop), (2,defaultYAxisOptions & set #place PlaceRight)] & colourHudOptions (const (palette 3))
+    c2 = (mempty :: ChartOptions) & set #hudOptions ho2 & set #charts (named "c2" [Chart (blob (set opac' 0.3 $ palette 3)) (RectData [fmap (*0.8) one]), BlankChart defaultStyle [one]])
 
 -- | Usage of stack.
 --

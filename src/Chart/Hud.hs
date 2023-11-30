@@ -320,12 +320,12 @@ finalCanvas (CanvasAspect _) cs = finalCanvas ChartAspect cs
 finalCanvas ChartAspect cs = maybe one (maybe one (padSingletons . aspect . ratio) . view styleBox') cs
 finalCanvas UnscaledAspect cs = maybe one (maybe one padSingletons . view styleBox') cs
 
-projectChartWith :: Int -> ChartAspect -> HudOptions -> ChartTree -> ChartTree
-projectChartWith n asp ho ct = ctFinal
+projectChartWith :: ChartAspect -> HudOptions -> ChartTree -> ChartTree
+projectChartWith asp ho ct = ctFinal
   where
     csAndHud = addHud asp ho ct
     viewbox = finalCanvas asp (Just csAndHud)
-    ctFinal = set (styleBoxN' n) (Just viewbox) csAndHud
+    ctFinal = set styleBox' (Just viewbox) csAndHud
 
 -- | Typical, configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --

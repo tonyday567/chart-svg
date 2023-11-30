@@ -25,8 +25,8 @@ module Data.Colour
     unsafeFromHex,
 
     -- * Palette colours
-    palette1,
-    palette1a,
+    palette,
+    paletteO,
     transparent,
     black,
     white,
@@ -243,8 +243,8 @@ i2d x = chr (ord '0' + x)
 -- Colour 0.02 0.73 0.80 1.00
 --
 -- ![wheel](other/wheel.svg)
-palette1 :: Int -> Colour
-palette1 x = cycle palette1_ List.!! x
+palette :: Int -> Colour
+palette x = cycle palette1_ List.!! x
 
 palette1LCHA_ :: [LCHA]
 palette1LCHA_ = [LCHA 0.72 0.123 207 1, LCHA 0.40 0.10 246 1, LCHA 0.50 0.21 338 1, LCHA 0.8 0.15 331 1, LCHA 0.83 0.14 69 1, LCHA 0.57 0.15 50 1, LCHA 0.38 0.085 128 1, LCHA 0.60 0.08 104 1]
@@ -261,8 +261,8 @@ palette1_ = trimColour . view lcha2colour' <$> palette1LCHA_
 --
 -- >>> palette1a 0 0.5
 -- Colour 0.02 0.73 0.80 0.50
-palette1a :: Int -> Double -> Colour
-palette1a x a = set opac' a $ cycle palette1_ List.!! x
+paletteO :: Int -> Double -> Colour
+paletteO x a = set opac' a $ cycle palette1_ List.!! x
 
 -- | black
 --

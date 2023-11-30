@@ -402,7 +402,6 @@ fillSwitch (colorNormal, colorPrefer) prefer item =
 data MarkupOptions = MarkupOptions
   { markupHeight :: Maybe Double,
     chartAspect :: ChartAspect,
-    repeatAspect :: Int,
     cssOptions :: CssOptions,
     renderStyle :: RenderStyle
   }
@@ -410,7 +409,7 @@ data MarkupOptions = MarkupOptions
 
 -- | The official markup options
 defaultMarkupOptions :: MarkupOptions
-defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) 10 defaultCssOptions Compact
+defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) defaultCssOptions Compact
 
 defaultCssFontFamilies :: ByteString
 defaultCssFontFamilies =
@@ -496,7 +495,6 @@ markupChartOptions co =
     viewbox = fromMaybe one (view styleBox' ctFinal)
     ctFinal =
       projectChartWith
-      (view (#markupOptions % #repeatAspect) co)
       (view (#markupOptions % #chartAspect) co)
       (view #hudOptions co)
       (view #charts co)

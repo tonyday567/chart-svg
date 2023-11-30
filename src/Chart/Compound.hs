@@ -51,16 +51,15 @@ markupChartOptionsCompound cs@(co0 : _) =
     viewbox = maybe one padSingletons (view styleBox' ctFinal)
     ctFinal =
       projectChartCompoundWith
-      10
       (view (#markupOptions % #chartAspect) co0)
       (zip (view #hudOptions <$> cs) (view #charts <$> cs))
 
-projectChartCompoundWith :: Int -> ChartAspect -> [(HudOptions,ChartTree)] -> ChartTree
-projectChartCompoundWith n asp css = ctFinal
+projectChartCompoundWith :: ChartAspect -> [(HudOptions,ChartTree)] -> ChartTree
+projectChartCompoundWith asp css = ctFinal
   where
     csAndHud = addHudCompound asp css
     viewbox = finalCanvas asp (Just csAndHud)
-    ctFinal = set (styleBoxN' n) (Just viewbox) csAndHud
+    ctFinal = set styleBox' (Just viewbox) csAndHud
 
 -- | Merge a list of ChartOptions, treating each element as charts to be merged. Note that this routine mempties the hud options and converts them to charts.
 compoundMerge :: [ChartOptions] -> ChartOptions
