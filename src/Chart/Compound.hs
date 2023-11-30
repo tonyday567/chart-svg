@@ -77,7 +77,7 @@ addHudCompound _ [] = mempty
 addHudCompound asp ts@((_, cs0) : _) =
   runHudCompoundWith
     (initialCanvas asp (Just cs0))
-    (zip3 dbs' hss' css')
+    (zip3 dbs' hss css')
   where
     css :: [ChartTree]
     css = snd <$> ts
@@ -86,8 +86,6 @@ addHudCompound asp ts@((_, cs0) : _) =
     huds = zipWith toHuds hos dbs
     mdbs = fst <$> huds
     hss = snd <$> huds
-    -- FIXME: is this needed?
-    hss' = zipWith (\i hs -> fmap (over #priority (+Priority (i*0.1))) hs) [0..] hss
     dbs' = zipWith fromMaybe dbs mdbs
     css' :: [ChartTree]
     css' = zipWith3 (\cs mdb db -> cs <> maybe mempty (\r -> bool (named "datapadding" [BlankChart defaultStyle [r]]) mempty (r == db)) mdb) css mdbs dbs
@@ -114,7 +112,6 @@ runHudCompoundWith cb ts = hss
       ts &
       fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
       mconcat
-    -- FIXME: one instead of a complicated data box
     hc0 = HudChart (css & set styleBox' (Just cb)) mempty
 
 prioritizeHuds :: [Hud] -> [[Hud]]

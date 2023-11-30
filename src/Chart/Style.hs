@@ -24,7 +24,6 @@ module Chart.Style
     defaultGlyphStyle,
     styleBoxGlyph,
     gpalette1,
-    ScaleBorder (..),
     GlyphShape (..),
     glyphText,
 
@@ -188,9 +187,6 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #ro
       Nothing -> id
       Just f -> padRect (0.5 * view #borderSize f * view #size o)
 
--- | Should glyph borders be scaled versus glyph size?
-data ScaleBorder = ScaleBorder | NoScaleBorder deriving (Show, Eq, Generic)
-
 -- | glyph shapes
 data GlyphShape
   = CircleGlyph
@@ -202,7 +198,7 @@ data GlyphShape
     TriangleGlyph (Point Double) (Point Double) (Point Double)
   | VLineGlyph
   | HLineGlyph
-  | PathGlyph ByteString ScaleBorder
+  | PathGlyph ByteString
   deriving (Show, Eq, Generic)
 
 -- | textifier
@@ -217,7 +213,7 @@ glyphText sh =
     RectRoundedGlyph {} -> "RectRounded"
     VLineGlyph -> "VLine"
     HLineGlyph -> "HLine"
-    PathGlyph _ _ -> "Path"
+    PathGlyph _ -> "Path"
 
 -- | the extra area from glyph styling
 styleBoxGlyph :: Style -> GlyphShape -> Rect Double
@@ -232,7 +228,7 @@ styleBoxGlyph s sh = move p' $
       VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
       HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
       TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 ([a, b, c] :: [Point Double])
-      PathGlyph path' _ -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
+      PathGlyph path' -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
   where
     sz = s ^. #size
     sw = padRect (0.5 * s ^. #borderSize)
@@ -257,7 +253,7 @@ gpalette1_ =
     VLineGlyph,
     HLineGlyph,
     TriangleGlyph (Point 0.0 0.0) (Point 1 1) (Point 1 0),
-    PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z" ScaleBorder
+    PathGlyph "M0.05,-0.03660254037844387 A0.1 0.1 0.0 0 1 0.0,0.05 0.1 0.1 0.0 0 1 -0.05,-0.03660254037844387 0.1 0.1 0.0 0 1 0.05,-0.03660254037844387 Z"
   ]
 
 -- | line cap style

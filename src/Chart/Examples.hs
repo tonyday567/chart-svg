@@ -210,9 +210,9 @@ glyphsExample =
               (VLineGlyph, 0.02),
               (HLineGlyph, 0.02),
               (TriangleGlyph (Point 0.0 (0.5 * sqrt 2)) (Point (-cos (pi / 3)) (-sin (pi / 3) / 2)) (Point (cos (pi / 3)) (-sin (pi / 3) / 2)), 0.02),
-              (PathGlyph "M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" ScaleBorder, 0.02)
+              (PathGlyph "M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z", 0.02)
             ]
-            [Point x 0 | x <- [0 .. (8 :: Double)]]
+            (fmap (\x -> Point x 0) [0 ..])
       )
 
 -- | Example data for Bar chart
@@ -525,7 +525,7 @@ cubicExample =
 surfaceExample :: ChartOptions
 surfaceExample = mempty & set #charts cs' & set #markupOptions (defaultMarkupOptions & set (#cssOptions % #shapeRendering) UseCssCrisp)
   where
-    grain = Point 100 100
+    grain = Point 20 20
     r = one
     f = fst . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     evenColors = trimColour . over lightness' (const 0.55) . palette1 <$> [0 .. 5]
@@ -563,7 +563,7 @@ arrowExample =
   where
     f = snd . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     ps = grid MidPos (one :: Rect Double) (Point 10 10 :: Point Int) :: [Point Double]
-    arrow = PathGlyph "M -1 0 L 1 0 M 1 0 L 0.4 0.3 M 1 0 L 0.4 -0.3" NoScaleBorder
+    arrow = PathGlyph "M -1 0 L 1 0 M 1 0 L 0.4 0.3 M 1 0 L 0.4 -0.3"
     gs s r' =
       defaultGlyphStyle
         & #borderSize .~ 0.05
@@ -597,7 +597,7 @@ dateExample =
   mempty
     & #charts .~ blank (Rect 0 1 0 1)
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
-    & over (#hudOptions % #frames) (<> [(100,defaultFrameOptions & set #buffer 0.1)])
+    & over (#hudOptions % #frames) (<> [(100,defaultFrameOptions & set #buffer 0.2)])
     & #hudOptions
       .~ ( mempty
              & #axes
@@ -711,11 +711,16 @@ debugExample cs =
     e2 = glyphize CircleGlyph (defaultGlyphStyle & #size .~ 0.01) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 
--- | A merge of lineExample and unitExample with the unitExample axes flipped to the oppoiste sides.
+-- | A merge of two rect charts with different data ranges.
 --
 -- ![compound example](other/compound.svg)
 compoundExample :: ChartOptions
-compoundExample = compoundMerge [lineExample, unitExample & #hudOptions % #axes %~ fmap (_2 % #place %~ flipPlace)]
+compoundExample = compoundMerge [c1,c2]
+  where
+    ho1 = (mempty :: HudOptions) & set #titles [(3,defaultTitle "chart1")] & set #axes [(2,defaultXAxisOptions), (2,defaultYAxisOptions)] & colourHudOptions (const (palette1 0))
+    c1 = (mempty :: ChartOptions) & set #hudOptions ho1 & set #charts (named "c1" [Chart defaultRectStyle (RectData [fmap (2*) one])])
+    ho2 = (mempty :: HudOptions) & set #titles [(3.1,defaultTitle "chart2")] & set #axes [(2,defaultXAxisOptions & set #place PlaceTop), (2,defaultYAxisOptions & set #place PlaceRight)] & colourHudOptions (const (palette1 3))
+    c2 = (mempty :: ChartOptions) & set #hudOptions ho2 & set #charts (named "c2" [Chart (blob (set opac' 0.3 $ palette1 3)) (RectData [fmap (*0.8) one]), BlankChart defaultStyle [one]])
 
 -- | Usage of stack.
 --

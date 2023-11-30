@@ -86,8 +86,6 @@ markupChartTree cs =
     (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart . chartData) cs
     xs' = mconcat $ fmap markupChart cs' <> (markupChartTree . ChartTree <$> xs)
 
-
--- FIXME: check this lines up in svg with expected.
 markupText :: Style -> Text -> Point Double -> Markup
 markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) (content c) (EscapeText == view #escapeText s))
   where
@@ -221,19 +219,13 @@ attsText o =
 attsGlyph :: Style -> [Attr]
 attsGlyph o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum sw),
+    <$> [ ("stroke-width", encodeNum $ o ^. #borderSize),
           ("stroke", showRGB $ o ^. #borderColor),
           ("stroke-opacity", showOpacity $ o ^. #borderColor),
           ("fill", showRGB $ o ^. #color),
           ("fill-opacity", showOpacity $ o ^. #color)
         ]
       <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
-  where
-    -- FIXME: remove ScaleBorder
-    sw = case o ^. #shape of
-      PathGlyph _ NoScaleBorder -> o ^. #borderSize
-      PathGlyph _ ScaleBorder -> min 0.2 (o ^. #borderSize / o ^. #size)
-      _ -> o ^. #borderSize
 
 -- | PathStyle to [Attr]
 attsPath :: Style -> [Attr]
@@ -299,7 +291,7 @@ markupShape_ VLineGlyph s (Point x y) =
   emptyElem "polyline" [Attr "points" $ encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2))]
 markupShape_ HLineGlyph s (Point x y) =
   emptyElem "polyline" [Attr "points" $ encodeNum (x - s / 2) <> "," <> encodeNum (-y) <> "\n" <> encodeNum (x + s / 2) <> "," <> encodeNum (-y)]
-markupShape_ (PathGlyph path _) s p =
+markupShape_ (PathGlyph path) s p =
   emptyElem "path" (uncurry Attr <$> [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)])
 
 -- | Create the classic SVG element

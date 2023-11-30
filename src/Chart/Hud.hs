@@ -16,7 +16,6 @@ module Chart.Hud
     DataBox,
     HudChart (..),
     canvasBox',
-    canvasStyleBox',
     hudBox',
     hudStyleBox',
 
@@ -211,10 +210,6 @@ canvasBox' :: Lens' HudChart (Maybe CanvasBox)
 canvasBox' =
   lens canvasBox_ canvasRebox_
 
--- | A lens between a HudChart and the bounding box of the canvas, including style extensions.
-canvasStyleBox' :: Getter HudChart (Maybe CanvasBox)
-canvasStyleBox' = to (styleBoxes . foldOf (#chart % charts'))
-
 hudStyleBox_ :: HudChart -> Maybe HudBox
 hudStyleBox_ = styleBoxes . (\x -> foldOf (#chart % charts') x <> foldOf (#hud % charts') x)
 
@@ -240,7 +235,6 @@ hudRebox_ cs r =
 
 -- | lens between a HudChart and its hud bounding box, not including style.
 --
--- FIXME: Add doctests for this, and other lenses
 -- Will only reset a HudBox if all dimensions are non-singular.
 hudBox' :: Lens' HudChart (Maybe HudBox)
 hudBox' =
@@ -329,7 +323,6 @@ finalCanvas UnscaledAspect cs = maybe one (maybe one padSingletons . view styleB
 projectChartWith :: Int -> ChartAspect -> HudOptions -> ChartTree -> ChartTree
 projectChartWith n asp ho ct = ctFinal
   where
-    -- FIXME: refactor these into stand-alone functions
     csAndHud = addHud asp ho ct
     viewbox = finalCanvas asp (Just csAndHud)
     ctFinal = set (styleBoxN' n) (Just viewbox) csAndHud
@@ -450,7 +443,7 @@ placeOrigin pl x
   | pl == PlaceTop || pl == PlaceBottom = Point x 0
   | otherwise = Point 0 x
 
--- FIXME: move to list to avoid empty element
+-- | Create an axis.
 --
 axis :: AxisOptions -> DataBox -> HudChart -> ChartTree
 axis a db hc = group (Just "axis") [b, t]

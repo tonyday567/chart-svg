@@ -330,8 +330,6 @@ sbox (Chart _ (BlankData a)) = foldRect a
 
 -- | projects a Chart to a new space from an old rectangular space, preserving linear metric structure.
 --
--- FIXME: projectWith sucks
---
 -- >>> projectWith (fmap (2*) one) one r
 -- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -1.0 1.0 -1.0 1.0]
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
