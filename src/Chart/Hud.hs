@@ -310,89 +310,6 @@ defaultHudOptions =
     []
     []
 
--- | Make Huds and potential data box extension; from a HudOption and an initial data box.
-toHuds :: HudOptions -> DataBox -> (Maybe DataBox, [Hud])
-toHuds o db =
-  (mdb,) $ fmap Hud $
-    (as' & fmap (over #item (\ho -> \hc -> axisHud ho db' hc)))
-      <> (view #frames o & fmap (over #item frameHud))
-      <> (view #legends o & fmap (over #item legendHud))
-      <> (view #titles o & fmap (over #item titleHud))
-  where
-    (mdb, as') = freezeAxes db (view #axes o)
-    db' = fromMaybe db mdb
-
-freezeAxes :: DataBox -> [Priority AxisOptions] -> (Maybe DataBox, [Priority AxisOptions])
-freezeAxes db0 aos =
-  foldr
-    ( \ao (dbm, as') ->
-        let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) (view #item ao)
-        in (dbm', as' <> [ao & set #item ao'])
-    )
-    (Nothing, [])
-    aos
-
-freezeTicks :: DataBox -> AxisOptions -> (Maybe DataBox, AxisOptions)
-freezeTicks db a =
-  bimap
-    (fmap (\x -> placeRect (view #place a) x db))
-    (\x -> a & set (#ticks % #style) x)
-    (placeTicks (placeRange (view #place a) db) (view (#ticks % #style) a))
-
--- | compute tick components given style, ranges and formatting
-makePlacedTicks :: Range Double -> TickStyle -> (Maybe (Range Double), [(Double, Text)])
-makePlacedTicks r s =
-  case s of
-    TickNone -> (Nothing, [])
-    TickRound f n e ->
-      ( bool (space1 ticks0) Nothing (e == NoTickExtend),
-        zip ticks0 (formatNs f ticks0)
-      )
-      where
-        ticks0 = gridSensible OuterPos (e == NoTickExtend) r n
-    TickExact f n -> (Nothing, zip ticks0 (formatNs f ticks0))
-      where
-        ticks0 = grid OuterPos r n
-    TickLabels ls ->
-      ( Nothing,
-        zip
-          ( project (Range 0 (fromIntegral $ length ls)) r
-              <$> ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])
-          )
-          ls
-      )
-    TickPlaced xs -> (Nothing, xs)
-
-placeTicks :: Range Double -> TickStyle -> (Maybe (Range Double), TickStyle)
-placeTicks r t@TickRound {} = (rExtended, TickPlaced tPlaced)
-  where
-    (rExtended, tPlaced) = makePlacedTicks r t
-placeTicks _ t = (Nothing, t)
-
-placeRect :: Place -> Range Double -> Rect Double -> Rect Double
-placeRect pl' (Range a0 a1) (Rect x z y w) = case pl' of
-  PlaceRight -> Rect x z a0 a1
-  PlaceLeft -> Rect x z a0 a1
-  _ -> Rect a0 a1 y w
-
-placeRange :: Place -> HudBox -> Range Double
-placeRange pl (Rect x z y w) = case pl of
-  PlaceRight -> Range y w
-  PlaceLeft -> Range y w
-  _ -> Range x z
-
-placeOrigin :: Place -> Double -> Point Double
-placeOrigin pl x
-  | pl == PlaceTop || pl == PlaceBottom = Point x 0
-  | otherwise = Point 0 x
-
--- | Create an axis.
---
-axisHud :: AxisOptions -> DataBox -> HudChart -> ChartTree
-axisHud a db hc = group (Just "axis") [b, t]
-  where
-    b = maybe mempty (\x -> makeAxisBar (view #place a) x hc) (view #bar a)
-    t = makeTick a db (appendHud b hc)
 
 -- | alter a colour with a function
 colourHudOptions :: (Colour -> Colour) -> HudOptions -> HudOptions
@@ -468,13 +385,15 @@ data AxisBar = AxisBar
     size :: Double,
     buffer :: Double,
     -- | extension over the edges of the axis range
-    overhang :: Double
+    overhang :: Double,
+    -- | Which hud-chart section to anchor to
+    anchorTo :: HudChartSection
   }
   deriving (Show, Eq, Generic)
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ set opac' 0.4 dark) 0.004 0.01 0.002
+defaultAxisBar = AxisBar (defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ set opac' 0.4 dark) 0.004 0.01 0.002 CanvasSection
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
@@ -712,16 +631,99 @@ data FrameOptions = FrameOptions
 defaultFrameOptions :: FrameOptions
 defaultFrameOptions = FrameOptions (Just (blob (grey 1 0.02))) 0
 
--- | Make a frame hud transformation.
-frameHud :: FrameOptions -> HudChart -> ChartTree
-frameHud o hc =
-  case r of
-    Nothing -> unnamed []
-    Just r' -> case view #frame o of
-      Nothing -> blank r'
-      Just rs -> named "frame" [Chart rs (RectData [r'])]
+
+-- * Huds
+
+-- | Make Huds and potential data box extension; from a HudOption and an initial data box.
+toHuds :: HudOptions -> DataBox -> (Maybe DataBox, [Hud])
+toHuds o db =
+  (mdb,) $ fmap Hud $
+    (as' & fmap (over #item (\ho -> \hc -> axisHud ho db' hc)))
+      <> (view #frames o & fmap (over #item frameHud))
+      <> (view #legends o & fmap (over #item legendHud))
+      <> (view #titles o & fmap (over #item titleHud))
   where
-    r = padRect (view #buffer o) <$> view (hudChartBox' HudStyleSection) hc
+    (mdb, as') = freezeAxes db (view #axes o)
+    db' = fromMaybe db mdb
+
+freezeAxes :: DataBox -> [Priority AxisOptions] -> (Maybe DataBox, [Priority AxisOptions])
+freezeAxes db0 aos =
+  foldr
+    ( \ao (dbm, as') ->
+        let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) (view #item ao)
+        in (dbm', as' <> [ao & set #item ao'])
+    )
+    (Nothing, [])
+    aos
+
+freezeTicks :: DataBox -> AxisOptions -> (Maybe DataBox, AxisOptions)
+freezeTicks db a =
+  bimap
+    (fmap (\x -> placeRect (view #place a) x db))
+    (\x -> a & set (#ticks % #style) x)
+    (placeTicks (placeRange (view #place a) db) (view (#ticks % #style) a))
+
+-- | compute tick components given style, ranges and formatting
+makePlacedTicks :: Range Double -> TickStyle -> (Maybe (Range Double), [(Double, Text)])
+makePlacedTicks r s =
+  case s of
+    TickNone -> (Nothing, [])
+    TickRound f n e ->
+      ( bool (space1 ticks0) Nothing (e == NoTickExtend),
+        zip ticks0 (formatNs f ticks0)
+      )
+      where
+        ticks0 = gridSensible OuterPos (e == NoTickExtend) r n
+    TickExact f n -> (Nothing, zip ticks0 (formatNs f ticks0))
+      where
+        ticks0 = grid OuterPos r n
+    TickLabels ls ->
+      ( Nothing,
+        zip
+          ( project (Range 0 (fromIntegral $ length ls)) r
+              <$> ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])
+          )
+          ls
+      )
+    TickPlaced xs -> (Nothing, xs)
+
+placeTicks :: Range Double -> TickStyle -> (Maybe (Range Double), TickStyle)
+placeTicks r t@TickRound {} = (rExtended, TickPlaced tPlaced)
+  where
+    (rExtended, tPlaced) = makePlacedTicks r t
+placeTicks _ t = (Nothing, t)
+
+placeRect :: Place -> Range Double -> Rect Double -> Rect Double
+placeRect pl' (Range a0 a1) (Rect x z y w) = case pl' of
+  PlaceRight -> Rect x z a0 a1
+  PlaceLeft -> Rect x z a0 a1
+  _ -> Rect a0 a1 y w
+
+placeRange :: Place -> HudBox -> Range Double
+placeRange pl (Rect x z y w) = case pl of
+  PlaceRight -> Range y w
+  PlaceLeft -> Range y w
+  _ -> Range x z
+
+placeOrigin :: Place -> Double -> Point Double
+placeOrigin pl x
+  | pl == PlaceTop || pl == PlaceBottom = Point x 0
+  | otherwise = Point 0 x
+
+-- | Create an axis.
+--
+axisHud :: AxisOptions -> DataBox -> HudChart -> ChartTree
+axisHud a db hc = group (Just "axis") [b, t]
+  where
+    b = maybe mempty (\x -> axisBarHud (view #place a) x hc) (view #bar a)
+    t = tickHud a db (appendHud b hc)
+
+axisBarHud :: Place -> AxisBar -> HudChart -> ChartTree
+axisBarHud pl b hc = named "axisbar" (maybeToList c)
+  where
+    cb = view (hudChartBox' CanvasSection) hc
+    anchoredBox = view (hudChartBox' (view #anchorTo b)) hc
+    c = bar_ pl b <$> cb <*> anchoredBox
 
 bar_ :: Place -> AxisBar -> CanvasBox -> HudBox -> Chart
 bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
@@ -762,13 +764,6 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
             (y - b ^. #overhang)
             (w + b ^. #overhang)
         ]
-
-makeAxisBar :: Place -> AxisBar -> HudChart -> ChartTree
-makeAxisBar pl b hc = named "axisbar" (maybeToList c)
-  where
-    cb = view (hudChartBox' CanvasSection) hc
-    hb = view (hudChartBox' HudStyleSection) hc
-    c = bar_ pl b <$> cb <*> hb
 
 title_ :: Title -> HudBox -> Chart
 title_ t hb =
@@ -1047,8 +1042,8 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
     adjustSizeY = max ((maxHeight / (upper asp - lower asp)) / mry) 1
     adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
 
-makeTick :: AxisOptions -> DataBox -> HudChart -> ChartTree
-makeTick c db hc =
+tickHud :: AxisOptions -> DataBox -> HudChart -> ChartTree
+tickHud c db hc =
   case hb of
     Nothing -> named "ticks" []
     Just hb' -> do
@@ -1153,3 +1148,14 @@ legendEntry ::
   (Chart, [Chart])
 legendEntry l t cs =
   (legendText l t, fmap (legendizeChart l) cs)
+
+-- | Make a frame hud transformation.
+frameHud :: FrameOptions -> HudChart -> ChartTree
+frameHud o hc =
+  case r of
+    Nothing -> unnamed []
+    Just r' -> case view #frame o of
+      Nothing -> blank r'
+      Just rs -> named "frame" [Chart rs (RectData [r'])]
+  where
+    r = padRect (view #buffer o) <$> view (hudChartBox' HudStyleSection) hc
