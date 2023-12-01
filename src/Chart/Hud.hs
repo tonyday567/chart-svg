@@ -40,7 +40,6 @@ module Chart.Hud
     defaultFrameOptions,
     Place (..),
     flipPlace,
-    placeText,
     AxisBar (..),
     defaultAxisBar,
     Title (..),
@@ -63,15 +62,18 @@ module Chart.Hud
     defaultLegendOptions,
 
     -- * Option to Hud
+    axisHud,
+    titleHud,
     frameHud,
-    legend,
     legendHud,
+
     legendChart,
     legendFrame,
     freezeAxes,
     freezeTicks,
     formatN',
     numTicks',
+    tickExtend',
     projectChartWith,
     placeLegend,
 
@@ -350,10 +352,10 @@ defaultHudOptions =
 toHuds :: HudOptions -> DataBox -> (Maybe DataBox, [Hud])
 toHuds o db =
   (mdb,) $ fmap Hud $
-    (as' & fmap (over #item (\ho -> \hc -> axis ho db' hc)))
+    (as' & fmap (over #item (\ho -> \hc -> axisHud ho db' hc)))
       <> (view #frames o & fmap (over #item frameHud))
-      <> (view #legends o & fmap (over #item legend))
-      <> (view #titles o & fmap (over #item title))
+      <> (view #legends o & fmap (over #item legendHud))
+      <> (view #titles o & fmap (over #item titleHud))
   where
     (mdb, as') = freezeAxes db (view #axes o)
     db' = fromMaybe db mdb
@@ -424,8 +426,8 @@ placeOrigin pl x
 
 -- | Create an axis.
 --
-axis :: AxisOptions -> DataBox -> HudChart -> ChartTree
-axis a db hc = group (Just "axis") [b, t]
+axisHud :: AxisOptions -> DataBox -> HudChart -> ChartTree
+axisHud a db hc = group (Just "axis") [b, t]
   where
     b = maybe mempty (\x -> makeAxisBar (view #place a) x hc) (view #bar a)
     t = makeTick a db (appendHud b hc)
@@ -477,16 +479,6 @@ flipPlace PlaceRight = PlaceLeft
 flipPlace PlaceTop = PlaceBottom
 flipPlace PlaceBottom = PlaceTop
 flipPlace x = x
-
--- | textifier
-placeText :: Place -> Text
-placeText p =
-  case p of
-    PlaceTop -> "Top"
-    PlaceBottom -> "Bottom"
-    PlaceLeft -> "Left"
-    PlaceRight -> "Right"
-    PlaceAbsolute _ -> "Absolute"
 
 -- | axis options
 data AxisOptions = AxisOptions
@@ -656,7 +648,22 @@ renumTicks_ ts Nothing = ts
 renumTicks_ (TickRound f _ e) (Just n) = TickRound f n e
 renumTicks_ (TickExact f _) (Just n) = TickExact f n
 renumTicks_ ts _ = ts
+-- | Lens between a FormatN and a TickStyle.
+--
 
+tickExtend' :: Lens' TickStyle (Maybe TickExtend)
+tickExtend' =
+  lens tickExtend_ tickReExtend_
+
+tickExtend_ :: TickStyle -> Maybe TickExtend
+tickExtend_ = \case
+  TickRound _ _ e -> Just e
+  _ -> Nothing
+
+tickReExtend_ :: TickStyle -> Maybe TickExtend -> TickStyle
+tickReExtend_ ts Nothing = ts
+tickReExtend_ (TickRound f n _) (Just e) = TickRound f n e
+tickReExtend_ ts _ = ts
 
 -- | The official tick style
 --
@@ -853,8 +860,8 @@ alignPosTitle t (Rect x z y w)
   | otherwise = Point 0.0 0.0
 
 -- | title append transformation.
-title :: Title -> HudChart -> ChartTree
-title t hc = do
+titleHud :: Title -> HudChart -> ChartTree
+titleHud t hc = do
   named "title" (maybeToList $ title_ t <$> hb)
   where
     hb = view hudStyleBox' hc
@@ -917,16 +924,6 @@ ticksPlacedCanvas ts pl cb db =
   first (project (placeRange pl db) (placeRange pl cb))
     <$> snd (makePlacedTicks (placeRange pl db) ts)
 
-tickGlyph_ :: Place -> Buffered Style -> TickStyle -> CanvasBox -> CanvasBox -> DataBox -> Maybe Chart
-tickGlyph_ pl (Buffered g b) ts sb cb db =
-  case l of
-    [] -> Nothing
-    l' -> Just $ Chart g (GlyphData l')
-  where
-    l =
-      addp (placePos' pl b sb bb) . placeOrigin pl
-        <$> fmap fst (ticksPlacedCanvas ts pl cb db)
-    bb = fromMaybe zero $ sbox (Chart g (GlyphData [zero]))
 
 placePos' :: Place -> Double -> HudBox -> Rect Double -> Point Double
 placePos' pl b (Rect x z y w) (Rect x' z' y' w') = case pl of
@@ -946,9 +943,23 @@ tickGlyph ::
   ChartTree
 tickGlyph pl s ts db hc = named "tickglyph" (catMaybes $ maybeToList c)
   where
+    -- FIXME: hudBox'
     sb = view hudBox' hc
     cb = view canvasBox' hc
     c = tickGlyph_ pl s ts <$> sb <*> cb <*> pure db
+
+tickGlyph_ :: Place -> Buffered Style -> TickStyle -> CanvasBox -> CanvasBox -> DataBox -> Maybe Chart
+tickGlyph_ pl (Buffered g b) ts sb cb db =
+  case l of
+    [] -> Nothing
+    l' -> Just $ Chart g (GlyphData l')
+  where
+    l =
+      addp (placePos' pl b sb bb) . placeOrigin pl
+        <$> fmap fst (ticksPlacedCanvas ts pl cb db)
+    bb = fromMaybe zero $ sbox (Chart g (GlyphData [zero]))
+
+
 
 tickText_ ::
   Place ->
@@ -1082,15 +1093,16 @@ makeTick c db hc =
       let adjTick = maybe (c ^. #ticks) (\x -> adjustTicks x hb' db (c ^. #place) (c ^. #ticks)) (c ^. #adjust)
       applyTicks (c ^. #place) adjTick db hc
   where
+    -- FIXME: hudBox'
     hb = view hudBox' hc
 
 -- | Make a legend from 'LegendOptions'
-legend :: LegendOptions -> HudChart -> ChartTree
-legend o hc = legendHud o (legendChart o & set (charts' % each % #style % #scaleP) (view #scaleP o)) hc
+legendHud :: LegendOptions -> HudChart -> ChartTree
+legendHud o hc = legendHud2 o (legendChart o & set (charts' % each % #style % #scaleP) (view #scaleP o)) hc
 
 -- | Make a legend hud element, from a bespoke ChartTree.
-legendHud :: LegendOptions -> ChartTree -> HudChart -> ChartTree
-legendHud o lcs hc = do
+legendHud2 :: LegendOptions -> ChartTree -> HudChart -> ChartTree
+legendHud2 o lcs hc = do
   case sb of
     Nothing -> named "legend" []
     Just sb' -> placeLegend o sb' (over chart' (scaleChart (o ^. #overallScale)) lcs)
