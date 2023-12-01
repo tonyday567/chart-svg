@@ -167,14 +167,14 @@ appendZeros xs =
 -- | A bar chart.
 --
 -- >>> emptyBar = barChart defaultBarOptions (BarData [] [] [])
--- >>> foldOf (#charts % charts') emptyBar
+-- >>> foldOf (#chartTree % charts') emptyBar
 -- []
 barChart :: BarOptions -> BarData -> ChartOptions
 barChart bo bd =
   mempty
     & set #hudOptions (barHudOptions bo bd)
     & set
-      #charts
+      #chartTree
       ( named
           "barchart"
           ( bars bo bd
@@ -186,14 +186,14 @@ barHudOptions :: BarOptions -> BarData -> HudOptions
 barHudOptions bo bd =
   mempty
     & #axes
-      .~ [ (1, axis1)
+      .~ [ Priority 1 axis1
          ]
     & #legends
-      .~ [ (10, o & #legendCharts .~ barLegendContent bo bd)
+      .~ [ Priority 10 (o & #legendCharts .~ barLegendContent bo bd)
          ]
   where
     o = view #barLegendOptions bo
-    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & #ticks % #ltick .~ Nothing & #ticks % #style .~ barTicks bd
+    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & #ticks % #lineTick .~ Nothing & #ticks % #style .~ barTicks bd
 
 -- | Two dimensional data, maybe with row and column labels.
 data BarData = BarData

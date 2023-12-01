@@ -77,7 +77,7 @@ encodePx = strToUtf8 . show . (floor :: Double -> Int)
 
 -- | Convert a ChartTree to markup
 --
--- >>> lineExample & view #charts & markupChartTree & markdown_ Compact Xml
+-- >>> lineExample & view #chartTree & markupChartTree & markdown_ Compact Xml
 -- "<g class=\"line\"><g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g><g stroke-width=\"0.0150\" stroke=\"rgb(2%, 29%, 48%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,0 2.8,-3.0\"/></g><g stroke-width=\"0.0150\" stroke=\"rgb(66%, 7%, 55%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0.5,-4.0 0.5,0\"/></g></g>"
 markupChartTree :: ChartTree -> Markup
 markupChartTree cs =
@@ -133,7 +133,7 @@ markupRect (Rect x z y w) =
 
 -- | Convert a Chart to Markup
 --
--- >>> lineExample & view #charts & foldOf charts' & head & markupChart & markdown_ Compact Xml
+-- >>> lineExample & view #chartTree & foldOf charts' & head & markupChart & markdown_ Compact Xml
 -- "<g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g>"
 markupChart :: Chart -> Markup
 markupChart = uncurry (element "g") . f
@@ -159,13 +159,13 @@ markupPath ps =
 
 -- | GlyphStyle to markup Tree
 -- Note rotation on the outside not the inside.
-markupGlyph :: Style -> (GlyphShape, Point Double) -> Markup
-markupGlyph s (shape, p) =
+markupGlyph :: Style -> Point Double -> Markup
+markupGlyph s p =
   case view #rotation s of
     Nothing -> gl
     Just r -> element "g" [Attr "transform" (toRotateText r p)] gl
   where
-    gl = markupShape_ shape (s ^. #size) p
+    gl = markupShape_ (view #shape s) (s ^. #size) p
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> ByteString
@@ -463,7 +463,7 @@ markupShapeRendering NoShapeRendering = mempty
 data ChartOptions = ChartOptions
   { markupOptions :: MarkupOptions,
     hudOptions :: HudOptions,
-    charts :: ChartTree
+    chartTree :: ChartTree
   }
   deriving (Generic, Eq, Show)
 
@@ -471,13 +471,13 @@ data ChartOptions = ChartOptions
 --
 -- Note that this is a destructive operation, and, in particular, that
 --
--- view #charts (forgetHud (mempty & set #charts c)) /= c
+-- view #chartTree (forgetHud (mempty & set #chartTree c)) /= c
 forgetHud :: ChartOptions -> ChartOptions
 forgetHud co =
   co
     & set #hudOptions mempty
-    & set #charts (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #charts co))
-    & set (#charts % charts' % each % #style % #scaleP) ScalePArea
+    & set #chartTree (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #chartTree co))
+    & set (#chartTree % charts' % each % #style % #scaleP) ScalePArea
 
 -- | Convert ChartOptions to Markup
 --
@@ -497,7 +497,7 @@ markupChartOptions co =
       projectChartWith
       (view (#markupOptions % #chartAspect) co)
       (view #hudOptions co)
-      (view #charts co)
+      (view #chartTree co)
 
 -- | Render ChartOptions to an SVG ByteString
 --

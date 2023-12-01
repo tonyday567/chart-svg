@@ -21,7 +21,6 @@ module Chart.Primitive
     pattern PathChart,
     pattern BlankChart,
     pattern LineChart1,
-    glyphChart1,
     blankChart1,
     ChartTree (..),
     tree',
@@ -97,7 +96,7 @@ import NumHask.Prelude qualified as NH
 --
 -- - 'RectChart': a rectangle in the XY-domain. For example, a @'Rect' 0 1 0 1@ is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on 'Rect' 'Double's but the base types are polymorphic.
 -- - 'LineChart': a list of points which represent connected straight lines. ['Point' 0 0, 'Point' 1 1, 'Point' 2 2, 'Point' 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
--- - 'GlyphChart': a 'GlyphShape' which is a predefined shaped centered at a 'Point' in XY space.
+-- - 'GlyphChart': a 'GlyphShape' which is a predefined style shape centered at a 'Point' in XY space.
 -- - 'TextChart': text centered at a 'Point' in XY space.
 -- - 'PathChart': specification of curvilinear paths using the SVG standards.
 -- - 'BlankChart': a rectangular space that has no visual representation.
@@ -114,7 +113,7 @@ import NumHask.Prelude qualified as NH
 --
 -- Using the defaults, this chart is rendered as:
 --
--- > writeChartOptions "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #charts .~ unnamed [r]
+-- > writeChartOptions "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ unnamed [r]
 --
 -- ![unit example](other/unit.svg)
 data Chart = Chart {style :: Style, chartData :: ChartData} deriving (Eq, Show, Generic)
@@ -122,7 +121,7 @@ data Chart = Chart {style :: Style, chartData :: ChartData} deriving (Eq, Show, 
 data ChartData
   = RectData [Rect Double]
   | LineData [[Point Double]]
-  | GlyphData [(GlyphShape, Point Double)]
+  | GlyphData [Point Double]
   | TextData [(Text, Point Double)]
   | PathData [PathData Double]
   | BlankData [Rect Double]
@@ -149,7 +148,7 @@ lineData' =
     setData cd _ = cd
 
 -- | GlyphData partial lens
-glyphData' :: Lens' ChartData (Maybe [(GlyphShape, Point Double)])
+glyphData' :: Lens' ChartData (Maybe [Point Double])
 glyphData' =
   lens getData setData
   where
@@ -207,14 +206,10 @@ pattern LineChart1 s xs = Chart s (LineData [xs])
 {-# COMPLETE LineChart1 #-}
 
 -- | pattern of a Chart with GlyphData
-pattern GlyphChart :: Style -> [(GlyphShape, Point Double)] -> Chart
+pattern GlyphChart :: Style -> [Point Double] -> Chart
 pattern GlyphChart s xs = Chart s (GlyphData xs)
 
 {-# COMPLETE GlyphChart #-}
-
--- | Create a Chart with GlyphData and a single shape
-glyphChart1 :: Style -> GlyphShape -> [Point Double] -> Chart
-glyphChart1 s shape xs = Chart s (GlyphData (fmap (shape,) xs))
 
 -- | pattern of a Chart with TextData
 pattern TextChart :: Style -> [(Text, Point Double)] -> Chart
@@ -309,7 +304,7 @@ box :: ChartData -> Maybe (Rect Double)
 box (RectData a) = foldRect a
 box (TextData a) = space1 $ snd <$> a
 box (LineData a) = space1 $ mconcat a
-box (GlyphData a) = space1 (fmap snd a)
+box (GlyphData a) = space1 a
 box (PathData a) = pathBoxes a
 box (BlankData a) = foldRect a
 
@@ -323,7 +318,7 @@ sbox :: Chart -> Maybe (Rect Double)
 sbox (Chart s (RectData a)) = foldRect $ padRect (0.5 * view #borderSize s) <$> a
 sbox (Chart s (TextData a)) = foldRect $ uncurry (styleBoxText s) <$> a
 sbox (Chart s (LineData a)) = padRect (0.5 * s ^. #size) <$> (space1 $ mconcat a)
-sbox (Chart s (GlyphData a)) = foldRect $ (\x -> addPoint (snd x) (styleBoxGlyph s (fst x))) <$> a
+sbox (Chart s (GlyphData a)) = foldRect $ (\x -> addPoint x (styleBoxGlyph s)) <$> a
 sbox (Chart s (PathData a)) = padRect (0.5 * view #borderSize s) <$> pathBoxes a
 sbox (Chart _ (BlankData a)) = foldRect a
 
@@ -347,7 +342,7 @@ projectChartDataWith :: Rect Double -> Rect Double -> ChartData -> ChartData
 projectChartDataWith new old (RectData a) = RectData (projectOnR new old <$> a)
 projectChartDataWith new old (TextData a) = TextData (second (projectOnP new old) <$> a)
 projectChartDataWith new old (LineData a) = LineData (fmap (projectOnP new old) <$> a)
-projectChartDataWith new old (GlyphData a) = GlyphData (fmap (second (projectOnP new old)) a)
+projectChartDataWith new old (GlyphData a) = GlyphData (projectOnP new old <$> a)
 projectChartDataWith new old (PathData a) = PathData (projectPaths new old a)
 projectChartDataWith new old (BlankData a) = BlankData (projectOnR new old <$> a)
 
@@ -359,7 +354,7 @@ moveChartData :: Point Double -> ChartData -> ChartData
 moveChartData p (RectData a) = RectData (addPoint p <$> a)
 moveChartData p (TextData a) = TextData (second (addp p) <$> a)
 moveChartData p (LineData a) = LineData (fmap (addp p) <$> a)
-moveChartData p (GlyphData a) = GlyphData (second (addp p) <$> a)
+moveChartData p (GlyphData a) = GlyphData (addp p <$> a)
 moveChartData p (PathData a) = PathData (movePath p <$> a)
 moveChartData p (BlankData a) = BlankData (addPoint p <$> a)
 
@@ -375,7 +370,7 @@ scaleChartData p (LineData a) =
 scaleChartData p (TextData a) =
   TextData (fmap (second (fmap (* p))) a)
 scaleChartData p (GlyphData a) =
-  GlyphData (fmap (second (fmap (* p))) a)
+  GlyphData (fmap (fmap (* p)) a)
 scaleChartData p (PathData a) =
   PathData (scalePath p <$> a)
 scaleChartData p (BlankData a) =
@@ -502,18 +497,18 @@ rectangularize r ct = group (Just "rectangularize") [over chart' (\c -> set #sty
 rectangularize_ :: Chart -> ChartData
 rectangularize_ c = RectData (maybeToList $ sbox c)
 
--- | Make a new chart tree out of the data points of a chart tree, using the supplied glyphs.
-glyphize :: GlyphShape -> Style -> ChartTree -> ChartTree
-glyphize s g c =
-  group (Just "glyphize") [over chart' (set #style g . over #chartData (glyphize_ s)) c]
+-- | Make a new chart tree out of the data points of a chart tree, using the supplied style (for glyphs).
+glyphize :: Style -> ChartTree -> ChartTree
+glyphize s ct =
+  group (Just "glyphize") [over chart' (set #style s . over #chartData pointize_) ct]
 
-glyphize_ :: GlyphShape -> ChartData -> ChartData
-glyphize_ g (TextData xs) = GlyphData ((g,) . snd <$> xs)
-glyphize_ g (PathData xs) = GlyphData ((g,) . pointPath <$> xs)
-glyphize_ g (LineData xs) = GlyphData (fmap (g,) $ mconcat xs)
-glyphize_ g (BlankData xs) = GlyphData ((g,) . mid <$> xs)
-glyphize_ g (RectData xs) = GlyphData ((g,) . mid <$> xs)
-glyphize_ g (GlyphData xs) = GlyphData (first (const g) <$> xs)
+pointize_ :: ChartData -> ChartData
+pointize_ (TextData xs) = GlyphData (snd <$> xs)
+pointize_ (PathData xs) = GlyphData (pointPath <$> xs)
+pointize_ (LineData xs) = GlyphData (mconcat xs)
+pointize_ (BlankData xs) = GlyphData (mid <$> xs)
+pointize_ (RectData xs) = GlyphData (mid <$> xs)
+pointize_ (GlyphData xs) = GlyphData xs
 
 -- | Verticle or Horizontal
 data Orientation = Vert | Hori deriving (Eq, Show, Generic)

@@ -69,7 +69,7 @@ import Prelude hiding (abs)
 --
 -- ![unit example](other/unit.svg)
 unitExample :: ChartOptions
-unitExample = mempty & #charts .~ named "unit" [Chart defaultRectStyle (RectData [one])] & #hudOptions .~ defaultHudOptions
+unitExample = mempty & #chartTree .~ named "unit" [Chart defaultRectStyle (RectData [one])] & #hudOptions .~ defaultHudOptions
 
 -- | A 'BlankChart', 'defaultHudOptions' example.
 --
@@ -78,7 +78,7 @@ hudOptionsExample :: ChartOptions
 hudOptionsExample =
   mempty
     & #hudOptions .~ defaultHudOptions
-    & #charts .~ blank one
+    & #chartTree .~ blank one
 
 -- | rect example
 --
@@ -90,9 +90,9 @@ rectExample =
       .~ ( mempty
              & set
                #axes
-               [(defaultPriority, defaultXAxisOptions & #ticks % #ltick .~ Nothing)]
+               [defaultPriority (defaultXAxisOptions & #ticks % #lineTick .~ Nothing)]
          )
-    & #charts .~ named "rect" (zipWith (\s x -> Chart s (RectData x)) ropts rss)
+    & #chartTree .~ named "rect" (zipWith (\s x -> Chart s (RectData x)) ropts rss)
 
 rss :: [[Rect Double]]
 rss =
@@ -111,28 +111,26 @@ ropts =
 -- ![line example](other/line.svg)
 lineExample :: ChartOptions
 lineExample =
-  mempty & set #hudOptions ho & #charts .~ named "line" cs
+  mempty & set #hudOptions ho & #chartTree .~ named "line" cs
   where
     ho =
       defaultHudOptions
         & set
           #titles
-          [ (6, defaultTitle "Line Chart" & set (#style % #size) 0.08),
-            ( 13,
+          [ Priority 6 (defaultTitle "Line Chart" & set (#style % #size) 0.08),
+            Priority 13 $
               defaultTitle "Made with 🧡 and chart-svg"
                 & set (#style % #size) 0.04
                 & set #place PlaceBottom
                 & set #anchor AnchorEnd
-            )
           ]
         & set
           #legends
-          [ ( 12,
+          [ Priority 12 $
               defaultLegendOptions
                 & set #scaleP ScalePX
                 & set #place (PlaceAbsolute (Point 0.35 (-0.35)))
                 & set #legendCharts (zipWith (\t c -> (t, [c])) ["palette #0", "palette #1", "palette #2"] cs)
-            )
           ]
     cs =
       zipWith
@@ -153,10 +151,18 @@ lineExample =
       ]
 
 priorityv1Example :: ChartOptions
-priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette 4 & opac' .~ 0.05) & #borderColor .~ palette 4)) 0.1)] & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+priorityv1Example =
+  lineExample &
+  set (#hudOptions % #frames)
+    [Priority 1 (FrameOptions (Just defaultRectStyle) 0),
+     Priority 100 (FrameOptions (Just (defaultRectStyle & #color .~ (palette 4 & opac' .~ 0.05) & #borderColor .~ palette 4)) 0.1)] &
+   set (#hudOptions % #legends % each % #priority) 50 &
+   set (#hudOptions % #legends % each % #item % #place) PlaceRight
 
 priorityv2Example :: ChartOptions
-priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (const (Priority 51))) & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+priorityv2Example =
+  priorityv1Example &
+  set (#hudOptions % #titles % each % #priority) 51
 
 -- | text example
 --
@@ -164,7 +170,7 @@ priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (co
 textExample :: ChartOptions
 textExample =
   mempty
-    & #charts
+    & #chartTree
       .~ named
         "text"
         [ TextChart
@@ -190,16 +196,16 @@ glyphsExample =
     & set (#markupOptions % #markupHeight) (Just 50)
     & set (#markupOptions % #chartAspect) (FixedAspect 12)
     & set
-      #charts
+      #chartTree
       ( named "glyphs" $
           zipWith
             ( \(sh, bs) p ->
-                glyphChart1
+                GlyphChart
                   ( defaultGlyphStyle
+                      & #shape .~ sh
                       & #size .~ (0.8 :: Double)
                       & #borderSize .~ bs
                   )
-                  sh
                   [p]
             )
             [ (CircleGlyph, 0.02 :: Double),
@@ -228,7 +234,7 @@ barDataExample =
 -- ![bar example](other/bar.svg)
 barExample :: ChartOptions
 barExample = barChart defaultBarOptions barDataExample &
-  set (#hudOptions % #frames) [(101, defaultFrameOptions & set #buffer 0.02)]
+  set (#hudOptions % #frames) [Priority 101 (defaultFrameOptions & set #buffer 0.02)]
 
 -- | Stacked bar chart example.
 --
@@ -240,7 +246,7 @@ sbarExample = barChart (defaultBarOptions & set #barOrientation Vert & set #barS
 --
 -- ![wave example](other/wave.svg)
 waveExample :: ChartOptions
-waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ (SquareGlyph,) <$> gridP sin (Range 0 (2 * pi)) 30] & #hudOptions .~ defaultHudOptions
+waveExample = mempty & #chartTree .~ named "wave" [GlyphChart (defaultGlyphStyle & set #shape SquareGlyph) (gridP sin (Range 0 (2 * pi)) 30)] & #hudOptions .~ defaultHudOptions
 
 -- | venn diagram
 --
@@ -248,7 +254,7 @@ waveExample = mempty & #charts .~ named "wave" [GlyphChart defaultGlyphStyle $ (
 vennExample :: ChartOptions
 vennExample =
   mempty
-    & #charts .~ named "venn" (zipWith (\c x -> PathChart (defaultPathStyle & #borderSize .~ 0.005 & #color .~ paletteO c 0.2 & over #borderColor (set opac' 1)) x) [0 ..] (svgToPathData <$> vennSegs))
+    & #chartTree .~ named "venn" (zipWith (\c x -> PathChart (defaultPathStyle & #borderSize .~ 0.005 & #color .~ paletteO c 0.2 & over #borderColor (set opac' 1)) x) [0 ..] (svgToPathData <$> vennSegs))
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #chartAspect .~ FixedAspect 1
 
@@ -281,7 +287,7 @@ vennSegs =
 pathExample :: ChartOptions
 pathExample =
   mempty
-    & #charts .~ named "path" [path', c0] <> named "pathtext" [t0]
+    & #chartTree .~ named "path" [path', c0] <> named "pathtext" [t0]
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #chartAspect .~ ChartAspect
     & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
@@ -302,7 +308,7 @@ pathExample =
         "ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)"
       ]
     path' = PathChart (defaultPathStyle & #color .~ paletteO 0 0.1 & #borderColor .~ paletteO 1 1) ps
-    c0 = GlyphChart defaultGlyphStyle ((SquareGlyph,) . pointPath <$> ps)
+    c0 = GlyphChart (defaultGlyphStyle & set #shape SquareGlyph) (pointPath <$> ps)
     midp = Point 0 0 : zipWith (\(Point x y) (Point x' y') -> Point ((x + x') / 2) ((y + y') / 2)) (drop 1 (pointPath <$> ps)) (pointPath <$> ps)
     offp = [Point (-0.35) 0.05, Point 0 0.05, Point (-0.2) 0, Point (-0.1) 0.1, Point 0 (-0.1)]
     t0 = TextChart (defaultTextStyle & set #size 0.025) (zip ts (zipWith addp offp midp))
@@ -319,22 +325,22 @@ pathExample =
 ellipseExample :: ChartAspect -> ChartOptions
 ellipseExample a =
   mempty
-    & #charts .~ named "ellipse" [ell, ellFull, c0, c1, bbox, xradii, yradii]
+    & #chartTree .~ named "ellipse" [ell, ellFull, c0, c1, bbox, xradii, yradii]
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #chartAspect .~ a
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1 & #vgap .~ 0.3)]
-    & #hudOptions % #titles .~ [(11, defaultTitle "ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)" & #style % #size .~ 0.032)]
-    & #hudOptions % #axes % ix 1 % _2 % #ticks % #ttick %? _2 .~ 0.04
-    & #hudOptions % #axes % ix 1 % _2 % #ticks % #gtick %? _3 .~ 0.01
+    & #hudOptions % #legends .~ [Priority 10 (defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1 & #vgap .~ 0.3)]
+    & #hudOptions % #titles .~ [Priority 11 (defaultTitle "ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)" & #style % #size .~ 0.032)]
+    & #hudOptions % #axes % ix 1 % #item % #ticks % #textTick %? #buffer .~ 0.04
+    & #hudOptions % #axes % ix 1 % #item % #ticks % #glyphTick %? #buffer .~ 0.01
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
     ellFull = LineChart fullels [ellipse c r phi' . (\x -> 2 * pi * x / 100.0) <$> [0 .. 100]]
     ell = LineChart els [ellipse c r phi' . (\x -> ang0' + angd * x / 100.0) <$> [0 .. 100]]
-    g0 = defaultGlyphStyle
-    c0 = GlyphChart g0 [(CircleGlyph, c)]
-    g1 = defaultGlyphStyle & #color .~ paletteO 4 0.2
-    c1 = GlyphChart g1 ((CircleGlyph,) <$> [p1, p2])
+    g0 = defaultGlyphStyle & set #shape CircleGlyph
+    c0 = GlyphChart g0 [c]
+    g1 = defaultGlyphStyle & #color .~ paletteO 4 0.2 & set #shape CircleGlyph
+    c1 = GlyphChart g1 [p1, p2]
     bbox = RectChart bbs [arcBox p]
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ paletteO 7 0.005 & #borderColor .~ grey 0.5 1
     xradii = LineChart xals [[ellipse c r phi' 0, ellipse c r phi' pi]]
@@ -349,8 +355,8 @@ ellipseExample a =
               ("Minor Axis", LineChart yals [[zero]]),
               ("Full Ellipse", LineChart fullels [[zero]]),
               ("Arc", LineChart els [[zero]]),
-              ("Centroid", glyphChart1 (g0 & #size .~ 0.01) SquareGlyph [zero]),
-              ("Endpoints", glyphChart1 (g1 & #size .~ 0.01) SquareGlyph [zero]),
+              ("Centroid", GlyphChart (g0 & #size .~ 0.01 & set #shape SquareGlyph) [zero]),
+              ("Endpoints", GlyphChart (g1 & #size .~ 0.01 & set #shape SquareGlyph) [zero]),
               ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [fmap (2 *) one])
             ]
 
@@ -361,7 +367,7 @@ arcFlagsExample :: ChartOptions
 arcFlagsExample =
   mempty
     & set
-      #charts
+      #chartTree
       ( vert
           0.02
           [ hori 0.02 [colSweep, colSweep2, colLargeFalse, colLargeTrue],
@@ -457,21 +463,21 @@ checkFlags large' sweep co = [c1, c2, ell, arc1]
 quadExample :: ChartOptions
 quadExample =
   mempty
-    & #charts .~ named "quad" [path', curve, c0, c1, bbox]
+    & #chartTree .~ named "quad" [path', curve, c0, c1, bbox]
     & #hudOptions .~ defaultHudOptions
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2 & #vgap .~ 0.3)]
-    & #hudOptions % #titles .~ [(11, defaultTitle "QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))" & #style % #size .~ 0.03)]
-    & #hudOptions % #axes % ix 1 % _2 % #ticks % #ttick %? _2 .~ 0.04
-    & #hudOptions % #axes % ix 1 % _2 % #ticks % #gtick %? _3 .~ 0.01
+    & #hudOptions % #legends .~ [Priority 10 (defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2 & #vgap .~ 0.3)]
+    & #hudOptions % #titles .~ [Priority 11 (defaultTitle "QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))" & #style % #size .~ 0.03)]
+    & #hudOptions % #axes % ix 1 % #item % #ticks % #textTick %? #buffer .~ 0.04
+    & #hudOptions % #axes % ix 1 % #item % #ticks % #glyphTick %? #buffer .~ 0.01
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))
     ps = singletonQuad p
     path' = PathChart pathStyle ps
     curve = LineChart curveStyle [quadBezier p . (/ 100.0) <$> [0 .. 100]]
     curveStyle = defaultLineStyle & #size .~ 0.002 & #color .~ palette 1
-    c0 = glyphChart1 defaultGlyphStyle SquareGlyph [start, end]
-    c1 = glyphChart1 controlStyle CircleGlyph [control]
+    c0 = GlyphChart (defaultGlyphStyle & set #shape SquareGlyph) [start, end]
+    c1 = GlyphChart (controlStyle & set #shape CircleGlyph) [control]
     bbox = RectChart bbs [quadBox p]
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ paletteO 0 0.05 & #borderColor .~ grey 0.4 1
     pathStyle = defaultPathStyle & #color .~ paletteO 2 0.2 & #borderColor .~ transparent
@@ -480,8 +486,8 @@ quadExample =
       second (: [])
         <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
               ("Path Chord", LineChart curveStyle [[zero]]),
-              ("Path Endpoints", glyphChart1 defaultGlyphStyle SquareGlyph [zero]),
-              ("Path Control Point", glyphChart1 controlStyle CircleGlyph [zero]),
+              ("Path Endpoints", GlyphChart (defaultGlyphStyle & set #shape SquareGlyph) [zero]),
+              ("Path Control Point", GlyphChart (controlStyle & set #shape CircleGlyph) [zero]),
               ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
             ]
 
@@ -491,18 +497,18 @@ quadExample =
 cubicExample :: ChartOptions
 cubicExample =
   mempty
-    & #charts .~ named "cubic" [path', curve, c0, c1, bbox]
+    & #chartTree .~ named "cubic" [path', curve, c0, c1, bbox]
     & #hudOptions .~ mempty
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
-    & #hudOptions % #legends .~ [(10, defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2 & #vgap .~ 0.3)]
-    & #hudOptions % #titles .~ [(11, defaultTitle "CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)" & #style % #size .~ 0.03)]
+    & #hudOptions % #legends .~ [Priority 10 (defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2 & #vgap .~ 0.3)]
+    & #hudOptions % #titles .~ [Priority 11 (defaultTitle "CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)" & #style % #size .~ 0.03)]
   where
     p@(CubicPosition start end control1 control2) = CubicPosition (Point 0 0) (Point 1 1) (Point 1 0) (Point 0 1)
     ps = singletonCubic p
     path' = PathChart pathStyle ps
     curve = LineChart curveStyle [cubicBezier p . (/ 100.0) <$> [0 .. 100]]
-    c0 = glyphChart1 defaultGlyphStyle SquareGlyph [start, end]
-    c1 = glyphChart1 controlStyle CircleGlyph [control1, control2]
+    c0 = GlyphChart (defaultGlyphStyle & set #shape SquareGlyph) [start, end]
+    c1 = GlyphChart (controlStyle & set #shape CircleGlyph) [control1, control2]
     bbox = RectChart bbs [cubicBox p]
     bbs = defaultRectStyle & #borderSize .~ 0.002 & #color .~ paletteO 0 0.05 & #borderColor .~ grey 0.4 1
     pathStyle = defaultPathStyle & #color .~ paletteO 3 0.2 & #borderColor .~ transparent
@@ -512,8 +518,8 @@ cubicExample =
       second (: [])
         <$> [ ("Path Fill", PathChart pathStyle [StartP zero]),
               ("Path Chord", LineChart curveStyle [[zero]]),
-              ("Path Endpoints", glyphChart1 defaultGlyphStyle SquareGlyph [zero]),
-              ("Path Control Point", glyphChart1 controlStyle CircleGlyph [zero]),
+              ("Path Endpoints", GlyphChart (defaultGlyphStyle & set #shape SquareGlyph) [zero]),
+              ("Path Control Point", GlyphChart (controlStyle & set #shape CircleGlyph) [zero]),
               ("Bounding Box", RectChart (bbs & #borderSize .~ 0.01) [one])
             ]
 
@@ -523,7 +529,7 @@ cubicExample =
 --
 -- ![surface example](other/surface.svg)
 surfaceExample :: ChartOptions
-surfaceExample = mempty & set #charts cs' & set #markupOptions (defaultMarkupOptions & set (#cssOptions % #shapeRendering) UseCssCrisp)
+surfaceExample = mempty & set #chartTree cs' & set #markupOptions (defaultMarkupOptions & set (#cssOptions % #shapeRendering) UseCssCrisp)
   where
     grain = Point 20 20
     r = one
@@ -542,8 +548,8 @@ surfaceExample = mempty & set #charts cs' & set #markupOptions (defaultMarkupOpt
 arrowExample :: ChartOptions
 arrowExample =
   mempty
-    & #hudOptions .~ (defaultHudOptions & #axes %~ fmap (second (#ticks % #ltick .~ Nothing)))
-    & #charts .~ named "arrow" ((\p -> gchart (tail' . f $ p) (angle . f $ p) p) <$> ps)
+    & #hudOptions .~ (defaultHudOptions & set (#axes % each % #item % #ticks % #lineTick) Nothing)
+    & #chartTree .~ named "arrow" ((\p -> gchart (tail' . f $ p) (angle . f $ p) p) <$> ps)
     & #markupOptions % #cssOptions % #preferColorScheme .~ PreferHud
     & #markupOptions % #cssOptions % #cssExtra
       .~ [i|
@@ -570,7 +576,8 @@ arrowExample =
         & #size .~ s
         & #borderColor .~ dark
         & #rotation .~ Just r'
-    gchart s r' p = glyphChart1 (gs s r') arrow [p]
+        & #shape .~ arrow
+    gchart s r' p = GlyphChart (gs s r') [p]
 
     tail' :: Point Double -> Double
     tail' = max 0.05 . min 0.02 . (* 0.01) . (/ avmag) . magnitude
@@ -595,10 +602,10 @@ rosenbrock a b (Point x y) = (a ** 2 - 2 * a * x + x ** 2 + b * y ** 2 - b * 2 *
 dateExample :: ChartOptions
 dateExample =
   mempty
-    & #charts .~ blank (Rect 0 1 0 1)
+    & #chartTree .~ blank (Rect 0 1 0 1)
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
-    & over (#hudOptions % #frames) (<> [(100,defaultFrameOptions & set #buffer 0.05)])
-    & set (#hudOptions % #axes) [ (defaultPriority, defaultYAxisOptions & #ticks % #style .~ TickPlaced tsTime), (defaultPriority, defaultXAxisOptions & #ticks % #style .~ TickPlaced tsDate)]
+    & over (#hudOptions % #frames) (<> [Priority 100 (defaultFrameOptions & set #buffer 0.05)])
+    & set (#hudOptions % #axes) [defaultPriority (defaultYAxisOptions & #ticks % #style .~ TickPlaced tsTime), defaultPriority (defaultXAxisOptions & #ticks % #style .~ TickPlaced tsDate)]
   where
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
     tsDate = placedTimeLabelContinuous PosIncludeBoundaries (Just (Text.pack "%d %b")) 2 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2022 3 13) (toDiffTime 0)))
@@ -634,9 +641,9 @@ gradient marker h fa grain ok0 ok1 =
     & #markupOptions % #chartAspect .~ FixedAspect fa
     & #hudOptions
       .~ ( mempty
-             & #frames .~ [(Priority 1, FrameOptions (Just (border 0.004 white)) 0.1)]
+             & #frames .~ [Priority 1 (FrameOptions (Just (border 0.004 white)) 0.1)]
          )
-    & #charts
+    & #chartTree
       .~ named "gradient" (gradientChart_ grain ok0 ok1) <> strip
   where
     strip = case marker of
@@ -663,25 +670,25 @@ dotMap s grain l maxchroma cs =
   mempty
     & #hudOptions
       .~ defaultHudOptions
-    & #charts
+    & #chartTree
       .~ named "dots" (dot_ <$> cs)
         <> named
           "wheel"
           ( ( \(p, c) ->
-                glyphChart1
+                GlyphChart
                   ( defaultGlyphStyle
                       & #size .~ s
                       & #color .~ c
                       & #borderSize .~ 0
+                      & #shape .~ CircleGlyph
                   )
-                  CircleGlyph
                   [p]
             )
               <$> filter (validColour . snd) (wheelPoints grain l maxchroma)
           )
 
 dot_ :: Colour -> Chart
-dot_ x = (\(p, c) -> glyphChart1 (defaultGlyphStyle & #size .~ 0.08 & #color .~ c & #borderColor .~ Colour 0.5 0.5 0.5 1) CircleGlyph [p]) (colour2Point x, x)
+dot_ x = (\(p, c) -> GlyphChart (defaultGlyphStyle & #size .~ 0.08 & #color .~ c & #borderColor .~ Colour 0.5 0.5 0.5 1 & #shape .~ CircleGlyph) [p]) (colour2Point x, x)
   where
     colour2Point c = review lcha2colour' c & (\(LCHA _ ch h _) -> uncurry Point (review xy2ch' (ch, h)))
 
@@ -698,11 +705,11 @@ debugExample cs =
   mempty
     & set #markupOptions (view #markupOptions cs)
     & set (#markupOptions % #chartAspect) asp
-    & set #charts (e1 <> e2 <> e3)
+    & set #chartTree (e1 <> e2 <> e3)
   where
     asp = view (#markupOptions % #chartAspect) cs
-    e1 = view #charts (forgetHud cs)
-    e2 = glyphize CircleGlyph (defaultGlyphStyle & #size .~ 0.01) e1
+    e1 = view #chartTree (forgetHud cs)
+    e2 = glyphize (defaultGlyphStyle & #size .~ 0.01 & #shape .~ CircleGlyph) e1
     e3 = rectangularize (defaultRectStyle & #borderColor .~ dark & #borderSize .~ 0.001 & #color % opac' .~ 0.05) e1
 
 -- | A merge of two rect charts with different data ranges.
@@ -711,16 +718,16 @@ debugExample cs =
 compoundExample :: ChartOptions
 compoundExample = compoundMerge [c1,c2]
   where
-    ho1 = (mempty :: HudOptions) & set #titles [(3,defaultTitle "chart1")] & set #axes [(2,defaultXAxisOptions), (2,defaultYAxisOptions)] & colourHudOptions (const (palette 0))
-    c1 = (mempty :: ChartOptions) & set #hudOptions ho1 & set #charts (named "c1" [Chart defaultRectStyle (RectData [fmap (2*) one])])
-    ho2 = (mempty :: HudOptions) & set #titles [(3.1,defaultTitle "chart2")] & set #axes [(2,defaultXAxisOptions & set #place PlaceTop), (2,defaultYAxisOptions & set #place PlaceRight)] & colourHudOptions (const (palette 3))
-    c2 = (mempty :: ChartOptions) & set #hudOptions ho2 & set #charts (named "c2" [Chart (blob (set opac' 0.3 $ palette 3)) (RectData [fmap (*0.8) one]), BlankChart defaultStyle [one]])
+    ho1 = (mempty :: HudOptions) & set #titles [Priority 3 (defaultTitle "chart1")] & set #axes [Priority 2 defaultXAxisOptions, Priority 2 defaultYAxisOptions] & colourHudOptions (const (palette 0))
+    c1 = (mempty :: ChartOptions) & set #hudOptions ho1 & set #chartTree (named "c1" [Chart defaultRectStyle (RectData [fmap (2*) one])])
+    ho2 = (mempty :: HudOptions) & set #titles [Priority 3.1 (defaultTitle "chart2")] & set #axes [Priority 2 (defaultXAxisOptions & set #place PlaceTop), Priority 2 (defaultYAxisOptions & set #place PlaceRight)] & colourHudOptions (const (palette 3))
+    c2 = (mempty :: ChartOptions) & set #hudOptions ho2 & set #chartTree (named "c2" [Chart (blob (set opac' 0.3 $ palette 3)) (RectData [fmap (*0.8) one]), BlankChart defaultStyle [one]])
 
 -- | Usage of stack.
 --
 -- ![stack example](other/stack.svg)
 stackExample :: ChartOptions
-stackExample = mempty & set #charts (stack 5 0.1 (replicate 25 (view #charts $ forgetHud lineExample)))
+stackExample = mempty & set #chartTree (stack 5 0.1 (replicate 25 (view #chartTree $ forgetHud lineExample)))
 
 -- | All the examples and the associated filepaths
 pathChartOptions :: [(FilePath, ChartOptions)]

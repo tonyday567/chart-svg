@@ -135,8 +135,8 @@ surfaceLegendAxisOptions =
     Nothing
     ( Ticks
         (TickRound (FormatN FSPrec (Just 3) 4 True True) 4 NoTickExtend)
-        (Just (defaultGlyphTick, HLineGlyph, 0))
-        (Just (defaultTextTick, 0.05))
+        (Just (defaultGlyphTick & set (#item % #shape) HLineGlyph))
+        (Just (defaultTextTick & set #buffer 0.05))
         Nothing
     )
     PlaceRight
@@ -171,7 +171,7 @@ addSurfaceLegend :: SurfaceLegendOptions -> ChartTree -> ChartTree
 addSurfaceLegend slo ct = ctBoth
   where
     grc = gridReferenceChart slo
-    hoLegend = (mempty :: HudOptions) & set #axes [(1, view #sloAxisOptions slo)]
+    hoLegend = (mempty :: HudOptions) & set #axes [Priority 1 (view #sloAxisOptions slo)]
     grcLegend = addHud (FixedAspect (view #sloWidth slo)) hoLegend grc
     ctbox = fromMaybe one (view styleBox' ct)
     legbox = projectOnR ctbox one (view #sloRect slo)

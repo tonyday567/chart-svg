@@ -216,10 +216,10 @@ glyphText sh =
     PathGlyph _ -> "Path"
 
 -- | the extra area from glyph styling
-styleBoxGlyph :: Style -> GlyphShape -> Rect Double
-styleBoxGlyph s sh = move p' $
+styleBoxGlyph :: Style -> Rect Double
+styleBoxGlyph s = move p' $
   rot' $
-    sw $ case sh of
+    sw $ case view #shape s of
       CircleGlyph -> (sz *) <$> one
       SquareGlyph -> (sz *) <$> one
       EllipseGlyph a -> scale (Point sz (a * sz)) one

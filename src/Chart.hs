@@ -72,7 +72,7 @@ import Data.Path.Parser
 -- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
 -- >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
 -- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
--- >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+-- >>> let lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
 -- >>> writeChartOptions "other/usage.svg" lineExample
 
 -- $overview
@@ -98,7 +98,7 @@ import Data.Path.Parser
 -- This is enough to create the charts.
 --
 -- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
--- >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+-- >>> let lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
 -- >>> :t lineExample
 -- lineExample :: ChartOptions
 --

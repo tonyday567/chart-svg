@@ -52,7 +52,7 @@ markupChartOptionsCompound cs@(co0 : _) =
     ctFinal =
       projectChartCompoundWith
       (view (#markupOptions % #chartAspect) co0)
-      (zip (view #hudOptions <$> cs) (view #charts <$> cs))
+      (zip (view #hudOptions <$> cs) (view #chartTree <$> cs))
 
 projectChartCompoundWith :: ChartAspect -> [(HudOptions,ChartTree)] -> ChartTree
 projectChartCompoundWith asp css = ctFinal
@@ -68,7 +68,7 @@ compoundMerge cs@(c0 : _) =
   ChartOptions
     (view #markupOptions c0)
     mempty
-    (addHudCompound (view (#markupOptions % #chartAspect) c0) (zip (view #hudOptions <$> cs) (view #charts <$> cs)))
+    (addHudCompound (view (#markupOptions % #chartAspect) c0) (zip (view #hudOptions <$> cs) (view #chartTree <$> cs)))
 
 -- | Decorate a ChartTree with HudOptions, merging the individual hud options.
 addHudCompound :: ChartAspect -> [(HudOptions, ChartTree)] -> ChartTree
@@ -104,7 +104,7 @@ runHudCompoundWith cb ts = hss
       fmap (\(_,hs,_) -> hs) &
       mconcat &
       prioritizeHuds &
-      fmap (fmap (view #hud)) &
+      fmap (fmap (view (#phud % #item))) &
       foldl' (\x a -> makeHuds a x) hc0 &
       fromHudChart
     css =
@@ -116,5 +116,5 @@ runHudCompoundWith cb ts = hss
 prioritizeHuds :: [Hud] -> [[Hud]]
 prioritizeHuds hss =
   hss
-    & List.sortOn (view #priority)
-    & List.groupBy (\a b -> view #priority a == view #priority b)
+    & List.sortOn (view (#phud % #priority))
+    & List.groupBy (\a b -> view (#phud % #priority) a == view (#phud % #priority) b)
