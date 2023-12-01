@@ -15,9 +15,8 @@ module Chart.Hud
     CanvasBox,
     DataBox,
     HudChart (..),
-    canvasBox',
-    hudBox',
-    hudStyleBox',
+    HudChartSection (..),
+    hudChartBox',
 
     -- * Hud Processing
     runHudWith,
@@ -100,7 +99,6 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Tuple
 import GHC.Generics hiding (to)
-import NumHask.Prelude qualified as NH
 import Optics.Core
 
 -- $setup
@@ -176,49 +174,13 @@ type CanvasBox = Rect Double
 -- | A type for Rect to represent the bounding box of the data elements a chart, which can be a different metric to Canvas and Hud Rects
 type DataBox = Rect Double
 
-canvasBox_ :: HudChart -> Maybe CanvasBox
-canvasBox_ = boxes . foldOf (#chartSection % charts')
+data HudChartSection = CanvasSection | CanvasStyleSection | HudSection | HudStyleSection deriving (Eq, Show, Generic)
 
-canvasRebox_ :: HudChart -> Maybe (Rect Double) -> HudChart
-canvasRebox_ cs r =
-  cs
-    & over (#chartSection % chart') (maybeProjectWith r (canvasBox_ cs))
-    & over (#hudSection % chart') (maybeProjectWith r (canvasBox_ cs))
-
--- | A lens between a HudChart and the bounding box of the canvas
-canvasBox' :: Lens' HudChart (Maybe CanvasBox)
-canvasBox' =
-  lens canvasBox_ canvasRebox_
-
-hudStyleBox_ :: HudChart -> Maybe HudBox
-hudStyleBox_ = styleBoxes . (\x -> foldOf (#chartSection % charts') x <> foldOf (#hudSection % charts') x)
-
--- | a lens between a HudChart and the bounding box of the hud.
-hudStyleBox' :: Getter HudChart (Maybe HudBox)
-hudStyleBox' = to hudStyleBox_
-
-hudBox_ :: HudChart -> Maybe HudBox
-hudBox_ = boxes . (\x -> foldOf (#chartSection % charts') x <> foldOf (#hudSection % charts') x)
-
-hudRebox_ :: HudChart -> Maybe HudBox -> HudChart
-hudRebox_ cs r =
-  cs
-    & over #chartSection reprojectCharts
-    & over #hudSection reprojectCharts
-  where
-    reprojectCharts = case (hudBox_ cs, hudStyleBox_ cs, r) of
-      (Just hb, Just hsb, Just rebox') ->
-        over chart' (projectWith (rebox' NH.- (hsb NH.- hb)) hb)
-      (Nothing, Just hsb, Just rebox') ->
-        over chart' (projectWith rebox' hsb)
-      _ -> id
-
--- | lens between a HudChart and its hud bounding box, not including style.
---
--- Will only reset a HudBox if all dimensions are non-singular.
-hudBox' :: Lens' HudChart (Maybe HudBox)
-hudBox' =
-  lens hudBox_ hudRebox_
+hudChartBox' :: HudChartSection -> Getter HudChart (Maybe (Rect Double))
+hudChartBox' CanvasSection = to (boxes . foldOf (#chartSection % charts'))
+hudChartBox' CanvasStyleSection = to (styleBoxes . foldOf (#chartSection % charts'))
+hudChartBox' HudSection = to (boxes . (\x -> foldOf (#chartSection % charts') x <> foldOf (#hudSection % charts') x))
+hudChartBox' HudStyleSection = to (styleBoxes .(\x -> foldOf (#chartSection % charts') x <> foldOf (#hudSection % charts') x))
 
 appendHud :: ChartTree -> HudChart -> HudChart
 appendHud cs x =
@@ -759,7 +721,7 @@ frameHud o hc =
       Nothing -> blank r'
       Just rs -> named "frame" [Chart rs (RectData [r'])]
   where
-    r = padRect (view #buffer o) <$> view hudStyleBox' hc
+    r = padRect (view #buffer o) <$> view (hudChartBox' HudStyleSection) hc
 
 bar_ :: Place -> AxisBar -> CanvasBox -> HudBox -> Chart
 bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
@@ -804,8 +766,8 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
 makeAxisBar :: Place -> AxisBar -> HudChart -> ChartTree
 makeAxisBar pl b hc = named "axisbar" (maybeToList c)
   where
-    cb = view canvasBox' hc
-    hb = view hudStyleBox' hc
+    cb = view (hudChartBox' CanvasSection) hc
+    hb = view (hudChartBox' HudStyleSection) hc
     c = bar_ pl b <$> cb <*> hb
 
 title_ :: Title -> HudBox -> Chart
@@ -864,7 +826,7 @@ titleHud :: Title -> HudChart -> ChartTree
 titleHud t hc = do
   named "title" (maybeToList $ title_ t <$> hb)
   where
-    hb = view hudStyleBox' hc
+    hb = view (hudChartBox' HudStyleSection) hc
 
 placePos :: Place -> Double -> HudBox -> Point Double
 placePos pl b (Rect x z y w) = case pl of
@@ -944,8 +906,8 @@ tickGlyph ::
 tickGlyph pl s ts db hc = named "tickglyph" (catMaybes $ maybeToList c)
   where
     -- FIXME: hudBox'
-    sb = view hudBox' hc
-    cb = view canvasBox' hc
+    sb = view (hudChartBox' HudSection) hc
+    cb = view (hudChartBox' CanvasSection) hc
     c = tickGlyph_ pl s ts <$> sb <*> cb <*> pure db
 
 tickGlyph_ :: Place -> Buffered Style -> TickStyle -> CanvasBox -> CanvasBox -> DataBox -> Maybe Chart
@@ -988,8 +950,8 @@ tickText ::
   ChartTree
 tickText pl s ts db hc = named "ticktext" (catMaybes $ maybeToList c)
   where
-    sb = view hudStyleBox' hc
-    cb = view canvasBox' hc
+    sb = view (hudChartBox' HudStyleSection) hc
+    cb = view (hudChartBox' CanvasSection) hc
     c = tickText_ pl s ts <$> sb <*> cb <*> pure db
 
 -- | aka grid lines
@@ -1007,7 +969,7 @@ tickLine pl (Buffered ls b) ts db hc =
       let l = (\x -> placeGridLines pl cb' x b) <$> fmap fst (ticksPlacedCanvas ts pl cb' db)
        in named "ticklines" (bool [Chart ls (LineData l)] [] (null l))
   where
-    cb = view canvasBox' hc
+    cb = view (hudChartBox' CanvasSection) hc
 
 -- | Create tick glyphs (marks), lines (grid) and text (labels)
 applyTicks ::
@@ -1093,8 +1055,8 @@ makeTick c db hc =
       let adjTick = maybe (c ^. #ticks) (\x -> adjustTicks x hb' db (c ^. #place) (c ^. #ticks)) (c ^. #adjust)
       applyTicks (c ^. #place) adjTick db hc
   where
-    -- FIXME: hudBox'
-    hb = view hudBox' hc
+    -- FIXME: (hudChartBox' HudSection)
+    hb = view (hudChartBox' HudSection) hc
 
 -- | Make a legend from 'LegendOptions'
 legendHud :: LegendOptions -> HudChart -> ChartTree
@@ -1107,7 +1069,7 @@ legendHud2 o lcs hc = do
     Nothing -> named "legend" []
     Just sb' -> placeLegend o sb' (over chart' (scaleChart (o ^. #overallScale)) lcs)
   where
-    sb = view hudStyleBox' hc
+    sb = view (hudChartBox' HudStyleSection) hc
 
 placeLegend :: LegendOptions -> HudBox -> ChartTree -> ChartTree
 placeLegend o hb t =
