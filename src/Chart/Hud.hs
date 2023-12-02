@@ -417,8 +417,8 @@ defaultGlyphTickStyleX =
     ( defaultGlyphStyle
         & set #borderSize 0.004
         & set #shape VLineGlyph
-        & set #color ( set opac' 0.4 dark )
-        & set #borderColor ( set opac' 0.4 dark )
+        & set #color (set opac' 0.4 dark)
+        & set #borderColor (set opac' 0.4 dark)
         & set #scaleP ScalePY
     )
     CanvasSection
@@ -431,8 +431,8 @@ defaultGlyphTickStyleY =
     ( defaultGlyphStyle
         & set #borderSize 0.004
         & set #shape HLineGlyph
-        & set #color ( set opac' 0.4 dark )
-        & set #borderColor ( set opac' 0.4 dark )
+        & set #color (set opac' 0.4 dark)
+        & set #borderColor (set opac' 0.4 dark)
         & set #scaleP ScalePX
     )
     CanvasSection
@@ -634,7 +634,8 @@ toHuds o db =
     db' = fromMaybe db mdb
 
 freezeAxes :: DataBox -> [Priority AxisOptions] -> (Maybe DataBox, [Priority AxisOptions])
-freezeAxes db0 = foldr
+freezeAxes db0 =
+  foldr
     ( \ao (dbm, as') ->
         let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) (view #item ao)
          in (dbm', as' <> [ao & set #item ao'])
@@ -777,13 +778,16 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
   | pl == PlaceBottom || pl == PlaceTop =
       if ad
         then
-          ( if adjustSizeX > 1 then ( case pl of
-      PlaceBottom -> set ( #textTick %? #style % #anchor ) AnchorEnd
-      PlaceTop -> set ( #textTick %? #style % #anchor ) AnchorStart
-      _ -> set ( #textTick %? #style % #anchor ) AnchorEnd
-  )
-    . over (#textTick %? #style % #size) (/ adjustSizeA)
-    $ (#textTick %? #style % #rotation ?~ pi / 4) t else over (#textTick %? #style % #size) (/ adjustSizeA) t
+          ( if adjustSizeX > 1
+              then
+                ( case pl of
+                    PlaceBottom -> set (#textTick %? #style % #anchor) AnchorEnd
+                    PlaceTop -> set (#textTick %? #style % #anchor) AnchorStart
+                    _ -> set (#textTick %? #style % #anchor) AnchorEnd
+                )
+                  . over (#textTick %? #style % #size) (/ adjustSizeA)
+                  $ (#textTick %? #style % #rotation ?~ pi / 4) t
+              else over (#textTick %? #style % #size) (/ adjustSizeA) t
           )
         else t & over (#textTick %? #style % #size) (/ adjustSizeX)
   | otherwise -- pl `elem` [PlaceLeft, PlaceRight]

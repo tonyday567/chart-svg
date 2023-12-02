@@ -105,13 +105,13 @@ defaultTextStyle :: Style
 defaultTextStyle = defaultStyle & set #size 0.06 & set #color dark
 
 defaultGlyphStyle :: Style
-defaultGlyphStyle = defaultStyle & set #size 0.03 & set #color ( paletteO 0 0.2 ) & set #borderColor (set lightness' 0.4 $ paletteO 1 1) & set #borderSize 0.003
+defaultGlyphStyle = defaultStyle & set #size 0.03 & set #color (paletteO 0 0.2) & set #borderColor (set lightness' 0.4 $ paletteO 1 1) & set #borderSize 0.003
 
 defaultLineStyle :: Style
 defaultLineStyle = defaultStyle & set #size 0.012 & set #color dark
 
 defaultPathStyle :: Style
-defaultPathStyle = defaultStyle & set #color ( palette 2 ) & set #borderColor ( palette 1 )
+defaultPathStyle = defaultStyle & set #color (palette 2) & set #borderColor (palette 1)
 
 scaleStyle :: Double -> Style -> Style
 scaleStyle x s =

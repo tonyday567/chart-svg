@@ -98,7 +98,7 @@ defaultBarOptions =
     defaultLegendOptions
   where
     gs = (\x -> rectStyle 0.005 (palette x) (paletteO x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
-    ts = (\x -> defaultTextStyle & set #color ( palette x ) & set #size 0.03) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    ts = (\x -> defaultTextStyle & set #color (palette x) & set #size 0.03) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Number of bars per row of data
 cols :: Stacked -> [[Double]] -> Int
@@ -184,11 +184,11 @@ barChart bo bd =
 barHudOptions :: BarOptions -> BarData -> HudOptions
 barHudOptions bo bd =
   mempty
-    & set #axes [ Priority 1 axis1]
-    & set #legends [ Priority 10 (o & set #legendCharts ( barLegendContent bo bd ))]
+    & set #axes [Priority 1 axis1]
+    & set #legends [Priority 10 (o & set #legendCharts (barLegendContent bo bd))]
   where
     o = view #barLegendOptions bo
-    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & set ( #ticks % #lineTick ) Nothing & set ( #ticks % #tick ) ( barTicks bd )
+    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & set (#ticks % #lineTick) Nothing & set (#ticks % #tick) (barTicks bd)
 
 -- | Two dimensional data, maybe with row and column labels.
 data BarData = BarData

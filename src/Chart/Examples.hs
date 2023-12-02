@@ -641,7 +641,7 @@ gradient marker h fa grain ok0 ok1 =
       ( mempty
           & set #frames [Priority 1 (FrameOptions (Just (border 0.004 white)) CanvasStyleSection 0.1)]
       )
-    & set #chartTree ( named "gradient" (gradientChart_ grain ok0 ok1) <> strip )
+    & set #chartTree (named "gradient" (gradientChart_ grain ok0 ok1) <> strip)
   where
     strip = case marker of
       Nothing -> mempty
@@ -666,7 +666,7 @@ dotMap :: Double -> Int -> Double -> Double -> [Colour] -> ChartOptions
 dotMap s grain l maxchroma cs =
   mempty
     & set #hudOptions defaultHudOptions
-    & set #chartTree ( named "dots" (dot_ <$> cs) <> named "wheel" ( ( \(p, c) -> GlyphChart ( defaultGlyphStyle & set #size s & set #color c & set #borderSize 0 & set #shape CircleGlyph) [p]) <$> filter (validColour . snd) (wheelPoints grain l maxchroma)))
+    & set #chartTree (named "dots" (dot_ <$> cs) <> named "wheel" ((\(p, c) -> GlyphChart (defaultGlyphStyle & set #size s & set #color c & set #borderSize 0 & set #shape CircleGlyph) [p]) <$> filter (validColour . snd) (wheelPoints grain l maxchroma)))
 
 dot_ :: Colour -> Chart
 dot_ x = (\(p, c) -> GlyphChart (defaultGlyphStyle & set #size 0.08 & set #color c & set #borderColor (Colour 0.5 0.5 0.5 1) & set #shape CircleGlyph) [p]) (colour2Point x, x)
@@ -756,7 +756,7 @@ writeAllExamplesDark = do
           ((<> "d.svg") . reverse . drop 4 . reverse)
           ( \x ->
               x
-                & over #hudOptions ( colourHudOptions (rgb light) )
+                & over #hudOptions (colourHudOptions (rgb light))
                 & set (#markupOptions % #cssOptions % #preferColorScheme) PreferDark
           )
     )
