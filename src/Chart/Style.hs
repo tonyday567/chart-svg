@@ -273,7 +273,7 @@ toLineJoin "bevel" = LineJoinBevel
 toLineJoin "round" = LineJoinRound
 toLineJoin _ = LineJoinMiter
 
--- | Scaling options
+-- | Scale Projection options
 data ScaleP
   = -- | Do not scale under projection.
     NoScaleP
@@ -282,7 +282,7 @@ data ScaleP
   | -- | Scale based on the Y axis ratio of a projection
     ScalePY
   | -- | Scale based on minimum of (X axis, Y axis) ratio
-    ScaleMinDim
+    ScalePMinDim
   | -- | Scale based on the area ratio of a projection
     ScalePArea
   deriving (Generic, Eq, Show)
@@ -306,7 +306,7 @@ scaleRatio ScalePArea new old = bool 1 (sqrt (an / ao)) (an > 0 && ao > 0)
     (Ranges ox oy) = old
     an = width nx * width ny
     ao = width ox * width oy
-scaleRatio ScaleMinDim new old = closestToOne
+scaleRatio ScalePMinDim new old = closestToOne
   where
     x' = scaleRatio ScalePX new old
     y' = scaleRatio ScalePY new old

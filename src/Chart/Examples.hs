@@ -154,8 +154,8 @@ priorityv1Example :: ChartOptions
 priorityv1Example =
   lineExample &
   set (#hudOptions % #frames)
-    [Priority 1 (FrameOptions (Just defaultRectStyle) 0),
-     Priority 100 (FrameOptions (Just (defaultRectStyle & #color .~ (palette 4 & opac' .~ 0.05) & #borderColor .~ palette 4)) 0.1)] &
+    [Priority 1 (FrameOptions (Just defaultRectStyle) CanvasStyleSection 0),
+     Priority 100 (FrameOptions (Just (defaultRectStyle & #color .~ (palette 4 & opac' .~ 0.05) & #borderColor .~ palette 4)) HudStyleSection 0.1)] &
    set (#hudOptions % #legends % each % #priority) 50 &
    set (#hudOptions % #legends % each % #item % #place) PlaceRight
 
@@ -333,7 +333,7 @@ ellipseExample a =
     & #hudOptions % #legends .~ [Priority 10 (defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.1 & #vgap .~ 0.3)]
     & #hudOptions % #titles .~ [Priority 11 (defaultTitle "ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)" & #style % #size .~ 0.032)]
     & #hudOptions % #axes % ix 1 % #item % #ticks % #textTick %? #buffer .~ 0.04
-    & #hudOptions % #axes % ix 1 % #item % #ticks % #glyphTick %? #style % #buffer .~ 0.01
+    & #hudOptions % #axes % ix 1 % #item % #ticks % #glyphTick %? #buffer .~ 0.01
   where
     p@(ArcPosition p1 p2 _) = ArcPosition (Point 1 0) (Point 0 1) (ArcInfo (Point 1.5 1) (pi / 3) True True)
     (ArcCentroid c r phi' ang0' angd) = arcCentroid p
@@ -471,7 +471,7 @@ quadExample =
     & #hudOptions % #legends .~ [Priority 10 (defaultLegendOptions & #legendCharts .~ lrows & #textStyle % #size .~ 0.2 & #size .~ 0.2 & #vgap .~ 0.3)]
     & #hudOptions % #titles .~ [Priority 11 (defaultTitle "QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))" & #style % #size .~ 0.03)]
     & #hudOptions % #axes % ix 1 % #item % #ticks % #textTick %? #buffer .~ 0.04
-    & #hudOptions % #axes % ix 1 % #item % #ticks % #glyphTick %? #style % #buffer .~ 0.01
+    & #hudOptions % #axes % ix 1 % #item % #ticks % #glyphTick %? #buffer .~ 0.01
   where
     p@(QuadPosition start end control) = QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))
     ps = singletonQuad p
@@ -607,7 +607,7 @@ dateExample =
     & #chartTree .~ blank (Rect 0 1 0 1)
     & #markupOptions % #chartAspect .~ FixedAspect 1.5
     & over (#hudOptions % #frames) (<> [Priority 100 (defaultFrameOptions & set #buffer 0.05)])
-    & set (#hudOptions % #axes) [Priority 5 (defaultYAxisOptions & #ticks % #style .~ TickPlaced tsTime), Priority 6 (defaultXAxisOptions & #ticks % #style .~ TickPlaced tsDate)]
+    & set (#hudOptions % #axes) [Priority 5 (defaultYAxisOptions & #ticks % #tick .~ TickPlaced tsTime), Priority 6 (defaultXAxisOptions & #ticks % #tick .~ TickPlaced tsDate)]
   where
     tsTime = placedTimeLabelContinuous PosIncludeBoundaries Nothing 12 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2021 12 7) (toDiffTime 0)))
     tsDate = placedTimeLabelContinuous PosIncludeBoundaries (Just (Text.pack "%d %b")) 2 (Range (UTCTime (fromGregorian 2021 12 6) (toDiffTime 0)) (UTCTime (fromGregorian 2022 3 13) (toDiffTime 0)))
@@ -643,7 +643,7 @@ gradient marker h fa grain ok0 ok1 =
     & #markupOptions % #chartAspect .~ FixedAspect fa
     & #hudOptions
       .~ ( mempty
-             & #frames .~ [Priority 1 (FrameOptions (Just (border 0.004 white)) 0.1)]
+             & #frames .~ [Priority 1 (FrameOptions (Just (border 0.004 white)) CanvasStyleSection 0.1)]
          )
     & #chartTree
       .~ named "gradient" (gradientChart_ grain ok0 ok1) <> strip

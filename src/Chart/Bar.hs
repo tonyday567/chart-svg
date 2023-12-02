@@ -193,7 +193,7 @@ barHudOptions bo bd =
          ]
   where
     o = view #barLegendOptions bo
-    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & #ticks % #lineTick .~ Nothing & #ticks % #style .~ barTicks bd
+    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & #ticks % #lineTick .~ Nothing & #ticks % #tick .~ barTicks bd
 
 -- | Two dimensional data, maybe with row and column labels.
 data BarData = BarData
@@ -232,7 +232,7 @@ bars bo bd = bool cs [] (null $ mconcat $ view #barData bd)
         (barRects bo (bd ^. #barData))
 
 -- | Sensible ticks for a bar chart.
-barTicks :: BarData -> TickStyle
+barTicks :: BarData -> Tick
 barTicks bd
   | null (bd ^. #barData) = TickNone
   | null (bd ^. #barRowLabels) =

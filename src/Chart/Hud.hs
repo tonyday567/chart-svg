@@ -41,17 +41,16 @@ module Chart.Hud
     defaultAxisBar,
     Title (..),
     defaultTitle,
-    Buffered (..),
     Ticks (..),
-    GlyphTickStyle (..),
+    TickStyle (..),
     defaultGlyphTickStyleX,
     defaultGlyphTickStyleY,
     defaultTextTick,
     defaultLineTick,
     defaultXTicks,
     defaultYTicks,
-    TickStyle (..),
-    defaultTickStyle,
+    Tick (..),
+    defaultTick,
     TickExtend (..),
     adjustTicks,
     Adjustments (..),
@@ -280,7 +279,7 @@ defaultHudOptions =
     [ Priority 5 defaultXAxisOptions,
       Priority 5 defaultYAxisOptions
     ]
-    [ Priority 1 defaultFrameOptions,
+    [ Priority 1 (defaultFrameOptions & set #anchorTo CanvasStyleSection),
       Priority 20 (defaultFrameOptions & #buffer .~ 0.04 & #frame .~ Just clear)
     ]
     []
@@ -299,11 +298,11 @@ colourHudOptions f o =
     fAxis a =
       a
         & over (#bar %? #style % #color) f
-        & over (#ticks % #glyphTick %? #style % #item % #color) f
-        & over (#ticks % #glyphTick %? #style % #item % #borderColor) f
-        & over (#ticks % #textTick %? #item % #color) f
+        & over (#ticks % #glyphTick %? #style % #color) f
+        & over (#ticks % #glyphTick %? #style % #borderColor) f
+        & over (#ticks % #textTick %? #style % #color) f
         & over
-          (#ticks % #lineTick %? #item % #color) f
+          (#ticks % #lineTick %? #style % #color) f
     fLegend :: LegendOptions -> LegendOptions
     fLegend a =
       a
@@ -395,72 +394,71 @@ defaultTitle txt =
     AnchorMiddle
     0.04
 
-data Buffered a = Buffered { item :: a, buffer :: Double } deriving (Eq, Show, Generic, Functor)
-
 -- | axis tick markings
 --
 -- >>> defaultXTicks
 data Ticks = Ticks
-  { style :: TickStyle,
-    glyphTick :: Maybe GlyphTickStyle,
-    textTick :: Maybe (Buffered Style),
-    lineTick :: Maybe (Buffered Style)
+  { tick :: Tick,
+    glyphTick :: Maybe TickStyle,
+    textTick :: Maybe TickStyle,
+    lineTick :: Maybe TickStyle
   }
   deriving (Show, Eq, Generic)
 
-data GlyphTickStyle = GlyphTickStyle
-  { style :: Buffered Style,
-    anchorTo :: HudChartSection
+data TickStyle = TickStyle
+  { style :: Style,
+    anchorTo :: HudChartSection,
+    buffer :: Double
   }
   deriving (Show, Eq, Generic)
 
 -- | The official glyph tick
-defaultGlyphTickStyleX :: GlyphTickStyle
-defaultGlyphTickStyleX = GlyphTickStyle
-  ( Buffered
+defaultGlyphTickStyleX :: TickStyle
+defaultGlyphTickStyleX = TickStyle
   (defaultGlyphStyle
     & #borderSize .~ 0.004
     & #shape .~ VLineGlyph
     & #color .~ set opac' 0.4 dark
     & #borderColor .~ set opac' 0.4 dark
     & #scaleP .~ ScalePY)
-  0.01)
   CanvasSection
+  0.01
 
 -- | The official glyph tick
-defaultGlyphTickStyleY :: GlyphTickStyle
-defaultGlyphTickStyleY = GlyphTickStyle
-  ( Buffered
+defaultGlyphTickStyleY :: TickStyle
+defaultGlyphTickStyleY = TickStyle
   (defaultGlyphStyle
     & #borderSize .~ 0.004
     & #shape .~ HLineGlyph
     & #color .~ set opac' 0.4 dark
     & #borderColor .~ set opac' 0.4 dark
     & #scaleP .~ ScalePX)
-  0.01)
   CanvasSection
+  0.01
 
 -- | The official text tick
-defaultTextTick :: Buffered Style
+defaultTextTick :: TickStyle
 defaultTextTick =
-  Buffered
+  TickStyle
   (defaultTextStyle & #size .~ 0.04)
+  HudStyleSection
   0.01
 
 -- | The official line tick
-defaultLineTick :: Buffered Style
+defaultLineTick :: TickStyle
 defaultLineTick =
-  Buffered
+  TickStyle
   (defaultLineStyle
     & #size .~ 5.0e-3
     & #color %~ set opac' 0.05)
+  CanvasSection
   0
 
 -- | The official X-axis tick
 defaultXTicks :: Ticks
 defaultXTicks =
   Ticks
-    defaultTickStyle
+    defaultTick
     (Just defaultGlyphTickStyleX)
     (Just defaultTextTick)
     (Just defaultLineTick)
@@ -469,13 +467,13 @@ defaultXTicks =
 defaultYTicks :: Ticks
 defaultYTicks =
   Ticks
-    defaultTickStyle
+    defaultTick
     (Just defaultGlyphTickStyleY)
     (Just defaultTextTick)
     (Just defaultLineTick)
 
 -- | Style of tick marks on an axis.
-data TickStyle
+data Tick
   = -- | no ticks on axis
     TickNone
   | -- | specific labels (equidistant placement)
@@ -488,65 +486,65 @@ data TickStyle
     TickPlaced [(Double, Text)]
   deriving (Show, Eq, Generic)
 
--- | Lens between a FormatN and a TickStyle.
+-- | Lens between a FormatN and a Tick.
 --
-formatN' :: Lens' TickStyle (Maybe FormatN)
+formatN' :: Lens' Tick (Maybe FormatN)
 formatN' =
   lens formatN_ reformatN_
 
-formatN_ :: TickStyle -> Maybe FormatN
+formatN_ :: Tick -> Maybe FormatN
 formatN_ = \case
   TickRound f _ _ -> Just f
   TickExact f _ -> Just f
   _ -> Nothing
 
-reformatN_ :: TickStyle -> Maybe FormatN -> TickStyle
+reformatN_ :: Tick -> Maybe FormatN -> Tick
 reformatN_ ts Nothing = ts
 reformatN_ (TickRound _ n e) (Just f) = TickRound f n e
 reformatN_ (TickExact _ n) (Just f) = TickExact f n
 reformatN_ ts _ = ts
 
--- | Lens between number of ticks and a TickStyle.
+-- | Lens between number of ticks and a Tick.
 --
 -- Only for TickRound and TickExact
-numTicks' :: Lens' TickStyle (Maybe Int)
+numTicks' :: Lens' Tick (Maybe Int)
 numTicks' =
   lens numTicks_ renumTicks_
 
-numTicks_ :: TickStyle -> Maybe Int
+numTicks_ :: Tick -> Maybe Int
 numTicks_ = \case
   TickRound _ n _ -> Just n
   TickExact _ n -> Just n
   _ -> Nothing
 
-renumTicks_ :: TickStyle -> Maybe Int -> TickStyle
+renumTicks_ :: Tick -> Maybe Int -> Tick
 renumTicks_ ts Nothing = ts
 renumTicks_ (TickRound f _ e) (Just n) = TickRound f n e
 renumTicks_ (TickExact f _) (Just n) = TickExact f n
 renumTicks_ ts _ = ts
--- | Lens between a FormatN and a TickStyle.
+-- | Lens between a FormatN and a Tick.
 --
 
-tickExtend' :: Lens' TickStyle (Maybe TickExtend)
+tickExtend' :: Lens' Tick (Maybe TickExtend)
 tickExtend' =
   lens tickExtend_ tickReExtend_
 
-tickExtend_ :: TickStyle -> Maybe TickExtend
+tickExtend_ :: Tick -> Maybe TickExtend
 tickExtend_ = \case
   TickRound _ _ e -> Just e
   _ -> Nothing
 
-tickReExtend_ :: TickStyle -> Maybe TickExtend -> TickStyle
+tickReExtend_ :: Tick -> Maybe TickExtend -> Tick
 tickReExtend_ ts Nothing = ts
 tickReExtend_ (TickRound f n _) (Just e) = TickRound f n e
 tickReExtend_ ts _ = ts
 
 -- | The official tick style
 --
--- >>> defaultTickStyle
+-- >>> defaultTick
 -- TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 8 TickExtend
-defaultTickStyle :: TickStyle
-defaultTickStyle = TickRound (FormatN FSCommaPrec (Just 1) 4 True True) 5 TickExtend
+defaultTick :: Tick
+defaultTick = TickRound (FormatN FSCommaPrec (Just 1) 4 True True) 5 TickExtend
 
 -- | Whether Ticks are allowed to extend the data range
 data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Generic)
@@ -610,17 +608,16 @@ defaultLegendOptions =
 -- FrameOptions {frame = Just (RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 1.00 1.00 1.00 0.02}), buffer = 0.0}
 data FrameOptions = FrameOptions
   { frame :: Maybe Style,
+    anchorTo :: HudChartSection,
     buffer :: Double
   }
   deriving (Eq, Show, Generic)
 
 -- | The official hud frame
 defaultFrameOptions :: FrameOptions
-defaultFrameOptions = FrameOptions (Just (blob (grey 1 0.02))) 0
-
+defaultFrameOptions = FrameOptions (Just (blob (grey 1 0.02))) HudStyleSection 0
 
 -- * Huds
-
 -- | Make Huds and potential data box extension; from a HudOption and an initial data box.
 toHuds :: HudOptions -> DataBox -> (Maybe DataBox, [Hud])
 toHuds o db =
@@ -647,8 +644,8 @@ freezeTicks :: DataBox -> AxisOptions -> (Maybe DataBox, AxisOptions)
 freezeTicks db a =
   bimap
     (fmap (\x -> placeRect (view #place a) x db))
-    (\x -> a & set (#ticks % #style) x)
-    (placeTicks (placeRange (view #place a) db) (view (#ticks % #style) a))
+    (\x -> a & set (#ticks % #tick) x)
+    (placeTicks (placeRange (view #place a) db) (view (#ticks % #tick) a))
 
 placeRect :: Place -> Range Double -> Rect Double -> Rect Double
 placeRect pl' (Range a0 a1) (Rect x z y w) = case pl' of
@@ -662,14 +659,14 @@ placeRange pl (Rect x z y w) = case pl of
   PlaceLeft -> Range y w
   _ -> Range x z
 
-placeTicks :: Range Double -> TickStyle -> (Maybe (Range Double), TickStyle)
+placeTicks :: Range Double -> Tick -> (Maybe (Range Double), Tick)
 placeTicks r t@TickRound {} = (rExtended, TickPlaced tPlaced)
   where
     (rExtended, tPlaced) = makePlacedTicks r t
 placeTicks _ t = (Nothing, t)
 
 -- | compute tick components given style, ranges and formatting
-makePlacedTicks :: Range Double -> TickStyle -> (Maybe (Range Double), [(Double, Text)])
+makePlacedTicks :: Range Double -> Tick -> (Maybe (Range Double), [(Double, Text)])
 makePlacedTicks r s =
   case s of
     TickNone -> (Nothing, [])
@@ -763,9 +760,9 @@ applyTicks ::
   ChartTree
 applyTicks pl t db hc = group (Just "ticks") [lt, gt, tt]
   where
-    lt = maybe mempty (\x -> tickLine pl x (t ^. #style) db hc) (t ^. #lineTick)
-    gt = maybe mempty (\x -> tickGlyph pl x (t ^. #style) db hc) (t ^. #glyphTick)
-    tt = maybe mempty (\x -> tickText pl x (t ^. #style) db (appendHud gt hc)) (t ^. #textTick)
+    lt = maybe mempty (\x -> tickLine pl x (t ^. #tick) db hc) (t ^. #lineTick)
+    gt = maybe mempty (\x -> tickGlyph pl x (t ^. #tick) db hc) (t ^. #glyphTick)
+    tt = maybe mempty (\x -> tickText pl x (t ^. #tick) db (appendHud gt hc)) (t ^. #textTick)
 
 -- | adjust Tick for sane font sizes etc
 adjustTicks ::
@@ -782,18 +779,18 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
           ( case adjustSizeX > 1 of
               True ->
                 ( case pl of
-                    PlaceBottom -> #textTick %? #item % #anchor .~ AnchorEnd
-                    PlaceTop -> #textTick %? #item % #anchor .~ AnchorStart
-                    _ -> #textTick %? #item % #anchor .~ AnchorEnd
+                    PlaceBottom -> #textTick %? #style % #anchor .~ AnchorEnd
+                    PlaceTop -> #textTick %? #style % #anchor .~ AnchorStart
+                    _ -> #textTick %? #style % #anchor .~ AnchorEnd
                 )
-                  . (#textTick %? #item % #size %~ (/ adjustSizeA))
-                  $ (#textTick %? #item % #rotation ?~ pi / 4) t
-              False -> (#textTick %? #item % #size %~ (/ adjustSizeA)) t
+                  . (#textTick %? #style % #size %~ (/ adjustSizeA))
+                  $ (#textTick %? #style % #rotation ?~ pi / 4) t
+              False -> (#textTick %? #style % #size %~ (/ adjustSizeA)) t
           )
-        else t & #textTick %? #item % #size %~ (/ adjustSizeX)
+        else t & #textTick %? #style % #size %~ (/ adjustSizeX)
   | otherwise -- pl `elem` [PlaceLeft, PlaceRight]
     =
-      (#textTick %? #item % #size %~ (/ adjustSizeY)) t
+      (#textTick %? #style % #size %~ (/ adjustSizeY)) t
   where
     max' [] = 1
     max' xs = maximum xs
@@ -802,7 +799,7 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
       | otherwise = Range y w
     asp = ra vb
     r = ra cs
-    tickl = snd <$> ticksR (t ^. #style) asp r
+    tickl = snd <$> ticksR (t ^. #tick) asp r
     maxWidth :: Double
     maxWidth =
       maybe
@@ -810,7 +807,7 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
         ( \tt ->
             max' $
               (\(Rect x z _ _) -> z - x)
-                . (\x -> styleBoxText (view #item tt) x (Point 0 0))
+                . (\x -> styleBoxText (view #style tt) x (Point 0 0))
                 <$> tickl
         )
         (view #textTick t)
@@ -820,7 +817,7 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
         ( \tt ->
             max' $
               (\(Rect _ _ y w) -> w - y)
-                . (\x -> styleBoxText (view #item tt) x (Point 0 0))
+                . (\x -> styleBoxText (view #style tt) x (Point 0 0))
                 <$> tickl
         )
         (view #textTick t)
@@ -831,7 +828,7 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
     adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
 
 -- | compute tick values and labels given options, ranges and formatting
-ticksR :: TickStyle -> Range Double -> Range Double -> [(Double, Text)]
+ticksR :: Tick -> Range Double -> Range Double -> [(Double, Text)]
 ticksR s d r =
   case s of
     TickNone -> []
@@ -853,8 +850,8 @@ ticksR s d r =
 -- | aka marks
 tickGlyph ::
   Place ->
-  GlyphTickStyle ->
   TickStyle ->
+  Tick ->
   DataBox ->
   HudChart ->
   ChartTree
@@ -863,10 +860,10 @@ tickGlyph pl s ts db hc = maybe mempty (named "tickglyph" . pure) c
     anchorBox = view (hudChartBox' (view #anchorTo s)) hc
     canvasBox = view (hudChartBox' CanvasSection) hc
     c = case (canvasBox, anchorBox) of
-          (Just cb, Just ab) -> Just $ Chart (view (#style % #item) s) (GlyphData ps)
+          (Just cb, Just ab) -> Just $ Chart (view #style s) (GlyphData ps)
             where
-              ps = placePosTick pl (view (#style % #buffer) s) ab bb . fst <$> ticksPlacedCanvas ts pl cb db
-              bb = fromMaybe zero $ sbox (Chart (view (#style % #item) s) (GlyphData [zero]))
+              ps = placePosTick pl (view #buffer s) ab bb . fst <$> ticksPlacedCanvas ts pl cb db
+              bb = fromMaybe zero $ sbox (Chart (view #style s) (GlyphData [zero]))
           _ -> Nothing
 
 placePosTick :: Place -> Double -> ChartBox -> Rect Double -> Double -> Point Double
@@ -878,7 +875,7 @@ placePosTick pl b (Rect x z y w) (Rect x' z' y' w') pos = case pl of
   PlaceAbsolute p -> p + Point 0 pos
 
 -- | compute tick positions and string values in canvas space given placement, the canvas box & data box
-ticksPlacedCanvas :: TickStyle -> Place -> ChartBox -> DataBox -> [(Double, Text)]
+ticksPlacedCanvas :: Tick -> Place -> ChartBox -> DataBox -> [(Double, Text)]
 ticksPlacedCanvas ts pl cb db =
   first (project (placeRange pl db) (placeRange pl cb))
     <$> snd (makePlacedTicks (placeRange pl db) ts)
@@ -886,32 +883,32 @@ ticksPlacedCanvas ts pl cb db =
 -- | aka tick labels
 tickText ::
   Place ->
-  Buffered Style ->
   TickStyle ->
+  Tick ->
   DataBox ->
   HudChart ->
   ChartTree
 tickText pl s ts db hc = maybe mempty (named "ticktext" . maybeToList) c
   where
-    sb = view (hudChartBox' HudStyleSection) hc
+    anchorBox = view (hudChartBox' (view #anchorTo s)) hc
     cb = view (hudChartBox' CanvasSection) hc
-    c = tickText_ pl s ts <$> sb <*> cb <*> pure db
+    c = tickText_ pl s ts <$> anchorBox <*> cb <*> pure db
 
 tickText_ ::
   Place ->
-  Buffered Style ->
   TickStyle ->
+  Tick ->
   ChartBox ->
   ChartBox ->
   DataBox ->
   Maybe Chart
-tickText_ pl (Buffered txts b) ts sb cb db =
+tickText_ pl s ts sb cb db =
   case l of
     [] -> Nothing
-    _ -> Just $ Chart (placeTextAnchor pl txts) (TextData l)
+    _ -> Just $ Chart (placeTextAnchor pl (view #style s)) (TextData l)
   where
     l =
-      swap . first (addp (addp (placePos pl b sb) (textPos pl txts b)) . placeOrigin pl)
+      swap . first (addp (addp (placePos pl (view #buffer s) sb) (textPos pl (view #style s) (view #buffer s))) . placeOrigin pl)
         <$> ticksPlacedCanvas ts pl cb db
 
 placeOrigin :: Place -> Double -> Point Double
@@ -922,19 +919,19 @@ placeOrigin pl x
 -- | aka grid lines
 tickLine ::
   Place ->
-  Buffered Style ->
   TickStyle ->
+  Tick ->
   DataBox ->
   HudChart ->
   ChartTree
-tickLine pl (Buffered ls b) ts db hc =
+tickLine pl s ts db hc =
   case cb of
     Nothing -> mempty
     Just cb' ->
-      let l = (\x -> placeGridLines pl cb' x b) <$> fmap fst (ticksPlacedCanvas ts pl cb' db)
-       in bool (named "ticklines" [Chart ls (LineData l)]) mempty (null l)
+      let l = (\x -> placeGridLines pl cb' x (view #buffer s)) <$> fmap fst (ticksPlacedCanvas ts pl cb' db)
+       in bool (named "ticklines" [Chart (view #style s) (LineData l)]) mempty (null l)
   where
-    cb = view (hudChartBox' CanvasSection) hc
+    cb = view (hudChartBox' (view #anchorTo s)) hc
 
 placeGridLines :: Place -> ChartBox -> Double -> Double -> [Point Double]
 placeGridLines pl (Rect x z y w) a b
@@ -1035,7 +1032,7 @@ frameHud o hc =
       Nothing -> named "frame" [Chart defaultStyle (BlankData [r'])]
       Just rs -> named "frame" [Chart rs (RectData [r'])]
   where
-    r = padRect (view #buffer o) <$> view (hudChartBox' HudStyleSection) hc
+    r = padRect (view #buffer o) <$> view (hudChartBox' (view #anchorTo o)) hc
 
 -- | Make a legend from 'LegendOptions'
 legendHud :: LegendOptions -> HudChart -> ChartTree
