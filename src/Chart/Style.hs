@@ -119,8 +119,9 @@ scaleStyle x s =
     & over #size (x *)
     & over #borderSize (x *)
     & over #translate (fmap (fmap (x *)))
-    -- frames are scaled by #size so don't scale #borderSize twice.
-    -- & over #frame (fmap (scaleStyle x))
+
+-- frames are scaled by #size so don't scale #borderSize twice.
+-- & over #frame (fmap (scaleStyle x))
 
 -- | solid rectangle, no border
 --
@@ -311,7 +312,7 @@ scaleRatio ScalePMinDim new old = closestToOne
     x' = scaleRatio ScalePX new old
     y' = scaleRatio ScalePY new old
     closestToOne
-      | x' >=1 && y' >= 1 = bool x' y' (x' > y')
-      | x' >= 1 && y' < 1 = bool x' y' (x' > (1/y'))
-      | x' < 1 && y' >= 1 = bool x' y' ((1/x') > y')
-      | otherwise = bool x' y' ((1/x') > (1/y'))
+      | x' >= 1 && y' >= 1 = bool x' y' (x' > y')
+      | x' >= 1 && y' < 1 = bool x' y' (x' > (1 / y'))
+      | x' < 1 && y' >= 1 = bool x' y' ((1 / x') > y')
+      | otherwise = bool x' y' ((1 / x') > (1 / y'))

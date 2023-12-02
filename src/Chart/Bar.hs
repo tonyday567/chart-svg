@@ -13,7 +13,6 @@ module Chart.Bar
     barTexts,
     barTextCharts,
   )
-
 where
 
 import Chart.Data
@@ -137,8 +136,8 @@ barRects o xs = rects'
     accVals = bool id accRectYs (barStacked o == Stacked)
     accRectYs xss = foldr addLast [] xss
     addLast rs [] = [rs]
-    addLast rs res@(l:_) = zipWith addW rs l:res
-    addW (Rect x z y w) (Rect _ _ _ w') = Rect x z (y+w') (w+w')
+    addLast rs res@(l : _) = zipWith addW rs l : res
+    addW (Rect x z y w) (Rect _ _ _ w') = Rect x z (y + w') (w + w')
 
 zip2With :: (a -> b -> c) -> [[a]] -> [[b]] -> [[c]]
 zip2With f = zipWith (zipWith f)
@@ -149,7 +148,7 @@ iter2 f xs ys = f <$> xs <&> flip fmap ys -- or (\a -> f a <$> ys) <$> xs
 
 -- | Placements for the bars (x axis for vertical bars)
 barX0s :: BarOptions -> [[Double]] -> [[Double]]
-barX0s o xs = transpose $ iter2 (barX0 o xs) [0 .. (rows xs - 1)] (bool (replicate (length xs) 0) [0..(length xs - 1)] (barStacked o == NonStacked))
+barX0s o xs = transpose $ iter2 (barX0 o xs) [0 .. (rows xs - 1)] (bool (replicate (length xs) 0) [0 .. (length xs - 1)] (barStacked o == NonStacked))
 
 flipRect :: Orientation -> Rect Double -> Rect Double
 flipRect Vert r = r

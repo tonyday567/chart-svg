@@ -152,17 +152,19 @@ lineExample =
 
 priorityv1Example :: ChartOptions
 priorityv1Example =
-  lineExample &
-  set (#hudOptions % #frames)
-    [Priority 1 (FrameOptions (Just defaultRectStyle) CanvasStyleSection 0),
-     Priority 100 (FrameOptions (Just (defaultRectStyle & #color .~ (palette 4 & opac' .~ 0.05) & #borderColor .~ palette 4)) HudStyleSection 0.1)] &
-   set (#hudOptions % #legends % each % #priority) 50 &
-   set (#hudOptions % #legends % each % #item % #place) PlaceRight
+  lineExample
+    & set
+      (#hudOptions % #frames)
+      [ Priority 1 (FrameOptions (Just defaultRectStyle) CanvasStyleSection 0),
+        Priority 100 (FrameOptions (Just (defaultRectStyle & #color .~ (palette 4 & opac' .~ 0.05) & #borderColor .~ palette 4)) HudStyleSection 0.1)
+      ]
+    & set (#hudOptions % #legends % each % #priority) 50
+    & set (#hudOptions % #legends % each % #item % #place) PlaceRight
 
 priorityv2Example :: ChartOptions
 priorityv2Example =
-  priorityv1Example &
-  set (#hudOptions % #titles % each % #priority) 51
+  priorityv1Example
+    & set (#hudOptions % #titles % each % #priority) 51
 
 -- | text example
 --
@@ -233,8 +235,9 @@ barDataExample =
 --
 -- ![bar example](other/bar.svg)
 barExample :: ChartOptions
-barExample = barChart defaultBarOptions barDataExample &
-  set (#hudOptions % #frames) [Priority 101 (defaultFrameOptions & set #buffer 0.02)]
+barExample =
+  barChart defaultBarOptions barDataExample
+    & set (#hudOptions % #frames) [Priority 101 (defaultFrameOptions & set #buffer 0.02)]
 
 -- | Stacked bar chart example.
 --
@@ -718,12 +721,12 @@ debugExample cs =
 --
 -- ![compound example](other/compound.svg)
 compoundExample :: ChartOptions
-compoundExample = compoundMerge [c1,c2]
+compoundExample = compoundMerge [c1, c2]
   where
     ho1 = (mempty :: HudOptions) & set #titles [Priority 3 (defaultTitle "chart1")] & set #axes [Priority 2 defaultXAxisOptions, Priority 2 defaultYAxisOptions] & colourHudOptions (const (palette 0))
-    c1 = (mempty :: ChartOptions) & set #hudOptions ho1 & set #chartTree (named "c1" [Chart defaultRectStyle (RectData [fmap (2*) one])])
+    c1 = (mempty :: ChartOptions) & set #hudOptions ho1 & set #chartTree (named "c1" [Chart defaultRectStyle (RectData [fmap (2 *) one])])
     ho2 = (mempty :: HudOptions) & set #titles [Priority 3.1 (defaultTitle "chart2")] & set #axes [Priority 2 (defaultXAxisOptions & set #place PlaceTop), Priority 2 (defaultYAxisOptions & set #place PlaceRight)] & colourHudOptions (const (palette 3))
-    c2 = (mempty :: ChartOptions) & set #hudOptions ho2 & set #chartTree (named "c2" [Chart (blob (set opac' 0.3 $ palette 3)) (RectData [fmap (*0.8) one]), BlankChart defaultStyle [one]])
+    c2 = (mempty :: ChartOptions) & set #hudOptions ho2 & set #chartTree (named "c2" [Chart (blob (set opac' 0.3 $ palette 3)) (RectData [fmap (* 0.8) one]), BlankChart defaultStyle [one]])
 
 -- | Usage of stack.
 --

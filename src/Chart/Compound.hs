@@ -16,16 +16,16 @@ import Chart.Data
 import Chart.Hud
 import Chart.Markup
 import Chart.Primitive
+import Chart.Style
 import Control.Monad.State.Lazy
+import Data.Bool
 import Data.ByteString.Char8 qualified as C
+import Data.Foldable
 import Data.List qualified as List
 import Data.Maybe
 import MarkupParse
 import Optics.Core
 import Prelude
-import Data.Foldable
-import Data.Bool
-import Chart.Style
 
 -- | Write multiple charts to a single file sharing the canvas.
 writeChartOptionsCompound :: FilePath -> [ChartOptions] -> IO ()
@@ -51,10 +51,10 @@ markupChartOptionsCompound cs@(co0 : _) =
     viewbox = maybe one padSingletons (view styleBox' ctFinal)
     ctFinal =
       projectChartCompoundWith
-      (view (#markupOptions % #chartAspect) co0)
-      (zip (view #hudOptions <$> cs) (view #chartTree <$> cs))
+        (view (#markupOptions % #chartAspect) co0)
+        (zip (view #hudOptions <$> cs) (view #chartTree <$> cs))
 
-projectChartCompoundWith :: ChartAspect -> [(HudOptions,ChartTree)] -> ChartTree
+projectChartCompoundWith :: ChartAspect -> [(HudOptions, ChartTree)] -> ChartTree
 projectChartCompoundWith asp css = ctFinal
   where
     csAndHud = addHudCompound asp css
@@ -100,17 +100,17 @@ runHudCompoundWith ::
 runHudCompoundWith cb ts = hss
   where
     hss =
-      ts &
-      fmap (\(_,hs,_) -> hs) &
-      mconcat &
-      prioritizeHuds &
-      fmap (fmap (view (#phud % #item))) &
-      foldl' (\x a -> makeHuds a x) hc0 &
-      fromHudChart
+      ts
+        & fmap (\(_, hs, _) -> hs)
+        & mconcat
+        & prioritizeHuds
+        & fmap (fmap (view (#phud % #item)))
+        & foldl' (\x a -> makeHuds a x) hc0
+        & fromHudChart
     css =
-      ts &
-      fmap (\(db,_,ct) -> over chart' (projectWith cb db) ct) &
-      mconcat
+      ts
+        & fmap (\(db, _, ct) -> over chart' (projectWith cb db) ct)
+        & mconcat
     hc0 = HudChart (css & set styleBox' (Just cb)) mempty
 
 prioritizeHuds :: [Hud] -> [[Hud]]

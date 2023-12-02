@@ -1,7 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RebindableSyntax #-}
 
 -- | A hud stands for <https://en.wikipedia.org/wiki/Head-up_display head-up display>, and is a collective noun used to name chart elements that assist in data interpretation or otherwise annotate and decorate data.
@@ -63,7 +63,6 @@ module Chart.Hud
     titleHud,
     frameHud,
     legendHud,
-
     legendChart,
     legendFrame,
     freezeAxes,
@@ -73,7 +72,6 @@ module Chart.Hud
     tickExtend',
     projectChartTreeWith,
     placeLegend,
-
     fromHudChart,
     makeHuds,
     legendText,
@@ -97,8 +95,8 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Tuple
 import GHC.Generics hiding (to)
-import Optics.Core
 import NumHask.Prelude hiding (to)
+import Optics.Core
 
 -- $setup
 --
@@ -139,8 +137,7 @@ import NumHask.Prelude hiding (to)
 data Priority a = Priority {priority :: Double, item :: a} deriving (Eq, Ord, Show, Generic, Functor)
 
 -- | Heads-up display additions to charts
---
-newtype Hud = Hud { phud :: Priority (HudChart -> ChartTree) } deriving (Generic)
+newtype Hud = Hud {phud :: Priority (HudChart -> ChartTree)} deriving (Generic)
 
 -- | Type to track the split of Chart elements into Hud and Canvas
 --
@@ -169,7 +166,7 @@ hudChartBox' :: HudChartSection -> Getter HudChart (Maybe (Rect Double))
 hudChartBox' CanvasSection = to (boxes . foldOf (#chartSection % charts'))
 hudChartBox' CanvasStyleSection = to (styleBoxes . foldOf (#chartSection % charts'))
 hudChartBox' HudSection = to (boxes . (\x -> foldOf (#chartSection % charts') x <> foldOf (#hudSection % charts') x))
-hudChartBox' HudStyleSection = to (styleBoxes .(\x -> foldOf (#chartSection % charts') x <> foldOf (#hudSection % charts') x))
+hudChartBox' HudStyleSection = to (styleBoxes . (\x -> foldOf (#chartSection % charts') x <> foldOf (#hudSection % charts') x))
 
 appendHud :: ChartTree -> HudChart -> HudChart
 appendHud cs x =
@@ -302,7 +299,8 @@ colourHudOptions f o =
         & over (#ticks % #glyphTick %? #style % #borderColor) f
         & over (#ticks % #textTick %? #style % #color) f
         & over
-          (#ticks % #lineTick %? #style % #color) f
+          (#ticks % #lineTick %? #style % #color)
+          f
     fLegend :: LegendOptions -> LegendOptions
     fLegend a =
       a
@@ -414,45 +412,50 @@ data TickStyle = TickStyle
 
 -- | The official glyph tick
 defaultGlyphTickStyleX :: TickStyle
-defaultGlyphTickStyleX = TickStyle
-  (defaultGlyphStyle
-    & #borderSize .~ 0.004
-    & #shape .~ VLineGlyph
-    & #color .~ set opac' 0.4 dark
-    & #borderColor .~ set opac' 0.4 dark
-    & #scaleP .~ ScalePY)
-  CanvasSection
-  0.01
+defaultGlyphTickStyleX =
+  TickStyle
+    ( defaultGlyphStyle
+        & #borderSize .~ 0.004
+        & #shape .~ VLineGlyph
+        & #color .~ set opac' 0.4 dark
+        & #borderColor .~ set opac' 0.4 dark
+        & #scaleP .~ ScalePY
+    )
+    CanvasSection
+    0.01
 
 -- | The official glyph tick
 defaultGlyphTickStyleY :: TickStyle
-defaultGlyphTickStyleY = TickStyle
-  (defaultGlyphStyle
-    & #borderSize .~ 0.004
-    & #shape .~ HLineGlyph
-    & #color .~ set opac' 0.4 dark
-    & #borderColor .~ set opac' 0.4 dark
-    & #scaleP .~ ScalePX)
-  CanvasSection
-  0.01
+defaultGlyphTickStyleY =
+  TickStyle
+    ( defaultGlyphStyle
+        & #borderSize .~ 0.004
+        & #shape .~ HLineGlyph
+        & #color .~ set opac' 0.4 dark
+        & #borderColor .~ set opac' 0.4 dark
+        & #scaleP .~ ScalePX
+    )
+    CanvasSection
+    0.01
 
 -- | The official text tick
 defaultTextTick :: TickStyle
 defaultTextTick =
   TickStyle
-  (defaultTextStyle & #size .~ 0.04)
-  HudStyleSection
-  0.01
+    (defaultTextStyle & #size .~ 0.04)
+    HudStyleSection
+    0.01
 
 -- | The official line tick
 defaultLineTick :: TickStyle
 defaultLineTick =
   TickStyle
-  (defaultLineStyle
-    & #size .~ 5.0e-3
-    & #color %~ set opac' 0.05)
-  CanvasSection
-  0
+    ( defaultLineStyle
+        & #size .~ 5.0e-3
+        & #color %~ set opac' 0.05
+    )
+    CanvasSection
+    0
 
 -- | The official X-axis tick
 defaultXTicks :: Ticks
@@ -487,7 +490,6 @@ data Tick
   deriving (Show, Eq, Generic)
 
 -- | Lens between a FormatN and a Tick.
---
 formatN' :: Lens' Tick (Maybe FormatN)
 formatN' =
   lens formatN_ reformatN_
@@ -522,9 +524,8 @@ renumTicks_ ts Nothing = ts
 renumTicks_ (TickRound f _ e) (Just n) = TickRound f n e
 renumTicks_ (TickExact f _) (Just n) = TickExact f n
 renumTicks_ ts _ = ts
--- | Lens between a FormatN and a Tick.
---
 
+-- | Lens between a FormatN and a Tick.
 tickExtend' :: Lens' Tick (Maybe TickExtend)
 tickExtend' =
   lens tickExtend_ tickReExtend_
@@ -618,14 +619,16 @@ defaultFrameOptions :: FrameOptions
 defaultFrameOptions = FrameOptions (Just (blob (grey 1 0.02))) HudStyleSection 0
 
 -- * Huds
+
 -- | Make Huds and potential data box extension; from a HudOption and an initial data box.
 toHuds :: HudOptions -> DataBox -> (Maybe DataBox, [Hud])
 toHuds o db =
-  (mdb,) $ fmap Hud $
-    (as' & fmap (over #item (\ho -> \hc -> axisHud ho db' hc)))
-      <> (view #frames o & fmap (over #item frameHud))
-      <> (view #legends o & fmap (over #item legendHud))
-      <> (view #titles o & fmap (over #item titleHud))
+  (mdb,) $
+    fmap Hud $
+      (as' & fmap (over #item (\ho -> \hc -> axisHud ho db' hc)))
+        <> (view #frames o & fmap (over #item frameHud))
+        <> (view #legends o & fmap (over #item legendHud))
+        <> (view #titles o & fmap (over #item titleHud))
   where
     (mdb, as') = freezeAxes db (view #axes o)
     db' = fromMaybe db mdb
@@ -635,7 +638,7 @@ freezeAxes db0 aos =
   foldr
     ( \ao (dbm, as') ->
         let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) (view #item ao)
-        in (dbm', as' <> [ao & set #item ao'])
+         in (dbm', as' <> [ao & set #item ao'])
     )
     (Nothing, [])
     aos
@@ -690,7 +693,6 @@ makePlacedTicks r s =
     TickPlaced xs -> (Nothing, xs)
 
 -- | Create an axis.
---
 axisHud :: AxisOptions -> DataBox -> HudChart -> ChartTree
 axisHud a db hc = group (Just "axis") [b, t]
   where
@@ -745,6 +747,7 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
         ]
 
 -- * tick hud creation
+
 tickHud :: AxisOptions -> DataBox -> HudChart -> ChartTree
 tickHud ao db hc = maybe mempty ts (view (hudChartBox' HudStyleSection) hc)
   where
@@ -846,7 +849,6 @@ ticksR s d r =
         ls
     TickPlaced xs -> zip (project r d . fst <$> xs) (snd <$> xs)
 
-
 -- | aka marks
 tickGlyph ::
   Place ->
@@ -860,11 +862,11 @@ tickGlyph pl s ts db hc = maybe mempty (named "tickglyph" . pure) c
     anchorBox = view (hudChartBox' (view #anchorTo s)) hc
     canvasBox = view (hudChartBox' CanvasSection) hc
     c = case (canvasBox, anchorBox) of
-          (Just cb, Just ab) -> Just $ Chart (view #style s) (GlyphData ps)
-            where
-              ps = placePosTick pl (view #buffer s) ab bb . fst <$> ticksPlacedCanvas ts pl cb db
-              bb = fromMaybe zero $ sbox (Chart (view #style s) (GlyphData [zero]))
-          _ -> Nothing
+      (Just cb, Just ab) -> Just $ Chart (view #style s) (GlyphData ps)
+        where
+          ps = placePosTick pl (view #buffer s) ab bb . fst <$> ticksPlacedCanvas ts pl cb db
+          bb = fromMaybe zero $ sbox (Chart (view #style s) (GlyphData [zero]))
+      _ -> Nothing
 
 placePosTick :: Place -> Double -> ChartBox -> Rect Double -> Double -> Point Double
 placePosTick pl b (Rect x z y w) (Rect x' z' y' w') pos = case pl of
@@ -1122,4 +1124,3 @@ legendEntry ::
   (Chart, [Chart])
 legendEntry l t cs =
   (legendText l t, fmap (legendizeChart l) cs)
-

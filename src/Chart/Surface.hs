@@ -147,10 +147,12 @@ defaultSurfaceLegendOptions =
   SurfaceLegendOptions surfaceLegendAxisOptions 0.2 100 one (Rect 0.7 0.9 0 0.5) defaultSurfaceStyle
 
 gridReferenceChart :: SurfaceLegendOptions -> ChartTree
-gridReferenceChart slo = named "grid reference" $
-  zipWith (\r c -> Chart (blob c) (RectData [r]))
-     (gridf <$> spaceGrid)
-     colorGrid
+gridReferenceChart slo =
+  named "grid reference" $
+    zipWith
+      (\r c -> Chart (blob c) (RectData [r]))
+      (gridf <$> spaceGrid)
+      colorGrid
   where
     spaceGrid = gridSpace (view #sloDataRange slo) (slo ^. #sloResolution)
     gridf =
@@ -159,13 +161,13 @@ gridReferenceChart slo = named "grid reference" $
         (\xr -> Ranges xr (Range 0 (slo ^. #sloWidth)))
         (isHori slo)
     colorGrid =
-      (\x -> mixes x (toList $ slo ^. #sloSurfaceStyle % #surfaceColors)) <$>
-      grid MidPos (Range 0 1) (slo ^. #sloResolution)
+      (\x -> mixes x (toList $ slo ^. #sloSurfaceStyle % #surfaceColors))
+        <$> grid MidPos (Range 0 1) (slo ^. #sloResolution)
 
 isHori :: SurfaceLegendOptions -> Bool
 isHori slo =
-  view (#sloAxisOptions % #place) slo == PlaceBottom ||
-  view (#sloAxisOptions % #place) slo == PlaceTop
+  view (#sloAxisOptions % #place) slo == PlaceBottom
+    || view (#sloAxisOptions % #place) slo == PlaceTop
 
 addSurfaceLegend :: SurfaceLegendOptions -> ChartTree -> ChartTree
 addSurfaceLegend slo ct = ctBoth

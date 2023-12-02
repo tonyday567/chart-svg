@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 {-# HLINT ignore "Use isNothing" #-}
 
 -- | Base 'Chart' and 'ChartTree' types and support
@@ -433,7 +434,6 @@ styleBox' =
 -- - tries data + style if there are singleton dimensions (TextCharts are typical of this if the text is in a single column)
 --
 -- - pad singleton dimensions and defaults to one, if the chart tree is empty.
---
 safeBox' :: Getter ChartTree (Rect Double)
 safeBox' = Optics.Core.to safeBox_
 

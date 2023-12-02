@@ -495,9 +495,9 @@ markupChartOptions co =
     viewbox = fromMaybe one (view styleBox' ctFinal)
     ctFinal =
       projectChartTreeWith
-      (view (#markupOptions % #chartAspect) co)
-      (view #hudOptions co)
-      (view #chartTree co)
+        (view (#markupOptions % #chartAspect) co)
+        (view #hudOptions co)
+        (view #chartTree co)
 
 -- | Render ChartOptions to an SVG ByteString
 --
