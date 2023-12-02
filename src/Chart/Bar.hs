@@ -98,7 +98,7 @@ defaultBarOptions =
     defaultLegendOptions
   where
     gs = (\x -> rectStyle 0.005 (palette x) (paletteO x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
-    ts = (\x -> defaultTextStyle & #color .~ palette x & #size .~ 0.03) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    ts = (\x -> defaultTextStyle & set #color ( palette x ) & set #size 0.03) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Number of bars per row of data
 cols :: Stacked -> [[Double]] -> Int
@@ -184,15 +184,11 @@ barChart bo bd =
 barHudOptions :: BarOptions -> BarData -> HudOptions
 barHudOptions bo bd =
   mempty
-    & #axes
-      .~ [ Priority 1 axis1
-         ]
-    & #legends
-      .~ [ Priority 10 (o & #legendCharts .~ barLegendContent bo bd)
-         ]
+    & set #axes [ Priority 1 axis1]
+    & set #legends [ Priority 10 (o & set #legendCharts ( barLegendContent bo bd ))]
   where
     o = view #barLegendOptions bo
-    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & #ticks % #lineTick .~ Nothing & #ticks % #tick .~ barTicks bd
+    axis1 = bool defaultXAxisOptions defaultYAxisOptions (barOrientation bo == Hori) & set ( #ticks % #lineTick ) Nothing & set ( #ticks % #tick ) ( barTicks bd )
 
 -- | Two dimensional data, maybe with row and column labels.
 data BarData = BarData
@@ -227,29 +223,29 @@ bars bo bd = bool cs [] (null $ mconcat $ view #barData bd)
     cs =
       zipWith
         (\o d -> RectChart o d)
-        (bo ^. #barRectStyles <> repeat defaultRectStyle)
-        (barRects bo (bd ^. #barData))
+        (view #barRectStyles bo <> repeat defaultRectStyle)
+        (barRects bo (view #barData bd))
 
 -- | Sensible ticks for a bar chart.
 barTicks :: BarData -> Tick
 barTicks bd
-  | null (bd ^. #barData) = TickNone
-  | null (bd ^. #barRowLabels) =
-      TickLabels $ pack . show <$> [0 .. (rows (bd ^. #barData) - 1)]
+  | null (view #barData bd) = TickNone
+  | null (view #barRowLabels bd) =
+      TickLabels $ pack . show <$> [0 .. (rows (view #barData bd) - 1)]
   | otherwise =
       TickLabels $
-        take (rows (bd ^. #barData)) $
-          (bd ^. #barRowLabels) <> repeat ""
+        take (rows (view #barData bd)) $
+          view #barRowLabels bd <> repeat ""
 
 -- | A bar legend
 barLegendContent :: BarOptions -> BarData -> [(Text, [Chart])]
 barLegendContent bo bd
-  | null (bd ^. #barData) = []
-  | null (bd ^. #barColumnLabels) = []
+  | null (view #barData bd) = []
+  | null (view #barColumnLabels bd) = []
   | otherwise =
       zip
         (view #barColumnLabels bd <> repeat "")
-        ((\s -> [Chart s (RectData [one])]) <$> take (length (view #barData bd)) (bo ^. #barRectStyles))
+        ((\s -> [Chart s (RectData [one])]) <$> take (length (view #barData bd)) (view #barRectStyles bo))
 
 barTexts :: BarOptions -> [[Double]] -> [[(Text, Point Double)]]
 barTexts o xs = zip2With (\x r -> (formatN (valueFormatN o) x, gapt (barOrientation o) r x)) xs (barRects o xs)
@@ -260,4 +256,4 @@ barTexts o xs = zip2With (\x r -> (formatN (valueFormatN o) x, gapt (barOrientat
 -- | Placed text, hold the bars.
 barTextCharts :: BarOptions -> BarData -> [Chart]
 barTextCharts bo bd =
-  zipWith TextChart (bo ^. #barTextStyles <> repeat defaultTextStyle & set (each % #scaleP) ScalePArea) (barTexts bo (bd ^. #barData))
+  zipWith TextChart (view #barTextStyles bo <> repeat defaultTextStyle & set (each % #scaleP) ScalePArea) (barTexts bo (view #barData bd))

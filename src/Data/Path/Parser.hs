@@ -283,7 +283,7 @@ moveTo xs = do
 
 lineTo :: [Point Double] -> State PathCursor [PathData Double]
 lineTo xs = do
-  modify ((#curPrevious .~ last xs) . (#curControl .~ Nothing))
+  modify (set #curPrevious (last xs) . set #curControl Nothing)
   pure $ LineP <$> xs
 
 horTo :: [Double] -> State PathCursor [PathData Double]
@@ -299,7 +299,7 @@ verTo ys = do
 curveTo :: [(Point Double, Point Double, Point Double)] -> State PathCursor [PathData Double]
 curveTo xs = do
   modify
-    ( (#curPrevious .~ (\(_, _, p) -> p) (last xs))
+    ( set #curPrevious ((\(_, _, p) -> p) (last xs))
         . (#curControl ?~ (\(_, c2, _) -> c2) (last xs))
     )
   pure $ (\(c1, c2, x2) -> CubicP c1 c2 x2) <$> xs
@@ -326,12 +326,11 @@ reflControlPoint = do
 smoothCurveToStep :: (Point Double, Point Double) -> State PathCursor (PathData Double)
 smoothCurveToStep (c2, x2) = do
   c1 <- reflControlPoint
-  modify ((#curControl ?~ c2) . (#curPrevious .~ x2))
+  modify ((#curControl ?~ c2) . set #curPrevious x2)
   pure (CubicP c1 c2 x2)
 
 smoothCurveTo :: [(Point Double, Point Double)] -> State PathCursor [PathData Double]
-smoothCurveTo xs =
-  mapM smoothCurveToStep xs
+smoothCurveTo = mapM smoothCurveToStep
 
 -- | Convert relative points to absolute points
 relToAbs2 :: (Additive a) => a -> [(a, a)] -> [(a, a)]
@@ -346,24 +345,23 @@ relToAbs2 p xs = xs'
 quad :: [(Point Double, Point Double)] -> State PathCursor [PathData Double]
 quad xs = do
   modify
-    ( (#curPrevious .~ snd (last xs))
-        . (#curControl ?~ fst (last xs))
+    ( set #curPrevious (snd (last xs))
+        . set #curControl (Just (fst (last xs)))
     )
   pure $ uncurry QuadP <$> xs
 
 smoothQuadStep :: Point Double -> State PathCursor (PathData Double)
 smoothQuadStep x2 = do
   c1 <- reflControlPoint
-  modify ((#curControl ?~ c1) . (#curPrevious .~ x2))
+  modify (set #curControl (Just c1) . set #curPrevious x2)
   pure (QuadP c1 x2)
 
 smoothQuad :: [Point Double] -> State PathCursor [PathData Double]
-smoothQuad xs =
-  mapM smoothQuadStep xs
+smoothQuad = mapM smoothQuadStep
 
 arcTo :: [(Double, Double, Double, Bool, Bool, Point Double)] -> State PathCursor [PathData Double]
 arcTo xs = do
-  modify ((#curPrevious .~ (\(_, _, _, _, _, p) -> p) (last xs)) . (#curControl .~ Nothing))
+  modify (set #curPrevious ((\(_, _, _, _, _, p) -> p) (last xs)) . set #curControl Nothing)
   pure $ fromPathEllipticalArc <$> xs
 
 fromPathEllipticalArc :: (a, a, a, Bool, Bool, Point a) -> PathData a

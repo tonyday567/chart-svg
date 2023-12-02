@@ -94,7 +94,7 @@ markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) 
         <$> [ ("x", encodeNum x),
               ("y", encodeNum $ -y)
             ]
-          <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> (s ^. #rotation))
+          <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> view #rotation s)
     -- This is very late for a chart creation. It is here so that the chart doesn't undergo scaling and thus picks up the local size of the text, less the border size of the frame.
     frame' = case view #frame s of
       Nothing -> Markup mempty
@@ -165,7 +165,7 @@ markupGlyph s p =
     Nothing -> gl
     Just r -> element "g" [Attr "transform" (toRotateText r p)] gl
   where
-    gl = markupShape_ (view #shape s) (s ^. #size) p
+    gl = markupShape_ (view #shape s) (view #size s) p
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> ByteString
@@ -177,25 +177,25 @@ fromDashOffset x = encodeNum x
 attsLine :: Style -> [Attr]
 attsLine o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum $ o ^. #size),
-          ("stroke", showRGB $ o ^. #color),
-          ("stroke-opacity", showOpacity $ o ^. #color),
+    <$> [ ("stroke-width", encodeNum $ view #size o),
+          ("stroke", showRGB $ view #color o),
+          ("stroke-opacity", showOpacity $ view #color o),
           ("fill", "none")
         ]
       <> catMaybes
-        [(\x -> ("stroke-linecap", fromLineCap x)) <$> (o ^. #linecap)]
-      <> foldMap (\x -> [("stroke-linejoin", fromLineJoin x)]) (o ^. #linejoin)
-      <> foldMap (\x -> [("stroke-dasharray", fromDashArray x)]) (o ^. #dasharray)
-      <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (o ^. #dashoffset)
+        [(\x -> ("stroke-linecap", fromLineCap x)) <$> view #linecap o]
+      <> foldMap (\x -> [("stroke-linejoin", fromLineJoin x)]) (view #linejoin o)
+      <> foldMap (\x -> [("stroke-dasharray", fromDashArray x)]) (view #dasharray o)
+      <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (view #dashoffset o)
 
 attsRect :: Style -> [Attr]
 attsRect o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum $ o ^. #borderSize),
-          ("stroke", showRGB $ o ^. #borderColor),
-          ("stroke-opacity", showOpacity $ o ^. #borderColor),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color)
+    <$> [ ("stroke-width", encodeNum $ view #borderSize o),
+          ("stroke", showRGB $ view #borderColor o),
+          ("stroke-opacity", showOpacity $ view #borderColor o),
+          ("fill", showRGB $ view #color o),
+          ("fill-opacity", showOpacity $ view #color o)
         ]
 
 -- | TextStyle to [Attr]
@@ -204,10 +204,10 @@ attsText o =
   uncurry Attr
     <$> [ ("stroke-width", "0.0"),
           ("stroke", "none"),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color),
-          ("font-size", encodeNum $ o ^. #size),
-          ("text-anchor", toTextAnchor $ o ^. #anchor)
+          ("fill", showRGB $ view #color o),
+          ("fill-opacity", showOpacity $ view #color o),
+          ("font-size", encodeNum $ view #size o),
+          ("text-anchor", toTextAnchor $ view #anchor o)
         ]
   where
     toTextAnchor :: Anchor -> ByteString
@@ -219,23 +219,23 @@ attsText o =
 attsGlyph :: Style -> [Attr]
 attsGlyph o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum $ o ^. #borderSize),
-          ("stroke", showRGB $ o ^. #borderColor),
-          ("stroke-opacity", showOpacity $ o ^. #borderColor),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color)
+    <$> [ ("stroke-width", encodeNum $ view #borderSize o),
+          ("stroke", showRGB $ view #borderColor o),
+          ("stroke-opacity", showOpacity $ view #borderColor o),
+          ("fill", showRGB $ view #color o),
+          ("fill-opacity", showOpacity $ view #color o)
         ]
-      <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
+      <> foldMap ((: []) . (,) "transform" . toTranslateText) (view #translate o)
 
 -- | PathStyle to [Attr]
 attsPath :: Style -> [Attr]
 attsPath o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum $ o ^. #borderSize),
-          ("stroke", showRGB $ o ^. #borderColor),
-          ("stroke-opacity", showOpacity $ o ^. #borderColor),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color)
+    <$> [ ("stroke-width", encodeNum $ view #borderSize o),
+          ("stroke", showRGB $ view #borderColor o),
+          ("stroke-opacity", showOpacity $ view #borderColor o),
+          ("fill", showRGB $ view #color o),
+          ("fill-opacity", showOpacity $ view #color o)
         ]
 
 -- | includes a flip of the y dimension.

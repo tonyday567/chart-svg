@@ -320,7 +320,7 @@ box (BlankData a) = foldRect a
 sbox :: Chart -> Maybe (Rect Double)
 sbox (Chart s (RectData a)) = foldRect $ padRect (0.5 * view #borderSize s) <$> a
 sbox (Chart s (TextData a)) = foldRect $ uncurry (styleBoxText s) <$> a
-sbox (Chart s (LineData a)) = padRect (0.5 * s ^. #size) <$> (space1 $ mconcat a)
+sbox (Chart s (LineData a)) = padRect (0.5 * view #size s) <$> (space1 $ mconcat a)
 sbox (Chart s (GlyphData a)) = foldRect $ (\x -> addPoint x (styleBoxGlyph s)) <$> a
 sbox (Chart s (PathData a)) = padRect (0.5 * view #borderSize s) <$> pathBoxes a
 sbox (Chart _ (BlankData a)) = foldRect a
@@ -376,7 +376,7 @@ scaleChart p c = c & over #chartData (scaleChartData p) & over #style (bool (sca
 
 -- | Modify chart colors, applying to both border and main colors.
 colourStyle :: (Colour -> Colour) -> Style -> Style
-colourStyle f s = s & #color %~ f & #borderColor %~ f
+colourStyle f s = s & over #color f & over #borderColor f
 
 -- | Project a chart tree to a new bounding box, guarding against singleton bounds.
 projectChartTree :: Rect Double -> ChartTree -> ChartTree

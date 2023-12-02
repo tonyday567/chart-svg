@@ -99,19 +99,19 @@ defaultRectStyle = defaultStyle
 
 -- | common pattern for Rect chart style
 rectStyle :: Double -> Colour -> Colour -> Style
-rectStyle bs bc c = defaultStyle & #borderSize .~ bs & #color .~ c & #borderColor .~ bc
+rectStyle bs bc c = defaultStyle & set #borderSize bs & set #color c & set #borderColor bc
 
 defaultTextStyle :: Style
-defaultTextStyle = defaultStyle & #size .~ 0.06 & #color .~ dark
+defaultTextStyle = defaultStyle & set #size 0.06 & set #color dark
 
 defaultGlyphStyle :: Style
-defaultGlyphStyle = defaultStyle & #size .~ 0.03 & #color .~ paletteO 0 0.2 & #borderColor .~ (set lightness' 0.4 $ paletteO 1 1) & #borderSize .~ 0.003
+defaultGlyphStyle = defaultStyle & set #size 0.03 & set #color ( paletteO 0 0.2 ) & set #borderColor (set lightness' 0.4 $ paletteO 1 1) & set #borderSize 0.003
 
 defaultLineStyle :: Style
-defaultLineStyle = defaultStyle & #size .~ 0.012 & #color .~ dark
+defaultLineStyle = defaultStyle & set #size 0.012 & set #color dark
 
 defaultPathStyle :: Style
-defaultPathStyle = defaultStyle & #color .~ palette 2 & #borderColor .~ palette 1
+defaultPathStyle = defaultStyle & set #color ( palette 2 ) & set #borderColor ( palette 1 )
 
 scaleStyle :: Double -> Style -> Style
 scaleStyle x s =
@@ -128,21 +128,21 @@ scaleStyle x s =
 -- >>> blob black
 -- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 1.00}
 blob :: Colour -> Style
-blob c = defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ c
+blob c = defaultRectStyle & set #borderSize 0 & set #borderColor transparent & set #color c
 
 -- | transparent rect
 --
 -- >>> clear
 -- RectStyle {borderSize = 0.0, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
 clear :: Style
-clear = defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ transparent
+clear = defaultRectStyle & set #borderSize 0 & set #borderColor transparent & set #color transparent
 
 -- | transparent rectangle, with border
 --
 -- >>> border 0.01 transparent
 -- RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.00 0.00 0.00 0.00, color = Colour 0.00 0.00 0.00 0.00}
 border :: Double -> Colour -> Style
-border s c = defaultRectStyle & #borderSize .~ s & #borderColor .~ c & #color .~ transparent
+border s c = defaultRectStyle & set #borderSize s & set #borderColor c & set #color transparent
 
 -- | Whether to escape the common XML escaped characters.
 data EscapeText = EscapeText | NoEscapeText deriving (Eq, Show, Generic)
@@ -169,17 +169,17 @@ styleBoxText ::
   Text ->
   Point Double ->
   Rect Double
-styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (o ^. #rotation)
+styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (view #rotation o)
   where
     flat = Rect ((-x' / 2.0) + x' * a') (x' / 2 + x' * a') (-y' / 2 + n1') (y' / 2 + n1')
-    s = o ^. #size
-    h = o ^. #hsize
-    v = o ^. #vsize
-    n1 = o ^. #vshift
+    s = view #size o
+    h = view #hsize o
+    v = view #vsize o
+    n1 = view #vshift o
     x' = s * h * fromIntegral (Text.length t)
     y' = s * v
     n1' = (-s) * n1
-    a' = case o ^. #anchor of
+    a' = case view #anchor o of
       AnchorStart -> 0.5
       AnchorEnd -> -0.5
       AnchorMiddle -> 0.0
@@ -211,14 +211,14 @@ styleBoxGlyph s = move p' $
       EllipseGlyph a -> scale (Point sz (a * sz)) one
       RectSharpGlyph a -> scale (Point sz (a * sz)) one
       RectRoundedGlyph a _ _ -> scale (Point sz (a * sz)) one
-      VLineGlyph -> scale (Point (s ^. #borderSize) sz) one
-      HLineGlyph -> scale (Point sz (s ^. #borderSize)) one
+      VLineGlyph -> scale (Point (view #borderSize s) sz) one
+      HLineGlyph -> scale (Point sz (view #borderSize s)) one
       TriangleGlyph a b c -> (sz *) <$> unsafeSpace1 ([a, b, c] :: [Point Double])
       PathGlyph path' -> maybe zero (fmap (sz *)) (pathBoxes . svgToPathData $ path')
   where
-    sz = s ^. #size
-    sw = padRect (0.5 * s ^. #borderSize)
-    p' = fromMaybe (Point 0.0 0.0) (s ^. #translate)
+    sz = view #size s
+    sw = padRect (0.5 * view #borderSize s)
+    p' = fromMaybe (Point 0.0 0.0) (view #translate s)
     rot' = maybe id rotationBound (view #rotation s)
 
 -- | Infinite list of glyph shapes

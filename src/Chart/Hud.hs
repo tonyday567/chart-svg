@@ -125,7 +125,7 @@ import Optics.Core
 --
 -- - an outer frame which is transparent and used to pad out the chart (Priority 100).
 --
--- > priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)] & #hudOptions % #legends %~ fmap (first (const (Priority 50))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
+-- > priorityv1Example = lineExample & (#hudOptions % #frames) .~ [(1, FrameOptions (Just defaultRectStyle) 0), (100, FrameOptions (Just (defaultRectStyle & #color .~ (palette1 4 & opac' .~ 0.05) & #borderColor .~ palette1 4)) 0.1)] & over (#hudOptions % #legends) (fmap (first (const (Priority 50)))) & #hudOptions % #legends %~ fmap (second (set #place PlaceRight))
 --
 -- ![priorityv1 example](other/priorityv1.svg)
 --
@@ -193,7 +193,7 @@ runHudWith cb hs cs =
     & List.sortOn (view (#phud % #priority))
     & List.groupBy (\a b -> view (#phud % #priority) a == view (#phud % #priority) b)
     & fmap (fmap (view (#phud % #item)))
-    & foldl' (\x a -> makeHuds a x) hc0
+    & foldl' (flip makeHuds) hc0
     & fromHudChart
   where
     hc0 =
@@ -277,7 +277,7 @@ defaultHudOptions =
       Priority 5 defaultYAxisOptions
     ]
     [ Priority 1 (defaultFrameOptions & set #anchorTo CanvasStyleSection),
-      Priority 20 (defaultFrameOptions & #buffer .~ 0.04 & #frame .~ Just clear)
+      Priority 20 (defaultFrameOptions & set #buffer 0.04 & set #frame (Just clear))
     ]
     []
     []
@@ -365,7 +365,7 @@ data AxisBar = AxisBar
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
-defaultAxisBar = AxisBar (defaultRectStyle & #borderSize .~ 0 & #borderColor .~ transparent & #color .~ set opac' 0.4 dark) 0.004 0.01 0.002 CanvasSection
+defaultAxisBar = AxisBar (defaultRectStyle & set #borderSize 0 & set #borderColor transparent & set #color (set opac' 0.4 dark)) 0.004 0.01 0.002 CanvasSection
 
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
@@ -386,7 +386,7 @@ defaultTitle txt =
   Title
     txt
     ( defaultTextStyle
-        & #size .~ 0.12
+        & set #size 0.12
     )
     PlaceTop
     AnchorMiddle
@@ -415,11 +415,11 @@ defaultGlyphTickStyleX :: TickStyle
 defaultGlyphTickStyleX =
   TickStyle
     ( defaultGlyphStyle
-        & #borderSize .~ 0.004
-        & #shape .~ VLineGlyph
-        & #color .~ set opac' 0.4 dark
-        & #borderColor .~ set opac' 0.4 dark
-        & #scaleP .~ ScalePY
+        & set #borderSize 0.004
+        & set #shape VLineGlyph
+        & set #color ( set opac' 0.4 dark )
+        & set #borderColor ( set opac' 0.4 dark )
+        & set #scaleP ScalePY
     )
     CanvasSection
     0.01
@@ -429,11 +429,11 @@ defaultGlyphTickStyleY :: TickStyle
 defaultGlyphTickStyleY =
   TickStyle
     ( defaultGlyphStyle
-        & #borderSize .~ 0.004
-        & #shape .~ HLineGlyph
-        & #color .~ set opac' 0.4 dark
-        & #borderColor .~ set opac' 0.4 dark
-        & #scaleP .~ ScalePX
+        & set #borderSize 0.004
+        & set #shape HLineGlyph
+        & set #color ( set opac' 0.4 dark )
+        & set #borderColor ( set opac' 0.4 dark )
+        & set #scaleP ScalePX
     )
     CanvasSection
     0.01
@@ -442,7 +442,7 @@ defaultGlyphTickStyleY =
 defaultTextTick :: TickStyle
 defaultTextTick =
   TickStyle
-    (defaultTextStyle & #size .~ 0.04)
+    (defaultTextStyle & set #size 0.04)
     HudStyleSection
     0.01
 
@@ -451,8 +451,8 @@ defaultLineTick :: TickStyle
 defaultLineTick =
   TickStyle
     ( defaultLineStyle
-        & #size .~ 5.0e-3
-        & #color %~ set opac' 0.05
+        & set #size 5.0e-3
+        & set (#color % opac') 0.05
     )
     CanvasSection
     0
@@ -597,7 +597,7 @@ defaultLegendOptions =
     (defaultTextStyle & set #size 0.16)
     0.1
     0.02
-    (Just (defaultRectStyle & #borderSize .~ 0.005 & #borderColor .~ set opac' 1 dark & #color .~ set opac' 0 dark))
+    (Just (defaultRectStyle & set #borderSize 0.005 & set #borderColor (set opac' 1 dark) & set #color (set opac' 0 dark)))
     PlaceRight
     0.25
     ScalePX
@@ -625,7 +625,7 @@ toHuds :: HudOptions -> DataBox -> (Maybe DataBox, [Hud])
 toHuds o db =
   (mdb,) $
     fmap Hud $
-      (as' & fmap (over #item (\ho -> \hc -> axisHud ho db' hc)))
+      (as' & fmap (over #item (`axisHud` db')))
         <> (view #frames o & fmap (over #item frameHud))
         <> (view #legends o & fmap (over #item legendHud))
         <> (view #titles o & fmap (over #item titleHud))
@@ -634,14 +634,12 @@ toHuds o db =
     db' = fromMaybe db mdb
 
 freezeAxes :: DataBox -> [Priority AxisOptions] -> (Maybe DataBox, [Priority AxisOptions])
-freezeAxes db0 aos =
-  foldr
+freezeAxes db0 = foldr
     ( \ao (dbm, as') ->
         let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) (view #item ao)
          in (dbm', as' <> [ao & set #item ao'])
     )
     (Nothing, [])
-    aos
 
 freezeTicks :: DataBox -> AxisOptions -> (Maybe DataBox, AxisOptions)
 freezeTicks db a =
@@ -712,38 +710,38 @@ bar_ pl b (Rect x z y w) (Rect x' z' y' w') =
     case pl of
       PlaceTop ->
         [ Rect
-            (x - b ^. #overhang)
-            (z + b ^. #overhang)
-            (w' + b ^. #buffer)
-            (w' + b ^. #buffer + b ^. #size)
+            (x - view #overhang b)
+            (z + view #overhang b)
+            (w' + view #buffer b)
+            (w' + view #buffer b + view #size b)
         ]
       PlaceBottom ->
         [ Rect
-            (x - b ^. #overhang)
-            (z + b ^. #overhang)
-            (y' - b ^. #size - b ^. #buffer)
-            (y' - b ^. #buffer)
+            (x - view #overhang b)
+            (z + view #overhang b)
+            (y' - view #size b - view #buffer b)
+            (y' - view #buffer b)
         ]
       PlaceLeft ->
         [ Rect
-            (x' - b ^. #size - b ^. #buffer)
-            (x' - b ^. #buffer)
-            (y - b ^. #overhang)
-            (w + b ^. #overhang)
+            (x' - view #size b - view #buffer b)
+            (x' - view #buffer b)
+            (y - view #overhang b)
+            (w + view #overhang b)
         ]
       PlaceRight ->
         [ Rect
-            (z' + (b ^. #buffer))
-            (z' + (b ^. #buffer) + (b ^. #size))
-            (y - b ^. #overhang)
-            (w + b ^. #overhang)
+            (z' + view #buffer b)
+            (z' + view #buffer b + view #size b)
+            (y - view #overhang b)
+            (w + view #overhang b)
         ]
       PlaceAbsolute (Point x'' _) ->
         [ Rect
-            (x'' + (b ^. #buffer))
-            (x'' + (b ^. #buffer) + (b ^. #size))
-            (y - b ^. #overhang)
-            (w + b ^. #overhang)
+            (x'' + view #buffer b)
+            (x'' + view #buffer b + view #size b)
+            (y - view #overhang b)
+            (w + view #overhang b)
         ]
 
 -- * tick hud creation
@@ -763,9 +761,9 @@ applyTicks ::
   ChartTree
 applyTicks pl t db hc = group (Just "ticks") [lt, gt, tt]
   where
-    lt = maybe mempty (\x -> tickLine pl x (t ^. #tick) db hc) (t ^. #lineTick)
-    gt = maybe mempty (\x -> tickGlyph pl x (t ^. #tick) db hc) (t ^. #glyphTick)
-    tt = maybe mempty (\x -> tickText pl x (t ^. #tick) db (appendHud gt hc)) (t ^. #textTick)
+    lt = maybe mempty (\x -> tickLine pl x (view #tick t) db hc) (view #lineTick t)
+    gt = maybe mempty (\x -> tickGlyph pl x (view #tick t) db hc) (view #glyphTick t)
+    tt = maybe mempty (\x -> tickText pl x (view #tick t) db (appendHud gt hc)) (view #textTick t)
 
 -- | adjust Tick for sane font sizes etc
 adjustTicks ::
@@ -779,21 +777,18 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
   | pl == PlaceBottom || pl == PlaceTop =
       if ad
         then
-          ( case adjustSizeX > 1 of
-              True ->
-                ( case pl of
-                    PlaceBottom -> #textTick %? #style % #anchor .~ AnchorEnd
-                    PlaceTop -> #textTick %? #style % #anchor .~ AnchorStart
-                    _ -> #textTick %? #style % #anchor .~ AnchorEnd
-                )
-                  . (#textTick %? #style % #size %~ (/ adjustSizeA))
-                  $ (#textTick %? #style % #rotation ?~ pi / 4) t
-              False -> (#textTick %? #style % #size %~ (/ adjustSizeA)) t
+          ( if adjustSizeX > 1 then ( case pl of
+      PlaceBottom -> set ( #textTick %? #style % #anchor ) AnchorEnd
+      PlaceTop -> set ( #textTick %? #style % #anchor ) AnchorStart
+      _ -> set ( #textTick %? #style % #anchor ) AnchorEnd
+  )
+    . over (#textTick %? #style % #size) (/ adjustSizeA)
+    $ (#textTick %? #style % #rotation ?~ pi / 4) t else over (#textTick %? #style % #size) (/ adjustSizeA) t
           )
-        else t & #textTick %? #style % #size %~ (/ adjustSizeX)
+        else t & over (#textTick %? #style % #size) (/ adjustSizeX)
   | otherwise -- pl `elem` [PlaceLeft, PlaceRight]
     =
-      (#textTick %? #style % #size %~ (/ adjustSizeY)) t
+      over (#textTick %? #style % #size) (/ adjustSizeY) t
   where
     max' [] = 1
     max' xs = maximum xs
@@ -802,7 +797,7 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
       | otherwise = Range y w
     asp = ra vb
     r = ra cs
-    tickl = snd <$> ticksR (t ^. #tick) asp r
+    tickl = snd <$> ticksR (view #tick t) asp r
     maxWidth :: Double
     maxWidth =
       maybe
@@ -826,9 +821,9 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
         (view #textTick t)
 
     adjustSizeX :: Double
-    adjustSizeX = max ((maxWidth / (upper asp - lower asp)) / mrx) 1
-    adjustSizeY = max ((maxHeight / (upper asp - lower asp)) / mry) 1
-    adjustSizeA = max ((maxHeight / (upper asp - lower asp)) / ma) 1
+    adjustSizeX = max (maxWidth / (upper asp - lower asp) / mrx) 1
+    adjustSizeY = max (maxHeight / (upper asp - lower asp) / mry) 1
+    adjustSizeA = max (maxHeight / (upper asp - lower asp) / ma) 1
 
 -- | compute tick values and labels given options, ranges and formatting
 ticksR :: Tick -> Range Double -> Range Double -> [(Double, Text)]
@@ -949,51 +944,51 @@ titleHud t hc = maybe mempty ((named "title" . pure) . title_ t) hb
 title_ :: Title -> ChartBox -> Chart
 title_ t hb =
   Chart
-    (style' & #rotation .~ bool (Just rot) Nothing (rot == 0))
-    (TextData [(t ^. #text, addp (placePosTitle t hb) (alignPosTitle t hb))])
+    (style' & set #rotation (bool (Just rot) Nothing (rot == 0)))
+    (TextData [(view #text t, addp (placePosTitle t hb) (alignPosTitle t hb))])
   where
     style'
-      | t ^. #anchor == AnchorStart =
-          #anchor .~ AnchorStart $ t ^. #style
-      | t ^. #anchor == AnchorEnd =
-          #anchor .~ AnchorEnd $ t ^. #style
-      | otherwise = t ^. #style
-    rot' = fromMaybe 0 (t ^. #style % #rotation)
+      | view #anchor t == AnchorStart =
+          set #anchor AnchorStart $ view #style t
+      | view #anchor t == AnchorEnd =
+          set #anchor AnchorEnd $ view #style t
+      | otherwise = view #style t
+    rot' = fromMaybe 0 (view (#style % #rotation) t)
     rot
-      | t ^. #place == PlaceRight = pi / 2 + rot'
-      | t ^. #place == PlaceLeft = pi / 2 + rot'
+      | view #place t == PlaceRight = pi / 2 + rot'
+      | view #place t == PlaceLeft = pi / 2 + rot'
       | otherwise = rot'
 
 placePosTitle :: Title -> ChartBox -> Point Double
 placePosTitle t (Rect x z y w) =
-  case t ^. #place of
-    PlaceTop -> Point ((x + z) / 2.0) (w - y' + (t ^. #buffer))
-    PlaceBottom -> Point ((x + z) / 2.0) (y - w' - (t ^. #buffer))
-    PlaceLeft -> Point (x + y' - (t ^. #buffer)) ((y + w) / 2.0)
-    PlaceRight -> Point (z + w' + (t ^. #buffer)) ((y + w) / 2.0)
+  case view #place t of
+    PlaceTop -> Point ((x + z) / 2.0) (w - y' + view #buffer t)
+    PlaceBottom -> Point ((x + z) / 2.0) (y - w' - view #buffer t)
+    PlaceLeft -> Point (x + y' - view #buffer t) ((y + w) / 2.0)
+    PlaceRight -> Point (z + w' + view #buffer t) ((y + w) / 2.0)
     PlaceAbsolute p -> p
   where
     (Rect _ _ y' w') = styleBoxText (view #style t) (view #text t) zero
 
 alignPosTitle :: Title -> ChartBox -> Point Double
 alignPosTitle t (Rect x z y w)
-  | t ^. #anchor == AnchorStart
-      && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
+  | view #anchor t == AnchorStart
+      && (view #place t == PlaceTop || view #place t == PlaceBottom) =
       Point ((x - z) / 2.0) 0.0
-  | t ^. #anchor == AnchorStart
-      && t ^. #place == PlaceLeft =
+  | view #anchor t == AnchorStart
+      && view #place t == PlaceLeft =
       Point 0.0 ((y - w) / 2.0)
-  | t ^. #anchor == AnchorStart
-      && t ^. #place == PlaceRight =
+  | view #anchor t == AnchorStart
+      && view #place t == PlaceRight =
       Point 0.0 ((y - w) / 2.0)
-  | t ^. #anchor == AnchorEnd
-      && (t ^. #place == PlaceTop || t ^. #place == PlaceBottom) =
+  | view #anchor t == AnchorEnd
+      && (view #place t == PlaceTop || view #place t == PlaceBottom) =
       Point ((-x + z) / 2.0) 0.0
-  | t ^. #anchor == AnchorEnd
-      && t ^. #place == PlaceLeft =
+  | view #anchor t == AnchorEnd
+      && view #place t == PlaceLeft =
       Point 0.0 ((-y + w) / 2.0)
-  | t ^. #anchor == AnchorEnd
-      && t ^. #place == PlaceRight =
+  | view #anchor t == AnchorEnd
+      && view #place t == PlaceRight =
       Point 0.0 ((-y + w) / 2.0)
   | otherwise = Point 0.0 0.0
 
@@ -1007,22 +1002,22 @@ placePos pl b (Rect x z y w) = case pl of
 
 textPos :: Place -> Style -> Double -> Point Double
 textPos pl tt b = case pl of
-  PlaceTop -> Point 0 (b - (tt ^. #vshift) * (tt ^. #vsize) * (tt ^. #size))
-  PlaceBottom -> Point 0 (-b - (tt ^. #vshift) * (tt ^. #vsize) * (tt ^. #size) - (tt ^. #vsize) * (tt ^. #size))
+  PlaceTop -> Point 0 (b - view #vshift tt * view #vsize tt * view #size tt)
+  PlaceBottom -> Point 0 (-b - view #vshift tt * view #vsize tt * view #size tt - view #vsize tt * view #size tt)
   PlaceLeft ->
     Point
       (-b)
-      ((tt ^. #vshift) * (tt ^. #vsize) * (tt ^. #size))
+      (view #vshift tt * view #vsize tt * view #size tt)
   PlaceRight ->
     Point
       b
-      ((tt ^. #vshift) * (tt ^. #vsize) * (tt ^. #size))
+      (view #vshift tt * view #vsize tt * view #size tt)
   PlaceAbsolute p -> p
 
 placeTextAnchor :: Place -> (Style -> Style)
 placeTextAnchor pl
-  | pl == PlaceLeft = #anchor .~ AnchorEnd
-  | pl == PlaceRight = #anchor .~ AnchorStart
+  | pl == PlaceLeft = set #anchor AnchorEnd
+  | pl == PlaceRight = set #anchor AnchorStart
   | otherwise = id
 
 -- | Make a frame hud transformation.
@@ -1038,15 +1033,14 @@ frameHud o hc =
 
 -- | Make a legend from 'LegendOptions'
 legendHud :: LegendOptions -> HudChart -> ChartTree
-legendHud o hc =
-  legendHudWith (legendChart o & set (charts' % each % #style % #scaleP) (view #scaleP o)) o hc
+legendHud o = legendHudWith (legendChart o & set (charts' % each % #style % #scaleP) (view #scaleP o)) o
 
 -- | Make a legend using a bespoke ChartTree.
 legendHudWith :: ChartTree -> LegendOptions -> HudChart -> ChartTree
-legendHudWith lcs o hc = maybe mempty (\b -> placeLegend o b (over chart' (scaleChart (o ^. #overallScale)) lcs)) (view (hudChartBox' HudStyleSection) hc)
+legendHudWith lcs o hc = maybe mempty (\b -> placeLegend o b (over chart' (scaleChart (view #overallScale o)) lcs)) (view (hudChartBox' HudStyleSection) hc)
 
 placeLegend :: LegendOptions -> ChartBox -> ChartTree -> ChartTree
-placeLegend o hb t = maybe mempty (\b -> t & over chart' (moveChart (placeBeside_ (o ^. #place) (view #buffer o) hb b))) (view styleBox' t)
+placeLegend o hb t = maybe mempty (\b -> t & over chart' (moveChart (placeBeside_ (view #place o) (view #buffer o) hb b))) (view styleBox' t)
 
 placeBeside_ :: Place -> Double -> Rect Double -> Rect Double -> Point Double
 placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
@@ -1073,10 +1067,10 @@ legendChart l = legendFrame l content'
   where
     content' =
       vert
-        (l ^. #hgap)
+        (view #hgap l)
         ( ( \(t, a) ->
               hori
-                ((l ^. #vgap) + twidth - gapwidth t)
+                (view #vgap l + twidth - gapwidth t)
                 (fmap unnamed [[t], a])
           )
             <$> es
@@ -1090,7 +1084,7 @@ legendText ::
   Text ->
   Chart
 legendText l t =
-  Chart (l ^. #textStyle & #anchor .~ AnchorStart) (TextData [(t, zero)])
+  Chart (view #textStyle l & set #anchor AnchorStart) (TextData [(t, zero)])
 
 legendizeChart ::
   LegendOptions ->
@@ -1098,24 +1092,24 @@ legendizeChart ::
   Chart
 legendizeChart l c =
   case c of
-    (Chart rs (RectData _)) -> Chart rs (RectData [Rect 0 (l ^. #size) 0 (l ^. #size)])
-    (Chart ts (TextData t)) -> let txt = fromMaybe "text" (listToMaybe (fst <$> t)) in Chart (ts & #size .~ (l ^. #size / fromIntegral (Text.length txt))) (TextData [(txt, Point (0.5 * l ^. #size) (0.33 * l ^. #size))])
-    (Chart gs (GlyphData _)) -> Chart (gs & #size .~ (l ^. #size)) (GlyphData [Point (0.5 * l ^. #size) (0.33 * l ^. #size)])
+    (Chart rs (RectData _)) -> Chart rs (RectData [Rect 0 (view #size l) 0 (view #size l)])
+    (Chart ts (TextData t)) -> let txt = fromMaybe "text" (listToMaybe (fst <$> t)) in Chart (ts & set #size (view #size l / fromIntegral (Text.length txt))) (TextData [(txt, Point (0.5 * view #size l) (0.33 * view #size l))])
+    (Chart gs (GlyphData _)) -> Chart (gs & set #size (view #size l)) (GlyphData [Point (0.5 * view #size l) (0.33 * view #size l)])
     (Chart ls (LineData _)) ->
       Chart
-        (ls & #size %~ (/ (l ^. #overallScale)))
-        (LineData [[Point 0 (1 * l ^. #size), Point (2 * l ^. #size) (1 * l ^. #size)]])
+        (ls & over #size (/ view #overallScale l))
+        (LineData [[Point 0 (1 * view #size l), Point (2 * view #size l) (1 * view #size l)]])
     (Chart ps (PathData _)) ->
       ( let cs =
               singletonQuad
                 ( QuadPosition
                     (Point 0 0)
-                    (Point (l ^. #size) (l ^. #size))
-                    (Point (2 * l ^. #size) ((-1) * l ^. #size))
+                    (Point (view #size l) (view #size l))
+                    (Point (2 * view #size l) ((-1) * view #size l))
                 )
-         in Chart (ps & #borderSize .~ (l ^. #size)) (PathData cs)
+         in Chart (ps & set #borderSize (view #size l)) (PathData cs)
       )
-    _ -> blankChart (Rect 0 (l ^. #size) 0 (l ^. #size))
+    _ -> blankChart (Rect 0 (view #size l) 0 (view #size l))
 
 legendEntry ::
   LegendOptions ->

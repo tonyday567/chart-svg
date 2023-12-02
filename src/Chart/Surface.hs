@@ -83,7 +83,7 @@ surfaces :: Style -> [SurfaceData] -> [Chart]
 surfaces rs ps =
   ( \(SurfaceData r c) ->
       Chart
-        (rs & #color .~ c)
+        (rs & set #color c)
         (RectData [r])
   )
     <$> ps
@@ -106,12 +106,12 @@ mkSurfaceData f r g cs = (zipWith SurfaceData rects (flip mixes cs <$> proj), rx
 -- | Create a surface chart from a function.
 surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart], Range Double)
 surfacef f cfg =
-  first (surfaces (cfg ^. #soStyle % #surfaceRectStyle)) $
+  first (surfaces (view (#soStyle % #surfaceRectStyle) cfg)) $
     mkSurfaceData
       f
-      (cfg ^. #soRange)
-      (cfg ^. #soGrain)
-      (toList $ cfg ^. #soStyle % #surfaceColors)
+      (view #soRange cfg)
+      (view #soGrain cfg)
+      (toList $ view (#soStyle % #surfaceColors) cfg)
 
 -- | Legend specialization for a surface chart.
 data SurfaceLegendOptions = SurfaceLegendOptions
@@ -154,15 +154,15 @@ gridReferenceChart slo =
       (gridf <$> spaceGrid)
       colorGrid
   where
-    spaceGrid = gridSpace (view #sloDataRange slo) (slo ^. #sloResolution)
+    spaceGrid = gridSpace (view #sloDataRange slo) (view #sloResolution slo)
     gridf =
       bool
-        (\yr -> Ranges (Range 0 (slo ^. #sloWidth)) yr)
-        (\xr -> Ranges xr (Range 0 (slo ^. #sloWidth)))
+        (\yr -> Ranges (Range 0 (view #sloWidth slo)) yr)
+        (\xr -> Ranges xr (Range 0 (view #sloWidth slo)))
         (isHori slo)
     colorGrid =
-      (\x -> mixes x (toList $ slo ^. #sloSurfaceStyle % #surfaceColors))
-        <$> grid MidPos (Range 0 1) (slo ^. #sloResolution)
+      (\x -> mixes x (toList $ view (#sloSurfaceStyle % #surfaceColors) slo))
+        <$> grid MidPos (Range 0 1) (view #sloResolution slo)
 
 isHori :: SurfaceLegendOptions -> Bool
 isHori slo =
