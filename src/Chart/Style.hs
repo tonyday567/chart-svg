@@ -25,7 +25,6 @@ module Chart.Style
     styleBoxGlyph,
     gpalette,
     GlyphShape (..),
-    glyphText,
 
     -- * LineStyle
     defaultLineStyle,
@@ -201,20 +200,6 @@ data GlyphShape
   | PathGlyph ByteString
   deriving (Show, Eq, Generic)
 
--- | textifier
-glyphText :: GlyphShape -> ByteString
-glyphText sh =
-  case sh of
-    CircleGlyph -> "Circle"
-    SquareGlyph -> "Square"
-    TriangleGlyph {} -> "Triangle"
-    EllipseGlyph _ -> "Ellipse"
-    RectSharpGlyph _ -> "RectSharp"
-    RectRoundedGlyph {} -> "RectRounded"
-    VLineGlyph -> "VLine"
-    HLineGlyph -> "HLine"
-    PathGlyph _ -> "Path"
-
 -- | the extra area from glyph styling
 styleBoxGlyph :: Style -> Rect Double
 styleBoxGlyph s = move p' $
@@ -259,7 +244,7 @@ gpalette1_ =
 -- | line cap style
 data LineCap = LineCapButt | LineCapRound | LineCapSquare deriving (Eq, Show, Generic)
 
--- | textifier
+-- | svg textifier
 fromLineCap :: (IsString s) => LineCap -> s
 fromLineCap LineCapButt = "butt"
 fromLineCap LineCapRound = "round"
@@ -275,7 +260,7 @@ toLineCap _ = LineCapButt
 -- | line cap style
 data LineJoin = LineJoinMiter | LineJoinBevel | LineJoinRound deriving (Eq, Show, Generic)
 
--- | textifier
+-- | svg textifier
 fromLineJoin :: (IsString s) => LineJoin -> s
 fromLineJoin LineJoinMiter = "miter"
 fromLineJoin LineJoinBevel = "bevel"

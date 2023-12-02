@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use isNothing" #-}
 
 -- | Base 'Chart' and 'ChartTree' types and support
 module Chart.Primitive
@@ -53,6 +55,7 @@ module Chart.Primitive
     box',
     styleBoxes,
     styleBox',
+    safeBox',
 
     -- * Combinators
     vert,
@@ -82,7 +85,6 @@ import Data.Tree
 import GHC.Generics
 import Optics.Core
 import Prelude
-import NumHask.Prelude qualified as NH
 
 -- $setup
 --
@@ -327,16 +329,7 @@ sbox (Chart _ (BlankData a)) = foldRect a
 -- >>> projectWith (fmap (2*) one) one r
 -- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -1.0 1.0 -1.0 1.0]
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
-projectWith new old c@(Chart s a) =
-  case view #scaleP s of
-    ScalePArea -> Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
-    NoScaleP -> Chart s (projectChartDataWith new' old' a)
-    ScaleMinDim -> Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
-    ScalePX -> Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
-    ScalePY -> Chart (scaleStyle (scaleRatio (view #scaleP s) new old) s) (projectChartDataWith new old a)
-   where
-     new' = fromMaybe one $ (NH.-) <$> Just new <*> ((NH.-) <$> sbox c <*> box (chartData c))
-     old' = fromMaybe one $ (NH.-) <$> Just old <*> ((NH.-) <$> sbox c <*> box (chartData c))
+projectWith new old c = c & over #style (scaleStyle (scaleRatio (view (#style % #scaleP) c) new old)) & over #chartData (projectChartDataWith new old)
 
 projectChartDataWith :: Rect Double -> Rect Double -> ChartData -> ChartData
 projectChartDataWith new old (RectData a) = RectData (projectOnR new old <$> a)
@@ -395,7 +388,7 @@ projectChartTree new ct = case view styleBox' ct of
 projectChartTreeN :: Int -> Rect Double -> ChartTree -> ChartTree
 projectChartTreeN n new ct = foldr ($) ct (replicate n (projectChartTree new))
 
--- | Compute the bounding box of a list of charts.
+-- | Compute the bounding box of a list of charts, not including style allowances.
 boxes :: [Chart] -> Maybe (Rect Double)
 boxes cs = foldRect $ mconcat $ maybeToList . box <$> (chartData <$> cs)
 
@@ -432,6 +425,24 @@ styleRebox_ cs r =
 styleBox' :: Lens' ChartTree (Maybe (Rect Double))
 styleBox' =
   lens styleBox_ styleRebox_
+
+-- | Getter of a ChartTree bounding box that:
+--
+-- - tries just the data first
+--
+-- - tries data + style if there are singleton dimensions (TextCharts are typical of this if the text is in a single column)
+--
+-- - pad singleton dimensions and defaults to one, if the chart tree is empty.
+--
+safeBox' :: Getter ChartTree (Rect Double)
+safeBox' = Optics.Core.to safeBox_
+
+safeBox_ :: ChartTree -> Rect Double
+safeBox_ ct
+  | b == Nothing || (Just True == fmap isSingleton b) = maybe one padSingletons (view styleBox' ct)
+  | otherwise = fromMaybe one b
+  where
+    b = view box' ct
 
 -- | Create a frame over some charts with (additive) padding.
 --

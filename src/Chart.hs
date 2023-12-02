@@ -128,7 +128,7 @@ import Data.Path.Parser
 --
 -- This protocol is reified in 'runHudWith'. The most common Hud concepts, such as axes and titles, have been collected into the 'HudOptions' type.
 --
--- An important quality of 'runHud' (and conversion of charts to svg in general) is that this is the point at which chart data is converted from the data domain to the page domain, and is destructive. Typically, at that point of the pipeline, information about the data disappears, so that we no longer can tell what is chart and what is hud.
+-- An important quality of 'runHudWith' (and conversion of charts to svg in general) is that this is the point at which chart data is converted from the data domain to the page domain, and is destructive. Typically, at that point of the pipeline, information about the data disappears, so that we no longer can tell what is chart and what is hud.
 
 -- $markup
 --

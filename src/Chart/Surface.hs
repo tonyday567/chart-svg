@@ -135,7 +135,7 @@ surfaceLegendAxisOptions =
     Nothing
     ( Ticks
         (TickRound (FormatN FSPrec (Just 3) 4 True True) 4 NoTickExtend)
-        (Just (defaultGlyphTick & set (#item % #shape) HLineGlyph))
+        (Just defaultGlyphTickStyleY)
         (Just (defaultTextTick & set #buffer 0.05))
         Nothing
     )

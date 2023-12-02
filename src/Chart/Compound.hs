@@ -92,7 +92,7 @@ addHudCompound asp ts@((_, cs0) : _) =
 -- | Combine a collection of chart trees that share a canvas box.
 runHudCompoundWith ::
   -- | initial canvas
-  CanvasBox ->
+  ChartBox ->
   -- | databox-huds-chart tuples representing independent chart trees occupying the same canvas space
   [(DataBox, [Hud], ChartTree)] ->
   -- | integrated chart tree

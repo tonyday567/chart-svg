@@ -494,7 +494,7 @@ markupChartOptions co =
   where
     viewbox = fromMaybe one (view styleBox' ctFinal)
     ctFinal =
-      projectChartWith
+      projectChartTreeWith
       (view (#markupOptions % #chartAspect) co)
       (view #hudOptions co)
       (view #chartTree co)
