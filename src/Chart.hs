@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# OPTIONS_HADDOCK prune #-}
 
 -- | A haskell Charting library targetting SVG.

@@ -1,2 +1,8 @@
 packages:
   chart-svg.cabal
+
+allow-newer:
+  string-interpolate:bytestring,
+  string-interpolate:text,
+  string-interpolate:template-haskell,
+  formatn:text,
