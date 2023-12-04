@@ -2,9 +2,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use isNothing" #-}
 
 -- | Base 'Chart' and 'ChartTree' types and support
 module Chart.Primitive

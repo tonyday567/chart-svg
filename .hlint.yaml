@@ -14,6 +14,7 @@
 - ignore: {name: Use isAsciiUpper}
 - ignore: {name: Use isDigit}
 - ignore: {name: Use unwords}
+- ignore: {name: Use isNothing}
 # Replace a $ b $ c with a . b $ c
 #- group: {name: dollar, enabled: true}
 

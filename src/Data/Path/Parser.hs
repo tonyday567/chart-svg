@@ -277,9 +277,10 @@ relToAbs :: (Additive a) => a -> [a] -> [a]
 relToAbs p xs = accsum (p : xs)
 
 moveTo :: [Point Double] -> State PathCursor [PathData Double]
-moveTo xs = do
-  put (PathCursor (last xs) (head xs) Nothing)
-  pure (StartP (head xs) : (LineP <$> tail xs))
+moveTo [] = pure []
+moveTo (x : xs) = do
+  put (PathCursor (fromMaybe x $ listToMaybe $ reverse xs) x Nothing)
+  pure (StartP x : (LineP <$> xs))
 
 lineTo :: [Point Double] -> State PathCursor [PathData Double]
 lineTo xs = do
