@@ -133,9 +133,11 @@ markupRect (Rect x z y w) =
 
 -- | Convert a Chart to Markup
 --
--- >>> :set -Wno-x-partial
--- >>> lineExample & view #chartTree & foldOf charts' & head & markupChart & markdown_ Compact Xml
--- "<g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g>"
+-- >>> import MarkupParse
+-- >>> import Optics.Core
+-- >>> import Control.Category ((>>>))
+-- >>> lineExample & toListOf (#chartTree % charts') & mconcat & fmap (markupChart >>> markdown_ Compact Xml)
+-- ["<g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g>","<g stroke-width=\"0.0150\" stroke=\"rgb(2%, 29%, 48%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,0 2.8,-3.0\"/></g>","<g stroke-width=\"0.0150\" stroke=\"rgb(66%, 7%, 55%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0.5,-4.0 0.5,0\"/></g>"]
 markupChart :: Chart -> Markup
 markupChart = uncurry (element "g") . f
   where
