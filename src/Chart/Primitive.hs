@@ -109,7 +109,7 @@ import Prelude
 --
 -- >>> let r = RectChart defaultRectStyle [one]
 -- >>> r
--- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -0.5 0.5 -0.5 0.5]
+-- Chart {style = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}, chartData = RectData [Rect (-0.5) 0.5 (-0.5) 0.5]}
 --
 -- Using the defaults, this chart is rendered as:
 --
@@ -298,8 +298,8 @@ blankChart r = Chart defaultStyle (BlankData [r])
 
 -- | The 'Rect' which encloses the data elements of the chart. /Bounding box/ is a synonym.
 --
--- >>> box r
--- Just Rect -0.5 0.5 -0.5 0.5
+-- >>> box (chartData r)
+-- Just Rect (-0.5) 0.5 (-0.5) 0.5
 box :: ChartData -> Maybe (Rect Double)
 box (RectData a) = foldRect a
 box (TextData a) = space1 $ snd <$> a
@@ -311,7 +311,7 @@ box (BlankData a) = foldRect a
 -- | The bounding box for a chart including both data and style elements.
 --
 -- >>> sbox r
--- Just Rect -0.505 0.505 -0.505 0.505
+-- Just Rect (-0.505) 0.505 (-0.505) 0.505
 --
 -- In the above example, the border of the rectangle adds an extra 0.1 to the height and width of the bounding box enclosing the chart.
 sbox :: Chart -> Maybe (Rect Double)
@@ -325,7 +325,7 @@ sbox (Chart _ (BlankData a)) = foldRect a
 -- | projects a Chart to a new space from an old rectangular space, preserving linear metric structure.
 --
 -- >>> projectWith (fmap (2*) one) one r
--- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) [Rect -1.0 1.0 -1.0 1.0]
+-- Chart {style = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}, chartData = RectData [Rect (-1.0) 1.0 (-1.0) 1.0]}
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old c = c & over #style (scaleStyle (scaleRatio (view (#style % #scaleP) c) new old)) & over #chartData (projectChartDataWith new old)
 
@@ -443,8 +443,8 @@ safeBox_ ct
 
 -- | Create a frame over some charts with (additive) padding.
 --
--- >>> frameChart defaultRectStyle 0.1 [BlankChart []]
--- RectChart (RectStyle {borderSize = 1.0e-2, borderColor = Colour 0.02 0.29 0.48 1.00, color = Colour 0.02 0.73 0.80 0.10}) []
+-- >>> frameChart defaultRectStyle 0.1 (unnamed [BlankChart defaultStyle []])
+-- ChartTree {tree = Node {rootLabel = (Just "frame",[Chart {style = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}, chartData = RectData []}]), subForest = []}}
 frameChart :: Style -> Double -> ChartTree -> ChartTree
 frameChart rs p cs = named "frame" [Chart rs (RectData (maybeToList (padRect p <$> view styleBox' cs)))]
 

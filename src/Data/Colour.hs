@@ -239,7 +239,7 @@ i2d x = chr (ord '0' + x)
 
 -- | Select a Colour from the palette
 --
--- >>> palette1 0
+-- >>> palette 0
 -- Colour 0.02 0.73 0.80 1.00
 --
 -- ![wheel](other/wheel.svg)
@@ -253,13 +253,13 @@ palette1LCHA_ = [LCHA 0.72 0.123 207 1, LCHA 0.40 0.10 246 1, LCHA 0.50 0.21 338
 --
 -- Swatched to the oklab color model:
 --
--- ![palette1](other/palette1.svg)
+-- ![palette](other/palette.svg)
 palette1_ :: [Colour]
 palette1_ = trimColour . view lcha2colour' <$> palette1LCHA_
 
 -- | Select a Colour from the palette with a specified opacity
 --
--- >>> palette1a 0 0.5
+-- >>> paletteO 0 0.5
 -- Colour 0.02 0.73 0.80 0.50
 paletteO :: Int -> Double -> Colour
 paletteO x a = set opac' a $ cycle palette1_ List.!! x

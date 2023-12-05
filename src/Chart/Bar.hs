@@ -122,7 +122,7 @@ barX0 o xs i j = outerGap o / 2 + fromIntegral i + fromIntegral j * (barWidth o 
 -- | Make bars from the double list values, normalizing to one :: Rect.
 --
 -- >>> barRects defaultBarOptions [[1,2],[2,3]]
--- [[Rect 5.0e-2 0.5 0.0 1.0,Rect 1.05 1.5 0.0 2.0],[Rect 0.5 0.95 0.0 2.0,Rect 1.5 1.95 0.0 3.0]]
+-- [[Rect (-0.5) (-0.26315789473684215) (-0.5) (-0.16666666666666669),Rect 2.631578947368418e-2 0.26315789473684204 (-0.5) 0.16666666666666663],[Rect (-0.26315789473684215) (-2.6315789473684292e-2) (-0.5) 0.16666666666666663,Rect 0.26315789473684204 0.4999999999999999 (-0.5) 0.5]]
 --
 -- >>> barRects defaultBarOptions [[]]
 -- []
@@ -204,7 +204,7 @@ data BarData = BarData
 -- Rect 0.0 2.0 0.0 3.0
 --
 -- >>> barRange [[]]
--- Rect -0.5 0.5 -0.5 0.5
+-- Rect (-0.5) 0.5 (-0.5) 0.5
 barRange ::
   [[Double]] -> Rect Double
 barRange ys = padSingletons $ Rect 0 (fromIntegral $ rows ys) (min 0 l) u
@@ -214,6 +214,7 @@ barRange ys = padSingletons $ Rect 0 (fromIntegral $ rows ys) (min 0 l) u
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] [] [])
+-- [Chart {style = Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.02 0.29 0.48 0.70, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}, chartData = RectData [Rect (-0.5) (-0.26315789473684215) (-0.5) (-0.16666666666666669),Rect 2.631578947368418e-2 0.26315789473684204 (-0.5) 0.16666666666666663]},Chart {style = Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.66 0.07 0.55 0.70, borderColor = Colour 0.66 0.07 0.55 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}, chartData = RectData [Rect (-0.26315789473684215) (-2.6315789473684292e-2) (-0.5) 0.16666666666666663,Rect 0.26315789473684204 0.4999999999999999 (-0.5) 0.5]}]
 --
 -- >>> bars defaultBarOptions (BarData [[]] [] [])
 -- []

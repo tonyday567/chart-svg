@@ -35,7 +35,7 @@ import NumHask.Space
 -- | Additive pad (or frame or buffer) a Rect.
 --
 -- >>> padRect 1 one
--- Rect -1.5 1.5 -1.5 1.5
+-- Rect (-1.5) 1.5 (-1.5) 1.5
 padRect :: (Subtractive a) => a -> Rect a -> Rect a
 padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
 
@@ -46,10 +46,10 @@ padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
 -- Due to the use of scaling, and thus zero dividing, this is a common exception to guard against.
 --
 -- >>> project (Rect 0 0 0 1) one (Point 0 0)
--- Point NaN -0.5
+-- Point NaN (-0.5)
 --
 -- >>> project (padSingletons (Rect 0 0 0 1)) one (Point 0 0)
--- Point 0.0 -0.5
+-- Point 0.0 (-0.5)
 padSingletons :: Rect Double -> Rect Double
 padSingletons (Rect x z y w)
   | x == z && y == w = Rect (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)

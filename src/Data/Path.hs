@@ -193,7 +193,7 @@ data ArcCentroid a = ArcCentroid
 --
 -- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
 -- >>> arcCentroid p
--- ArcCentroid {centroid = Point 0.20952624903444356 -0.48412291827592724, radius = Point 1.0 0.5, cphi = 0.7853981633974483, ang0 = 1.3753858999692936, angdiff = -1.823476581936975}
+-- ArcCentroid {centroid = Point 0.20952624903444356 (-0.48412291827592724), radius = Point 1.0 0.5, cphi = 0.7853981633974483, ang0 = 1.3753858999692936, angdiff = -1.823476581936975}
 arcCentroid :: (Ord a, FromInteger a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' large' clockwise')) = ArcCentroid c (Point rx ry) phi' ang1 angd
   where
@@ -242,7 +242,7 @@ arcPosition (ArcCentroid c r phi' ang1 angd) =
 -- | Ellipse formulae
 --
 -- >>> ellipse zero (Point 1 2) (pi/6) pi
--- Point -0.8660254037844388 -0.4999999999999997
+-- Point (-0.8660254037844388) (-0.4999999999999997)
 --
 -- Compare this "elegent" definition from [stackexchange](https://math.stackexchange.com/questions/426150/what-is-the-general-equation-of-the-ellipse-that-is-not-in-the-origin-and-rotate)
 --
@@ -259,9 +259,8 @@ ellipse c r phi' theta = c + (rotate phi' |. (r * ray theta))
 -- | compute the bounding box for an arcBox
 --
 -- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
--- >>> import Data.FormatN
--- >>> fmap (fixed (Just 3)) (arcBox p)
--- Rect "-0.000" "1.000" "-0.000" "0.306"
+-- >>> arcBox p
+-- Rect (-8.326672684688674e-17) 0.9999999999999998 (-5.551115123125783e-17) 0.30644649676616753
 arcBox :: ArcPosition Double -> Rect Double
 arcBox p = unsafeSpace1 pts
   where
@@ -332,7 +331,7 @@ quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
 -- > quadPolar . quadPosition == id
 --
 -- >>> quadPosition $ quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
--- QuadPosition {qposStart = Point 0.0 0.0, qposEnd = Point 1.0 1.0, qposControl = Point 2.0 -0.9999999999999998}
+-- QuadPosition {qposStart = Point 0.0 0.0, qposEnd = Point 1.0 1.0, qposControl = Point 2.0 (-0.9999999999999998)}
 quadPosition :: (TrigField a) => QuadPolar a -> QuadPosition a
 quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
   where
@@ -341,7 +340,7 @@ quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
 -- | The quadratic bezier equation
 --
 -- >>> quadBezier (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))) 0.33333333
--- Point 0.9999999933333332 -0.33333333333333326
+-- Point 0.9999999933333332 (-0.33333333333333326)
 quadBezier :: (FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start' end control) theta =
   (1 - theta)
@@ -369,7 +368,7 @@ quadDerivs (QuadPosition start' end control) = [x', y']
 -- | Bounding box for a QuadPosition
 --
 -- >>> quadBox (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
--- Rect 0.0 1.3333333333333335 -0.33333333333333337 1.0
+-- Rect 0.0 1.3333333333333335 (-0.33333333333333337) 1.0
 quadBox :: QuadPosition Double -> Rect Double
 quadBox p = unsafeSpace1 pts
   where
@@ -424,7 +423,7 @@ cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end 
 -- > cubicPolar . cubicPosition == id
 --
 -- >>> cubicPosition $ cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
--- CubicPosition {cposStart = Point 0.0 0.0, cposEnd = Point 1.0 1.0, cposControl1 = Point 1.0 -1.0, cposControl2 = Point 1.6653345369377348e-16 2.0}
+-- CubicPosition {cposStart = Point 0.0 0.0, cposEnd = Point 1.0 1.0, cposControl1 = Point 1.0 (-1.0), cposControl2 = Point 1.6653345369377348e-16 2.0}
 cubicPosition :: (Eq a, TrigField a, ExpField a) => CubicPolar a -> CubicPosition a
 cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' end control1' control2'
   where
@@ -478,7 +477,7 @@ cubicDerivs
 -- | Bounding box for a CubicPosition
 --
 -- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
--- Rect 0.0 1.0 -0.20710678118654752 1.2071067811865475
+-- Rect 0.0 1.0 (-0.20710678118654752) 1.2071067811865475
 cubicBox :: CubicPosition Double -> Rect Double
 cubicBox p = unsafeSpace1 pts
   where
