@@ -1,123 +1,104 @@
 #+TITLE: gallery
 
 * Chart Gallery
-:PROPERTIES:
-:EXPORT_FILE_NAME: chart-gallery
-:export_date: 2022-2-9
-:END:
 
-All the haddock charts in [[https://github.com/tonyday567/chart-svg][chart-svg]].
-
-** line
-   :PROPERTIES:
-   :CUSTOM_ID: line
-   :END:
-[[file:other/line.svg]]
-
-** debug
-   :PROPERTIES:
-   :CUSTOM_ID: debug
-   :END:
-[[file:other/debug.svg]]
-
-** gradient
-[[file:other/gradient.svg]]
-
-** wheel
-[[file:other/wheel.svg]]
+All the example charts in [[https://github.com/tonyday567/chart-svg][chart-svg]].
 
 ** unit
-   :PROPERTIES:
-   :CUSTOM_ID: unit
-   :END:
 [[file:other/unit.svg]]
 
 ** hudoptions
-   :PROPERTIES:
-   :CUSTOM_ID: hudoptions
-   :END:
+
 [[file:other/hudoptions.svg]]
 
+** line
+
+[[file:other/line.svg]]
+
 ** rect
-   :PROPERTIES:
-   :CUSTOM_ID: rect
-   :END:
+
 [[file:other/rect.svg]]
 
-** surface
-   :PROPERTIES:
-   :CUSTOM_ID: surface
-   :END:
-[[file:other/surface.svg]]
-
 ** text
-   :PROPERTIES:
-   :CUSTOM_ID: text
-   :END:
+
 [[file:other/text.svg]]
 
-** wave
-   :PROPERTIES:
-   :CUSTOM_ID: wave
-   :END:
-[[file:other/wave.svg]]
+** glyphs
+
+[[file:other/glyphs.svg]]
+
+** path
+
+[[file:other/path.svg]]
 
 ** bar
 
 [[file:other/bar.svg]]
 
-** date
-   :PROPERTIES:
-   :CUSTOM_ID: date
-   :END:
-[[file:other/date.svg]]
+** sbar
 
-** arrow
-   :PROPERTIES:
-   :CUSTOM_ID: arrow
-   :END:
-[[file:other/arrow.svg]]
+[[file:other/sbar.svg]]
 
-** glyphs
-   :PROPERTIES:
-   :CUSTOM_ID: glyphs
-   :END:
-[[file:other/glyphs.svg]]
+** wave
+
+[[file:other/wave.svg]]
+
+** surface
+
+[[file:other/surface.svg]]
 
 ** arcflags
-   :PROPERTIES:
-   :CUSTOM_ID: arcflags
-   :END:
+
 [[file:other/arcflags.svg]]
 
 ** ellipse
-   :PROPERTIES:
-   :CUSTOM_ID: ellipse
-   :END:
+
 [[file:other/ellipse.svg]]
 
 [[file:other/ellipse2.svg]]
 
-** path
-   :PROPERTIES:
-   :CUSTOM_ID: path
-   :END:
-[[file:other/path.svg]]
-
 ** quad
-   :PROPERTIES:
-   :CUSTOM_ID: quad
-   :END:
+
 [[file:other/quad.svg]]
 
 ** cubic
-   :PROPERTIES:
-   :CUSTOM_ID: cubic
-   :END:
+
 [[file:other/cubic.svg]]
 
 ** venn
-   :PROPERTIES:
-   :CUSTOM_ID: venn
-   :END:
+
 [[file:other/venn.svg]]
+
+** arrow
+
+[[file:other/arrow.svg]]
+
+** date
+
+[[file:other/date.svg]]
+
+** gradient
+
+[[file:other/gradient.svg]]
+
+** wheel
+
+[[file:other/wheel.svg]]
+
+** debug
+
+[[file:other/debug.svg]]
+
+
+** compound
+
+[[file:other/compound.svg]]
+** stack
+
+[[file:other/stack.svg]]
+** priorityv1
+
+[[file:other/priorityv1.svg]]
+** priorityv2
+
+[[file:other/priorityv2.svg]]

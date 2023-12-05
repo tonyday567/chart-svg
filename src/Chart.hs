@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# OPTIONS_HADDOCK prune #-}
 
 -- | A haskell Charting library targetting SVG.
@@ -33,6 +34,7 @@ module Chart
     module Chart.Hud,
     module Chart.Style,
     module Chart.Markup,
+    module Chart.Compound,
     module Chart.Bar,
     module Chart.Surface,
     module Data.Colour,
@@ -43,6 +45,7 @@ module Chart
 where
 
 import Chart.Bar
+import Chart.Compound
 import Chart.Data
 import Chart.Hud
 import Chart.Markup
@@ -68,9 +71,9 @@ import Data.Path.Parser
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
--- >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
+-- >>> let styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
 -- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
--- >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+-- >>> let lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
 -- >>> writeChartOptions "other/usage.svg" lineExample
 
 -- $overview
@@ -89,14 +92,14 @@ import Data.Path.Parser
 --
 -- and some line styles with different colors in order to distinguish the data:
 --
--- >>> let styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
+-- >>> let styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
 -- >>> styles
--- [LineStyle {size = 1.5e-2, color = Colour 0.02 0.73 0.80 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 1.5e-2, color = Colour 0.02 0.29 0.48 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing},LineStyle {size = 1.5e-2, color = Colour 0.66 0.07 0.55 1.00, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing}]
+-- [Style {size = 1.5e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph},Style {size = 1.5e-2, borderSize = 1.0e-2, color = Colour 0.02 0.29 0.48 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph},Style {size = 1.5e-2, borderSize = 1.0e-2, color = Colour 0.66 0.07 0.55 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}]
 --
 -- This is enough to create the charts.
 --
 -- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
--- >>> let lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+-- >>> let lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
 -- >>> :t lineExample
 -- lineExample :: ChartOptions
 --
@@ -126,7 +129,7 @@ import Data.Path.Parser
 --
 -- This protocol is reified in 'runHudWith'. The most common Hud concepts, such as axes and titles, have been collected into the 'HudOptions' type.
 --
--- An important quality of 'runHud' (and conversion of charts to svg in general) is that this is the point at which chart data is converted from the data domain to the page domain, and is destructive. Typically, at that point of the pipeline, information about the data disappears, so that we no longer can tell what is chart and what is hud.
+-- An important quality of 'runHudWith' (and conversion of charts to svg in general) is that this is the point at which chart data is converted from the data domain to the page domain, and is destructive. Typically, at that point of the pipeline, information about the data disappears, so that we no longer can tell what is chart and what is hud.
 
 -- $markup
 --

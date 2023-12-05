@@ -9,14 +9,16 @@ A charting library targetting SVG.
 * Usage
 
 #+begin_src haskell :file other/usage.svg :results output graphics file :exports both
+:r
+:set prompt "> "
 :set -XOverloadedLabels
 :set -XOverloadedStrings
 import Chart
 import Optics.Core
 lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
-styles = (\c -> defaultLineStyle & #color .~ palette1 c & #size .~ 0.015) <$> [0..2]
+styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
 cs = zipWith (\s x -> LineChart s [x]) styles lines
-lineExample = mempty & #charts .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
 writeChartOptions "other/usage.svg" lineExample
 #+end_src
 
@@ -24,6 +26,21 @@ writeChartOptions "other/usage.svg" lineExample
 [[file:other/usage.svg]]
 
 See the haddock documentation for a detailed overview.
+
+* Examples
+
+To redraw all the examples in Chart.Examples
+
+#+begin_src haskell :results output
+import Chart.Examples
+writeAllExamples
+#+end_src
+
+#+RESULTS:
+: ok
+
+
+
 
 * Related projects
 

@@ -6,6 +6,7 @@
 module Chart.Markup
   ( Markup (..),
     ChartOptions (..),
+    forgetHud,
     markupChartOptions,
     markupChartTree,
     markupChart,
@@ -24,6 +25,7 @@ module Chart.Markup
     defaultMarkupOptions,
     encodeNum,
     encodePx,
+    defaultCssFontFamilies,
   )
 where
 
@@ -75,27 +77,28 @@ encodePx = strToUtf8 . show . (floor :: Double -> Int)
 
 -- | Convert a ChartTree to markup
 --
--- >>> lineExample & view #charts & markupChartTree & markdown_ Compact Xml
+-- >>> lineExample & view #chartTree & markupChartTree & markdown_ Compact Xml
 -- "<g class=\"line\"><g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g><g stroke-width=\"0.0150\" stroke=\"rgb(2%, 29%, 48%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,0 2.8,-3.0\"/></g><g stroke-width=\"0.0150\" stroke=\"rgb(66%, 7%, 55%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0.5,-4.0 0.5,0\"/></g></g>"
 markupChartTree :: ChartTree -> Markup
 markupChartTree cs =
   maybe xs' (\l -> element "g" [Attr "class" (encodeUtf8 l)] xs') label
   where
-    (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart) cs
+    (ChartTree (Node (label, cs') xs)) = filterChartTree (not . isEmptyChart . chartData) cs
     xs' = mconcat $ fmap markupChart cs' <> (markupChartTree . ChartTree <$> xs)
 
-markupText :: TextStyle -> Text -> Point Double -> Markup
-markupText s t p@(Point x y) = element "text" as (frame' <> content c)
+markupText :: Style -> Text -> Point Double -> Markup
+markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) (content c) (EscapeText == view #escapeText s))
   where
     as =
       uncurry Attr
         <$> [ ("x", encodeNum x),
               ("y", encodeNum $ -y)
             ]
-          <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> (s ^. #rotation))
+          <> maybeToList ((\x' -> ("transform", toRotateText x' p)) <$> view #rotation s)
+    -- This is very late for a chart creation. It is here so that the chart doesn't undergo scaling and thus picks up the local size of the text, less the border size of the frame.
     frame' = case view #frame s of
       Nothing -> Markup mempty
-      Just f -> markupChart (RectChart (f & over #borderSize (* view #size s)) [styleBoxText s t p])
+      Just f -> markupChart (Chart (f & over #borderSize (* view #size s)) (RectData [styleBoxText (s & set #frame Nothing) t p]))
     c = encodeUtf8 t
 
 -- | Markup a text rotation about a point in radians.
@@ -130,17 +133,20 @@ markupRect (Rect x z y w) =
 
 -- | Convert a Chart to Markup
 --
--- >>> lineExample & view #charts & foldOf charts' & head & markupChart & markdown_ Compact Xml
--- "<g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g>"
+-- >>> import MarkupParse
+-- >>> import Optics.Core
+-- >>> import Control.Category ((>>>))
+-- >>> lineExample & toListOf (#chartTree % charts') & mconcat & fmap (markupChart >>> markdown_ Compact Xml)
+-- ["<g stroke-width=\"0.0150\" stroke=\"rgb(2%, 73%, 80%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,-1.0 1.0,-1.0 2.0,-5.0\"/></g>","<g stroke-width=\"0.0150\" stroke=\"rgb(2%, 29%, 48%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0,0 2.8,-3.0\"/></g>","<g stroke-width=\"0.0150\" stroke=\"rgb(66%, 7%, 55%)\" stroke-opacity=\"1.0\" fill=\"none\"><polyline points=\"0.5,-4.0 0.5,0\"/></g>"]
 markupChart :: Chart -> Markup
 markupChart = uncurry (element "g") . f
   where
-    f (RectChart s xs) = (attsRect s, mconcat (markupRect <$> xs))
-    f (TextChart s xs) = (attsText s, mconcat (uncurry (markupText s) <$> xs))
-    f (GlyphChart s xs) = (attsGlyph s, mconcat (markupGlyph s <$> xs))
-    f (PathChart s xs) = (attsPath s, markupPath xs)
-    f (LineChart s xs) = (attsLine s, markupLine xs)
-    f (BlankChart _) = ([], mempty)
+    f (Chart s (RectData xs)) = (attsRect s, mconcat (markupRect <$> xs))
+    f (Chart s (TextData xs)) = (attsText s, mconcat (uncurry (markupText s) <$> xs))
+    f (Chart s (GlyphData xs)) = (attsGlyph s, mconcat (markupGlyph s <$> xs))
+    f (Chart s (PathData xs)) = (attsPath s, markupPath xs)
+    f (Chart s (LineData xs)) = (attsLine s, markupLine xs)
+    f (Chart _ (BlankData _)) = ([], mempty)
 
 markupLine :: [[Point Double]] -> Markup
 markupLine lss =
@@ -156,13 +162,13 @@ markupPath ps =
 
 -- | GlyphStyle to markup Tree
 -- Note rotation on the outside not the inside.
-markupGlyph :: GlyphStyle -> Point Double -> Markup
+markupGlyph :: Style -> Point Double -> Markup
 markupGlyph s p =
   case view #rotation s of
     Nothing -> gl
     Just r -> element "g" [Attr "transform" (toRotateText r p)] gl
   where
-    gl = markupShape_ (s ^. #shape) (s ^. #size) p
+    gl = markupShape_ (view #shape s) (view #size s) p
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> ByteString
@@ -171,40 +177,40 @@ fromDashArray xs = intercalate " " $ encodeNum <$> xs
 fromDashOffset :: Double -> ByteString
 fromDashOffset x = encodeNum x
 
-attsLine :: LineStyle -> [Attr]
+attsLine :: Style -> [Attr]
 attsLine o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum $ o ^. #size),
-          ("stroke", showRGB $ o ^. #color),
-          ("stroke-opacity", showOpacity $ o ^. #color),
+    <$> [ ("stroke-width", encodeNum $ view #size o),
+          ("stroke", showRGB $ view #color o),
+          ("stroke-opacity", showOpacity $ view #color o),
           ("fill", "none")
         ]
       <> catMaybes
-        [(\x -> ("stroke-linecap", fromLineCap x)) <$> (o ^. #linecap)]
-      <> foldMap (\x -> [("stroke-linejoin", fromLineJoin x)]) (o ^. #linejoin)
-      <> foldMap (\x -> [("stroke-dasharray", fromDashArray x)]) (o ^. #dasharray)
-      <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (o ^. #dashoffset)
+        [(\x -> ("stroke-linecap", fromLineCap x)) <$> view #linecap o]
+      <> foldMap (\x -> [("stroke-linejoin", fromLineJoin x)]) (view #linejoin o)
+      <> foldMap (\x -> [("stroke-dasharray", fromDashArray x)]) (view #dasharray o)
+      <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (view #dashoffset o)
 
-attsRect :: RectStyle -> [Attr]
+attsRect :: Style -> [Attr]
 attsRect o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum $ o ^. #borderSize),
-          ("stroke", showRGB $ o ^. #borderColor),
-          ("stroke-opacity", showOpacity $ o ^. #borderColor),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color)
+    <$> [ ("stroke-width", encodeNum $ view #borderSize o),
+          ("stroke", showRGB $ view #borderColor o),
+          ("stroke-opacity", showOpacity $ view #borderColor o),
+          ("fill", showRGB $ view #color o),
+          ("fill-opacity", showOpacity $ view #color o)
         ]
 
 -- | TextStyle to [Attr]
-attsText :: TextStyle -> [Attr]
+attsText :: Style -> [Attr]
 attsText o =
   uncurry Attr
     <$> [ ("stroke-width", "0.0"),
           ("stroke", "none"),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color),
-          ("font-size", encodeNum $ o ^. #size),
-          ("text-anchor", toTextAnchor $ o ^. #anchor)
+          ("fill", showRGB $ view #color o),
+          ("fill-opacity", showOpacity $ view #color o),
+          ("font-size", encodeNum $ view #size o),
+          ("text-anchor", toTextAnchor $ view #anchor o)
         ]
   where
     toTextAnchor :: Anchor -> ByteString
@@ -213,31 +219,26 @@ attsText o =
     toTextAnchor AnchorEnd = "end"
 
 -- | GlyphStyle to [Attr]
-attsGlyph :: GlyphStyle -> [Attr]
+attsGlyph :: Style -> [Attr]
 attsGlyph o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum sw),
-          ("stroke", showRGB $ o ^. #borderColor),
-          ("stroke-opacity", showOpacity $ o ^. #borderColor),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color)
+    <$> [ ("stroke-width", encodeNum $ view #borderSize o),
+          ("stroke", showRGB $ view #borderColor o),
+          ("stroke-opacity", showOpacity $ view #borderColor o),
+          ("fill", showRGB $ view #color o),
+          ("fill-opacity", showOpacity $ view #color o)
         ]
-      <> foldMap ((: []) . (,) "transform" . toTranslateText) (o ^. #translate)
-  where
-    sw = case o ^. #shape of
-      PathGlyph _ NoScaleBorder -> o ^. #borderSize
-      PathGlyph _ ScaleBorder -> min 0.2 (o ^. #borderSize / o ^. #size)
-      _ -> o ^. #borderSize
+      <> foldMap ((: []) . (,) "transform" . toTranslateText) (view #translate o)
 
 -- | PathStyle to [Attr]
-attsPath :: PathStyle -> [Attr]
+attsPath :: Style -> [Attr]
 attsPath o =
   uncurry Attr
-    <$> [ ("stroke-width", encodeNum $ o ^. #borderSize),
-          ("stroke", showRGB $ o ^. #borderColor),
-          ("stroke-opacity", showOpacity $ o ^. #borderColor),
-          ("fill", showRGB $ o ^. #color),
-          ("fill-opacity", showOpacity $ o ^. #color)
+    <$> [ ("stroke-width", encodeNum $ view #borderSize o),
+          ("stroke", showRGB $ view #borderColor o),
+          ("stroke-opacity", showOpacity $ view #borderColor o),
+          ("fill", showRGB $ view #color o),
+          ("fill-opacity", showOpacity $ view #color o)
         ]
 
 -- | includes a flip of the y dimension.
@@ -293,30 +294,38 @@ markupShape_ VLineGlyph s (Point x y) =
   emptyElem "polyline" [Attr "points" $ encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2))]
 markupShape_ HLineGlyph s (Point x y) =
   emptyElem "polyline" [Attr "points" $ encodeNum (x - s / 2) <> "," <> encodeNum (-y) <> "\n" <> encodeNum (x + s / 2) <> "," <> encodeNum (-y)]
-markupShape_ (PathGlyph path _) s p =
+markupShape_ (PathGlyph path) s p =
   emptyElem "path" (uncurry Attr <$> [("d", path), ("transform", toTranslateText p <> " " <> toScaleText s)])
 
 -- | Create the classic SVG element
 --
--- >>> header 100 one (element_ "foo" []) & markdown_ Compact Xml
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"100\" height=\"100\" viewBox=\"-0.5 -0.5 1.0 1.0\"><foo></foo></svg>"
-header :: Double -> Rect Double -> Markup -> Markup
+-- >>> header (Just 300) (Rect (-0.75) 0.75 (-0.5) 0.5) (element_ "foo" []) & markdown_ Compact Xml
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"450\" height=\"300\" viewBox=\"-0.75 -0.5 1.5 1.0\"><foo></foo></svg>"
+header :: Maybe Double -> Rect Double -> Markup -> Markup
 header markupheight viewbox content' =
   element
     "svg"
     ( uncurry Attr
-        <$> [ ("xmlns", "http://www.w3.org/2000/svg"),
-              ("xmlns:xlink", "http://www.w3.org/1999/xlink"),
-              ("width", encodePx w''),
-              ("height", encodePx h'),
-              ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
-            ]
+        <$> ( [ ("xmlns", "http://www.w3.org/2000/svg"),
+                ("xmlns:xlink", "http://www.w3.org/1999/xlink")
+              ]
+                <> widthAndHeight
+                <> [ ("viewBox", encodeNum x <> " " <> encodeNum (-w) <> " " <> encodeNum (z - x) <> " " <> encodeNum (w - y))
+                   ]
+            )
     )
     content'
   where
     (Rect x z y w) = viewbox
     Point w' h = width viewbox
-    Point w'' h' = Point (markupheight / h * w') markupheight
+    widthAndHeight = case markupheight of
+      Nothing -> []
+      Just h' ->
+        [ ("width", encodePx w''),
+          ("height", encodePx h')
+        ]
+        where
+          w'' = h' / h * w'
 
 -- | CSS prefer-color-scheme text snippet
 --
@@ -392,9 +401,10 @@ fillSwitch (colorNormal, colorPrefer) prefer item =
 -- | Markup options.
 --
 -- >>> defaultMarkupOptions
--- MarkupOptions {markupHeight = 300.0, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}, renderStyle = Compact}
+-- MarkupOptions {markupHeight = Just 300.0, chartAspect = FixedAspect 1.5, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n", cssExtra = ""}, renderStyle = Compact}
 data MarkupOptions = MarkupOptions
-  { markupHeight :: Double,
+  { markupHeight :: Maybe Double,
+    chartAspect :: ChartAspect,
     cssOptions :: CssOptions,
     renderStyle :: RenderStyle
   }
@@ -402,7 +412,18 @@ data MarkupOptions = MarkupOptions
 
 -- | The official markup options
 defaultMarkupOptions :: MarkupOptions
-defaultMarkupOptions = MarkupOptions 300 defaultCssOptions Compact
+defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) defaultCssOptions Compact
+
+defaultCssFontFamilies :: ByteString
+defaultCssFontFamilies =
+  [i|
+svg { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
+}
+
+ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+}
+
+|]
 
 -- | CSS shape rendering options
 data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
@@ -419,12 +440,12 @@ data CssPreferColorScheme
 -- | css options
 --
 -- >>> defaultCssOptions
--- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, cssExtra = ""}
-data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, cssExtra :: ByteString} deriving (Show, Eq, Generic)
+-- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n", cssExtra = ""}
+data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, fontFamilies :: ByteString, cssExtra :: ByteString} deriving (Show, Eq, Generic)
 
 -- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions
-defaultCssOptions = CssOptions NoShapeRendering PreferHud mempty
+defaultCssOptions = CssOptions NoShapeRendering PreferHud defaultCssFontFamilies mempty
 
 -- | Convert CssOptions to Markup
 markupCssOptions :: CssOptions -> Markup
@@ -432,6 +453,7 @@ markupCssOptions css =
   elementc "style" [] $
     cssPreferColorScheme (light, dark) (view #preferColorScheme css)
       <> markupShapeRendering (view #shapeRendering css)
+      <> view #fontFamilies css
       <> view #cssExtra css
 
 -- | CSS shape rendering text snippet
@@ -444,37 +466,53 @@ markupShapeRendering NoShapeRendering = mempty
 data ChartOptions = ChartOptions
   { markupOptions :: MarkupOptions,
     hudOptions :: HudOptions,
-    charts :: ChartTree
+    chartTree :: ChartTree
   }
   deriving (Generic, Eq, Show)
+
+-- | Processes the hud options and turns them into charts, rescales the existing charts, resets the hud options to mempty, and turns on 'ScalePArea' in chart styles.
+--
+-- Note that this is a destructive operation, and, in particular, that
+--
+-- view #chartTree (forgetHud (mempty & set #chartTree c)) /= c
+forgetHud :: ChartOptions -> ChartOptions
+forgetHud co =
+  co
+    & set #hudOptions mempty
+    & set #chartTree (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #chartTree co))
+    & set (#chartTree % charts' % each % #style % #scaleP) ScalePArea
 
 -- | Convert ChartOptions to Markup
 --
 -- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty) & markdown_ Compact Xml
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"450\" height=\"300\" viewBox=\"-0.75 -0.5 1.5 1.0\"><style></style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 markupChartOptions :: ChartOptions -> Markup
 markupChartOptions co =
   header
     (view (#markupOptions % #markupHeight) co)
     viewbox
     ( markupCssOptions (view (#markupOptions % #cssOptions) co)
-        <> markupChartTree csAndHud
+        <> markupChartTree ctFinal
     )
   where
-    viewbox = singletonGuard (view styleBox' csAndHud)
-    csAndHud = addHud (view #hudOptions co) (view #charts co)
+    viewbox = fromMaybe one (view styleBox' ctFinal)
+    ctFinal =
+      projectChartTreeWith
+        (view (#markupOptions % #chartAspect) co)
+        (view #hudOptions co)
+        (view #chartTree co)
 
 -- | Render ChartOptions to an SVG ByteString
 --
 -- >>> encodeChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"450\" height=\"300\" viewBox=\"-0.75 -0.5 1.5 1.0\"><style></style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 encodeChartOptions :: ChartOptions -> ByteString
 encodeChartOptions co = markdown_ (view (#markupOptions % #renderStyle) co) Xml $ markupChartOptions co
 
 -- | Render ChartOptions to an SVG Text snippet
 --
 -- >>> renderChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"450\" height=\"300\" viewBox=\"-0.75 -0.5 1.5 1.0\"><style></style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 renderChartOptions :: ChartOptions -> Text
 renderChartOptions = decodeUtf8 . encodeChartOptions
 

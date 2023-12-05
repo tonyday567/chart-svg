@@ -14,6 +14,7 @@
 - ignore: {name: Use isAsciiUpper}
 - ignore: {name: Use isDigit}
 - ignore: {name: Use unwords}
+- ignore: {name: Use isNothing}
 # Replace a $ b $ c with a . b $ c
 #- group: {name: dollar, enabled: true}
 
@@ -23,3 +24,6 @@
 
 # To generate a suitable file for HLint do:
 # $ hlint --default > .hlint.yaml
+- warn: {name: Use set, lhs: l .~ v, rhs: set l v}
+- warn: {name: Use over, lhs: l %~ f, rhs: over l f}
+- warn: {name: Use view, lhs: a ^. l, rhs: view l a}
