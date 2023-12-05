@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="452" height="300" viewBox="-0.7364 -0.4984 1.4854 0.9856"><style>svg {
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="450" height="300" viewBox="-0.75 -0.5 1.5 1.0"><style>svg {
   color-scheme: light dark;
 }
 {
@@ -22,18 +22,25 @@
   .legendBorder g {
     fill: rgb(5%, 5%, 5%);
   }
-}</style><g class="chart"></g><g class="hud"><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-width="0.0040" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><polyline points="-0.5795,0.3585
--0.5795,0.3285"/><polyline points="-0.2395,0.3585
--0.2395,0.3285"/><polyline points="0.1821,0.3585
-0.1821,0.3285"/><polyline points="0.5628,0.3585
-0.5628,0.3285"/><polyline points="0.7396,0.3585
-0.7396,0.3285"/></g></g><g class="ticktext"><g stroke-width="0.0" stroke="none" fill="rgb(5%, 5%, 5%)" fill-opacity="1.0" font-size="0.0440" text-anchor="end"><text x="-0.5795" y="0.3939" transform="rotate(-45.0, -0.5795, 0.3939)">06 Dec</text><text x="-0.2395" y="0.3939" transform="rotate(-45.0, -0.2395, 0.3939)">31 Dec</text><text x="0.1821" y="0.3939" transform="rotate(-45.0, 0.1821, 0.3939)">31 Jan</text><text x="0.5628" y="0.3939" transform="rotate(-45.0, 0.5628, 0.3939)">28 Feb</text><text x="0.7396" y="0.3939" transform="rotate(-45.0, 0.7396, 0.3939)">13 Mar</text></g></g><g class="ticklines"><g stroke-width="0.0050" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.05" fill="none"><polyline points="-0.5795,0.3197 -0.5795,-0.4742"/><polyline points="-0.2395,0.3197 -0.2395,-0.4742"/><polyline points="0.1821,0.3197 0.1821,-0.4742"/><polyline points="0.5628,0.3197 0.5628,-0.4742"/><polyline points="0.7396,0.3197 0.7396,-0.4742"/></g></g></g><g class="axisbar"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><rect width="1.3226" height="0.0032" x="-0.5812" y="0.3276"/></g></g></g><g class="axis"><g class="ticks"><g class="tickglyph"><g stroke-width="0.0040" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><g transform="rotate(-90.0, -0.6058, 0.3197)"><polyline points="-0.6058,0.3347
--0.6058,0.3047"/></g><g transform="rotate(-90.0, -0.6058, 0.2205)"><polyline points="-0.6058,0.2355
--0.6058,0.2055"/></g><g transform="rotate(-90.0, -0.6058, 0.1212)"><polyline points="-0.6058,0.1362
--0.6058,0.1062"/></g><g transform="rotate(-90.0, -0.6058, 0.0220)"><polyline points="-0.6058,0.0370
--0.6058,0.0070"/></g><g transform="rotate(-90.0, -0.6058, -0.0772)"><polyline points="-0.6058,-0.0622
--0.6058,-0.0922"/></g><g transform="rotate(-90.0, -0.6058, -0.1765)"><polyline points="-0.6058,-0.1615
--0.6058,-0.1915"/></g><g transform="rotate(-90.0, -0.6058, -0.2757)"><polyline points="-0.6058,-0.2607
--0.6058,-0.2907"/></g><g transform="rotate(-90.0, -0.6058, -0.3749)"><polyline points="-0.6058,-0.3599
--0.6058,-0.3899"/></g><g transform="rotate(-90.0, -0.6058, -0.4742)"><polyline points="-0.6058,-0.4592
--0.6058,-0.4892"/></g></g></g><g class="ticktext"><g stroke-width="0.0" stroke="none" fill="rgb(5%, 5%, 5%)" fill-opacity="1.0" font-size="0.0440" text-anchor="end"><text x="-0.6375" y="0.3306">00:00</text><text x="-0.6375" y="0.2314">03:00</text><text x="-0.6375" y="0.1322">06:00</text><text x="-0.6375" y="0.0329">09:00</text><text x="-0.6375" y="-0.0663">12:00</text><text x="-0.6375" y="-0.1655">15:00</text><text x="-0.6375" y="-0.2648">18:00</text><text x="-0.6375" y="-0.3640">21:00</text><text x="-0.6375" y="-0.4632">00:00</text></g></g><g class="ticklines"><g stroke-width="0.0050" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.05" fill="none"><polyline points="-0.5795,0.3197 0.7396,0.3197"/><polyline points="-0.5795,0.2205 0.7396,0.2205"/><polyline points="-0.5795,0.1212 0.7396,0.1212"/><polyline points="-0.5795,0.0220 0.7396,0.0220"/><polyline points="-0.5795,-0.0772 0.7396,-0.0772"/><polyline points="-0.5795,-0.1765 0.7396,-0.1765"/><polyline points="-0.5795,-0.2757 0.7396,-0.2757"/><polyline points="-0.5795,-0.3749 0.7396,-0.3749"/><polyline points="-0.5795,-0.4742 0.7396,-0.4742"/></g></g></g><g class="axisbar"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><rect width="0.0035" height="0.7970" x="-0.5918" y="-0.4758"/></g></g></g></g></svg>
+}
+svg { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
+}
+
+ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+}
+
+</style><g class="chart"></g><g class="hud"><g class="axis"><g class="axisbar"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><rect width="0.0033" height="0.7558" x="-0.5659" y="-0.4481"/></g></g><g class="ticks"><g class="ticklines"><g stroke-width="0.0050" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.05" fill="none"><polyline points="-0.5542,0.3063 0.7011,0.3063"/><polyline points="-0.5542,0.2122 0.7011,0.2122"/><polyline points="-0.5542,0.1181 0.7011,0.1181"/><polyline points="-0.5542,0.0240 0.7011,0.0240"/><polyline points="-0.5542,-0.0701 0.7011,-0.0701"/><polyline points="-0.5542,-0.1642 0.7011,-0.1642"/><polyline points="-0.5542,-0.2583 0.7011,-0.2583"/><polyline points="-0.5542,-0.3524 0.7011,-0.3524"/><polyline points="-0.5542,-0.4465 0.7011,-0.4465"/></g></g><g class="tickglyph"><g stroke-width="0.0033" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><polyline points="-0.5893,0.3063
+-0.5642,0.3063"/><polyline points="-0.5893,0.2122
+-0.5642,0.2122"/><polyline points="-0.5893,0.1181
+-0.5642,0.1181"/><polyline points="-0.5893,0.0240
+-0.5642,0.0240"/><polyline points="-0.5893,-0.0701
+-0.5642,-0.0701"/><polyline points="-0.5893,-0.1642
+-0.5642,-0.1642"/><polyline points="-0.5893,-0.2583
+-0.5642,-0.2583"/><polyline points="-0.5893,-0.3524
+-0.5642,-0.3524"/><polyline points="-0.5893,-0.4465
+-0.5642,-0.4465"/></g></g><g class="ticktext"><g stroke-width="0.0" stroke="none" fill="rgb(5%, 5%, 5%)" fill-opacity="1.0" font-size="0.0400" text-anchor="end"><text x="-0.6077" y="0.3146">00:00</text><text x="-0.6077" y="0.2205">03:00</text><text x="-0.6077" y="0.1264">06:00</text><text x="-0.6077" y="0.0323">09:00</text><text x="-0.6077" y="-0.0618">12:00</text><text x="-0.6077" y="-0.1560">15:00</text><text x="-0.6077" y="-0.2501">18:00</text><text x="-0.6077" y="-0.3442">21:00</text><text x="-0.6077" y="-0.4383">00:00</text></g></g></g></g><g class="axis"><g class="axisbar"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><rect width="1.2586" height="0.0030" x="-0.5559" y="0.3138"/></g></g><g class="ticks"><g class="ticklines"><g stroke-width="0.0050" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.05" fill="none"><polyline points="-0.5542,0.3063 -0.5542,-0.4465"/><polyline points="-0.2307,0.3063 -0.2307,-0.4465"/><polyline points="0.1705,0.3063 0.1705,-0.4465"/><polyline points="0.5328,0.3063 0.5328,-0.4465"/><polyline points="0.7011,0.3063 0.7011,-0.4465"/></g></g><g class="tickglyph"><g stroke-width="0.0030" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><polyline points="-0.5542,0.3379
+-0.5542,0.3153"/><polyline points="-0.2307,0.3379
+-0.2307,0.3153"/><polyline points="0.1705,0.3379
+0.1705,0.3153"/><polyline points="0.5328,0.3379
+0.5328,0.3153"/><polyline points="0.7011,0.3379
+0.7011,0.3153"/></g></g><g class="ticktext"><g stroke-width="0.0" stroke="none" fill="rgb(5%, 5%, 5%)" fill-opacity="1.0" font-size="0.0400" text-anchor="end"><text x="-0.5542" y="0.3793" transform="rotate(-45.0, -0.5542, 0.3793)">06 Dec</text><text x="-0.2307" y="0.3793" transform="rotate(-45.0, -0.2307, 0.3793)">31 Dec</text><text x="0.1705" y="0.3793" transform="rotate(-45.0, 0.1705, 0.3793)">31 Jan</text><text x="0.5328" y="0.3793" transform="rotate(-45.0, 0.5328, 0.3793)">28 Feb</text><text x="0.7011" y="0.3793" transform="rotate(-45.0, 0.7011, 0.3793)">13 Mar</text></g></g></g></g><g class="frame"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(100%, 100%, 100%)" fill-opacity="0.02"><rect width="1.5" height="1.0" x="-0.75" y="-0.5"/></g></g></g></svg>
