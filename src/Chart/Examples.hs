@@ -94,8 +94,8 @@ rectExample =
 
 rss :: [[Rect Double]]
 rss =
-  [ gridR (\x -> exp (-x ** 2 / 2)) (Range (-5) 5) 50,
-    gridR (\x -> 0.5 * exp (-x ** 2 / 8)) (Range (-5) 5) 50
+  [ gridR (\x -> exp (-(x ** 2 / 2))) (Range (-5) 5) 50,
+    gridR (\x -> 0.5 * exp (-(x ** 2 / 8))) (Range (-5) 5) 50
   ]
 
 ropts :: [Style]
@@ -209,7 +209,7 @@ glyphsExample =
               (EllipseGlyph 0.75, 0.02),
               (VLineGlyph, 0.02),
               (HLineGlyph, 0.02),
-              (TriangleGlyph (Point 0.0 (0.5 * sqrt 2)) (Point (-cos (pi / 3)) (-sin (pi / 3) / 2)) (Point (cos (pi / 3)) (-sin (pi / 3) / 2)), 0.02),
+              (TriangleGlyph (Point 0.0 (0.5 * sqrt 2)) (Point (-(cos (pi / 3))) (-(sin (pi / 3) / 2))) (Point (cos (pi / 3)) (-(sin (pi / 3) / 2))), 0.02),
               (PathGlyph "M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z", 0.02)
             ]
             (fmap (\x -> Point x 0) [0 ..])
@@ -295,7 +295,7 @@ pathExample =
         LineP (Point 1 0),
         CubicP (Point 0.2 0) (Point 0.25 1) (Point 1 1),
         QuadP (Point (-1) 2) (Point 0 1),
-        ArcP (ArcInfo (Point 1 1) (-pi / 6) False False) (Point 0 0)
+        ArcP (ArcInfo (Point 1 1) (-(pi / 6)) False False) (Point 0 0)
       ]
     ts =
       [ "StartP (Point 0 0)",
@@ -591,7 +591,7 @@ arrowExample =
 -- > f'y = 2 * b * y - 2 * b * x^2
 -- > f a b (Point x y) = (a^2 - 2ax + x^2 + b * y^2 - b * 2 * y * x^2 + b * x^4, Point (-2a + 2 * x - b * 4 * y * x + 4 * b * x ^ 3), 2 * b * y - 2 * b * x^2)
 rosenbrock :: Double -> Double -> Point Double -> (Double, Point Double)
-rosenbrock a b (Point x y) = (a ** 2 - 2 * a * x + x ** 2 + b * y ** 2 - b * 2 * y * x ** 2 + b * x ** 4, Point (-2 * a + 2 * x - b * 4 * y * x + 4 * b * x ** 3) (2 * b * y - 2 * b * x ** 2))
+rosenbrock a b (Point x y) = (a ** 2 - 2 * a * x + x ** 2 + b * y ** 2 - b * 2 * y * x ** 2 + b * x ** 4, Point ((-2) * a + 2 * x - b * 4 * y * x + 4 * b * x ** 3) (2 * b * y - 2 * b * x ** 2))
 
 -- | date example
 --

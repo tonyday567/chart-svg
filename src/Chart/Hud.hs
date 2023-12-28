@@ -156,15 +156,16 @@ type ChartBox = Rect Double
 type DataBox = Rect Double
 
 -- | A section of a 'HudChart'
-data HudChartSection =
-  -- | The canvas without any style allowances
-  CanvasSection |
-  -- | The canvas portion including style boundaries.
-  CanvasStyleSection |
-  -- | The hud and canvas sections, not including style.
-  HudSection |
-  -- | The hud and canvas sections, including style
-  HudStyleSection deriving (Eq, Show, Generic)
+data HudChartSection
+  = -- | The canvas without any style allowances
+    CanvasSection
+  | -- | The canvas portion including style boundaries.
+    CanvasStyleSection
+  | -- | The hud and canvas sections, not including style.
+    HudSection
+  | -- | The hud and canvas sections, including style
+    HudStyleSection
+  deriving (Eq, Show, Generic)
 
 -- | The 'Rect' of a particular 'HudChartSection' of a 'HudChart'
 hudChartBox' :: HudChartSection -> Getter HudChart (Maybe (Rect Double))
@@ -1121,7 +1122,7 @@ legendizeChart l c =
                 )
          in Chart (ps & set #borderSize (view #legendSize l)) (PathData cs)
       )
-    _ -> blankChart (Rect 0 (view #legendSize l) 0 (view #legendSize l))
+    _ -> blankChart1 (Rect 0 (view #legendSize l) 0 (view #legendSize l))
 
 legendEntry ::
   LegendOptions ->

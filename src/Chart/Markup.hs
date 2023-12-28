@@ -112,7 +112,7 @@ markupText s t p@(Point x y) = frame' <> element "text" as (bool (contentRaw c) 
 -- - flip y dimension
 toRotateText :: Double -> Point Double -> ByteString
 toRotateText r (Point x y) =
-  "rotate(" <> encodeNum (-r * 180 / pi) <> ", " <> encodeNum x <> ", " <> encodeNum (-y) <> ")"
+  "rotate(" <> encodeNum (-(r * 180 / pi)) <> ", " <> encodeNum x <> ", " <> encodeNum (-y) <> ")"
 
 toScaleText :: Double -> ByteString
 toScaleText x =

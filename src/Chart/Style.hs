@@ -10,7 +10,6 @@ module Chart.Style
 
     -- * RectStyle
     defaultRectStyle,
-    rectStyle,
     blob,
     clear,
     border,
@@ -97,10 +96,6 @@ defaultStyle = Style 0.06 0.01 (paletteO 0 0.1) (paletteO 1 1) NoScaleP AnchorMi
 defaultRectStyle :: Style
 defaultRectStyle = defaultStyle
 
--- | common pattern for Rect chart style
-rectStyle :: Double -> Colour -> Colour -> Style
-rectStyle bs bc c = defaultStyle & set #borderSize bs & set #color c & set #borderColor bc
-
 defaultTextStyle :: Style
 defaultTextStyle = defaultStyle & set #size 0.06 & set #color dark
 
@@ -171,7 +166,7 @@ styleBoxText ::
   Rect Double
 styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (view #rotation o)
   where
-    flat = Rect ((-x' / 2.0) + x' * a') (x' / 2 + x' * a') (-y' / 2 + n1') (y' / 2 + n1')
+    flat = Rect ((-(x' / 2.0)) + x' * a') (x' / 2 + x' * a') (-(y' / 2 + n1')) (y' / 2 + n1')
     s = view #size o
     h = view #hsize o
     v = view #vsize o

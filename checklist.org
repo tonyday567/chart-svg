@@ -1,0 +1,186 @@
+* checklist
+
+
+[[https://hackage.haskell.org/package/chart-svg]]
+[[https://github.com/tonyday567/chart-svg]]
+
+#+begin_src sh :results output
+cd ~/haskell/chart-svg
+#+end_src
+
+#+RESULTS:
+
+- [X] version check&bump
+
+  0.6.0.0
+- [X] ghcup upgrades
+
+  #+begin_src sh :results output
+  ghcup list -c set -r
+  #+end_src
+
+  #+RESULTS:
+  : ghc 9.8.1 latest,base-4.19.0.0 hls-powered,2023-10-09
+  : cabal 3.10.2.0 latest
+  : hls 2.5.0.0 latest,recommended
+  : stack 2.13.1 latest,recommended
+  : ghcup 0.1.20.0 latest,recommended
+- [ ] cabal.project check
+
+  #+begin_src sh :results output
+  cat cabal.project
+  #+end_src
+
+  #+RESULTS:
+  : packages:
+  :   chart-svg.cabal
+  :
+  : allow-newer:
+  :   string-interpolate:bytestring,
+  :   string-interpolate:template-haskell,
+  :   string-interpolate:text,
+  :   formatn:text,
+- [X] upstream publishings
+- [X] cabal update
+
+  #+begin_src sh :results output
+  cabal update
+  #+end_src
+
+  #+RESULTS:
+  : Downloading the latest package list from hackage.haskell.org
+  : Package list of hackage.haskell.org has been updated.
+  : The index-state is set to 2023-12-28T19:16:17Z.
+  : To revert to previous state run:
+  :     cabal v2-update 'hackage.haskell.org,2023-12-22T20:49:48Z'
+- [X] cabal outdated
+    #+begin_src sh :results output
+    cabal outdated
+    #+end_src
+
+    #+RESULTS:
+    : All dependencies are up to date.
+- [X] cabal gen-bounds
+    #+begin_src sh :results output
+    cabal gen-bounds
+    #+end_src
+
+    #+RESULTS:
+    : Resolving dependencies...
+    : Congratulations, all your dependencies have upper bounds!
+- [X] cabal build --ghc-options=-Wunused-packages
+    #+begin_src sh :results output
+    cabal clean && cabal build --ghc-options=-Wunused-packages
+    #+end_src
+
+    #+RESULTS:
+    : Up to date
+- [X] cabal-fix
+
+    #+begin_src sh :results output
+    cabal-fix --gen
+    #+end_src
+
+    #+begin_src sh :results output
+    cabal-fix -f ~/haskell/cabal-fix/my-cabal-fix.config
+    #+end_src
+
+    #+RESULTS:
+    : Nothing
+
+    #+begin_src sh :results output
+    cabal-fix -i
+    #+end_src
+
+    #+RESULTS:
+- [ ] cabal build --prefer-oldest
+
+    #+begin_src sh :results output
+    cabal build --prefer-oldest
+    #+end_src
+- [X] FIXMEs & TODOs
+- [ ] pragma cleanup
+- [X] cabal-docspec
+
+    #+begin_src sh :results output
+    cabal-docspec
+    #+end_src
+
+    #+RESULTS:
+- [ ] cabal install
+    #+begin_src sh :results output
+    cabal install
+    #+end_src
+- [ ] cabal test
+    #+begin_src sh :results output
+    cabal test
+    #+end_src
+- [ ] cabal bench
+    #+begin_src sh :results output
+    cabal bench
+    #+end_src
+
+- [X] ormolu
+
+  #+begin_src sh :results output
+  ormolu --mode check $(git ls-files '*.hs')
+  #+end_src
+
+  #+RESULTS:
+
+  #+begin_src sh :results output
+  ormolu --mode inplace $(git ls-files '*.hs')
+  #+end_src
+
+  #+RESULTS:
+- [X] hlint
+  #+begin_src sh :results output
+  hlint .
+  #+end_src
+
+  #+RESULTS:
+  : No hints
+- [X] CI upgrade
+
+  - check tested-with line in cabal file
+- [X] exact version bump
+  0.6.0.0
+- [ ] branch, push & check CI
+- [ ] haddock
+
+  #+begin_src sh :results output
+  cabal haddock
+  #+end_src
+- [ ] readme
+- [X] magit range
+- [X] ChangeLog
+- [ ] PR to main
+- [ ] merge PR
+- [ ] immediate checkout and pull main
+- [ ] final check
+
+  #+begin_src sh :results output
+  cabal clean && cabal build && cabal-docspec
+  #+end_src
+- [ ] hkgr tagdist
+
+  #+begin_src sh :results output
+  hkgr tagdist
+  #+end_src
+
+  #+RESULTS:
+  : v0.12.0.1
+  : Running hlint
+  : Wrote tarball sdist to /Users/tonyday/haskell/perf/.hkgr/perf-0.12.0.1.tar.gz
+- [ ] hkgr publish
+
+  #+begin_src sh :results output
+  hkgr tagdist
+  #+end_src
+- [ ] check Hackage
+        Sometimes haddocks don't build on Hackage. Here's a recipe for uploading your own docs.
+
+        #+begin_src sh
+        cabal haddock --builddir=docs --haddock-for-hackage --enable-doc
+        cabal upload -d --publish docs/*-docs.tar.gz
+        #+end_src

@@ -10,7 +10,6 @@ module Chart.Bar
     bars,
     barChart,
     barRects,
-    barTexts,
     barTextCharts,
   )
 where
@@ -97,7 +96,7 @@ defaultBarOptions =
     NonStacked
     defaultLegendOptions
   where
-    gs = (\x -> rectStyle 0.005 (palette x) (paletteO x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    gs = (\x -> defaultRectStyle & set #borderSize 0.005 & set #borderColor (palette x) & set #color (paletteO x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
     ts = (\x -> defaultTextStyle & set #color (palette x) & set #size 0.03) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Number of bars per row of data

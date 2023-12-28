@@ -225,7 +225,7 @@ toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
     <> " "
     <> pv' y
     <> " "
-    <> pv' (-phi' * 180 / pi)
+    <> pv' (-(phi' * 180 / pi))
     <> " "
     <> bool "0" "1" l
     <> " "

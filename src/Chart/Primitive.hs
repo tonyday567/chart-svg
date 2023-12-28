@@ -28,6 +28,7 @@ module Chart.Primitive
     charts',
     named,
     unnamed,
+    renamed,
     rename,
     blank,
     group,
@@ -64,8 +65,6 @@ module Chart.Primitive
     padChart,
     rectangularize,
     glyphize,
-    renamed,
-    blankChart,
   )
 where
 
@@ -115,7 +114,7 @@ import Prelude
 -- > writeChartOptions "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ unnamed [r]
 --
 -- ![unit example](other/unit.svg)
-data Chart = Chart { chartStyle :: Style, chartData :: ChartData} deriving (Eq, Show, Generic)
+data Chart = Chart {chartStyle :: Style, chartData :: ChartData} deriving (Eq, Show, Generic)
 
 data ChartData
   = RectData [Rect Double]
@@ -287,10 +286,6 @@ rename l (ChartTree (Node (_, cs) xs)) = ChartTree (Node (l, cs) xs)
 blank :: Rect Double -> ChartTree
 blank r = unnamed [Chart defaultStyle (BlankData [r])]
 
--- | A blamk chart
-blankChart :: Rect Double -> Chart
-blankChart r = Chart defaultStyle (BlankData [r])
-
 -- $boxes
 --
 -- Library functionality (rescaling, combining charts, working out axes and generally putting charts together) is driven by a box model. A box is a rectangular space that bounds chart elements.
@@ -415,7 +410,6 @@ styleBox' =
   lens styleBox_ styleRebox_
 
 -- | Getter of a ChartTree bounding box, including style, with singleton dimension guards, defaulting to one:
---
 safeStyleBox' :: Getter ChartTree (Rect Double)
 safeStyleBox' = Optics.Core.to (safeBox_ styleBox')
 
