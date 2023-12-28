@@ -16,10 +16,10 @@ module Chart.Markup
     writeChartOptions,
     CssOptions (..),
     defaultCssOptions,
-    CssPreferColorScheme (..),
+    PreferColorScheme (..),
     cssPreferColorScheme,
     fillSwitch,
-    CssShapeRendering (..),
+    ShapeRendering (..),
     markupCssOptions,
     MarkupOptions (..),
     defaultMarkupOptions,
@@ -168,7 +168,7 @@ markupGlyph s p =
     Nothing -> gl
     Just r -> element "g" [Attr "transform" (toRotateText r p)] gl
   where
-    gl = markupShape_ (view #shape s) (view #size s) p
+    gl = markupShape_ (view #glyphShape s) (view #size s) p
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> ByteString
@@ -186,8 +186,8 @@ attsLine o =
           ("fill", "none")
         ]
       <> catMaybes
-        [(\x -> ("stroke-linecap", fromLineCap x)) <$> view #linecap o]
-      <> foldMap (\x -> [("stroke-linejoin", fromLineJoin x)]) (view #linejoin o)
+        [(\x -> ("stroke-linecap", fromLineCap x)) <$> view #lineCap o]
+      <> foldMap (\x -> [("stroke-linejoin", fromLineJoin x)]) (view #lineJoin o)
       <> foldMap (\x -> [("stroke-dasharray", fromDashArray x)]) (view #dasharray o)
       <> foldMap (\x -> [("stroke-dashoffset", fromDashOffset x)]) (view #dashoffset o)
 
@@ -331,7 +331,7 @@ header markupheight viewbox content' =
 --
 -- >>> cssPreferColorScheme (light, dark) PreferHud
 -- "svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgb(5%, 5%, 5%);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgb(5%, 5%, 5%);\n  }\n  .legendBorder g {\n    fill: rgb(94%, 94%, 94%);\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgb(94%, 94%, 94%);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgb(94%, 94%, 94%);\n  }\n  .legendBorder g {\n    fill: rgb(5%, 5%, 5%);\n  }\n}"
-cssPreferColorScheme :: (Colour, Colour) -> CssPreferColorScheme -> ByteString
+cssPreferColorScheme :: (Colour, Colour) -> PreferColorScheme -> ByteString
 cssPreferColorScheme (cl, cd) PreferHud =
   [i|svg {
   color-scheme: light dark;
@@ -425,11 +425,11 @@ ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","
 
 |]
 
--- | CSS shape rendering options
-data CssShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
+-- | CSS glyphShape rendering options
+data ShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
 
 -- | CSS prefer-color-scheme options
-data CssPreferColorScheme
+data PreferColorScheme
   = -- | includes css that switches approriate hud elements between light and dark.
     PreferHud
   | PreferDark
@@ -441,7 +441,7 @@ data CssPreferColorScheme
 --
 -- >>> defaultCssOptions
 -- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n", cssExtra = ""}
-data CssOptions = CssOptions {shapeRendering :: CssShapeRendering, preferColorScheme :: CssPreferColorScheme, fontFamilies :: ByteString, cssExtra :: ByteString} deriving (Show, Eq, Generic)
+data CssOptions = CssOptions {shapeRendering :: ShapeRendering, preferColorScheme :: PreferColorScheme, fontFamilies :: ByteString, cssExtra :: ByteString} deriving (Show, Eq, Generic)
 
 -- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions
@@ -457,7 +457,7 @@ markupCssOptions css =
       <> view #cssExtra css
 
 -- | CSS shape rendering text snippet
-markupShapeRendering :: CssShapeRendering -> ByteString
+markupShapeRendering :: ShapeRendering -> ByteString
 markupShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPrecision; }"
 markupShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 markupShapeRendering NoShapeRendering = mempty
@@ -480,7 +480,7 @@ forgetHud co =
   co
     & set #hudOptions mempty
     & set #chartTree (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #chartTree co))
-    & set (#chartTree % charts' % each % #style % #scaleP) ScalePArea
+    & set (#chartTree % charts' % each % #chartStyle % #scaleP) ScalePArea
 
 -- | Convert ChartOptions to Markup
 --
@@ -495,7 +495,7 @@ markupChartOptions co =
         <> markupChartTree ctFinal
     )
   where
-    viewbox = fromMaybe one (view styleBox' ctFinal)
+    viewbox = view safeStyleBox' ctFinal
     ctFinal =
       projectChartTreeWith
         (view (#markupOptions % #chartAspect) co)
