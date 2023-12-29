@@ -12,7 +12,6 @@ module Chart.Compound
   )
 where
 
-import Chart.Data
 import Chart.Hud
 import Chart.Markup
 import Chart.Primitive
@@ -47,7 +46,7 @@ markupChartOptionsCompound cs@(co0 : _) =
         <> markupChartTree ctFinal
     )
   where
-    viewbox = maybe one padSingletons (view styleBox' ctFinal)
+    viewbox = view safeStyleBox' ctFinal
     ctFinal =
       projectChartCompoundWith
         (view (#markupOptions % #chartAspect) co0)
@@ -80,7 +79,7 @@ addHudCompound asp ts@((_, cs0) : _) =
     css :: [ChartTree]
     css = snd <$> ts
     hos = fst <$> ts
-    dbs = maybe one padSingletons . view box' <$> css
+    dbs = view safeBox' <$> css
     huds = zipWith toHuds hos dbs
     mdbs = fst <$> huds
     hss = snd <$> huds

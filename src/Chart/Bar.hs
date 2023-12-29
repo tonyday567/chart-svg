@@ -10,7 +10,6 @@ module Chart.Bar
     bars,
     barChart,
     barRects,
-    barTexts,
     barTextCharts,
   )
 where
@@ -62,7 +61,7 @@ data BarOptions = BarOptions
     barTextStyles :: [Style],
     -- | gap between each bar collection row.
     outerGap :: Double,
-    -- | gap between bars within a row collection, negative overlaps
+    -- | gap between bars within a row collection. Negative numbers represent bar overlaps.
     innerGap :: Double,
     -- | gap between top of a bar and text representation of the bar value
     -- as a proportion of the highest absolute bar value
@@ -71,7 +70,9 @@ data BarOptions = BarOptions
     -- if the value is negative
     -- as a proportion of the highest absolute bar value
     textGapNegative :: Double,
+    -- | A nudge to help text align for horizontal bar charts.
     textShiftVert :: Double,
+    -- | Whether to display text values above bars.
     displayValues :: Bool,
     valueFormatN :: FormatN,
     barOrientation :: Orientation,
@@ -97,7 +98,7 @@ defaultBarOptions =
     NonStacked
     defaultLegendOptions
   where
-    gs = (\x -> rectStyle 0.005 (palette x) (paletteO x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
+    gs = (\x -> defaultRectStyle & set #borderSize 0.005 & set #borderColor (palette x) & set #color (paletteO x 0.7)) <$> [1, 2, 6, 7, 5, 3, 4, 0]
     ts = (\x -> defaultTextStyle & set #color (palette x) & set #size 0.03) <$> [1, 2, 6, 7, 5, 3, 4, 0]
 
 -- | Number of bars per row of data
@@ -214,7 +215,7 @@ barRange ys = padSingletons $ Rect 0 (fromIntegral $ rows ys) (min 0 l) u
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] [] [])
--- [Chart {style = Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.02 0.29 0.48 0.70, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}, chartData = RectData [Rect (-0.5) (-0.26315789473684215) (-0.5) (-0.16666666666666669),Rect 2.631578947368418e-2 0.26315789473684204 (-0.5) 0.16666666666666663]},Chart {style = Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.66 0.07 0.55 0.70, borderColor = Colour 0.66 0.07 0.55 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}, chartData = RectData [Rect (-0.26315789473684215) (-2.6315789473684292e-2) (-0.5) 0.16666666666666663,Rect 0.26315789473684204 0.4999999999999999 (-0.5) 0.5]}]
+-- [Chart {chartStyle = Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.02 0.29 0.48 0.70, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.5) (-0.26315789473684215) (-0.5) (-0.16666666666666669),Rect 2.631578947368418e-2 0.26315789473684204 (-0.5) 0.16666666666666663]},Chart {chartStyle = Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.66 0.07 0.55 0.70, borderColor = Colour 0.66 0.07 0.55 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.26315789473684215) (-2.6315789473684292e-2) (-0.5) 0.16666666666666663,Rect 0.26315789473684204 0.4999999999999999 (-0.5) 0.5]}]
 --
 -- >>> bars defaultBarOptions (BarData [[]] [] [])
 -- []

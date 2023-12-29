@@ -1,3 +1,95 @@
+0.6
+===
+
+0.6 is a major refactor.
+
+* Chart
+
+  - refactored Chart from a sum type to a named Style, ChartData pair.
+  - in Chart (..) + chartStyle - style
+  - introduced ChartData
+  - integrated the various *Style types to a single type.
+  - introduced partial data lenses: *Data'
+  - added chart patterns: *Chart
+  - + blankChart1
+
+* ScaleP
+
+  - introduced the ScaleP type
+  - added scaleP to Style
+  - added the scaleP function
+  - - maybeProjectWith + projectChartDataWith
+  - - scaleStyle - overText + scaleChartData
+  - + scaleRatio
+
+* Chart.Style
+  - integrated styles
+  - - colourChart + colourStyle
+  - + Style (..)
+  - + defaultStyle
+  - + scaleStyle
+  - + default*Style
+  - + gpalette -gpalette1
+  
+* boxes
+  - added safeBox', safeStyleBox'
+
+* Chart.Compound
+
+* Factored State out of Hud
+  - ChartHud lenses removed: canvasBox', canvasStyleBox', hudBox', hudStyleBox'
+  - Introduced HudChartSection type and hudChartBox' which replaces ChartHud lenses.
+  - removed runHud
+  - removed hud effect functionality: closes, fromEffect, applyChartAspect, getHudBox
+  - new hud manipulation tools: appendHud, makeHuds, projectChartTreeWith, addHud, finalCanvas
+
+* Chart.Hud API
+  - - axis + axisHud - title + titleHud - legend + legendHud
+  - removed placeText
+  - added flipPlace
+  - + TitleOptions - Title
+  - - TickStyle + Tick
+  - + axisHud + titleHud
+  - - legend - legendFrame
+  - new tick lenses: + formatN', numTicks', tickExtend'
+  - In LegendOptions: + scaleChartBy - overallScale + legendSize - size
+  - In AxisOptions: + adjustments - adjust + axisBar - bar
+  
+* refactored Priority to a named pair
+
+* Chart.Markup
+  - added forgetHud
+  - - CssPreferColorScheme + PreferColorScheme
+  - - CssShapeRendering + ShapeRendering
+  - + defaultCssFontFamilies
+
+* Integrated chart styles to a single Style type
+
+* changed defaults
+  - + defaultXAxisOptions + defaultYAxisOptions - defaultAxisOptions
+  - - defaultGlyphTick + defaultGlyphTickStyleX + defaultGlyphTickStyleY
+  - - defaultTicks + defaultXTicks + defaultYTicks 
+  - + defaultTick - defaultTickStyle
+
+* Chart.Bar
+  - added barTextCharts
+  - added textShiftVert to BarOptions
+
+* Data.Colour
+  - + palette - palette1
+  - + paletteO - palette1a
+
+* Chart.Surface
+  - - surfaceLegendChart
+  - - surfaceAxisOptions
+  - + surfaceLegendAxisOptions
+  - + gridReferenceChart
+  - + addSurfaceLegend
+
+* Chart.Data
+  - - singletonGuard + isSingleton
+
+
 0.5.1.1
 ===
 * test suite removed

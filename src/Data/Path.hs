@@ -49,6 +49,7 @@ import Control.Monad.State.Lazy
 import GHC.Generics
 import Geom2D.CubicBezier qualified as B
 import NumHask.Prelude
+import NumHask.Space
 
 -- $setup
 --
@@ -211,12 +212,12 @@ arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' lar
     cx = (x1 + x2) / 2 + cos phi' * cx' - sin phi' * cy'
     cy = (y1 + y2) / 2 + sin phi' * cx' + cos phi' * cy'
     c = Point cx cy
-    ang1 = angle (Point (-(cx' - x1') / rx) (-(cy' - y1') / ry))
-    ang2 = angle (Point (-(cx' + x1') / rx) (-(cy' + y1') / ry))
+    ang1 = angle (Point (-((cx' - x1') / rx)) (-((cy' - y1') / ry)))
+    ang2 = angle (Point (-((cx' + x1') / rx)) (-((cy' + y1') / ry)))
     angd' = ang2 - ang1
     angd =
       bool 0 (2 * pi) (not clockwise' && angd' < 0)
-        + bool 0 (-2 * pi) (clockwise' && angd' > 0)
+        + bool 0 (-(2 * pi)) (clockwise' && angd' > 0)
         + angd'
 
 -- | Convert from an ArcCentroid to an ArcPosition specification.
@@ -289,7 +290,7 @@ arcBox p = unsafeSpace1 pts
 arcDerivs :: Point Double -> Double -> (Double, Double)
 arcDerivs (Point rx ry) phi' = (thetax1, thetay1)
   where
-    thetax1 = atan2 (-sin phi' * ry) (cos phi' * rx)
+    thetax1 = atan2 (-(sin phi' * ry)) (cos phi' * rx)
     thetay1 = atan2 (cos phi' * ry) (sin phi' * rx)
 
 -- | Quadratic bezier curve expressed in positional terms.

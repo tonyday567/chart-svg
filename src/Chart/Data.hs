@@ -1,36 +1,44 @@
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# OPTIONS_HADDOCK prune #-}
 
 -- | Data primitives and utilities
 --
 -- Whilst the library makes use of <https://hackage.haskell.org/package/numhask numhask>, it does not re-export, to avoid clashes with Prelude, with the exception of 'zero', 'one', 'angle' & 'abs'.
 --
--- 'Rect' and 'Point', from <https://hackage.haskell.org/package/numhask-space numhask-space>, make up the base elements of many chart primitives, and all of numhask-space is re-exported.
+-- 'Rect' and 'Point', from <https://hackage.haskell.org/package/numhask-space numhask-space>, make up the base elements of many chart primitives.
 module Chart.Data
   ( -- * Data Primitives
     Rect (..),
+    pattern Rect,
+    mid,
+    foldRect,
+    addPoint,
+    projectOnP,
+    projectOnR,
+    space1,
     padRect,
     padSingletons,
     isSingleton,
     Point (..),
     addp,
+    Range (..),
 
     -- * NumHask Exports
-
-    -- | Note that (+) and (*) from numhask are not actually re-exported.
     Multiplicative (one),
     Additive (zero),
     abs,
-    angle,
-    magnitude,
-
-    -- * Re-exports
-    module NumHask.Space,
+    Direction (..),
+    Basis (..),
   )
 where
 
 import NumHask.Prelude
 import NumHask.Space
+
+-- $setup
+--
+-- >>> import Chart
+-- >>> import NumHask.Space
 
 -- | Additive pad (or frame or buffer) a Rect.
 --

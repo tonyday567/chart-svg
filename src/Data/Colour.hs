@@ -87,7 +87,6 @@ import GHC.Exts
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model as M hiding (LCH)
 import Graphics.Color.Space qualified as S
-import NumHask.Algebra.Metric
 import NumHask.Array.Fixed
 import Optics.Core
 import System.Random
@@ -502,7 +501,7 @@ m2 =
   ]
 
 cubicroot :: (Floating a, Ord a) => a -> a
-cubicroot x = bool (-1 * (-x) ** (1 / 3.0)) (x ** (1 / 3.0)) (x >= 0)
+cubicroot x = bool ((-1) * (-x) ** (1 / 3.0)) (x ** (1 / 3.0)) (x >= 0)
 
 -- >>> xyz2lab_ [0.95, 1, 1.089]
 -- [0.9999686754143632, -2.580058168537569e-4, -1.1499756458199784e-4]

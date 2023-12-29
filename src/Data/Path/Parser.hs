@@ -3,10 +3,9 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TemplateHaskell #-}
 
--- | SVG path manipulation
+-- | Conversions to and from an SVG path to a 'PathData'
 module Data.Path.Parser
   ( -- * Parsing
-    -- $parsing
     parsePath,
     pathParser,
     command,
@@ -32,15 +31,6 @@ import GHC.OverloadedLabels
 import MarkupParse.FlatParse
 import NumHask.Prelude hiding (optional, (<|>))
 import Optics.Core hiding ((<|))
-
--- $parsing
--- Every element of an svg path can be thought of as exactly two points in space, with instructions of how to draw a curve between them.  From this point of view, one which this library adopts, a path chart is thus very similar to a line chart.  There's just a lot more information about the style of this line to deal with.
---
--- References:
---
--- [SVG d attribute](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d)
---
--- [SVG Paths](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
 
 -- | Parse a raw path string.
 --
@@ -225,7 +215,7 @@ toPathAbsolute (ArcP (ArcInfo (Point x y) phi' l sw) x2) =
     <> " "
     <> pv' y
     <> " "
-    <> pv' (-phi' * 180 / pi)
+    <> pv' (-(phi' * 180 / pi))
     <> " "
     <> bool "0" "1" l
     <> " "

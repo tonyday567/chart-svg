@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.6
+version: 0.6.0.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -20,17 +20,17 @@ description:
     >>> import Chart
     >>> import Optics.Core
     >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
-    >>> let styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
+    >>> let styles = (\c -> defaultLineStyle & set #color (palette c) & set #size 0.015) <$> [0..2]
     >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
-    >>> let lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+    >>> let lineExample = mempty & set #chartTree (named "line" cs) & set #hudOptions defaultHudOptions :: ChartOptions
     >>> writeChartOptions "other/usage.svg" lineExample
 
     ![usage example](docs/other/usage.svg)
 
-    See "Chart" for a broad overview of concepts, and "Chart.Examples" for practical examples.
+    See "Chart" for concept design notes, and "Chart.Examples" for practical usage.
 
 build-type: Simple
-tested-with: GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2
+tested-with: GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2 || ==9.8.1
 extra-doc-files:
     ChangeLog.md
     other/*.svg

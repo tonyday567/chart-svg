@@ -32,6 +32,7 @@ import Data.Foldable
 import Data.FormatN
 import Data.Maybe
 import GHC.Generics
+import NumHask.Space
 import Optics.Core
 import Prelude
 
@@ -54,7 +55,7 @@ defaultSurfaceOptions =
 -- | A surface chart is a specialization of a 'RectChart'
 --
 -- >>> defaultSurfaceStyle
--- SurfaceStyle {surfaceColors = [Colour 0.02 0.73 0.80 1.00,Colour 0.02 0.29 0.48 1.00], surfaceRectStyle = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, linecap = Nothing, linejoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, shape = SquareGlyph}}
+-- SurfaceStyle {surfaceColors = [Colour 0.02 0.73 0.80 1.00,Colour 0.02 0.29 0.48 1.00], surfaceRectStyle = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}}
 --
 -- ![surface example](other/surface.svg)
 data SurfaceStyle = SurfaceStyle
@@ -146,6 +147,7 @@ defaultSurfaceLegendOptions :: SurfaceLegendOptions
 defaultSurfaceLegendOptions =
   SurfaceLegendOptions surfaceLegendAxisOptions 0.2 100 one (Rect 0.7 0.9 0 0.5) defaultSurfaceStyle
 
+-- | Chart used as a reference to a surface chart.
 gridReferenceChart :: SurfaceLegendOptions -> ChartTree
 gridReferenceChart slo =
   named "grid reference" $
@@ -169,6 +171,7 @@ isHori slo =
   view (#sloAxisOptions % #place) slo == PlaceBottom
     || view (#sloAxisOptions % #place) slo == PlaceTop
 
+-- | Add a surface legend to a main surface chart.
 addSurfaceLegend :: SurfaceLegendOptions -> ChartTree -> ChartTree
 addSurfaceLegend slo ct = ctBoth
   where
