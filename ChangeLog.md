@@ -51,7 +51,6 @@
   - - TickStyle + Tick
   - + axisHud + titleHud
   - - legend - legendFrame
-  - + freezeAxes + freezeTicks
   - new tick lenses: + formatN', numTicks', tickExtend'
   - In LegendOptions: + scaleChartBy - overallScale + legendSize - size
   - In AxisOptions: + adjustments - adjust + axisBar - bar

@@ -63,6 +63,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Time
 import Optics.Core
+import NumHask.Space
 import Prelude hiding (abs)
 
 -- | unit example
@@ -147,7 +148,9 @@ lineExample =
         [Point 0.0 0.0, Point 2.8 3.0],
         [Point 0.5 4.0, Point 0.5 0]
       ]
-
+-- | priority Version 1 example
+--
+-- ![priorityv1 example](other/priorityv1.svg)
 priorityv1Example :: ChartOptions
 priorityv1Example =
   lineExample
@@ -159,6 +162,9 @@ priorityv1Example =
     & set (#hudOptions % #legends % each % #priority) 50
     & set (#hudOptions % #legends % each % #item % #place) PlaceRight
 
+-- | priority Version 2 example
+--
+-- ![priorityv2 example](other/priorityv2.svg)
 priorityv2Example :: ChartOptions
 priorityv2Example =
   priorityv1Example

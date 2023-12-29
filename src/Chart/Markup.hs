@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
--- | Conversion between Chart and Markup representations.
+-- | Conversion between 'ChartOptions' and 'Markup' representations.
 module Chart.Markup
   ( Markup (..),
     ChartOptions (..),
@@ -45,6 +45,7 @@ import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.Generics
 import MarkupParse
+import NumHask.Space
 import Optics.Core hiding (element)
 import Prelude
 
@@ -414,6 +415,7 @@ data MarkupOptions = MarkupOptions
 defaultMarkupOptions :: MarkupOptions
 defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) defaultCssOptions Compact
 
+-- | default fonts.
 defaultCssFontFamilies :: ByteString
 defaultCssFontFamilies =
   [i|
@@ -462,7 +464,7 @@ markupShapeRendering UseGeometricPrecision = "svg { shape-rendering: geometricPr
 markupShapeRendering UseCssCrisp = "svg { shape-rendering: crispEdges; }"
 markupShapeRendering NoShapeRendering = mempty
 
--- | A product type representing charts, hud options and markup options, which can be transformed into 'Markup'.
+-- | A product type consisting of a 'ChartTree', 'HudOptions' and 'MarkupOptions', which is what you need to create 'Markup'.
 data ChartOptions = ChartOptions
   { markupOptions :: MarkupOptions,
     hudOptions :: HudOptions,
@@ -474,7 +476,7 @@ data ChartOptions = ChartOptions
 --
 -- Note that this is a destructive operation, and, in particular, that
 --
--- view #chartTree (forgetHud (mempty & set #chartTree c)) /= c
+-- > view #chartTree (forgetHud (mempty & set #chartTree c)) /= c
 forgetHud :: ChartOptions -> ChartOptions
 forgetHud co =
   co

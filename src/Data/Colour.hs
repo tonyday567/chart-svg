@@ -87,7 +87,6 @@ import GHC.Exts
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model as M hiding (LCH)
 import Graphics.Color.Space qualified as S
-import NumHask.Algebra.Metric
 import NumHask.Array.Fixed
 import Optics.Core
 import System.Random

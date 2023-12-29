@@ -61,7 +61,7 @@ data BarOptions = BarOptions
     barTextStyles :: [Style],
     -- | gap between each bar collection row.
     outerGap :: Double,
-    -- | gap between bars within a row collection, negative overlaps
+    -- | gap between bars within a row collection. Negative numbers represent bar overlaps.
     innerGap :: Double,
     -- | gap between top of a bar and text representation of the bar value
     -- as a proportion of the highest absolute bar value
@@ -70,7 +70,9 @@ data BarOptions = BarOptions
     -- if the value is negative
     -- as a proportion of the highest absolute bar value
     textGapNegative :: Double,
+    -- | A nudge to help text align for horizontal bar charts.
     textShiftVert :: Double,
+    -- | Whether to display text values above bars.
     displayValues :: Bool,
     valueFormatN :: FormatN,
     barOrientation :: Orientation,

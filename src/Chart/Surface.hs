@@ -32,6 +32,7 @@ import Data.Foldable
 import Data.FormatN
 import Data.Maybe
 import GHC.Generics
+import NumHask.Space
 import Optics.Core
 import Prelude
 
@@ -146,6 +147,7 @@ defaultSurfaceLegendOptions :: SurfaceLegendOptions
 defaultSurfaceLegendOptions =
   SurfaceLegendOptions surfaceLegendAxisOptions 0.2 100 one (Rect 0.7 0.9 0 0.5) defaultSurfaceStyle
 
+-- | Chart used as a reference to a surface chart.
 gridReferenceChart :: SurfaceLegendOptions -> ChartTree
 gridReferenceChart slo =
   named "grid reference" $
@@ -169,6 +171,7 @@ isHori slo =
   view (#sloAxisOptions % #place) slo == PlaceBottom
     || view (#sloAxisOptions % #place) slo == PlaceTop
 
+-- | Add a surface legend to a main surface chart.
 addSurfaceLegend :: SurfaceLegendOptions -> ChartTree -> ChartTree
 addSurfaceLegend slo ct = ctBoth
   where

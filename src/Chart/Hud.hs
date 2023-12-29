@@ -70,8 +70,6 @@ module Chart.Hud
     titleHud,
     frameHud,
     legendHud,
-    freezeAxes,
-    freezeTicks,
   )
 where
 
@@ -91,6 +89,7 @@ import Data.Text qualified as Text
 import Data.Tuple
 import GHC.Generics hiding (to)
 import NumHask.Prelude hiding (to)
+import NumHask.Space
 import Optics.Core
 
 -- $setup
@@ -134,15 +133,12 @@ data Priority a = Priority {priority :: Double, item :: a} deriving (Eq, Ord, Sh
 -- | Heads-up display additions to charts
 newtype Hud = Hud {phud :: Priority (HudChart -> ChartTree)} deriving (Generic)
 
--- | Type to track the split of Chart elements into Hud and Canvas
+-- | Named pair type to track the split of Chart elements into Hud and Canvas
 --
 -- - charts: charts that form the canvas or data elements of the chart; the rectangular dimension which is considered to be the data representation space.
 --
 -- - hud: charts that form the Hud.
 --
--- - dataBox: The bounding box of the underlying data domain.
---
--- This is done to support functionality where we can choose whether to normalise the chart aspect based on the entire chart (FixedAspect) or on just the data visualisation space (CanvasAspect).
 data HudChart = HudChart
   { chartSection :: ChartTree,
     hudSection :: ChartTree
@@ -414,6 +410,8 @@ data Ticks = Ticks
   }
   deriving (Show, Eq, Generic)
 
+-- | Common elements across all tick types.
+--
 data TickStyle = TickStyle
   { style :: Style,
     anchorTo :: HudChartSection,

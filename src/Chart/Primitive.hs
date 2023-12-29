@@ -41,9 +41,9 @@ module Chart.Primitive
     -- $boxes
     box,
     sbox,
-    scaleP,
     projectWith,
     projectChartDataWith,
+    moveChartData,
     moveChart,
     scaleChart,
     scaleChartData,
@@ -90,22 +90,11 @@ import Prelude
 -- >>> import Optics.Core
 -- >>> let r = RectChart defaultRectStyle [one]
 
--- | There are 6 Chart primitives, unified as the Chart type.
---
--- - 'RectChart': a rectangle in the XY-domain. For example, a @'Rect' 0 1 0 1@ is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on 'Rect' 'Double's but the base types are polymorphic.
--- - 'LineChart': a list of points which represent connected straight lines. ['Point' 0 0, 'Point' 1 1, 'Point' 2 2, 'Point' 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
--- - 'GlyphChart': a 'GlyphShape' which is a predefined style shape centered at a 'Point' in XY space.
--- - 'TextChart': text centered at a 'Point' in XY space.
--- - 'PathChart': specification of curvilinear paths using the SVG standards.
--- - 'BlankChart': a rectangular space that has no visual representation.
---
--- What is a Chart is usually a combination of these primitives into a tree or list of charts.
---
--- Each Chart primitive is a product of a style (the syntactic representation of the data) and a list of data.
+-- | A product type consisting of a 'Style', which is the stylistic manifestation of chart data, and 'ChartData' representing where data is located on the chart canvas (an xy-plane).
 --
 -- A simple example is:
 --
--- >>> let r = RectChart defaultRectStyle [one]
+-- >>> let r = Chart defaultRectStyle (RectData [one])
 -- >>> r
 -- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.5) 0.5 (-0.5) 0.5]}
 --
@@ -116,13 +105,29 @@ import Prelude
 -- ![unit example](other/unit.svg)
 data Chart = Chart {chartStyle :: Style, chartData :: ChartData} deriving (Eq, Show, Generic)
 
+-- | Data of a 'Chart'
+--
+-- A sum type representing the data behind six different types of chart:
+--
+-- - 'RectData': a list of rectangles in the XY-domain. For example, a @'Rect' 0 1 0 1@ is the set of points on the XY Plane bounded by (0,0), (0,1), (1,0) & (1,1). Much of the library is built on 'Rect' Doubles.
+-- - 'LineData': a list of (list of points) which represent connected straight lines. ['Point' 0 0, 'Point' 1 1, 'Point' 2 2, 'Point' 3 3] is an example; three lines connected up to form a line from (0,0) to (3,3).
+-- - 'GlyphData': a list of points to draw a 'GlyphShape'.
+-- - 'TextData': A list of Text,Point tuples representing text centered at a 'Point' in XY space.
+-- - 'PathData': specification of curvilinear paths using the SVG standards.
+-- - 'BlankData': a rectangular space that has no visual representation.
 data ChartData
-  = RectData [Rect Double]
-  | LineData [[Point Double]]
-  | GlyphData [Point Double]
-  | TextData [(Text, Point Double)]
-  | PathData [PathData Double]
-  | BlankData [Rect Double]
+  = -- | List of rectangles
+    RectData [Rect Double]
+  | -- | List of (List of Points)
+    LineData [[Point Double]]
+  | -- | List of Points (to place the 'GlyphShape')
+    GlyphData [Point Double]
+  | -- | List of text and point to place it.
+    TextData [(Text, Point Double)]
+  | -- | List of paths
+    PathData [PathData Double]
+  | -- | List of rectangles with no 'Style' representation
+    BlankData [Rect Double]
   deriving (Eq, Show, Generic)
 
 -- | RectData partial lens
@@ -323,6 +328,7 @@ sbox (Chart _ (BlankData a)) = foldRect a
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old c = c & over #chartStyle (scaleStyle (scaleRatio (view (#chartStyle % #scaleP) c) new old)) & over #chartData (projectChartDataWith new old)
 
+-- | Projects 'ChartData' from an old space to a new space.
 projectChartDataWith :: Rect Double -> Rect Double -> ChartData -> ChartData
 projectChartDataWith new old (RectData a) = RectData (projectOnR new old <$> a)
 projectChartDataWith new old (TextData a) = TextData (second (projectOnP new old) <$> a)
@@ -331,6 +337,7 @@ projectChartDataWith new old (GlyphData a) = GlyphData (projectOnP new old <$> a
 projectChartDataWith new old (PathData a) = PathData (projectPaths new old a)
 projectChartDataWith new old (BlankData a) = BlankData (projectOnR new old <$> a)
 
+-- | Move 'ChartData' by a 'Point'
 moveChartData :: Point Double -> ChartData -> ChartData
 moveChartData p (RectData a) = RectData (addPoint p <$> a)
 moveChartData p (TextData a) = TextData (second (addp p) <$> a)
@@ -343,6 +350,7 @@ moveChartData p (BlankData a) = BlankData (addPoint p <$> a)
 moveChart :: Point Double -> Chart -> Chart
 moveChart p c = c & over #chartData (moveChartData p)
 
+-- | Scale 'ChartData'
 scaleChartData :: Double -> ChartData -> ChartData
 scaleChartData p (RectData a) =
   RectData (fmap (fmap (* p)) a)
@@ -357,7 +365,7 @@ scaleChartData p (PathData a) =
 scaleChartData p (BlankData a) =
   BlankData (fmap (fmap (* p)) a)
 
--- | Scale a chart (effecting both the chart data and the style, if #scaleP is a scaling value).
+-- | Scale a chart (effecting both the chart data and the style, if /#style % #scaleP/ is a scaling value).
 scaleChart :: Double -> Chart -> Chart
 scaleChart p c = c & over #chartData (scaleChartData p) & over #chartStyle (bool (scaleStyle p) id (view (#chartStyle % #scaleP) c == NoScaleP))
 
