@@ -138,7 +138,6 @@ newtype Hud = Hud {phud :: Priority (HudChart -> ChartTree)} deriving (Generic)
 -- - charts: charts that form the canvas or data elements of the chart; the rectangular dimension which is considered to be the data representation space.
 --
 -- - hud: charts that form the Hud.
---
 data HudChart = HudChart
   { chartSection :: ChartTree,
     hudSection :: ChartTree
@@ -411,7 +410,6 @@ data Ticks = Ticks
   deriving (Show, Eq, Generic)
 
 -- | Common elements across all tick types.
---
 data TickStyle = TickStyle
   { style :: Style,
     anchorTo :: HudChartSection,

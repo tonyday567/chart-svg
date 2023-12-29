@@ -112,7 +112,6 @@ import Data.Path.Parser
 --
 -- > lineExample & over (#chartTree % charts' % each % #chartData % lineData' % _Just % each % each % _x) (+1)
 
-
 -- $overview
 --
 -- Charting consists of three tightly-coupled domains:
@@ -149,7 +148,6 @@ import Data.Path.Parser
 -- The division between what is data and what is style is an arbitrary one, in this library and elsewhere.  Hofstadter mused that "content is just fancy form" and this very much applies to charting. Color and glyph shape are just two examples of style used to represent data (See 'Chart.Examples.surfaceExample' and 'Chart.Examples.arrowExample').
 --
 -- If pushed, the canvas of a chart represents the interactions of two domains: a data domain and a physical space (a screen or a html element or a piece of paper). What is 'ChartData' is practically the data domain represented by the xy-plane that is the canvas. Thus it is a point, a rectangle, a path or some text. Everything else; color, shape, finish and polish, is designated 'Style'.
-
 
 -- $hud
 --
@@ -211,4 +209,3 @@ import Data.Path.Parser
 -- - [prettychart](https://hackage.haskell.org/package/prettychart): live creation of charts.
 --
 -- - [dotparse](https://hackage.haskell.org/package/dotparse): creation of charts using graphviz and the dot language.
---

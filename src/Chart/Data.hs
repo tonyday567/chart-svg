@@ -29,7 +29,6 @@ module Chart.Data
     abs,
     Direction (..),
     Basis (..),
-
   )
 where
 

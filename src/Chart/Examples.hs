@@ -62,8 +62,8 @@ import Data.String.Interpolate
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Time
-import Optics.Core
 import NumHask.Space
+import Optics.Core
 import Prelude hiding (abs)
 
 -- | unit example
@@ -148,6 +148,7 @@ lineExample =
         [Point 0.0 0.0, Point 2.8 3.0],
         [Point 0.5 4.0, Point 0.5 0]
       ]
+
 -- | priority Version 1 example
 --
 -- ![priorityv1 example](other/priorityv1.svg)

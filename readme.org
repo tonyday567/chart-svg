@@ -42,14 +42,3 @@ writeAllExamples
 
 
 
-* Related projects
-
-Downstream projects, where usage of chart-svg in various states of development can be found, include:
-
-[[https://github.com/tonyday567/color-adjust][color-adjust]] - experimenting with the [[https://bottosson.github.io/posts/oklab/][oklab]] colour space. Some of this has been incorporated in to chart-svg.
-
-[[https://github.com/tonyday567/dotparse][dotparse]] - a chart-svg <-> graphviz bridge
-
-[[https://github.com/tonyday567/prettychart][prettychart]] - a chart-svg <-> ghci bridge
-
-[[https://github.com/tonyday567/markup-parse][markup-parse]] - parse and prints markup (eg SVG)
