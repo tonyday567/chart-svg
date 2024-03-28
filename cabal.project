@@ -1,6 +1,3 @@
 packages:
   chart-svg.cabal
 
-allow-newer:
-  string-interpolate:template-haskell,
-  string-interpolate:text,
