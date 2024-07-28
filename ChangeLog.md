@@ -1,3 +1,8 @@
+0.6.1
+===
+
+- numhask upper bound bumped to 0.12
+
 0.6
 ===
 
