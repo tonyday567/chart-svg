@@ -381,7 +381,7 @@ projectChartTree new ct = case view styleBox' ct of
 
 -- | Compute the bounding box of a list of charts, not including style allowances.
 boxes :: [Chart] -> Maybe (Rect Double)
-boxes cs = foldRect $ mconcat $ maybeToList . box <$> (chartData <$> cs)
+boxes cs = foldRect $ mconcat $ (maybeToList . box) . chartData <$> cs
 
 box_ :: ChartTree -> Maybe (Rect Double)
 box_ = boxes . foldOf charts'
