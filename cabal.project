@@ -3,3 +3,8 @@ packages:
 
 allow-newer:
   string-interpolate:template-haskell
+
+source-repository-package
+  type: git
+  branch: master
+  location: https://github.com/conal/vector-space.git
