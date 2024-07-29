@@ -1,3 +1,9 @@
+0.6.1
+===
+
+- numhask upper bound bumped to 0.12
+- switch to doctest-parallel
+
 0.6
 ===
 

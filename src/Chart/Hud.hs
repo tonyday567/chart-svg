@@ -691,9 +691,7 @@ makePlacedTicks r s =
     TickLabels ls ->
       ( Nothing,
         zip
-          ( project (Range 0 (fromIntegral $ length ls)) r
-              <$> ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])
-          )
+          (project (Range 0 (fromIntegral $ length ls)) r . (\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])
           ls
       )
     TickPlaced xs -> (Nothing, xs)
@@ -849,9 +847,7 @@ ticksR s d r =
         ticks0 = grid OuterPos r n
     TickLabels ls ->
       zip
-        ( project (Range 0 (fromIntegral $ length ls)) d
-            <$> ((\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])
-        )
+        (project (Range 0 (fromIntegral $ length ls)) d . (\x -> x - 0.5) . fromIntegral <$> [1 .. length ls])
         ls
     TickPlaced xs -> zip (project r d . fst <$> xs) (snd <$> xs)
 

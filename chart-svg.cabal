@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.6.0.0
+version: 0.6.1.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -30,7 +30,10 @@ description:
     See "Chart" for concept design notes, and "Chart.Examples" for practical usage.
 
 build-type: Simple
-tested-with: GHC == 8.10.7 || ==9.2.8 || ==9.4.5 || ==9.6.2 || ==9.8.1
+tested-with:
+    , GHC == 9.10.1
+    , GHC == 9.8.2
+    , GHC == 9.6.5
 extra-doc-files:
     ChangeLog.md
     other/*.svg
@@ -51,60 +54,7 @@ common ghc-options-stanza
         -Wredundant-constraints
 
 common ghc2021-stanza
-    if impl ( ghc >= 9.2 )
-        default-language: GHC2021
-
-    if impl ( ghc < 9.2 )
-        default-language: Haskell2010
-        default-extensions:
-            BangPatterns
-            BinaryLiterals
-            ConstrainedClassMethods
-            ConstraintKinds
-            DeriveDataTypeable
-            DeriveFoldable
-            DeriveFunctor
-            DeriveGeneric
-            DeriveLift
-            DeriveTraversable
-            DoAndIfThenElse
-            EmptyCase
-            EmptyDataDecls
-            EmptyDataDeriving
-            ExistentialQuantification
-            ExplicitForAll
-            FlexibleContexts
-            FlexibleInstances
-            ForeignFunctionInterface
-            GADTSyntax
-            GeneralisedNewtypeDeriving
-            HexFloatLiterals
-            ImplicitPrelude
-            InstanceSigs
-            KindSignatures
-            MonomorphismRestriction
-            MultiParamTypeClasses
-            NamedFieldPuns
-            NamedWildCards
-            NumericUnderscores
-            PatternGuards
-            PolyKinds
-            PostfixOperators
-            RankNTypes
-            RelaxedPolyRec
-            ScopedTypeVariables
-            StandaloneDeriving
-            StarIsType
-            TraditionalRecordSyntax
-            TupleSections
-            TypeApplications
-            TypeOperators
-            TypeSynonymInstances
-
-    if impl ( ghc < 9.2 ) && impl ( ghc >= 8.10 )
-        default-extensions:
-            ImportQualifiedPost
-            StandaloneKindSignatures
+    default-language: GHC2021
 
 library
     import: ghc-options-stanza
@@ -114,7 +64,7 @@ library
         , Color              >=0.3.2 && <0.4
         , adjunctions        >=4.0 && <5
         , attoparsec         >=0.13.2 && <0.15
-        , base               >=4.7 && <5
+        , base               >=4.14 && <5
         , bytestring         >=0.11.3 && <0.13
         , containers         >=0.6 && <0.8
         , cubicbezier        >=0.6 && <0.7
@@ -123,14 +73,14 @@ library
         , formatn            >=0.3 && <0.4
         , markup-parse       >=0.1 && <0.2
         , mtl                >=2.2.2 && <2.4
-        , numhask            >=0.10 && <0.12
+        , numhask            >=0.11 && <0.13
         , numhask-array      >=0.10 && <0.12
         , numhask-space      >=0.10 && <0.12
         , optics-core        >=0.4 && <0.5
         , random             >=1.2 && <1.3
         , string-interpolate >=0.3 && <0.5
         , text               >=1.2 && <2.2
-        , time               >=1.9 && <1.13
+        , time               >=1.9 && <1.15
     exposed-modules:
         Chart
         Chart.Bar
@@ -145,3 +95,14 @@ library
         Data.Colour
         Data.Path
         Data.Path.Parser
+
+test-suite doctests
+    import: ghc2021-stanza
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: doctests.hs
+    ghc-options: -threaded
+    build-depends:
+        , base
+        , chart-svg
+        , doctest-parallel >=0.3 && <0.4
