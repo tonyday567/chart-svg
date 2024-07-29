@@ -92,7 +92,7 @@ import Optics.Core
 import System.Random
 import System.Random.Stateful
 
-{-# ANN module ("doctest-parallel: --no-implicit-module-import"::String) #-}
+{-# ANN module ("doctest-parallel: --no-implicit-module-import" :: String) #-}
 
 -- $setup
 --
