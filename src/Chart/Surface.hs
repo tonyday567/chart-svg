@@ -36,6 +36,13 @@ import NumHask.Space
 import Optics.Core
 import Prelude
 
+-- $setup
+--
+-- >>> :set -XOverloadedLabels
+-- >>> :set -XOverloadedStrings
+-- >>> import Chart
+-- >>> import Optics.Core
+
 -- | Options for a Surface chart.
 data SurfaceOptions = SurfaceOptions
   { -- | surface style

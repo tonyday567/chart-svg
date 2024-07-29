@@ -2,9 +2,14 @@ packages:
   chart-svg.cabal
 
 allow-newer:
-  string-interpolate:template-haskell
+  string-interpolate:template-haskell,
+  markup-parse:containers
 
 source-repository-package
   type: git
   branch: master
   location: https://github.com/conal/vector-space.git
+
+write-ghc-environment-files: always
+
+tests: True

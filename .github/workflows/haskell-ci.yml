@@ -31,11 +31,6 @@ jobs:
             ghc-version: '9.8'
           - os: macos-latest
             ghc-version: '9.8'
-          - os: ubuntu-latest
-            ghc-version: '9.8'
-            docspec: true
-            experimental: true
-            name: docspec
 
     steps:
       - uses: actions/checkout@v4
@@ -86,7 +81,7 @@ jobs:
         run: cabal build all
 
       - name: Run tests
-        run: cabal test all
+        run: cabal run doctests
 
       - name: Check cabal file
         run: cabal check
