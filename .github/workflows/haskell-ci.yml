@@ -23,14 +23,19 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         ghc-version: ['9.10', '9.8', '9.6']
-        docspec: [false]
         experimental: [false]
+        doctests: [false]
 
         include:
           - os: windows-latest
             ghc-version: '9.8'
           - os: macos-latest
             ghc-version: '9.8'
+          - os: ubuntu-latest
+            ghc-version: '9.8'
+            name: doctests
+            experimental: true
+            doctests: true
 
     steps:
       - uses: actions/checkout@v4
@@ -80,7 +85,7 @@ jobs:
       - name: Build
         run: cabal build all
 
-      - name: Run tests
+      - if: matrix.doctests
         run: cabal run doctests
 
       - name: Check cabal file
