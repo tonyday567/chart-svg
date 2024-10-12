@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.6.1.0
+version: 0.7.0.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -71,10 +71,10 @@ library
         , flatparse          >=0.5 && <0.6
         , foldl              >=1.4 && <1.5
         , formatn            >=0.3 && <0.4
+        , harpie             >=0.1 && <0.2
         , markup-parse       >=0.1 && <0.2
         , mtl                >=2.2.2 && <2.4
         , numhask            >=0.11 && <0.13
-        , numhask-array      >=0.10 && <0.12
         , numhask-space      >=0.10 && <0.12
         , optics-core        >=0.4 && <0.5
         , random             >=1.2 && <1.3
@@ -98,11 +98,11 @@ library
 
 test-suite doctests
     import: ghc2021-stanza
-    type: exitcode-stdio-1.0
-    hs-source-dirs: test
     main-is: doctests.hs
-    ghc-options: -threaded
+    hs-source-dirs: test
     build-depends:
-        , base
+        , base             >=4.14 && <5
         , chart-svg
         , doctest-parallel >=0.3 && <0.4
+    ghc-options: -threaded
+    type: exitcode-stdio-1.0

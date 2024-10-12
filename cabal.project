@@ -2,7 +2,6 @@ packages:
   chart-svg.cabal
 
 allow-newer:
-  string-interpolate:template-haskell,
   markup-parse:containers
 
 source-repository-package

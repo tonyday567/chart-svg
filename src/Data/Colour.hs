@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -36,7 +35,6 @@ module Data.Colour
 
     -- * LCH model
     LCH (..),
-    pattern LCH,
     lLCH',
     cLCH',
     hLCH',
@@ -45,11 +43,9 @@ module Data.Colour
     lch',
     alpha',
     RGB3 (..),
-    pattern RGB3,
     rgbd',
     rgb32colour',
     LAB (..),
-    pattern LAB,
     lcha2colour',
     xy2ch',
 
@@ -78,16 +74,16 @@ import Data.ByteString (ByteString)
 import Data.Char
 import Data.Either
 import Data.FormatN
-import Data.Functor.Rep
 import Data.List qualified as List
 import Data.String.Interpolate
 import Data.Text (Text, pack)
 import Data.Text qualified as Text
-import GHC.Exts
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model as M hiding (LCH)
 import Graphics.Color.Space qualified as S
-import NumHask.Array.Fixed
+import Harpie.Fixed (Array, array, (!))
+import Harpie.Fixed qualified as F
+import Harpie.Shape (KnownNats)
 import Optics.Core
 import System.Random
 import System.Random.Stateful
@@ -313,6 +309,9 @@ grey g a = Colour g g g a
 transparent :: Colour
 transparent = Colour 0 0 0 0
 
+class ArrayAs f s a where
+  arrayAs :: (KnownNats s) => Array s a -> f a
+
 -- | LCH colour representation
 --
 -- oklab is a colour space being written into CSS specifications, that attempts to be ok at human-consistent colour representation. See:
@@ -328,16 +327,10 @@ transparent = Colour 0 0 0 0
 -- C: Chromacity, which ranges from 0 to around 0.32 or so.
 --
 -- H: Hue, which ranges from 0 to 360
-newtype LCH a = LCH' {lchArray :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
+data LCH a = LCH a a a deriving (Eq, Show, Functor)
 
--- | LCH colour pattern
-pattern LCH :: a -> a -> a -> LCH a
-pattern LCH l c h <-
-  LCH' [l, c, h]
-  where
-    LCH l c h = LCH' [l, c, h]
-
-{-# COMPLETE LCH #-}
+instance ArrayAs LCH '[3] a where
+  arrayAs a = LCH (a ! [0]) (a ! [1]) (a ! [2])
 
 -- | Lightness lens for LCH
 lLCH' :: Lens' (LCH Double) Double
@@ -365,25 +358,19 @@ alpha' = lens (\(LCHA' _ a) -> a) (\(LCHA' lch _) a -> LCHA' lch a)
 -- | LCHA pattern
 pattern LCHA :: Double -> Double -> Double -> Double -> LCHA
 pattern LCHA l c h a <-
-  LCHA' (LCH' [l, c, h]) a
+  LCHA' (LCH l c h) a
   where
-    LCHA l c h a = LCHA' (LCH' [l, c, h]) a
+    LCHA l c h a = LCHA' (LCH l c h) a
 
 {-# COMPLETE LCHA #-}
 
 -- * RGB colour representation
 
 -- | A type to represent the RGB triple, useful as an intermediary between 'Colour' and 'LCHA'
-newtype RGB3 a = RGB3' {rgb3Array :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
+data RGB3 a = RGB3 a a a deriving (Eq, Show, Functor)
 
--- | The RGB3 pattern
-pattern RGB3 :: a -> a -> a -> RGB3 a
-pattern RGB3 r g b <-
-  RGB3' [r, g, b]
-  where
-    RGB3 r g b = RGB3' [r, g, b]
-
-{-# COMPLETE RGB3 #-}
+instance ArrayAs RGB3 '[3] a where
+  arrayAs a = RGB3 (a ! [0]) (a ! [1]) (a ! [2])
 
 -- | Lens for conversion between Double and Word8 RGB triples.
 rgbd' :: Iso' (RGB3 Double) (RGB3 Word8)
@@ -396,16 +383,10 @@ rgb32colour' = iso (\(RGB3 r g b, a) -> Colour r g b a) (\(Colour r g b a) -> (R
 -- * LAB colour representation
 
 -- | LAB colour representation. a is green-red and b is blue-yellow
-newtype LAB a = LAB' {labArray :: Array '[3] a} deriving (Eq, Show, IsList, Functor)
+data LAB a = LAB a a a deriving (Eq, Show, Functor)
 
--- | LAB pattern
-pattern LAB :: a -> a -> a -> LAB a
-pattern LAB l a b <-
-  LAB' [l, a, b]
-  where
-    LAB l a b = LAB' [l, a, b]
-
-{-# COMPLETE LAB #-}
+instance ArrayAs LAB '[3] a where
+  arrayAs a = LAB (a ! [0]) (a ! [1]) (a ! [2])
 
 -- * Colour conversions
 
@@ -415,14 +396,14 @@ pattern LAB l a b <-
 --
 -- >>> c0 = Colour 0.78 0.36 0.02 1.00
 -- >>> view (re lcha2colour') c0
--- LCHA' {_lch = LCH' {lchArray = [0.5969891006896103, 0.15793931531669247, 49.191113810479784]}, _alpha = 1.0}
+-- LCHA' {_lch = LCH 0.5969891006896103 0.15793931531669247 49.191113810479784, _alpha = 1.0}
 --
 -- >>> view (re lcha2colour' % lcha2colour') c0
 -- Colour 0.78 0.36 0.02 1.00
 --
 -- >>> c1 = Colour 0.49 0.14 0.16 1
 -- >>> view (re lcha2colour') c1
--- LCHA' {_lch = LCH' {lchArray = [0.40115567099848914, 0.12279066817938503, 21.51476756026837]}, _alpha = 1.0}
+-- LCHA' {_lch = LCH 0.40115567099848914 0.12279066817938503 21.51476756026837, _alpha = 1.0}
 --
 -- >>> view (re lcha2colour' % lcha2colour') c1
 -- Colour 0.49 0.14 0.16 1.00
@@ -457,50 +438,52 @@ lab2lch' =
 rgb2lab' :: Iso' (RGB3 Double) (LAB Double)
 rgb2lab' =
   iso
-    (\(RGB3' a) -> LAB' . xyz2lab_ . rgb2xyz_ $ a)
-    (\(LAB' a) -> RGB3' . xyz2rgb_ . lab2xyz_ $ a)
+    (\(RGB3 r g b) -> arrayAs . xyz2lab_ . rgb2xyz_ $ array [r, g, b])
+    (\(LAB l a b) -> arrayAs . xyz2rgb_ . lab2xyz_ $ array [l, a, b])
 
 -- * rgb to xyz
 
-xyz2rgb_ :: Array '[3] Double -> Array '[3] Double
-xyz2rgb_ a = fromList [r, g, b]
+xyz2rgb_ :: F.Array '[3] Double -> F.Array '[3] Double
+xyz2rgb_ a = array [r, g, b]
   where
-    (S.ColorSRGB r g b) = S.xyz2rgb (S.ColorXYZ (a `index` [0]) (a `index` [1]) (a `index` [2])) :: Color (S.SRGB 'S.NonLinear) Double
+    (S.ColorSRGB r g b) = S.xyz2rgb (S.ColorXYZ (a ! [0]) (a ! [1]) (a ! [2])) :: Color (S.SRGB 'S.NonLinear) Double
 
 -- >>> rgb2xyz_ [1,1,1]
 -- [0.9505, 1.0, 1.089]
-rgb2xyz_ :: Array '[3] Double -> Array '[3] Double
-rgb2xyz_ a = fromList [x, y, z]
+rgb2xyz_ :: F.Array '[3] Double -> F.Array '[3] Double
+rgb2xyz_ a = array [x, y, z]
   where
-    (S.ColorXYZ x y z) = S.rgb2xyz (S.ColorSRGB (a `index` [0]) (a `index` [1]) (a `index` [2])) :: Color (S.XYZ S.D65) Double
+    (S.ColorXYZ x y z) = S.rgb2xyz (S.ColorSRGB (a ! [0]) (a ! [1]) (a ! [2])) :: Color (S.XYZ S.D65) Double
 
 -- * xyz to lab
 
-m1 :: Array '[3, 3] Double
+m1 :: F.Array '[3, 3] Double
 m1 =
-  [ 0.8189330101,
-    0.3618667424,
-    -0.1288597137,
-    0.0329845436,
-    0.9293118715,
-    0.0361456387,
-    0.0482003018,
-    0.2643662691,
-    0.6338517070
-  ]
+  array
+    [ 0.8189330101,
+      0.3618667424,
+      -0.1288597137,
+      0.0329845436,
+      0.9293118715,
+      0.0361456387,
+      0.0482003018,
+      0.2643662691,
+      0.6338517070
+    ]
 
-m2 :: Array '[3, 3] Double
+m2 :: F.Array '[3, 3] Double
 m2 =
-  [ 0.2104542553,
-    0.7936177850,
-    -0.0040720468,
-    1.9779984951,
-    -2.4285922050,
-    0.4505937099,
-    0.0259040371,
-    0.7827717662,
-    -0.8086757660
-  ]
+  array
+    [ 0.2104542553,
+      0.7936177850,
+      -0.0040720468,
+      1.9779984951,
+      -2.4285922050,
+      0.4505937099,
+      0.0259040371,
+      0.7827717662,
+      -0.8086757660
+    ]
 
 cubicroot :: (Floating a, Ord a) => a -> a
 cubicroot x = bool ((-1) * (-x) ** (1 / 3.0)) (x ** (1 / 3.0)) (x >= 0)
@@ -519,39 +502,41 @@ cubicroot x = bool ((-1) * (-x) ** (1 / 3.0)) (x ** (1 / 3.0)) (x >= 0)
 --
 -- >>> xyz2lab_ [0,0,1]
 -- [0.15260258004008057, -1.4149965510120839, -0.4489272035597538]
-xyz2lab_ :: Array '[3] Double -> Array '[3] Double
+xyz2lab_ :: F.Array '[3] Double -> F.Array '[3] Double
 xyz2lab_ xyz =
-  dot sum (*) m2 (cubicroot <$> dot sum (*) m1 xyz)
+  F.dot sum (*) m2 (cubicroot <$> F.dot sum (*) m1 xyz)
 
-m1' :: Array '[3, 3] Double
+m1' :: F.Array '[3, 3] Double
 m1' =
-  [ 1.227013851103521026,
-    -0.5577999806518222383,
-    0.28125614896646780758,
-    -0.040580178423280593977,
-    1.1122568696168301049,
-    -0.071676678665601200577,
-    -0.076381284505706892869,
-    -0.42148197841801273055,
-    1.5861632204407947575
-  ]
+  array
+    [ 1.227013851103521026,
+      -0.5577999806518222383,
+      0.28125614896646780758,
+      -0.040580178423280593977,
+      1.1122568696168301049,
+      -0.071676678665601200577,
+      -0.076381284505706892869,
+      -0.42148197841801273055,
+      1.5861632204407947575
+    ]
 
-m2' :: Array '[3, 3] Double
+m2' :: F.Array '[3, 3] Double
 m2' =
-  [ 0.99999999845051981432,
-    0.39633779217376785678,
-    0.21580375806075880339,
-    1.0000000088817607767,
-    -0.1055613423236563494,
-    -0.063854174771705903402,
-    1.0000000546724109177,
-    -0.089484182094965759684,
-    -1.2914855378640917399
-  ]
+  array
+    [ 0.99999999845051981432,
+      0.39633779217376785678,
+      0.21580375806075880339,
+      1.0000000088817607767,
+      -0.1055613423236563494,
+      -0.063854174771705903402,
+      1.0000000546724109177,
+      -0.089484182094965759684,
+      -1.2914855378640917399
+    ]
 
-lab2xyz_ :: Array '[3] Double -> Array '[3] Double
+lab2xyz_ :: F.Array '[3] Double -> F.Array '[3] Double
 lab2xyz_ lab =
-  dot sum (*) m1' ((** 3.0) <$> dot sum (*) m2' lab)
+  F.dot sum (*) m1' ((** 3.0) <$> F.dot sum (*) m2' lab)
 
 -- * mixins
 
