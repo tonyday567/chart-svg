@@ -9,6 +9,7 @@ module Data.Path
     pointPath,
     movePath,
     scalePath,
+    projectPath,
     projectPaths,
     pathBoxes,
     pathBox,
@@ -44,8 +45,6 @@ module Data.Path
 where
 
 import Chart.Data
-import Control.Foldl qualified as L
-import Control.Monad.State.Lazy
 import GHC.Generics
 import Geom2D.CubicBezier qualified as B
 import NumHask.Prelude
@@ -107,16 +106,7 @@ scalePath x (ArcP i p) = ArcP i (fmap (x *) p)
 
 -- | Project a list of connected PathDatas from one Rect (XY plave) to a new one.
 projectPaths :: Rect Double -> Rect Double -> [PathData Double] -> [PathData Double]
-projectPaths new old ps =
-  flip evalState zero $
-    mapM
-      ( \p -> do
-          x <- get
-          let d = projectPath new old x p
-          put (pointPath d)
-          pure d
-      )
-      ps
+projectPaths new old ps = snd $ mapAccumL (\s a -> let d = projectPath new old s a in (pointPath d, d)) zero ps
 
 -- | Project a PathData from one Rect (XY plave) to a new one.
 projectPath ::
@@ -493,7 +483,8 @@ pathBoxes :: [PathData Double] -> Maybe (Rect Double)
 pathBoxes [] = Nothing
 pathBoxes (x : xs) =
   Just $
-    L.fold (L.Fold step begin snd) xs
+    snd $
+      foldl' step begin xs
   where
     begin :: (Point Double, Rect Double)
     begin = (pointPath x, singleton (pointPath x))
