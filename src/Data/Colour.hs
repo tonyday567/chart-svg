@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 -- | Colour representations and combinations.
 module Data.Colour
@@ -17,11 +16,7 @@ module Data.Colour
     showOpacity,
     opac',
     opac,
-    hex,
     rgb,
-    toHex,
-    fromHex,
-    unsafeFromHex,
 
     -- * Palette colours
     palette,
@@ -67,16 +62,12 @@ module Data.Colour
 where
 
 import Chart.Data
-import Data.Attoparsec.Text qualified as A
-import Data.Bifunctor
 import Data.Bool (bool)
 import Data.ByteString (ByteString)
-import Data.Char
-import Data.Either
 import Data.FormatN
 import Data.List qualified as List
 import Data.String.Interpolate
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Data.Text qualified as Text
 import GHC.Generics hiding (prec)
 import Graphics.Color.Model as M hiding (LCH)
@@ -180,59 +171,9 @@ showOpacity c =
 opac' :: Lens' Colour Double
 opac' = lens opac (\(Colour r g b _) o -> Colour r g b o)
 
--- | Convert to CSS hex representation.
-hex :: Colour -> Text
-hex c = toHex c
-
 -- | Sets RGB color but not opacity
 rgb :: Colour -> Colour -> Colour
 rgb (Colour r g b _) (Colour _ _ _ o) = Colour r g b o
-
--- | Parse CSS hex text.
-parseHex :: A.Parser (Color RGB Double)
-parseHex =
-  fmap toDouble
-    . ( \((r, g), b) ->
-          ColorRGB (fromIntegral r) (fromIntegral g) (fromIntegral b) :: Color RGB Word8
-      )
-    . (\(f, b) -> (f `divMod` (256 :: Int), b))
-    . (`divMod` 256)
-    <$> (A.string "#" *> A.hexadecimal)
-
--- | Convert CSS hex to Colour
-fromHex :: Text -> Either Text (Color RGB Double)
-fromHex = first pack . A.parseOnly parseHex
-
--- | Convert CSS hex to Colour, unsafely.
-unsafeFromHex :: Text -> Color RGB Double
-unsafeFromHex t = fromRight (ColorRGB 0 0 0) $ A.parseOnly parseHex t
-
--- | Convert from 'Colour' to CSS hex (#xxxxxx)
-toHex :: Colour -> Text
-toHex c =
-  "#"
-    <> Text.justifyRight 2 '0' (hex' r)
-    <> Text.justifyRight 2 '0' (hex' g)
-    <> Text.justifyRight 2 '0' (hex' b)
-  where
-    (ColorRGBA r g b _) = fromIntegral . toWord8 <$> color' c
-
-hex' :: Int -> Text
-hex' n
-  | n < 0 = "-" <> go (-n)
-  | otherwise = go n
-  where
-    go n'
-      | n' < 16 = hexDigit n'
-      | otherwise = go (n' `quot` 16) <> hexDigit (n' `rem` 16)
-
-hexDigit :: Int -> Text
-hexDigit n
-  | n <= 9 = Text.singleton $! i2d n
-  | otherwise = Text.singleton $! toEnum (n + 87)
-
-i2d :: Int -> Char
-i2d x = chr (ord '0' + x)
 
 -- | Select a Colour from the palette
 --
