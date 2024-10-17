@@ -121,7 +121,7 @@ lineExample =
               defaultTitleOptions "Made with 🧡 and chart-svg"
                 & set (#style % #size) 0.04
                 & set #place PlaceBottom
-                & set #anchor AnchorEnd
+                & set #anchoring 0.5
           ]
         & set
           #legends

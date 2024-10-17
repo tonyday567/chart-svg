@@ -211,13 +211,8 @@ attsText o =
           ("fill", showRGB $ view #color o),
           ("fill-opacity", showOpacity $ view #color o),
           ("font-size", encodeNum $ view #size o),
-          ("text-anchor", toTextAnchor $ view #anchor o)
+          ("text-anchor", fromTextAnchor $ view #textAnchor o)
         ]
-  where
-    toTextAnchor :: Anchor -> ByteString
-    toTextAnchor AnchorMiddle = "middle"
-    toTextAnchor AnchorStart = "start"
-    toTextAnchor AnchorEnd = "end"
 
 -- | GlyphStyle to [Attr]
 attsGlyph :: Style -> [Attr]
