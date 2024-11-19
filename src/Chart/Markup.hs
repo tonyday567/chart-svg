@@ -7,6 +7,10 @@ module Chart.Markup
   ( Markup (..),
     ChartOptions (..),
     forgetHud,
+    asChartTree,
+    vertCO,
+    horiCO,
+    stackCO,
     markupChartOptions,
     markupChartTree,
     markupChart,
@@ -478,6 +482,22 @@ forgetHud co =
     & set #hudOptions mempty
     & set #chartTree (addHud (view (#markupOptions % #chartAspect) co) (view #hudOptions co) (view #chartTree co))
     & set (#chartTree % charts' % each % #chartStyle % #scaleP) ScalePArea
+
+-- | Convert ChartOptions to a ChartTree, forgetting the original hud and chart data
+asChartTree :: ChartOptions -> ChartTree
+asChartTree = view #chartTree . forgetHud
+
+-- | Horizontally stack a list of ChartOptions (proceeding to the right), at the supplied Align and with the supplied gap intercalated.
+horiCO :: Align -> Double -> [ChartOptions] -> ChartOptions
+horiCO align gap cs = mempty @ChartOptions & set #chartTree (hori align gap (asChartTree <$> cs))
+
+-- | Vertically stack a list of ChartOptions (proceeding upwards), at the supplied Align and with the supplied gap intercalated.
+vertCO :: Align -> Double -> [ChartOptions] -> ChartOptions
+vertCO align gap cs = mempty @ChartOptions & set #chartTree (vert align gap (asChartTree <$> cs))
+
+-- | Stack a list of ChartOptions horizontally, then vertically (proceeding downwards which is opposite to the usual coordinate reference system but intuitively the way people read charts)
+stackCO :: Int -> Align -> Align -> Double -> [ChartOptions] -> ChartOptions
+stackCO n alignV alignH gap cs = mempty @ChartOptions & set #chartTree (stack n alignV alignH gap (asChartTree <$> cs))
 
 -- | Convert ChartOptions to Markup
 --

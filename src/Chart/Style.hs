@@ -316,7 +316,7 @@ fromAnchoring x = case compare x zero of
   LT -> AnchorStart
 
 -- | Aligning stacked things.
-data Align = NoAlign | AlignRight | AlignLeft deriving (Eq, Show, Generic)
+data Align = NoAlign | AlignRight | AlignLeft | AlignMid deriving (Eq, Show, Generic)
 
 -- | Scale Projection options
 data ScaleP

@@ -636,7 +636,7 @@ freezeAxes db0 as =
   foldl'
     ( \(dbm, as') ao ->
         let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) (view #item ao)
-         in (maybe dbm Just dbm', as' <> [ao & set #item ao'])
+         in (dbm' <|> dbm, as' <> [ao & set #item ao'])
     )
     (Nothing, [])
     as
@@ -904,7 +904,7 @@ tickText_ pl s ts sb cb db =
     _ -> Just $ Chart (placeTextAnchor pl (view #style s)) (TextData l)
   where
     l =
-      swap . first (addp ((placeSides pl (view #buffer s) sb) + (textPos pl (view #style s) (view #buffer s))) . placeOrigin pl)
+      swap . first (addp (placeSides pl (view #buffer s) sb + textPos pl (view #style s) (view #buffer s)) . placeOrigin pl)
         <$> ticksPlacedCanvas ts pl cb db
 
 placeSides :: Place -> Double -> ChartBox -> Point Double
@@ -962,11 +962,11 @@ title_ t cb =
       | otherwise = rot'
     placePosTitle =
       beside
-      (view #place t)
-      (view #anchoring t)
-      (view #buffer t)
-      cb
-      (styleBoxText s' (view #text t) zero)
+        (view #place t)
+        (view #anchoring t)
+        (view #buffer t)
+        cb
+        (styleBoxText s' (view #text t) zero)
 
 textPos :: Place -> Style -> Double -> Point Double
 textPos pl tt b = case pl of
@@ -1020,10 +1020,15 @@ legendChart :: LegendOptions -> ChartTree
 legendChart l = legendFrame l content'
   where
     content' =
-      stack (view #numStacks l)
+      stack
+        (view #numStacks l)
+        AlignLeft
+        AlignMid
         (view #hgap l)
         ( ( \(t, a) ->
               hori
+                AlignMid
+                -- FIXME: other Aligns
                 (view #vgap l + bool 0 (twidth - gapwidth t) (view #alignCharts l == AlignRight))
                 (fmap unnamed [[t], a])
           )

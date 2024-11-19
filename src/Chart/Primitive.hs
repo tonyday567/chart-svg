@@ -87,15 +87,15 @@ import Data.Path
 import Data.Text (Text)
 import Data.Tree
 import GHC.Generics
-import Optics.Core
 import NumHask.Prelude
 import NumHask.Space
+import Optics.Core
 
 -- $setup
 --
+-- >>> :m -Prelude
 -- >>> :set -XOverloadedLabels
 -- >>> :set -XOverloadedStrings
--- >>> :set -XRebindableSyntax
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> import NumHask.Prelude
@@ -463,10 +463,9 @@ isEmptyChart (PathData []) = True
 isEmptyChart (BlankData _) = True
 isEmptyChart _ = False
 
--- | Horizontally stack a list of trees (proceeding to the right) with a gap between
-hori :: Double -> [ChartTree] -> ChartTree
-hori _ [] = mempty
-hori gap cs = foldl' step mempty cs
+-- | Horizontally stack a list of trees (proceeding to the right), at the supplied Align and with the supplied gap intercalated.
+hori :: Align -> Double -> [ChartTree] -> ChartTree
+hori align gap cs = foldl' step mempty cs
   where
     step x c = x <> over chart' (moveChart (Point (widthx x) (aligny x - aligny c))) c
     widthx x = case foldOf charts' x of
@@ -474,12 +473,15 @@ hori gap cs = foldl' step mempty cs
       xs -> maybe zero (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
     aligny x = case foldOf charts' x of
       [] -> zero
-      xs -> maybe zero (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
+      xs -> case align of
+        AlignLeft -> maybe zero (\(Rect _ _ y' _) -> y') (styleBoxes xs)
+        AlignRight -> maybe zero (\(Rect _ _ _ y') -> y') (styleBoxes xs)
+        AlignMid -> maybe zero (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
+        NoAlign -> zero
 
--- | Vertically stack a list of trees (proceeding upwards), aligning them to the left
-vert :: Double -> [ChartTree] -> ChartTree
-vert _ [] = mempty
-vert gap cs = foldl' step mempty cs
+-- | Vertically stack a list of trees (proceeding upwards), at the supplied Align and with the supplied gap intercalated.
+vert :: Align -> Double -> [ChartTree] -> ChartTree
+vert align gap cs = foldl' step mempty cs
   where
     step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (widthy x))) c
     widthy x = case foldOf charts' x of
@@ -487,12 +489,15 @@ vert gap cs = foldl' step mempty cs
       xs -> maybe zero (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
     alignx x = case foldOf charts' x of
       [] -> zero
-      xs -> maybe zero (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+      xs -> case align of
+        AlignLeft -> maybe zero (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+        AlignRight -> maybe zero (\(Rect _ x' _ _) -> x') (styleBoxes xs)
+        AlignMid -> maybe zero (\(Rect x' z' _ _) -> (x' + z') / 2) (styleBoxes xs)
+        NoAlign -> zero
 
 -- | Stack a list of tree charts horizontally, then vertically (proceeding downwards which is opposite to the usual coordinate reference system but intuitively the way people read charts)
-stack :: Int -> Double -> [ChartTree] -> ChartTree
-stack _ _ [] = mempty
-stack n gap cs = vert gap (reverse $ hori gap <$> group' cs [])
+stack :: Int -> Align -> Align -> Double -> [ChartTree] -> ChartTree
+stack n alignV alignH gap cs = vert alignV gap (reverse $ hori alignH gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
@@ -571,15 +576,15 @@ flipPlace (PlaceAbsolute p) = PlaceAbsolute (negate p)
 --
 -- above and right-aligned
 -- >>> beside PlaceTop 0.5 0.01 one half
--- Point (-0.25) 0.76
+-- Point 0.25 0.76
 --
 -- left and with tops inline
 -- >>> beside PlaceLeft (-0.5) 0 one half
--- Point (-0.75) (-0.25)
+-- Point (-0.75) 0.25
 --
 -- left and with bottoms aligned
 -- >>> beside PlaceLeft 0.5 0 one half
--- Point (-0.75) 0.25
+-- Point (-0.75) (-0.25)
 beside :: Place -> Double -> Double -> Rect Double -> Rect Double -> Point Double
 beside pl anc buff r r' = mid r - mid r' + p + b + a
   where
@@ -592,16 +597,16 @@ beside pl anc buff r r' = mid r - mid r' + p + b + a
       PlaceRight -> Point buff zero
       PlaceAbsolute _ -> zero
     p = case pl of
-      PlaceTop -> wplus {_x = zero }
-      PlaceBottom -> -wplus {_x = zero }
+      PlaceTop -> wplus {_x = zero}
+      PlaceBottom -> -wplus {_x = zero}
       PlaceLeft -> -wplus {_y = zero}
       PlaceRight -> wplus {_y = zero}
       PlaceAbsolute p' -> p'
     -- This is the opposite of the usual convention, but aligns
     -- with TextAnchor usage when text is vertical.
     a = case pl of
-      PlaceTop -> wneg {_y = zero } |* anc
-      PlaceBottom -> wneg {_y = zero } |* anc
-      PlaceLeft -> -wneg {_x = zero} |* anc
-      PlaceRight -> -wneg {_x = zero} |* anc
+      PlaceTop -> wneg {_y = zero} |* anc
+      PlaceBottom -> wneg {_y = zero} |* anc
+      PlaceLeft -> -(wneg {_x = zero} |* anc)
+      PlaceRight -> -(wneg {_x = zero} |* anc)
       PlaceAbsolute _ -> zero
