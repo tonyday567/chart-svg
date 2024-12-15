@@ -467,10 +467,15 @@ isEmptyChart _ = False
 hori :: Align -> Double -> [ChartTree] -> ChartTree
 hori align gap cs = foldl' step mempty cs
   where
-    step x c = x <> over chart' (moveChart (Point (widthx x) (aligny x - aligny c))) c
-    widthx x = case foldOf charts' x of
-      [] -> zero
-      xs -> maybe zero (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
+    step x c = x <> over chart' (moveChart (Point (movex x c) (aligny x - aligny c))) c
+    movex x c =
+      maybe
+        zero
+        (gap +)
+        ( (-)
+            <$> (rx <$> view styleBox' x)
+            <*> (rz <$> view styleBox' c)
+        )
     aligny x = case foldOf charts' x of
       [] -> zero
       xs -> case align of
@@ -483,10 +488,15 @@ hori align gap cs = foldl' step mempty cs
 vert :: Align -> Double -> [ChartTree] -> ChartTree
 vert align gap cs = foldl' step mempty cs
   where
-    step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (widthy x))) c
-    widthy x = case foldOf charts' x of
-      [] -> zero
-      xs -> maybe zero (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
+    step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (movey x c))) c
+    movey x c =
+      maybe
+        zero
+        (gap +)
+        ( (-)
+            <$> (rw <$> view styleBox' x)
+            <*> (ry <$> view styleBox' c)
+        )
     alignx x = case foldOf charts' x of
       [] -> zero
       xs -> case align of

@@ -29,6 +29,7 @@ module Chart.Hud
     fromHudChart,
     runHudWith,
     projectChartTreeWith,
+    projectWithAspect,
     addHud,
     initialCanvas,
     finalCanvas,
@@ -62,6 +63,8 @@ module Chart.Hud
     adjustTicks,
     Adjustments (..),
     defaultAdjustments,
+    computeRangeTick,
+
     LegendOptions (..),
     defaultLegendOptions,
 
@@ -248,6 +251,10 @@ projectChartTreeWith asp ho ct = ctFinal
     csAndHud = addHud asp ho ct
     viewbox = finalCanvas asp (Just csAndHud)
     ctFinal = set styleBox' (Just viewbox) csAndHud
+
+-- | Scale a 'ChartTree' with a specific 'ChartAspect'.
+projectWithAspect :: ChartAspect -> ChartTree -> ChartTree
+projectWithAspect asp ct = set styleBox' (Just (finalCanvas asp (Just ct))) ct
 
 -- | Typical, configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
@@ -687,6 +694,10 @@ makePlacedTicks r s =
           ls
       )
     TickPlaced xs -> (Nothing, xs)
+
+-- | compute data range of Tick given initial data range
+computeRangeTick :: Range Double -> Tick -> Range Double
+computeRangeTick r t = fromMaybe r (fst (makePlacedTicks r t))
 
 -- | Create an axis.
 axisHud :: AxisOptions -> DataBox -> HudChart -> ChartTree

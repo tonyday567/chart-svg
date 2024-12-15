@@ -103,13 +103,13 @@ mkSurfaceData ::
   Grid (Rect Double) ->
   [Colour] ->
   ([SurfaceData], Range Double)
-mkSurfaceData f r g cs = (zipWith SurfaceData rects (flip mixes cs <$> proj), rx)
+mkSurfaceData f r g cs = (zipWith SurfaceData rects (flip mixes cs <$> proj), x)
   where
     ps = gridF f r g
     rects = fst <$> ps
     vs = snd <$> ps
-    rx = unsafeSpace1 vs :: Range Double
-    proj = project rx (Range 0 1) <$> vs
+    x = unsafeSpace1 vs :: Range Double
+    proj = project x (Range 0 1) <$> vs
 
 -- | Create a surface chart from a function.
 surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart], Range Double)

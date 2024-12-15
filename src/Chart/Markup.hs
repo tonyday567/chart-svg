@@ -260,7 +260,7 @@ markupShape_ SquareGlyph s p =
   markupRect (move p ((s *) <$> one :: Rect Double))
 markupShape_ (RectSharpGlyph x') s p =
   markupRect (move p (scale (Point s (x' * s)) one :: Rect Double))
-markupShape_ (RectRoundedGlyph x' rx ry) s p = emptyElem "rect" as
+markupShape_ (RectRoundedGlyph x' rx' ry') s p = emptyElem "rect" as
   where
     as =
       uncurry Attr
@@ -268,8 +268,8 @@ markupShape_ (RectRoundedGlyph x' rx ry) s p = emptyElem "rect" as
               ("height", encodeNum $ w - y),
               ("x", encodeNum x),
               ("y", encodeNum $ -w),
-              ("rx", encodeNum rx),
-              ("ry", encodeNum ry)
+              ("rx", encodeNum rx'),
+              ("ry", encodeNum ry')
             ]
     (Rect x z y w) = move p (scale (Point s (x' * s)) one)
 markupShape_ (TriangleGlyph (Point xa ya) (Point xb yb) (Point xc yc)) s p =

@@ -1,6 +1,6 @@
 packages:
   chart-svg.cabal
-
+  ../numhask-space/numhask-space.cabal
 write-ghc-environment-files: always
 
 tests: True
