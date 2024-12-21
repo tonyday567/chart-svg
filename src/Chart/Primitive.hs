@@ -465,7 +465,7 @@ isEmptyChart _ = False
 
 -- | Horizontally stack a list of trees (proceeding to the right), at the supplied Align and with the supplied gap intercalated.
 hori :: Align -> Double -> [ChartTree] -> ChartTree
-hori align gap cs = foldl' step mempty cs
+hori align gap cs = foldl' step mempty (reverse cs)
   where
     step x c = x <> over chart' (moveChart (Point (movex x c) (aligny x - aligny c))) c
     movex x c =
@@ -486,7 +486,7 @@ hori align gap cs = foldl' step mempty cs
 
 -- | Vertically stack a list of trees (proceeding upwards), at the supplied Align and with the supplied gap intercalated.
 vert :: Align -> Double -> [ChartTree] -> ChartTree
-vert align gap cs = foldl' step mempty cs
+vert align gap cs = foldl' step mempty (reverse cs)
   where
     step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (movey x c))) c
     movey x c =
@@ -507,7 +507,7 @@ vert align gap cs = foldl' step mempty cs
 
 -- | Stack a list of tree charts horizontally, then vertically (proceeding downwards which is opposite to the usual coordinate reference system but intuitively the way people read charts)
 stack :: Int -> Align -> Align -> Double -> [ChartTree] -> ChartTree
-stack n alignV alignH gap cs = vert alignV gap (reverse $ hori alignH gap <$> group' cs [])
+stack n alignV alignH gap cs = vert alignV gap (hori alignH gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
