@@ -64,7 +64,6 @@ module Chart.Hud
     Adjustments (..),
     defaultAdjustments,
     computeRangeTick,
-
     LegendOptions (..),
     defaultLegendOptions,
 
@@ -1039,7 +1038,6 @@ legendChart l = legendFrame l content'
         ( ( \(t, a) ->
               hori
                 AlignMid
-                -- FIXME: other Aligns
                 (view #vgap l + bool 0 (twidth - gapwidth t) (view #alignCharts l == AlignRight))
                 (fmap unnamed [[t], a])
           )
