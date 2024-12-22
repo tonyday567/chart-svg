@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE RebindableSyntax #-}
 
 -- | Base 'Chart' and 'ChartTree' types and support
 module Chart.Primitive
@@ -60,11 +61,18 @@ module Chart.Primitive
     vert,
     hori,
     stack,
+    besideChart,
     frameChart,
     isEmptyChart,
     padChart,
     rectangularize,
     glyphize,
+
+    -- * Relative position
+    Align (..),
+    Place (..),
+    flipPlace,
+    beside,
   )
 where
 
@@ -79,24 +87,26 @@ import Data.Path
 import Data.Text (Text)
 import Data.Tree
 import GHC.Generics
+import NumHask.Prelude
+import NumHask.Space
 import Optics.Core
-import Prelude
 
 -- $setup
 --
+-- >>> :m -Prelude
 -- >>> :set -XOverloadedLabels
 -- >>> :set -XOverloadedStrings
 -- >>> import Chart
 -- >>> import Optics.Core
+-- >>> import NumHask.Prelude
 -- >>> let r = RectChart defaultRectStyle [one]
 
 -- | A product type consisting of a 'Style', which is the stylistic manifestation of chart data, and 'ChartData' representing where data is located on the chart canvas (an xy-plane).
 --
 -- A simple example is:
 --
--- >>> let r = Chart defaultRectStyle (RectData [one])
--- >>> r
--- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.5) 0.5 (-0.5) 0.5]}
+-- >>> Chart defaultRectStyle (RectData [one])
+-- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.5) 0.5 (-0.5) 0.5]}
 --
 -- Using the defaults, this chart is rendered as:
 --
@@ -324,7 +334,7 @@ sbox (Chart _ (BlankData a)) = foldRect a
 -- | projects a Chart to a new space from an old rectangular space, preserving linear metric structure.
 --
 -- >>> projectWith (fmap (2*) one) one r
--- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-1.0) 1.0 (-1.0) 1.0]}
+-- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-1.0) 1.0 (-1.0) 1.0]}
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old c = c & over #chartStyle (scaleStyle (scaleRatio (view (#chartStyle % #scaleP) c) new old)) & over #chartData (projectChartDataWith new old)
 
@@ -435,7 +445,7 @@ safeBox_ l ct
 -- | Create a frame over some charts with (additive) padding.
 --
 -- >>> frameChart defaultRectStyle 0.1 (unnamed [BlankChart defaultStyle []])
--- ChartTree {tree = Node {rootLabel = (Just "frame",[Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData []}]), subForest = []}}
+-- ChartTree {tree = Node {rootLabel = (Just "frame",[Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData []}]), subForest = []}}
 frameChart :: Style -> Double -> ChartTree -> ChartTree
 frameChart rs p cs = named "frame" [Chart rs (RectData (maybeToList (padRect p <$> view styleBox' cs)))]
 
@@ -453,39 +463,58 @@ isEmptyChart (PathData []) = True
 isEmptyChart (BlankData _) = True
 isEmptyChart _ = False
 
--- | Horizontally stack a list of trees (proceeding to the right) with a gap between
-hori :: Double -> [ChartTree] -> ChartTree
-hori _ [] = mempty
-hori gap cs = foldl' step mempty cs
+-- | Horizontally stack a list of trees (proceeding to the right), at the supplied Align and with the supplied gap intercalated.
+hori :: Align -> Double -> [ChartTree] -> ChartTree
+hori align gap cs = foldl' step mempty (reverse cs)
   where
-    step x c = x <> over chart' (moveChart (Point (widthx x) (aligny x - aligny c))) c
-    widthx x = case foldOf charts' x of
-      [] -> zero
-      xs -> maybe zero (\(Rect x' z' _ _) -> z' - x' + gap) (styleBoxes xs)
+    step x c = x <> over chart' (moveChart (Point (movex x c) (aligny x - aligny c))) c
+    movex x c =
+      maybe
+        zero
+        (-gap +)
+        ( (-)
+            <$> (rx <$> view styleBox' x)
+            <*> (rz <$> view styleBox' c)
+        )
     aligny x = case foldOf charts' x of
       [] -> zero
-      xs -> maybe zero (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
+      xs -> case align of
+        AlignLeft -> maybe zero (\(Rect _ _ y' _) -> y') (styleBoxes xs)
+        AlignRight -> maybe zero (\(Rect _ _ _ y') -> y') (styleBoxes xs)
+        AlignMid -> maybe zero (\(Rect _ _ y' w') -> (y' + w') / 2) (styleBoxes xs)
+        NoAlign -> zero
 
--- | Vertically stack a list of trees (proceeding upwards), aligning them to the left
-vert :: Double -> [ChartTree] -> ChartTree
-vert _ [] = mempty
-vert gap cs = foldl' step mempty cs
+-- | Vertically stack a list of trees (proceeding upwards), at the supplied Align and with the supplied gap intercalated.
+vert :: Align -> Double -> [ChartTree] -> ChartTree
+vert align gap cs = foldl' step mempty (reverse cs)
   where
-    step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (widthy x))) c
-    widthy x = case foldOf charts' x of
-      [] -> zero
-      xs -> maybe zero (\(Rect _ _ y' w') -> w' - y' + gap) (styleBoxes xs)
+    step x c = x <> over chart' (moveChart (Point (alignx x - alignx c) (movey x c))) c
+    movey x c =
+      maybe
+        zero
+        (gap +)
+        ( (-)
+            <$> (rw <$> view styleBox' x)
+            <*> (ry <$> view styleBox' c)
+        )
     alignx x = case foldOf charts' x of
       [] -> zero
-      xs -> maybe zero (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+      xs -> case align of
+        AlignLeft -> maybe zero (\(Rect x' _ _ _) -> x') (styleBoxes xs)
+        AlignRight -> maybe zero (\(Rect _ x' _ _) -> x') (styleBoxes xs)
+        AlignMid -> maybe zero (\(Rect x' z' _ _) -> (x' + z') / 2) (styleBoxes xs)
+        NoAlign -> zero
 
 -- | Stack a list of tree charts horizontally, then vertically (proceeding downwards which is opposite to the usual coordinate reference system but intuitively the way people read charts)
-stack :: Int -> Double -> [ChartTree] -> ChartTree
-stack _ _ [] = mempty
-stack n gap cs = vert gap (reverse $ hori gap <$> group' cs [])
+stack :: Int -> Align -> Align -> Double -> [ChartTree] -> ChartTree
+stack n alignV alignH gap cs = vert alignV gap (hori alignH gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)
+
+-- | Place a ChartTree beside a 'Rect'.
+besideChart :: Place -> Double -> Double -> Rect Double -> ChartTree -> ChartTree
+besideChart place anc buff cb ct = maybe ct (\b -> ct & over chart' (moveChart (beside place anc buff cb b))) (view styleBox' ct)
 
 -- | Make a new chart tree out of the bounding boxes of a chart tree.
 --
@@ -528,3 +557,66 @@ data ChartAspect
   | -- | Do not rescale charts. The style values should make sense in relation to the data ranges.
     UnscaledAspect
   deriving (Show, Eq, Generic)
+
+-- | Rectangular placement
+data Place
+  = PlaceLeft
+  | PlaceRight
+  | PlaceTop
+  | PlaceBottom
+  | PlaceAbsolute (Point Double)
+  deriving (Show, Eq, Generic)
+
+-- | Flip Place to the opposite side, or negate if 'PlaceAbsolute'.
+--
+-- >>> flipPlace PlaceLeft
+-- PlaceRight
+flipPlace :: Place -> Place
+flipPlace PlaceLeft = PlaceRight
+flipPlace PlaceRight = PlaceLeft
+flipPlace PlaceTop = PlaceBottom
+flipPlace PlaceBottom = PlaceTop
+flipPlace (PlaceAbsolute p) = PlaceAbsolute (negate p)
+
+-- | Point that moves a 'Rect' in relation to another 'Rect'
+--
+-- above and centered
+-- >>> beside PlaceTop 0 0.01 one half
+-- Point 0.0 0.76
+--
+-- above and right-aligned
+-- >>> beside PlaceTop 0.5 0.01 one half
+-- Point 0.25 0.76
+--
+-- left and with tops inline
+-- >>> beside PlaceLeft (-0.5) 0 one half
+-- Point (-0.75) 0.25
+--
+-- left and with bottoms aligned
+-- >>> beside PlaceLeft 0.5 0 one half
+-- Point (-0.75) (-0.25)
+beside :: Place -> Double -> Double -> Rect Double -> Rect Double -> Point Double
+beside pl anc buff r r' = mid r - mid r' + p + b + a
+  where
+    wplus = width r |/ 2 + width r' |/ 2
+    wneg = width r - width r'
+    b = case pl of
+      PlaceTop -> Point zero buff
+      PlaceBottom -> Point zero (-buff)
+      PlaceLeft -> Point (-buff) zero
+      PlaceRight -> Point buff zero
+      PlaceAbsolute _ -> zero
+    p = case pl of
+      PlaceTop -> wplus {_x = zero}
+      PlaceBottom -> -wplus {_x = zero}
+      PlaceLeft -> -wplus {_y = zero}
+      PlaceRight -> wplus {_y = zero}
+      PlaceAbsolute p' -> p'
+    -- This is the opposite of the usual convention, but aligns
+    -- with TextAnchor usage when text is vertical.
+    a = case pl of
+      PlaceTop -> wneg {_y = zero} |* anc
+      PlaceBottom -> wneg {_y = zero} |* anc
+      PlaceLeft -> -(wneg {_x = zero} |* anc)
+      PlaceRight -> -(wneg {_x = zero} |* anc)
+      PlaceAbsolute _ -> zero

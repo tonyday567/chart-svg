@@ -29,6 +29,7 @@ module Chart.Hud
     fromHudChart,
     runHudWith,
     projectChartTreeWith,
+    projectWithAspect,
     addHud,
     initialCanvas,
     finalCanvas,
@@ -62,6 +63,7 @@ module Chart.Hud
     adjustTicks,
     Adjustments (..),
     defaultAdjustments,
+    computeRangeTick,
     LegendOptions (..),
     defaultLegendOptions,
 
@@ -70,6 +72,11 @@ module Chart.Hud
     titleHud,
     frameHud,
     legendHud,
+    legendChart,
+    legendEntry,
+    legendFrame,
+    freezeAxes,
+    freezeTicks,
   )
 where
 
@@ -246,6 +253,10 @@ projectChartTreeWith asp ho ct = ctFinal
     viewbox = finalCanvas asp (Just csAndHud)
     ctFinal = set styleBox' (Just viewbox) csAndHud
 
+-- | Scale a 'ChartTree' with a specific 'ChartAspect'.
+projectWithAspect :: ChartAspect -> ChartTree -> ChartTree
+projectWithAspect asp ct = set styleBox' (Just (finalCanvas asp (Just ct))) ct
+
 -- | Typical, configurable hud elements. Anything else can be hand-coded as a 'Hud'.
 --
 -- ![hud example](other/hudoptions.svg)
@@ -316,26 +327,6 @@ colourHudOptions f o =
       a
         & over (#frame % _Just) (over #color f . over #borderColor f)
 
--- | Placement of elements around (what is implicity but maybe shouldn't just be) a rectangular canvas
-data Place
-  = PlaceLeft
-  | PlaceRight
-  | PlaceTop
-  | PlaceBottom
-  | PlaceAbsolute (Point Double)
-  deriving (Show, Eq, Generic)
-
--- | Flip Place to the opposite side, or unchanged if 'PlaceAbsolute'.
---
--- >>> flipPlace PlaceLeft
--- PlaceRight
-flipPlace :: Place -> Place
-flipPlace PlaceLeft = PlaceRight
-flipPlace PlaceRight = PlaceLeft
-flipPlace PlaceTop = PlaceBottom
-flipPlace PlaceBottom = PlaceTop
-flipPlace x = x
-
 -- | axis options
 data AxisOptions = AxisOptions
   { axisBar :: Maybe AxisBar,
@@ -356,7 +347,7 @@ defaultYAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments
 -- | The bar on an axis representing the x or y plane.
 --
 -- >>> defaultAxisBar
--- AxisBar {style = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, size = 4.0e-3, buffer = 1.0e-2, overhang = 2.0e-3, anchorTo = CanvasSection}
+-- AxisBar {style = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, size = 4.0e-3, buffer = 1.0e-2, overhang = 2.0e-3, anchorTo = CanvasSection}
 data AxisBar = AxisBar
   { style :: Style,
     size :: Double,
@@ -375,12 +366,12 @@ defaultAxisBar = AxisBar (defaultRectStyle & set #borderSize 0 & set #borderColo
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
 -- >>> defaultTitleOptions "title"
--- TitleOptions {text = "title", style = Style {size = 0.12, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, place = PlaceTop, anchor = AnchorMiddle, buffer = 4.0e-2}
+-- TitleOptions {text = "title", style = Style {size = 0.12, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, place = PlaceTop, anchoring = 0.0, buffer = 4.0e-2}
 data TitleOptions = TitleOptions
   { text :: Text,
     style :: Style,
     place :: Place,
-    anchor :: Anchor,
+    anchoring :: Double,
     buffer :: Double
   }
   deriving (Show, Eq, Generic)
@@ -394,13 +385,13 @@ defaultTitleOptions txt =
         & set #size 0.12
     )
     PlaceTop
-    AnchorMiddle
+    0
     0.04
 
 -- | axis tick markings
 --
 -- >>> defaultXTicks
--- Ticks {tick = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 5 TickExtend, glyphTick = Just (TickStyle {style = Style {size = 3.0e-2, borderSize = 4.0e-3, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, scaleP = ScalePY, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = VLineGlyph}, anchorTo = CanvasSection, buffer = 1.0e-2}), textTick = Just (TickStyle {style = Style {size = 4.0e-2, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, anchorTo = HudStyleSection, buffer = 1.0e-2}), lineTick = Just (TickStyle {style = Style {size = 5.0e-3, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 0.05, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, anchorTo = CanvasSection, buffer = 0.0})}
+-- Ticks {tick = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 5 TickExtend, glyphTick = Just (TickStyle {style = Style {size = 3.0e-2, borderSize = 4.0e-3, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, scaleP = ScalePY, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = VLineGlyph}, anchorTo = CanvasSection, buffer = 1.0e-2}), textTick = Just (TickStyle {style = Style {size = 4.0e-2, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, anchorTo = HudStyleSection, buffer = 1.0e-2}), lineTick = Just (TickStyle {style = Style {size = 5.0e-3, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 0.05, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, anchorTo = CanvasSection, buffer = 0.0})}
 data Ticks = Ticks
   { tick :: Tick,
     glyphTick :: Maybe TickStyle,
@@ -576,7 +567,7 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- | Legend options
 --
 -- >>> defaultLegendOptions
--- LegendOptions {legendSize = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = Style {size = 0.16, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.05 0.05 0.05 0.00, borderColor = Colour 0.05 0.05 0.05 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}), place = PlaceRight, scaleChartsBy = 0.25, scaleP = ScalePX, legendCharts = []}
+-- LegendOptions {legendSize = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = Style {size = 0.16, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.05 0.05 0.05 0.00, borderColor = Colour 0.05 0.05 0.05 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}), place = PlaceRight, anchoring = 0.0, anchorTo = CanvasStyleSection, numStacks = 1, alignCharts = AlignRight, scaleChartsBy = 0.25, scaleP = ScalePX, legendCharts = []}
 data LegendOptions = LegendOptions
   { legendSize :: Double,
     buffer :: Double,
@@ -587,6 +578,10 @@ data LegendOptions = LegendOptions
     outerPad :: Double,
     frame :: Maybe Style,
     place :: Place,
+    anchoring :: Double,
+    anchorTo :: HudChartSection,
+    numStacks :: Int,
+    alignCharts :: Align,
     scaleChartsBy :: Double,
     scaleP :: ScaleP,
     legendCharts :: [(Text, [Chart])]
@@ -606,6 +601,10 @@ defaultLegendOptions =
     0.02
     (Just (defaultRectStyle & set #borderSize 0.005 & set #borderColor (set opac' 1 dark) & set #color (set opac' 0 dark)))
     PlaceRight
+    0
+    CanvasStyleSection
+    1
+    AlignRight
     0.25
     ScalePX
     []
@@ -613,7 +612,7 @@ defaultLegendOptions =
 -- | Options for hud frames
 --
 -- >>> defaultFrameOptions
--- FrameOptions {frame = Just (Style {size = 6.0e-2, borderSize = 0.0, color = Colour 1.00 1.00 1.00 0.02, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}), anchorTo = HudStyleSection, buffer = 0.0}
+-- FrameOptions {frame = Just (Style {size = 6.0e-2, borderSize = 0.0, color = Colour 1.00 1.00 1.00 0.02, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}), anchorTo = HudStyleSection, buffer = 0.0}
 data FrameOptions = FrameOptions
   { frame :: Maybe Style,
     anchorTo :: HudChartSection,
@@ -640,15 +639,18 @@ toHuds o db =
     (mdb, as') = freezeAxes db (view #axes o)
     db' = fromMaybe db mdb
 
+-- | Freeze axes by freezing ticks, supplying a new 'DataBox' if the ticks extend the canvas.
 freezeAxes :: DataBox -> [Priority AxisOptions] -> (Maybe DataBox, [Priority AxisOptions])
-freezeAxes db0 =
-  foldr
-    ( \ao (dbm, as') ->
+freezeAxes db0 as =
+  foldl'
+    ( \(dbm, as') ao ->
         let (dbm', ao') = freezeTicks (fromMaybe db0 dbm) (view #item ao)
-         in (dbm', as' <> [ao & set #item ao'])
+         in (dbm' <|> dbm, as' <> [ao & set #item ao'])
     )
     (Nothing, [])
+    as
 
+-- | Convert ticks to TickPlaced, freezing the effect of a tick, supplying a new 'DataBox' if the ticks extend the canvas.
 freezeTicks :: DataBox -> AxisOptions -> (Maybe DataBox, AxisOptions)
 freezeTicks db a =
   bimap
@@ -695,6 +697,10 @@ makePlacedTicks r s =
           ls
       )
     TickPlaced xs -> (Nothing, xs)
+
+-- | compute data range of Tick given initial data range
+computeRangeTick :: Range Double -> Tick -> Range Double
+computeRangeTick r t = fromMaybe r (fst (makePlacedTicks r t))
 
 -- | Create an axis.
 axisHud :: AxisOptions -> DataBox -> HudChart -> ChartTree
@@ -786,9 +792,9 @@ adjustTicks (Adjustments mrx ma mry ad) vb cs pl t
           ( if adjustSizeX > 1
               then
                 ( case pl of
-                    PlaceBottom -> set (#textTick %? #style % #anchor) AnchorEnd
-                    PlaceTop -> set (#textTick %? #style % #anchor) AnchorStart
-                    _ -> set (#textTick %? #style % #anchor) AnchorEnd
+                    PlaceBottom -> set (#textTick %? #style % #textAnchor) AnchorEnd
+                    PlaceTop -> set (#textTick %? #style % #textAnchor) AnchorStart
+                    _ -> set (#textTick %? #style % #textAnchor) AnchorEnd
                 )
                   . over (#textTick %? #style % #size) (/ adjustSizeA)
                   $ (#textTick %? #style % #rotation ?~ pi / 4) t
@@ -912,8 +918,16 @@ tickText_ pl s ts sb cb db =
     _ -> Just $ Chart (placeTextAnchor pl (view #style s)) (TextData l)
   where
     l =
-      swap . first (addp (addp (placePos pl (view #buffer s) sb) (textPos pl (view #style s) (view #buffer s))) . placeOrigin pl)
+      swap . first (addp (placeSides pl (view #buffer s) sb + textPos pl (view #style s) (view #buffer s)) . placeOrigin pl)
         <$> ticksPlacedCanvas ts pl cb db
+
+placeSides :: Place -> Double -> ChartBox -> Point Double
+placeSides pl b (Rect x z y w) = case pl of
+  PlaceTop -> Point 0 (w + b)
+  PlaceBottom -> Point 0 (y - b)
+  PlaceLeft -> Point (x - b) 0
+  PlaceRight -> Point (z + b) 0
+  PlaceAbsolute p -> p
 
 placeOrigin :: Place -> Double -> Point Double
 placeOrigin pl x
@@ -949,63 +963,24 @@ titleHud t hc = maybe mempty ((named "title" . pure) . title_ t) hb
     hb = view (hudChartBox' HudStyleSection) hc
 
 title_ :: TitleOptions -> ChartBox -> Chart
-title_ t hb =
+title_ t cb =
   Chart
-    (style' & set #rotation (bool (Just rot) Nothing (rot == 0)))
-    (TextData [(view #text t, addp (placePosTitle t hb) (alignPosTitle t hb))])
+    s'
+    (TextData [(view #text t, placePosTitle)])
   where
-    style'
-      | view #anchor t == AnchorStart =
-          set #anchor AnchorStart $ view #style t
-      | view #anchor t == AnchorEnd =
-          set #anchor AnchorEnd $ view #style t
-      | otherwise = view #style t
+    s' = view #style t & set #textAnchor (fromAnchoring (view #anchoring t)) & set #rotation (bool (Just rot) Nothing (rot == 0))
     rot' = fromMaybe 0 (view (#style % #rotation) t)
     rot
       | view #place t == PlaceRight = pi / 2 + rot'
       | view #place t == PlaceLeft = pi / 2 + rot'
       | otherwise = rot'
-
-placePosTitle :: TitleOptions -> ChartBox -> Point Double
-placePosTitle t (Rect x z y w) =
-  case view #place t of
-    PlaceTop -> Point ((x + z) / 2.0) (w - y' + view #buffer t)
-    PlaceBottom -> Point ((x + z) / 2.0) (y - w' - view #buffer t)
-    PlaceLeft -> Point (x + y' - view #buffer t) ((y + w) / 2.0)
-    PlaceRight -> Point (z + w' + view #buffer t) ((y + w) / 2.0)
-    PlaceAbsolute p -> p
-  where
-    (Rect _ _ y' w') = styleBoxText (view #style t) (view #text t) zero
-
-alignPosTitle :: TitleOptions -> ChartBox -> Point Double
-alignPosTitle t (Rect x z y w)
-  | view #anchor t == AnchorStart
-      && (view #place t == PlaceTop || view #place t == PlaceBottom) =
-      Point ((x - z) / 2.0) 0.0
-  | view #anchor t == AnchorStart
-      && view #place t == PlaceLeft =
-      Point 0.0 ((y - w) / 2.0)
-  | view #anchor t == AnchorStart
-      && view #place t == PlaceRight =
-      Point 0.0 ((y - w) / 2.0)
-  | view #anchor t == AnchorEnd
-      && (view #place t == PlaceTop || view #place t == PlaceBottom) =
-      Point ((-x + z) / 2.0) 0.0
-  | view #anchor t == AnchorEnd
-      && view #place t == PlaceLeft =
-      Point 0.0 ((-y + w) / 2.0)
-  | view #anchor t == AnchorEnd
-      && view #place t == PlaceRight =
-      Point 0.0 ((-y + w) / 2.0)
-  | otherwise = Point 0.0 0.0
-
-placePos :: Place -> Double -> ChartBox -> Point Double
-placePos pl b (Rect x z y w) = case pl of
-  PlaceTop -> Point 0 (w + b)
-  PlaceBottom -> Point 0 (y - b)
-  PlaceLeft -> Point (x - b) 0
-  PlaceRight -> Point (z + b) 0
-  PlaceAbsolute p -> p
+    placePosTitle =
+      beside
+        (view #place t)
+        (view #anchoring t)
+        (view #buffer t)
+        cb
+        (styleBoxText s' (view #text t) zero)
 
 textPos :: Place -> Style -> Double -> Point Double
 textPos pl tt b = case pl of
@@ -1023,8 +998,8 @@ textPos pl tt b = case pl of
 
 placeTextAnchor :: Place -> (Style -> Style)
 placeTextAnchor pl
-  | pl == PlaceLeft = set #anchor AnchorEnd
-  | pl == PlaceRight = set #anchor AnchorStart
+  | pl == PlaceLeft = set #textAnchor AnchorEnd
+  | pl == PlaceRight = set #textAnchor AnchorStart
   | otherwise = id
 
 -- | Make a frame hud transformation.
@@ -1040,21 +1015,9 @@ frameHud o hc =
 
 -- | Make a legend from 'LegendOptions' given an existing 'HudChart'
 legendHud :: LegendOptions -> HudChart -> ChartTree
-legendHud o hc = maybe mempty (\b -> placeLegend_ o b (over chart' (scaleChart (view #scaleChartsBy o)) lcs)) (view (hudChartBox' HudStyleSection) hc)
+legendHud o hc = maybe mempty (\b -> besideChart (view #place o) (view #anchoring o) (view #buffer o) b (over chart' (scaleChart (view #scaleChartsBy o)) lcs)) (view (hudChartBox' (view #anchorTo o)) hc)
   where
     lcs = legendChart o & set (charts' % each % #chartStyle % #scaleP) (view #scaleP o)
-
-placeLegend_ :: LegendOptions -> ChartBox -> ChartTree -> ChartTree
-placeLegend_ o hb t = maybe mempty (\b -> t & over chart' (moveChart (placeBeside_ (view #place o) (view #buffer o) hb b))) (view styleBox' t)
-
-placeBeside_ :: Place -> Double -> Rect Double -> Rect Double -> Point Double
-placeBeside_ pl buff (Rect x z y w) (Rect x' z' y' w') =
-  case pl of
-    PlaceTop -> Point ((x + z) / 2.0) (buff + w + (w' - y') / 2.0)
-    PlaceBottom -> Point ((x + z) / 2.0) (y - buff - (w' - y'))
-    PlaceLeft -> Point (x - buff - (z' - x')) ((y + w) / 2.0)
-    PlaceRight -> Point (z + buff) ((y + w) / 2.0)
-    PlaceAbsolute p -> p
 
 -- | frame a legend
 legendFrame :: LegendOptions -> ChartTree -> ChartTree
@@ -1071,16 +1034,20 @@ legendChart :: LegendOptions -> ChartTree
 legendChart l = legendFrame l content'
   where
     content' =
-      vert
+      stack
+        (view #numStacks l)
+        AlignLeft
+        AlignMid
         (view #hgap l)
         ( ( \(t, a) ->
               hori
-                (view #vgap l + twidth - gapwidth t)
+                AlignMid
+                (view #vgap l + bool 0 (twidth - gapwidth t) (view #alignCharts l == AlignRight))
                 (fmap unnamed [[t], a])
           )
             <$> es
         )
-    es = reverse $ uncurry (legendEntry l) <$> view #legendCharts l
+    es = uncurry (legendEntry l) <$> view #legendCharts l
     twidth = maybe zero (\(Rect x z _ _) -> z - x) (styleBoxes (fst <$> es))
     gapwidth t = maybe 0 (\(Rect x z _ _) -> z - x) (sbox t)
 
@@ -1089,7 +1056,7 @@ legendText ::
   Text ->
   Chart
 legendText l t =
-  Chart (view #textStyle l & set #anchor AnchorStart) (TextData [(t, zero)])
+  Chart (view #textStyle l & set #textAnchor AnchorStart & set #scaleP ScalePX) (TextData [(t, zero)])
 
 legendizeChart ::
   LegendOptions ->

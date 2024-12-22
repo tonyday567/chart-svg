@@ -3,6 +3,7 @@
 - ignore: {name: Use head}
 - ignore: {name: Use <$>}
 - ignore: {name: Use first}
+- ignore: {name: Functor law}
 - ignore: {name: 'Use ?~'}
 - ignore: {name: 'Move brackets to avoid $'}
 - ignore: {name: Avoid lambda}

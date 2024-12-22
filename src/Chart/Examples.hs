@@ -121,7 +121,7 @@ lineExample =
               defaultTitleOptions "Made with 🧡 and chart-svg"
                 & set (#style % #size) 0.04
                 & set #place PlaceBottom
-                & set #anchor AnchorEnd
+                & set #anchoring 0.5
           ]
         & set
           #legends
@@ -373,8 +373,9 @@ arcFlagsExample =
     & set
       #chartTree
       ( vert
+          AlignLeft
           0.02
-          [ hori 0.02 [colSweep, colSweep2, colLargeFalse, colLargeTrue],
+          [ hori AlignMid 0.02 [colSweep, colSweep2, colLargeFalse, colLargeTrue],
             rowLarge
           ]
       )
@@ -408,6 +409,7 @@ arcFlagsExample =
         ]
     colLargeFalse =
       vert
+        AlignLeft
         0.02
         [ unnamed (checkFlags False True (set opac' 0.3 dark)),
           unnamed (checkFlags False False (set opac' 0.3 dark)),
@@ -418,6 +420,7 @@ arcFlagsExample =
         ]
     colLargeTrue =
       vert
+        AlignLeft
         0.02
         [ unnamed (checkFlags True True (set opac' 0.3 dark)),
           unnamed (checkFlags True False (set opac' 0.3 dark)),
@@ -435,6 +438,7 @@ arcFlagsExample =
         ]
     colSweep2 =
       vert
+        AlignLeft
         0.02
         [ unnamed
             [ blankChart1 (Rect (-0.25) 0.25 (-1) 2),
@@ -715,7 +719,7 @@ compoundExample = compoundMerge [c1, c2]
 --
 -- ![stack example](other/stack.svg)
 stackExample :: ChartOptions
-stackExample = mempty & set #chartTree (stack 5 0.1 (replicate 25 (view #chartTree $ forgetHud lineExample)))
+stackExample = mempty & set #chartTree (stack 5 AlignLeft AlignMid 0.1 (replicate 25 (asChartTree lineExample)))
 
 -- | All the examples and the associated filepaths
 pathChartOptions :: [(FilePath, ChartOptions)]

@@ -48,7 +48,7 @@ import Chart.Data
 import GHC.Generics
 import Geom2D.CubicBezier qualified as B
 import NumHask.Prelude
-import NumHask.Space
+import NumHask.Space hiding (rw, rx, ry, rz)
 
 -- $setup
 --

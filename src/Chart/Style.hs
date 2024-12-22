@@ -33,9 +33,12 @@ module Chart.Style
     LineJoin (..),
     fromLineJoin,
     toLineJoin,
-    Anchor (..),
-    fromAnchor,
-    toAnchor,
+
+    -- * Stack Styling
+    TextAnchor (..),
+    fromTextAnchor,
+    fromAnchoring,
+    Align (..),
 
     -- * PathStyle
     defaultPathStyle,
@@ -72,7 +75,7 @@ import Prelude
 -- | Stylistic content of chart elements, involving how chart data is represented in the physical chart.
 --
 -- >>> defaultStyle
--- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 data Style = Style
   { -- | The size of the element in relation to the canvas domain.
     size :: Double,
@@ -85,7 +88,7 @@ data Style = Style
     -- | How to treat scale projections.
     scaleP :: ScaleP,
     -- | text-anchor
-    anchor :: Anchor,
+    textAnchor :: TextAnchor,
     -- | element rotation is radians
     rotation :: Maybe Double,
     -- | element translation
@@ -116,42 +119,42 @@ data Style = Style
 -- | The official default style
 --
 -- >>> defaultStyle
--- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultStyle :: Style
 defaultStyle = Style 0.06 0.01 (paletteO 0 0.1) (paletteO 1 1) NoScaleP AnchorMiddle Nothing Nothing EscapeText Nothing Nothing Nothing Nothing Nothing 0.6 1.1 (-0.25) SquareGlyph
 
 -- | The official style for rectangles.
 --
 -- >>> defaultRectStyle
--- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultRectStyle :: Style
 defaultRectStyle = defaultStyle
 
 -- | The official style for text elements.
 --
 -- >>> defaultTextStyle
--- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultTextStyle :: Style
 defaultTextStyle = defaultStyle & set #size 0.06 & set #color dark
 
 -- | The official style for glyphs.
 --
 -- >>> defaultGlyphStyle
--- Style {size = 3.0e-2, borderSize = 3.0e-3, color = Colour 0.02 0.73 0.80 0.20, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 3.0e-2, borderSize = 3.0e-3, color = Colour 0.02 0.73 0.80 0.20, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultGlyphStyle :: Style
 defaultGlyphStyle = defaultStyle & set #size 0.03 & set #color (paletteO 0 0.2) & set #borderColor (set lightness' 0.4 $ paletteO 1 1) & set #borderSize 0.003
 
 -- | The official style for lines.
 --
 -- >>> defaultLineStyle
--- Style {size = 1.2e-2, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 1.2e-2, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultLineStyle :: Style
 defaultLineStyle = defaultStyle & set #size 0.012 & set #color dark
 
 -- | The official style for paths.
 --
 -- >>> defaultPathStyle
--- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.66 0.07 0.55 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.66 0.07 0.55 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultPathStyle :: Style
 defaultPathStyle = defaultStyle & set #color (palette 2) & set #borderColor (palette 1)
 
@@ -166,42 +169,26 @@ scaleStyle x s =
 -- | solid rectangle, no border
 --
 -- >>> blob black
--- Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.00 0.00 0.00 1.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.00 0.00 0.00 1.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 blob :: Colour -> Style
 blob c = defaultRectStyle & set #borderSize 0 & set #borderColor transparent & set #color c
 
 -- | transparent rect
 --
 -- >>> clear
--- Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.00 0.00 0.00 0.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.00 0.00 0.00 0.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 clear :: Style
 clear = defaultRectStyle & set #borderSize 0 & set #borderColor transparent & set #color transparent
 
 -- | transparent rectangle, with border
 --
 -- >>> border 0.01 transparent
--- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.00 0.00 0.00 0.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.00 0.00 0.00 0.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 border :: Double -> Colour -> Style
 border s c = defaultRectStyle & set #borderSize s & set #borderColor c & set #color transparent
 
 -- | Whether to escape the common XML escaped characters.
 data EscapeText = EscapeText | NoEscapeText deriving (Eq, Show, Generic)
-
--- | position anchor
-data Anchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
-
--- | text
-fromAnchor :: (IsString s) => Anchor -> s
-fromAnchor AnchorMiddle = "Middle"
-fromAnchor AnchorStart = "Start"
-fromAnchor AnchorEnd = "End"
-
--- | from text
-toAnchor :: (Eq s, IsString s) => s -> Anchor
-toAnchor "Middle" = AnchorMiddle
-toAnchor "Start" = AnchorStart
-toAnchor "End" = AnchorEnd
-toAnchor _ = AnchorMiddle
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -211,7 +198,7 @@ styleBoxText ::
   Rect Double
 styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (view #rotation o)
   where
-    flat = Rect ((-(x' / 2.0)) + x' * a') (x' / 2 + x' * a') (-(y' / 2 + n1')) (y' / 2 + n1')
+    flat = Rect ((-(x' / 2.0)) + x' * a') (x' / 2 + x' * a') (-(y' / 2) + n1') (y' / 2 + n1')
     s = view #size o
     h = view #hsize o
     v = view #vsize o
@@ -219,7 +206,7 @@ styleBoxText o t p = mpad $ move p $ maybe flat (`rotationBound` flat) (view #ro
     x' = s * h * fromIntegral (Text.length t)
     y' = s * v
     n1' = (-s) * n1
-    a' = case view #anchor o of
+    a' = case view #textAnchor o of
       AnchorStart -> 0.5
       AnchorEnd -> -0.5
       AnchorMiddle -> 0.0
@@ -313,6 +300,25 @@ toLineJoin "miter" = LineJoinMiter
 toLineJoin "bevel" = LineJoinBevel
 toLineJoin "round" = LineJoinRound
 toLineJoin _ = LineJoinMiter
+
+-- | Text Anchor
+data TextAnchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
+
+-- | Convert a 'TextAnchor' to a 'ByteString' label.
+fromTextAnchor :: TextAnchor -> ByteString
+fromTextAnchor AnchorMiddle = "middle"
+fromTextAnchor AnchorStart = "start"
+fromTextAnchor AnchorEnd = "end"
+
+-- | Convert a Double to a TextAnchor
+fromAnchoring :: Double -> TextAnchor
+fromAnchoring x = case compare x zero of
+  EQ -> AnchorMiddle
+  GT -> AnchorEnd
+  LT -> AnchorStart
+
+-- | Aligning stacked things.
+data Align = NoAlign | AlignRight | AlignLeft | AlignMid deriving (Eq, Show, Generic)
 
 -- | Scale Projection options
 data ScaleP

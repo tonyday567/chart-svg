@@ -62,7 +62,7 @@ defaultSurfaceOptions =
 -- | A surface chart is a specialization of a 'RectChart'
 --
 -- >>> defaultSurfaceStyle
--- SurfaceStyle {surfaceColors = [Colour 0.02 0.73 0.80 1.00,Colour 0.02 0.29 0.48 1.00], surfaceRectStyle = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, anchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}}
+-- SurfaceStyle {surfaceColors = [Colour 0.02 0.73 0.80 1.00,Colour 0.02 0.29 0.48 1.00], surfaceRectStyle = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}}
 --
 -- ![surface example](other/surface.svg)
 data SurfaceStyle = SurfaceStyle
@@ -103,13 +103,13 @@ mkSurfaceData ::
   Grid (Rect Double) ->
   [Colour] ->
   ([SurfaceData], Range Double)
-mkSurfaceData f r g cs = (zipWith SurfaceData rects (flip mixes cs <$> proj), rx)
+mkSurfaceData f r g cs = (zipWith SurfaceData rects (flip mixes cs <$> proj), x)
   where
     ps = gridF f r g
     rects = fst <$> ps
     vs = snd <$> ps
-    rx = unsafeSpace1 vs :: Range Double
-    proj = project rx (Range 0 1) <$> vs
+    x = unsafeSpace1 vs :: Range Double
+    proj = project x (Range 0 1) <$> vs
 
 -- | Create a surface chart from a function.
 surfacef :: (Point Double -> Double) -> SurfaceOptions -> ([Chart], Range Double)

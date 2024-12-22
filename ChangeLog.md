@@ -1,3 +1,17 @@
+0.8
+===
+
+- reversed hori, vert; added Align to hori, vert, stack api
+- projectWithAspect added
+- computeRangeTick added
+- exposed legenedChart, freezeAxes & freezeTicks
+- renamed anchor ==> anchoring
+- added anchoring, achorTo, numStacks & alignCharts to LegendOptions
+- added asChartTree, vertCO, horiCO, stackCO
+- added beside, besiseChart
+- added Align
+- renamed Anchor ==> TextAnchor
+
 0.7
 ===
 
