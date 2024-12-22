@@ -471,7 +471,7 @@ hori align gap cs = foldl' step mempty (reverse cs)
     movex x c =
       maybe
         zero
-        (gap +)
+        (-gap +)
         ( (-)
             <$> (rx <$> view styleBox' x)
             <*> (rz <$> view styleBox' c)

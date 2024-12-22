@@ -304,11 +304,13 @@ toLineJoin _ = LineJoinMiter
 -- | Text Anchor
 data TextAnchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic)
 
+-- | Convert a 'TextAnchor' to a 'ByteString' label.
 fromTextAnchor :: TextAnchor -> ByteString
 fromTextAnchor AnchorMiddle = "middle"
 fromTextAnchor AnchorStart = "start"
 fromTextAnchor AnchorEnd = "end"
 
+-- | Convert a Double to a TextAnchor
 fromAnchoring :: Double -> TextAnchor
 fromAnchoring x = case compare x zero of
   EQ -> AnchorMiddle

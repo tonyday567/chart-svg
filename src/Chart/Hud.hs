@@ -73,6 +73,8 @@ module Chart.Hud
     frameHud,
     legendHud,
     legendChart,
+    legendEntry,
+    legendFrame,
     freezeAxes,
     freezeTicks,
   )
@@ -637,6 +639,7 @@ toHuds o db =
     (mdb, as') = freezeAxes db (view #axes o)
     db' = fromMaybe db mdb
 
+-- | Freeze axes by freezing ticks, supplying a new 'DataBox' if the ticks extend the canvas.
 freezeAxes :: DataBox -> [Priority AxisOptions] -> (Maybe DataBox, [Priority AxisOptions])
 freezeAxes db0 as =
   foldl'
@@ -647,6 +650,7 @@ freezeAxes db0 as =
     (Nothing, [])
     as
 
+-- | Convert ticks to TickPlaced, freezing the effect of a tick, supplying a new 'DataBox' if the ticks extend the canvas.
 freezeTicks :: DataBox -> AxisOptions -> (Maybe DataBox, AxisOptions)
 freezeTicks db a =
   bimap
@@ -1043,7 +1047,7 @@ legendChart l = legendFrame l content'
           )
             <$> es
         )
-    es = reverse $ uncurry (legendEntry l) <$> view #legendCharts l
+    es = uncurry (legendEntry l) <$> view #legendCharts l
     twidth = maybe zero (\(Rect x z _ _) -> z - x) (styleBoxes (fst <$> es))
     gapwidth t = maybe 0 (\(Rect x z _ _) -> z - x) (sbox t)
 
@@ -1052,7 +1056,7 @@ legendText ::
   Text ->
   Chart
 legendText l t =
-  Chart (view #textStyle l & set #textAnchor AnchorStart) (TextData [(t, zero)])
+  Chart (view #textStyle l & set #textAnchor AnchorStart & set #scaleP ScalePX) (TextData [(t, zero)])
 
 legendizeChart ::
   LegendOptions ->
