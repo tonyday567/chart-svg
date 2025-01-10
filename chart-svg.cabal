@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.8.0.0
+version: 0.8.0.1
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -74,7 +74,7 @@ library
         , numhask            >=0.11 && <0.13
         , numhask-space      >=0.10 && <0.13
         , optics-core        >=0.4 && <0.5
-        , random             >=1.2 && <1.3
+        , random             >=1.2 && <1.4
         , string-interpolate >=0.3 && <0.5
         , text               >=1.2 && <2.2
         , time               >=1.9 && <1.15
