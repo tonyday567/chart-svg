@@ -1,17 +1,9 @@
 
-# Table of Contents
-
-1.  [Usage](#org829f981)
-2.  [Examples](#orge2856e9)
-
-[![img](https://img.shields.io/hackage/v/chart-svg.svg)](https://hackage.haskell.org/package/chart-svg) [![img](https://github.com/tonyday567/chart-svg/workflows/haskell-ci/badge.svg)](https://github.com/tonyday567/chart-svg/actions?query=workflow%3Ahaskell-ci)
+[![img](https://img.shields.io/hackage/v/chart-svg.svg)](https://hackage.haskell.org/package/chart-svg) [![img](https://github.com/tonyday567/chart-svg/workflows/haskell-ci/badge.svg)](https://github.com/tonyday567/chart-svg/actions)
 
 ![img](other/banner.svg)
 
 A charting library targetting SVG.
-
-
-<a id="org829f981"></a>
 
 # Usage
 
@@ -30,9 +22,6 @@ A charting library targetting SVG.
 ![img](other/usage.svg)
 
 See the haddock documentation for a detailed overview.
-
-
-<a id="orge2856e9"></a>
 
 # Examples
 
