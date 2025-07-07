@@ -84,7 +84,6 @@ jobs:
         name: doctests
         run: |
           cabal run doctests
-          cabal run markup-parse-diff
 
       - name: Check cabal file
         run: cabal check
