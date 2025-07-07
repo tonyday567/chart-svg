@@ -99,6 +99,7 @@ import Optics.Core
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> import NumHask.Prelude
+-- >>> import Prelude qualified as P
 -- >>> let r = RectChart defaultRectStyle [one]
 
 -- | A product type consisting of a 'Style', which is the stylistic manifestation of chart data, and 'ChartData' representing where data is located on the chart canvas (an xy-plane).

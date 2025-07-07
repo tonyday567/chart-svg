@@ -1,4 +1,3 @@
-snapshot: nightly-2024-10-11
-
-extra-deps:
-  - harpie-0.1.1.0
+snapshot: nightly-2025-07-07
+packages:
+- .

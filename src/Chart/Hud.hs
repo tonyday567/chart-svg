@@ -1083,6 +1083,7 @@ legendizeChart l c =
       )
     _ -> blankChart1 (Rect 0 (view #legendSize l) 0 (view #legendSize l))
 
+-- | Takes legend options, a label and a list of charts and turns it into a form suitable for legend processing.
 legendEntry ::
   LegendOptions ->
   Text ->
