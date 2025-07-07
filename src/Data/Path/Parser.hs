@@ -76,7 +76,7 @@ digit = (\c -> ord c - ord '0') <$> satisfyAscii isDigit
 
 digits :: Parser e (Int, Int)
 digits = do
-  (place, n) <- chainr (\n (!place, !acc) -> (place * 10, acc + place * n)) digit (pure (1, 0))
+  (place, n) <- chainr (\n (place, acc) -> (place * 10, acc + place * n)) digit (pure (1, 0))
   case place of
     1 -> empty
     _ -> pure (place, n)
