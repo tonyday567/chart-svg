@@ -9,7 +9,6 @@ module Data.Path.Parser
     parsePath,
     pathParser,
     command,
-    manyComma,
     svgToPathData,
     pathDataToSvg,
     PathCommand (..),
@@ -22,15 +21,40 @@ import Chart.Data
 import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
 import Data.ByteString (ByteString, intercalate)
+import Data.Char hiding (isDigit)
 import Data.FormatN
 import Data.Path (ArcInfo (ArcInfo), PathData (..))
 import Data.Text.Encoding (encodeUtf8)
-import FlatParse.Basic (char, optional, (<|>))
+import FlatParse.Basic
 import GHC.Generics
 import GHC.OverloadedLabels
-import MarkupParse.FlatParse
 import NumHask.Prelude hiding (optional, (<|>))
 import Optics.Core hiding ((<|))
+
+-- * parsing helpers
+
+runParserMaybe :: Parser e a -> ByteString -> Maybe a
+runParserMaybe p b = case runParser p b of
+  OK r _ -> Just r
+  Fail -> Nothing
+  Err _ -> Nothing
+
+comma_ :: Parser e ()
+comma_ = $(char ',')
+
+ws_ :: Parser e ()
+ws_ =
+  $( switch
+       [|
+         case _ of
+           " " -> ws_
+           "\n" -> ws_
+           "\t" -> ws_
+           "\r" -> ws_
+           "\f" -> ws_
+           _ -> pure ()
+         |]
+   )
 
 -- | Parse a raw path string.
 --
@@ -42,7 +66,44 @@ parsePath :: ByteString -> Maybe [PathCommand]
 parsePath = runParserMaybe pathParser
 
 commaWsp :: Parser e (Maybe ())
-commaWsp = ws_ *> optional MarkupParse.FlatParse.comma <* ws_
+commaWsp = ws_ *> optional comma_ <* ws_
+
+minus :: Parser e ()
+minus = $(char '-') <|> byteString "¯"
+
+digit :: Parser e Int
+digit = (\c -> ord c - ord '0') <$> satisfyAscii isDigit
+
+digits :: Parser e (Int, Int)
+digits = do
+  (place, n) <- chainr (\n (!place, !acc) -> (place * 10, acc + place * n)) digit (pure (1, 0))
+  case place of
+    1 -> empty
+    _ -> pure (place, n)
+
+-- A 'Double' parser. does not parse .1 as a double.
+double :: Parser e Double
+double = do
+  (placel, nl) <- digits
+  withOption
+    ($(char '.') *> digits)
+    ( \(placer, nr) ->
+        case placel of
+          1 -> empty
+          _ -> pure $ fromIntegral nl + fromIntegral nr / fromIntegral placer
+    )
+    ( case placel of
+        1 -> empty
+        _ -> pure $ fromIntegral nl
+    )
+
+-- Parser for a signed prefix to a number. Unlike uiua, this parses '-' as a negative number prefix.
+signed :: (Subtractive b) => Parser e b -> Parser e b
+signed p = do
+  m <- optional minus
+  case m of
+    Nothing -> p
+    Just () -> negate <$> p
 
 num :: Parser e Double
 num = signed double

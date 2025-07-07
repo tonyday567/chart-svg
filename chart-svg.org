@@ -8,18 +8,42 @@ A charting library targetting SVG.
 
 * Usage
 
-#+begin_src haskell :file other/usage.svg :results output graphics file :exports both
+#+begin_src haskell-ng :file other/usage.svg :results output graphics file :exports both
+-- :set prompt "> "
 :r
-:set prompt "> "
 :set -XOverloadedLabels
 :set -XOverloadedStrings
 import Chart
 import Optics.Core
-lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
-styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
-cs = zipWith (\s x -> LineChart s [x]) styles lines
-lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
+lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ ho
 writeChartOptions "other/usage.svg" lineExample
+ho =
+      defaultHudOptions
+        & set
+          #legends
+          [ Priority 12 $
+              defaultLegendOptions
+                & set #scaleP ScalePX
+                & set #place (PlaceAbsolute (Point 0.35 (-0.35)))
+                & set #legendCharts (zipWith (\t c -> (t, [c])) ["palette #0", "palette #1", "palette #2"] cs)
+          ]
+cs =
+      zipWith
+        ( \c l ->
+            LineChart
+              ( defaultLineStyle
+                  & set #color (palette c)
+                  & set #size (0.025 * fromIntegral (c + 1))
+              )
+              [l]
+        )
+        [0 ..]
+        ls
+ls =
+      [ [Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],
+        [Point 0.0 0.0, Point 2.8 3.0],
+        [Point 0.5 4.0, Point 0.5 0]
+      ]
 #+end_src
 
 #+RESULTS:
@@ -31,7 +55,7 @@ See the haddock documentation for a detailed overview.
 
 To redraw all the examples in Chart.Examples
 
-#+begin_src haskell :results output
+#+begin_src haskell-ng :results output
 import Chart.Examples
 writeAllExamples
 #+end_src
@@ -39,6 +63,60 @@ writeAllExamples
 #+RESULTS:
 : ok
 
+#+begin_src haskell-ng :results output
+{-# LANGUAGE OverloadedLabels, OverloadedStrings #-}
+
+import Chart
+import Optics.Core
+
+main = writeChartOptions "Chart.svg" lineExample
+
+lineExample =
+  mempty & set #hudOptions ho & set #chartTree (named "line" cs)
+  where
+    ho =
+      defaultHudOptions
+        & set
+          #legends
+          [ Priority 12 $
+              defaultLegendOptions
+                & set #scaleP ScalePX
+                & set #place (PlaceAbsolute (Point 0.35 (-0.35)))
+                & set #legendCharts (zipWith (\t c -> (t, [c])) ["palette #0", "palette #1", "palette #2"] cs)
+          ]
+    cs =
+      zipWith
+        ( \c l ->
+            LineChart
+              ( defaultLineStyle
+                  & set #color (palette c)
+                  & set #size (0.025 * fromIntegral (c + 1))
+              )
+              [l]
+        )
+        [0 ..]
+        ls
+    ls =
+      [ [Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],
+        [Point 0.0 0.0, Point 2.8 3.0],
+        [Point 0.5 4.0, Point 0.5 0]
+      ]
+#+end_src
 
 
+    #+begin_src haskell-ng :results output
+    ls = [ [Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0], [Point 0.0 0.0, Point 2.8 3.0], [Point 0.5 4.0, Point 0.5 0]]
+    cs = zipWith ( \c l -> LineChart ( defaultLineStyle & set #color (palette c) & set #size (0.025 * fromIntegral (c + 1))) [l]) [0 ..] ls
+    ho = defaultHudOptions & set #legends [ Priority 12 $ defaultLegendOptions & set #scaleP ScalePX & set #place (PlaceAbsolute (Point 0.35 (-0.35))) & set #legendCharts (zipWith (\t c -> (t, [c])) ["palette #0", "palette #1", "palette #2"] cs)]
+    lineExample = mempty & set #hudOptions ho & set #chartTree (named "line" cs)
+    writeChartOptions "Chart.svg" lineExample
 
+    l = lo
+    content' = stack (view #numStacks l) AlignLeft AlignMid (view #hgap l) ( ( \(t, a) -> hori AlignMid (view #vgap l + bool 0 (twidth - gapwidth t) (view #alignCharts l == AlignRight)) (fmap unnamed [[t], a])) <$> es)
+    es = uncurry (legendEntry l) <$> view #legendCharts l
+    twidth = maybe zero (\(Rect x z _ _) -> z - x) (styleBoxes (fst <$> es))
+    gapwidth t = maybe 0 (\(Rect x z _ _) -> z - x) (sbox t)
+
+    legendFrame lo content'
+
+    #+end_src
