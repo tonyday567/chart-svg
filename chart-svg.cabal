@@ -64,7 +64,6 @@ common ghc2024-additions
     LambdaCase
     MonoLocalBinds
     RoleAnnotations
-    ImportQualifiedPost
 
 common ghc2024-stanza
   if impl(ghc >=9.10)
@@ -73,7 +72,7 @@ common ghc2024-stanza
   else
     import: ghc2024-additions
     default-language:
-      Haskell2010
+      GHC2021
 
 library
   import: ghc-options-stanza
