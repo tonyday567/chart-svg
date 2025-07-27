@@ -40,6 +40,7 @@ import Chart.Style
 import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
 import Data.Colour
+import Data.Data
 import Data.FormatN
 import Data.Maybe
 import Data.Path
@@ -408,7 +409,7 @@ data MarkupOptions = MarkupOptions
     cssOptions :: CssOptions,
     renderStyle :: RenderStyle
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official markup options
 defaultMarkupOptions :: MarkupOptions
@@ -427,7 +428,11 @@ ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","
 |]
 
 -- | CSS glyphShape rendering options
-data ShapeRendering = UseGeometricPrecision | UseCssCrisp | NoShapeRendering deriving (Show, Eq, Generic)
+data ShapeRendering
+  = UseGeometricPrecision
+  | UseCssCrisp
+  | NoShapeRendering
+  deriving (Eq, Show, Generic, Data)
 
 -- | CSS prefer-color-scheme options
 data PreferColorScheme
@@ -436,13 +441,15 @@ data PreferColorScheme
   | PreferDark
   | PreferLight
   | PreferNormal
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | css options
 --
 -- >>> defaultCssOptions
 -- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n", cssExtra = ""}
-data CssOptions = CssOptions {shapeRendering :: ShapeRendering, preferColorScheme :: PreferColorScheme, fontFamilies :: ByteString, cssExtra :: ByteString} deriving (Show, Eq, Generic)
+data CssOptions
+  = CssOptions {shapeRendering :: ShapeRendering, preferColorScheme :: PreferColorScheme, fontFamilies :: ByteString, cssExtra :: ByteString}
+  deriving (Eq, Show, Generic, Data)
 
 -- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions
@@ -469,7 +476,7 @@ data ChartOptions = ChartOptions
     hudOptions :: HudOptions,
     chartTree :: ChartTree
   }
-  deriving (Generic, Eq, Show)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Processes the hud options and turns them into charts, rescales the existing charts, resets the hud options to mempty, and turns on 'ScalePArea' in chart styles.
 --

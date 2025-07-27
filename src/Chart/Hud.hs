@@ -1,5 +1,4 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
@@ -86,6 +85,7 @@ import Chart.Style
 import Data.Bifunctor
 import Data.Bool
 import Data.Colour
+import Data.Data
 import Data.Foldable hiding (sum)
 import Data.FormatN
 import Data.List qualified as List
@@ -135,7 +135,9 @@ import Optics.Core
 -- > priorityv2Example = priorityv1Example & #hudOptions % #titles %~ fmap (first (const (Priority 51)))
 --
 -- ![priorityv2 example](other/priorityv2.svg)
-data Priority a = Priority {priority :: Double, item :: a} deriving (Eq, Ord, Show, Generic, Functor)
+data Priority a
+  = Priority {priority :: Double, item :: a}
+  deriving (Eq, Ord, Show, Generic, Data, Functor)
 
 -- | Heads-up display additions to charts
 newtype Hud = Hud {phud :: Priority (HudChart -> ChartTree)} deriving (Generic)
@@ -149,7 +151,7 @@ data HudChart = HudChart
   { chartSection :: ChartTree,
     hudSection :: ChartTree
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | A type for Rect to represent the bounding box of a chart.
 type ChartBox = Rect Double
@@ -167,7 +169,7 @@ data HudChartSection
     HudSection
   | -- | The hud and canvas sections, including style
     HudStyleSection
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The 'Rect' of a particular 'HudChartSection' of a 'HudChart'
 hudChartBox' :: HudChartSection -> Getter HudChart (Maybe (Rect Double))
@@ -266,7 +268,7 @@ data HudOptions = HudOptions
     legends :: [Priority LegendOptions],
     titles :: [Priority TitleOptions]
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 instance Semigroup HudOptions where
   (<>) (HudOptions a c l t) (HudOptions a' c' l' t') =
@@ -334,7 +336,7 @@ data AxisOptions = AxisOptions
     ticks :: Ticks,
     place :: Place
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official X-axis
 defaultXAxisOptions :: AxisOptions
@@ -357,7 +359,7 @@ data AxisBar = AxisBar
     -- | Which hud-chart section to anchor to
     anchorTo :: HudChartSection
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
@@ -374,7 +376,7 @@ data TitleOptions = TitleOptions
     anchoring :: Double,
     buffer :: Double
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official hud title
 defaultTitleOptions :: Text -> TitleOptions
@@ -398,7 +400,7 @@ data Ticks = Ticks
     textTick :: Maybe TickStyle,
     lineTick :: Maybe TickStyle
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Common elements across all tick types.
 data TickStyle = TickStyle
@@ -406,7 +408,7 @@ data TickStyle = TickStyle
     anchorTo :: HudChartSection,
     buffer :: Double
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official glyph tick
 defaultGlyphTickStyleX :: TickStyle
@@ -485,7 +487,7 @@ data Tick
     TickExact FormatN Int
   | -- | specific labels and placement
     TickPlaced [(Double, Text)]
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Lens between a FormatN and a Tick.
 formatN' :: Lens' Tick (Maybe FormatN)
@@ -546,7 +548,7 @@ defaultTick :: Tick
 defaultTick = TickRound (FormatN FSCommaPrec (Just 1) 4 True True) 5 TickExtend
 
 -- | Whether Ticks are allowed to extend the data range
-data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Generic)
+data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Generic, Data)
 
 -- | options for prettifying axis decorations
 --
@@ -558,7 +560,7 @@ data Adjustments = Adjustments
     angledRatio :: Double,
     allowDiagonal :: Bool
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official hud adjustments.
 defaultAdjustments :: Adjustments
@@ -586,7 +588,7 @@ data LegendOptions = LegendOptions
     scaleP :: ScaleP,
     legendCharts :: [(Text, [Chart])]
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official legend options
 defaultLegendOptions :: LegendOptions
@@ -618,7 +620,7 @@ data FrameOptions = FrameOptions
     anchorTo :: HudChartSection,
     buffer :: Double
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official hud frame
 defaultFrameOptions :: FrameOptions

@@ -28,6 +28,7 @@ import Chart.Style
 import Data.Bifunctor
 import Data.Bool
 import Data.Colour
+import Data.Data
 import Data.Foldable
 import Data.FormatN
 import Data.Maybe
@@ -52,7 +53,7 @@ data SurfaceOptions = SurfaceOptions
     -- | Chart range
     soRange :: Rect Double
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | official style
 defaultSurfaceOptions :: SurfaceOptions
@@ -70,7 +71,7 @@ data SurfaceStyle = SurfaceStyle
     surfaceColors :: [Colour],
     surfaceRectStyle :: Style
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
@@ -84,7 +85,7 @@ data SurfaceData = SurfaceData
     -- | Surface colour.
     surfaceColor :: Colour
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | surface chart without any hud trimmings
 surfaces :: Style -> [SurfaceData] -> [Chart]
@@ -133,7 +134,7 @@ data SurfaceLegendOptions = SurfaceLegendOptions
     sloRect :: Rect Double,
     sloSurfaceStyle :: SurfaceStyle
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | 'AxisOptions' for a surface chart legend.
 surfaceLegendAxisOptions :: AxisOptions

@@ -8,7 +8,6 @@ A charting library targetting SVG.
 # Usage
 
     :r
-    :set prompt "> "
     :set -XOverloadedLabels
     :set -XOverloadedStrings
     import Chart
@@ -23,12 +22,9 @@ A charting library targetting SVG.
 
 See the haddock documentation for a detailed overview.
 
-# Examples
-
 To redraw all the examples in Chart.Examples
 
     import Chart.Examples
     writeAllExamples
 
-    ok
 

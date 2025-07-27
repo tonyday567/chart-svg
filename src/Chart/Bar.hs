@@ -21,6 +21,7 @@ import Chart.Primitive
 import Chart.Style
 import Data.Bool
 import Data.Colour
+import Data.Data
 import Data.Foldable
 import Data.FormatN
 import Data.List (transpose)
@@ -79,7 +80,7 @@ data BarOptions = BarOptions
     barStacked :: Stacked,
     barLegendOptions :: LegendOptions
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | The official bar options.
 defaultBarOptions :: BarOptions
@@ -197,7 +198,7 @@ data BarData = BarData
     barRowLabels :: [Text],
     barColumnLabels :: [Text]
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Calculate the Rect range of a bar data set.
 --

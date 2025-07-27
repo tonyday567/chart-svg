@@ -1,4 +1,3 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -81,6 +80,7 @@ import Chart.Style
 import Data.Bifunctor
 import Data.Bool
 import Data.Colour
+import Data.Data
 import Data.Foldable
 import Data.Maybe
 import Data.Path
@@ -114,7 +114,12 @@ import Optics.Core
 -- > writeChartOptions "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ unnamed [r]
 --
 -- ![unit example](other/unit.svg)
-data Chart = Chart {chartStyle :: Style, chartData :: ChartData} deriving (Eq, Show, Generic)
+data Chart
+  = Chart
+  { chartStyle :: Style,
+    chartData :: ChartData
+  }
+  deriving (Eq, Show, Generic, Data)
 
 -- | Data of a 'Chart'
 --
@@ -139,7 +144,7 @@ data ChartData
     PathData [PathData Double]
   | -- | List of rectangles with no 'Style' representation
     BlankData [Rect Double]
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | RectData partial lens
 rectData' :: Lens' ChartData (Maybe [Rect Double])
@@ -248,7 +253,9 @@ blankChart1 :: Rect Double -> Chart
 blankChart1 r = Chart defaultStyle (BlankData [r])
 
 -- | A group of charts represented by a 'Tree' of chart lists with labelled branches. The labelling is particularly useful downstream, when groupings become grouped SVG elements with classes or ids.
-newtype ChartTree = ChartTree {tree :: Tree (Maybe Text, [Chart])} deriving (Eq, Show, Generic)
+newtype ChartTree
+  = ChartTree {tree :: Tree (Maybe Text, [Chart])}
+  deriving (Eq, Show, Generic, Data)
 
 -- | Group a list of trees into a new tree.
 group :: Maybe Text -> [ChartTree] -> ChartTree
@@ -540,10 +547,10 @@ pointize_ (RectData xs) = GlyphData (mid <$> xs)
 pointize_ (GlyphData xs) = GlyphData xs
 
 -- | Verticle or Horizontal
-data Orientation = Vert | Hori deriving (Eq, Show, Generic)
+data Orientation = Vert | Hori deriving (Eq, Show, Generic, Data)
 
 -- | Whether to stack chart data
-data Stacked = Stacked | NonStacked deriving (Eq, Show, Generic)
+data Stacked = Stacked | NonStacked deriving (Eq, Show, Generic, Data)
 
 -- | The basis for the x-y ratio of a chart
 --
@@ -557,7 +564,7 @@ data ChartAspect
     ChartAspect
   | -- | Do not rescale charts. The style values should make sense in relation to the data ranges.
     UnscaledAspect
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Rectangular placement
 data Place
@@ -566,7 +573,7 @@ data Place
   | PlaceTop
   | PlaceBottom
   | PlaceAbsolute (Point Double)
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Flip Place to the opposite side, or negate if 'PlaceAbsolute'.
 --

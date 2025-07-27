@@ -1,8 +1,12 @@
+0.8.2
+===
+
+- added Data instances
+
 0.8.1
 ===
 
 - bumped upper bounds for markup-parse and containers.
-
 
 0.8
 ===

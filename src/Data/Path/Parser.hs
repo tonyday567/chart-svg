@@ -22,6 +22,7 @@ import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
 import Data.ByteString (ByteString, intercalate)
 import Data.Char hiding (isDigit)
+import Data.Data
 import Data.FormatN
 import Data.Path (ArcInfo (ArcInfo), PathData (..))
 import Data.Text.Encoding (encodeUtf8)
@@ -209,7 +210,7 @@ data PathCommand
     EllipticalArc !Origin ![(Double, Double, Double, Bool, Bool, Point Double)]
   | -- | Close the path, Z or z svg path command.
     EndPath
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Tell if a path command is absolute (in the current
 -- user coordiante) or relative to the previous point.
@@ -218,7 +219,7 @@ data Origin
     OriginAbsolute
   | -- | Next point relative to the previous
     OriginRelative
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 pointToSvgCoords :: Point Double -> Point Double
 pointToSvgCoords (Point x y) = Point x (-y)
@@ -307,7 +308,7 @@ data PathCursor = PathCursor
     -- | last control point
     curControl :: Maybe (Point Double)
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 stateCur0 :: PathCursor
 stateCur0 = PathCursor zero zero Nothing
