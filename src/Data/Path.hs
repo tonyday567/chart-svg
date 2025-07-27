@@ -45,6 +45,7 @@ module Data.Path
 where
 
 import Chart.Data
+import Data.Data
 import GHC.Generics
 import Geom2D.CubicBezier qualified as B
 import NumHask.Prelude
@@ -78,7 +79,7 @@ data PathData a
     QuadP (Point a) (Point a)
   | -- arc
     ArcP (ArcInfo a) (Point a)
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | View the Point part of a PathData
 pointPath :: PathData a -> Point a
@@ -151,7 +152,7 @@ data ArcInfo a = ArcInfo
     -- | sweep means clockwise
     clockwise :: Bool
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Specification of an Arc using positional referencing as per SVG standard.
 data ArcPosition a = ArcPosition
@@ -159,7 +160,7 @@ data ArcPosition a = ArcPosition
     posEnd :: Point a,
     posInfo :: ArcInfo a
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Arc specification based on centroidal interpretation.
 --
@@ -176,7 +177,7 @@ data ArcCentroid a = ArcCentroid
     -- | difference between ending point angle and starting point angle
     angdiff :: a
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | convert from an ArcPosition spec to ArcCentroid spec.
 --
@@ -292,7 +293,7 @@ data QuadPosition a = QuadPosition
     -- | control point
     qposControl :: Point a
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Quadratic bezier curve with control point expressed in polar terms normalised to the start - end line.
 data QuadPolar a = QuadPolar
@@ -303,7 +304,7 @@ data QuadPolar a = QuadPolar
     -- | control point in terms of distance from and angle to the qp0 - qp2 line
     qpolControl :: Polar a
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
@@ -378,7 +379,7 @@ data CubicPosition a = CubicPosition
     -- | control point 2
     cposControl2 :: Point a
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | A polar representation of a cubic bezier with control points expressed as polar and normalised to the start - end line.
 data CubicPolar a = CubicPolar
@@ -391,7 +392,7 @@ data CubicPolar a = CubicPolar
     -- | control point in terms of distance from and angle to the start end line
     cpolControl2 :: Polar a
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --

@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -64,6 +63,7 @@ where
 import Chart.Data
 import Data.Bool (bool)
 import Data.ByteString (ByteString)
+import Data.Data
 import Data.FormatN
 import Data.List qualified as List
 import Data.String.Interpolate
@@ -88,19 +88,9 @@ import System.Random.Stateful
 -- >>> import Chart
 -- >>> import Optics.Core
 
--- | Colour type for the library, wrapping 'Color'.
-newtype Colour = Colour'
-  { color' :: Color (Alpha RGB) Double
-  }
-  deriving (Eq, Generic)
-
--- | Constructor pattern.
---
--- > Colour red green blue alpha
-pattern Colour :: Double -> Double -> Double -> Double -> Colour
-pattern Colour r g b a = Colour' (ColorRGBA r g b a)
-
-{-# COMPLETE Colour #-}
+-- | Colour type for the library: red, green, blue, opacity in [0,1].
+data Colour = Colour Double Double Double Double
+  deriving (Eq, Generic, Data)
 
 instance Show Colour where
   show (Colour r g b a) =
