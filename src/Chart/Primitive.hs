@@ -60,6 +60,7 @@ module Chart.Primitive
     vert,
     hori,
     stack,
+    stackr,
     besideChart,
     frameChart,
     isEmptyChart,
@@ -516,6 +517,13 @@ vert align gap cs = foldl' step mempty (reverse cs)
 -- | Stack a list of tree charts horizontally, then vertically (proceeding downwards which is opposite to the usual coordinate reference system but intuitively the way people read charts)
 stack :: Int -> Align -> Align -> Double -> [ChartTree] -> ChartTree
 stack n alignV alignH gap cs = vert alignV gap (hori alignH gap <$> group' cs [])
+  where
+    group' [] acc = reverse acc
+    group' x acc = group' (drop n x) (take n x : acc)
+
+-- | Stack a list of tree charts vertically, and then horizontally.
+stackr :: Int -> Align -> Align -> Double -> [ChartTree] -> ChartTree
+stackr n alignV alignH gap cs = hori alignH gap (vert alignV gap <$> group' cs [])
   where
     group' [] acc = reverse acc
     group' x acc = group' (drop n x) (take n x : acc)

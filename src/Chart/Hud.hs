@@ -583,6 +583,9 @@ data LegendOptions = LegendOptions
     anchoring :: Double,
     anchorTo :: HudChartSection,
     numStacks :: Int,
+    stackAlign1 :: Align,
+    stackAlign2 :: Align,
+    stackAlign3 :: Align,
     alignCharts :: Align,
     scaleChartsBy :: Double,
     scaleP :: ScaleP,
@@ -606,6 +609,9 @@ defaultLegendOptions =
     0
     CanvasStyleSection
     1
+    AlignMid
+    AlignLeft
+    AlignMid
     AlignRight
     0.25
     ScalePX
@@ -1038,13 +1044,17 @@ legendChart l = legendFrame l content'
     content' =
       stack
         (view #numStacks l)
-        AlignLeft
-        AlignMid
+        (view #stackAlign1 l)
+        (view #stackAlign2 l)
         (view #hgap l)
         ( ( \(t, a) ->
               hori
-                AlignMid
-                (view #vgap l + bool 0 (twidth - gapwidth t) (view #alignCharts l == AlignRight))
+                (view #stackAlign3 l)
+                (view #vgap l + case view #alignCharts l of
+                  AlignRight -> (twidth - gapwidth t)*0.5
+                  AlignMid -> twidth - gapwidth t
+                  AlignLeft -> 0
+                  NoAlign -> 0)
                 (fmap unnamed [[t], a])
           )
             <$> es
