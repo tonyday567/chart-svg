@@ -106,6 +106,7 @@ library
     Chart.Examples
     Chart.Hud
     Chart.Markup
+    Chart.Pie
     Chart.Primitive
     Chart.Style
     Chart.Surface

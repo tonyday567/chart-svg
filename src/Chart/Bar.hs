@@ -6,6 +6,7 @@ module Chart.Bar
   ( BarOptions (..),
     defaultBarOptions,
     BarData (..),
+    flipBarData,
     barRange,
     bars,
     barChart,
@@ -199,6 +200,13 @@ data BarData = BarData
     barColumnLabels :: [Text]
   }
   deriving (Eq, Show, Generic, Data)
+
+
+
+
+-- | Transpose rows and columns.
+flipBarData :: BarData -> BarData
+flipBarData (BarData d r c) = BarData (transpose d) c r
 
 -- | Calculate the Rect range of a bar data set.
 --

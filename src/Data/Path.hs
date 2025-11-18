@@ -140,7 +140,7 @@ singletonArc (ArcPosition s e i) = [StartP s, ArcP i e]
 singletonPie :: Point Double -> ArcPosition Double -> [PathData Double]
 singletonPie c (ArcPosition s e i) = [StartP c, LineP s, ArcP i e, LineP c]
 
--- * Arc types
+-- * (Elliptical) arc types
 
 -- | Information about an individual arc path.
 data ArcInfo a = ArcInfo
