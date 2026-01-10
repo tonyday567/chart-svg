@@ -2,3 +2,7 @@ packages:
   chart-svg.cabal
 
 write-ghc-environment-files: always
+
+allow-newer:
+  *:template-haskell,
+  *:base

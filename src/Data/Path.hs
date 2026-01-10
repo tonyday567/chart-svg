@@ -489,6 +489,7 @@ pathBoxes (x : xs) =
   where
     begin :: (Point Double, Rect Double)
     begin = (pointPath x, singleton (pointPath x))
+    step (start', r) a@(ArcP _ p) = (pointPath a, bool (pathBox start' a <> r) r (p == start'))
     step (start', r) a = (pointPath a, pathBox start' a <> r)
 
 -- | Bounding box for a path info, start and end Points.

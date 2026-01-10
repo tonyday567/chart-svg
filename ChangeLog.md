@@ -1,3 +1,9 @@
+0.8.3
+===
+
+- GHC 9.14.1 support
+- relaxed dependency bounds via allow-newer for GHC 9.14 compatibility
+
 0.8.2
 ===
 
