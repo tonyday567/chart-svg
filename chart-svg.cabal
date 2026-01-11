@@ -94,7 +94,6 @@ library
     numhask-space >=0.10 && <0.14,
     optics-core >=0.4 && <0.5,
     random >=1.2 && <1.4,
-    string-interpolate >=0.3 && <0.5,
     text >=1.2 && <2.2,
     time >=1.9 && <1.15,
 
