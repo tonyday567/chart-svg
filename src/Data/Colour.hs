@@ -116,7 +116,7 @@ showRGBA (Colour r' g' b' a') =
 -- | CSS-style representation
 showRGB :: Colour -> ByteString
 showRGB (Colour r' g' b' _) =
-  pack $ Text.unpack $ "rgba(" <> r <> ", " <> g <> ", " <> b <> ")"
+  pack $ Text.unpack $ "rgb(" <> r <> ", " <> g <> ", " <> b <> ")"
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'
     g = percent (fixedSF (Just 0)) (Just 2) g'
