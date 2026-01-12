@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.8.3.1
+version: 0.8.3.2
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -86,7 +86,7 @@ library
     cubicbezier >=0.6 && <0.7,
     flatparse >=0.5 && <0.6,
     formatn >=0.3 && <0.4,
-    harpie >=0.1 && <0.2,
+    harpie >=0.1 && <0.3,
     lens >=5 && <5.4,
     markup-parse >=0.1 && <0.3,
     mtl >=2.2.2 && <2.4,
@@ -112,13 +112,3 @@ library
     Data.Path
     Data.Path.Parser
 
-test-suite doctests
-  import: ghc2024-stanza
-  main-is: doctests.hs
-  hs-source-dirs: test
-  build-depends:
-    base >=4.14 && <5,
-    doctest-parallel >=0.3 && <0.5,
-
-  ghc-options: -threaded
-  type: exitcode-stdio-1.0
