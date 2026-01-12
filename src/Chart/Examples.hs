@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 
 -- | Examples of chart construction.
 module Chart.Examples
@@ -58,7 +57,6 @@ import Data.Bool
 import Data.ByteString (ByteString)
 import Data.Function
 import Data.Maybe
-import Data.String.Interpolate
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Time
@@ -383,24 +381,7 @@ arcFlagsExample =
     & set (#markupOptions % #cssOptions % #preferColorScheme) PreferHud
     & set
       (#markupOptions % #cssOptions % #cssExtra)
-      [i|
-{
-  .chart g {
-    stroke: #{showRGBA dark};
-  }
-  .chart g text {
-    fill: #{showRGBA dark};
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .chart g {
-    stroke: #{showRGBA light};
-  }
-  .chart g text {
-    fill: #{showRGBA light};
-  }
-}
-|]
+      ("{.chart g {stroke: " <> showRGBA dark <> ";} .chart g text {fill: " <> showRGBA dark <> ";}} @media (prefers-color-scheme:dark) {.chart g {stroke: " <> showRGBA light <> ";} .chart g text {fill: " <> showRGBA light <> ";}}")
   where
     rowLarge =
       unnamed
@@ -562,20 +543,7 @@ arrowExample =
     & set (#markupOptions % #cssOptions % #preferColorScheme) PreferHud
     & set
       (#markupOptions % #cssOptions % #cssExtra)
-      [i|
-{
-  .arrow g {
-    fill: #{showRGBA dark};
-    stroke: #{showRGBA dark};
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .arrow g {
-    fill: #{showRGBA light};
-    stroke: #{showRGBA light};
-  }
-}
-|]
+      ("{.arrow g {fill: " <> showRGBA dark <> "; stroke: " <> showRGBA dark <> ";}} @media (prefers-color-scheme:dark) {.arrow g {fill: " <> showRGBA light <> "; stroke: " <> showRGBA light <> ";}}")
   where
     f = snd . bimap ((-1.0) *) (fmap ((-1.0) *)) . rosenbrock 1 10
     ps = grid MidPos (one :: Rect Double) (Point 10 10 :: Point Int) :: [Point Double]

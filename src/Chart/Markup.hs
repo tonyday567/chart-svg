@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 
 -- | Conversion between 'ChartOptions' and 'Markup' representations.
 module Chart.Markup
@@ -45,7 +44,6 @@ import Data.FormatN
 import Data.Maybe
 import Data.Path
 import Data.Path.Parser
-import Data.String.Interpolate
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.Generics
@@ -334,49 +332,11 @@ header markupheight viewbox content' =
 -- "svg {\n  color-scheme: light dark;\n}\n{\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgb(5%, 5%, 5%);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgb(5%, 5%, 5%);\n  }\n  .legendBorder g {\n    fill: rgb(94%, 94%, 94%);\n  }\n}\n@media (prefers-color-scheme:dark) {\n  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {\n    fill: rgb(94%, 94%, 94%);\n  }\n  .ticklines g, .tickglyph g, .legendBorder g {\n    stroke: rgb(94%, 94%, 94%);\n  }\n  .legendBorder g {\n    fill: rgb(5%, 5%, 5%);\n  }\n}"
 cssPreferColorScheme :: (Colour, Colour) -> PreferColorScheme -> ByteString
 cssPreferColorScheme (cl, cd) PreferHud =
-  [i|svg {
-  color-scheme: light dark;
-}
-{
-  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: #{showRGB cd};
-  }
-  .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: #{showRGB cd};
-  }
-  .legendBorder g {
-    fill: #{showRGB cl};
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: #{showRGB cl};
-  }
-  .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: #{showRGB cl};
-  }
-  .legendBorder g {
-    fill: #{showRGB cd};
-  }
-}|]
+  "svg {color-scheme: light dark;} {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: " <> showRGB cd <> ";} .ticklines g, .tickglyph g, .legendBorder g {stroke: " <> showRGB cd <> ";} .legendBorder g {fill: " <> showRGB cl <> ";}} @media (prefers-color-scheme:dark) {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: " <> showRGB cl <> ";} .ticklines g, .tickglyph g, .legendBorder g {stroke: " <> showRGB cl <> ";} .legendBorder g {fill: " <> showRGB cd <> ";}}"
 cssPreferColorScheme (cl, _) PreferLight =
-  [i|svg {
-      color-scheme: light dark;
-    }
-    @media (prefers-color-scheme:dark) {
-      markup {
-        background-color: #{showRGB cl};
-      }
-    }|]
+  "svg {color-scheme: light dark;} @media (prefers-color-scheme:dark) {markup {background-color: " <> showRGB cl <> ";}}"
 cssPreferColorScheme (_, cd) PreferDark =
-  [i|svg {
-      color-scheme: light dark;
-    }
-    @media (prefers-color-scheme:light) {
-      markup {
-        background-color: #{showRGB cd};
-      }
-    }|]
+  "svg {color-scheme: light dark;} @media (prefers-color-scheme:light) {markup {background-color: " <> showRGB cd <> ";}}"
 cssPreferColorScheme _ PreferNormal = mempty
 
 -- | CSS snippet to switch between dark and light mode
@@ -386,23 +346,12 @@ cssPreferColorScheme _ PreferNormal = mempty
 -- ... will default to color1 for elements of the "stuff" class, but switch to color2 if "dark" mode is preferred by the user.
 fillSwitch :: (Colour, Colour) -> ByteString -> ByteString -> ByteString
 fillSwitch (colorNormal, colorPrefer) prefer item =
-  [i|
-{
-  .#{item} g {
-    fill: #{showRGB colorNormal};
-  }
-}
-@media (prefers-color-scheme:#{prefer}) {
-  .#{item} g {
-    fill: #{showRGB colorPrefer};
-  }
-}
-|]
+  " {." <> item <> " g {fill: " <> showRGB colorNormal <> ";}} @media (prefers-color-scheme: " <> prefer <> ") {." <> item <> " g {fill: " <> showRGB colorPrefer <> ";}}"
 
 -- | Markup options.
 --
 -- >>> defaultMarkupOptions
--- MarkupOptions {markupHeight = Just 300.0, chartAspect = FixedAspect 1.5, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n", cssExtra = ""}, renderStyle = Compact}
+-- MarkupOptions {markupHeight = Just 300.0, chartAspect = FixedAspect 1.5, cssOptions = CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;}", cssExtra = ""}, renderStyle = Compact}
 data MarkupOptions = MarkupOptions
   { markupHeight :: Maybe Double,
     chartAspect :: ChartAspect,
@@ -417,15 +366,7 @@ defaultMarkupOptions = MarkupOptions (Just 300) (FixedAspect 1.5) defaultCssOpti
 
 -- | default fonts.
 defaultCssFontFamilies :: ByteString
-defaultCssFontFamilies =
-  [i|
-svg { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
-}
-
-ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-}
-
-|]
+defaultCssFontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";" <> "\n" <> "}" <> "\n\n" <> "ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;}"
 
 -- | CSS glyphShape rendering options
 data ShapeRendering
@@ -446,7 +387,7 @@ data PreferColorScheme
 -- | css options
 --
 -- >>> defaultCssOptions
--- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n", cssExtra = ""}
+-- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;}", cssExtra = ""}
 data CssOptions
   = CssOptions {shapeRendering :: ShapeRendering, preferColorScheme :: PreferColorScheme, fontFamilies :: ByteString, cssExtra :: ByteString}
   deriving (Eq, Show, Generic, Data)
@@ -509,7 +450,7 @@ stackCO n alignV alignH gap cs = mempty @ChartOptions & set #chartTree (stack n 
 -- | Convert ChartOptions to Markup
 --
 -- >>> markupChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty) & markdown_ Compact Xml
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;}</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 markupChartOptions :: ChartOptions -> Markup
 markupChartOptions co =
   header
@@ -529,14 +470,14 @@ markupChartOptions co =
 -- | Render ChartOptions to an SVG ByteString
 --
 -- >>> encodeChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;}</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 encodeChartOptions :: ChartOptions -> ByteString
 encodeChartOptions co = markdown_ (view (#markupOptions % #renderStyle) co) Xml $ markupChartOptions co
 
 -- | Render ChartOptions to an SVG Text snippet
 --
 -- >>> renderChartOptions (ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty)
--- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;\n}\n\n</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
+-- "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"300\" height=\"300\" viewBox=\"-0.5 -0.5 1.0 1.0\"><style>\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;}</style><g class=\"chart\"></g><g class=\"hud\"></g></svg>"
 renderChartOptions :: ChartOptions -> Text
 renderChartOptions = decodeUtf8 . encodeChartOptions
 

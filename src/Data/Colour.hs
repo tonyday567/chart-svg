@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE QuasiQuotes #-}
 
 -- | Colour representations and combinations.
 module Data.Colour
@@ -63,10 +62,10 @@ where
 import Chart.Data
 import Data.Bool (bool)
 import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (pack)
 import Data.Data
 import Data.FormatN
 import Data.List qualified as List
-import Data.String.Interpolate
 import Data.Text (Text)
 import Data.Text qualified as Text
 import GHC.Generics hiding (prec)
@@ -107,7 +106,7 @@ instance Show Colour where
 -- | CSS-style representation
 showRGBA :: Colour -> ByteString
 showRGBA (Colour r' g' b' a') =
-  [i|rgba(#{r}, #{g}, #{b}, #{a})|]
+  pack $ Text.unpack $ "rgba(" <> r <> ", " <> g <> ", " <> b <> ", " <> a <> ")"
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'
     g = percent (fixedSF (Just 0)) (Just 2) g'
@@ -117,7 +116,7 @@ showRGBA (Colour r' g' b' a') =
 -- | CSS-style representation
 showRGB :: Colour -> ByteString
 showRGB (Colour r' g' b' _) =
-  [i|rgb(#{r}, #{g}, #{b})|]
+  pack $ Text.unpack $ "rgba(" <> r <> ", " <> g <> ", " <> b <> ")"
   where
     r = percent (fixedSF (Just 0)) (Just 2) r'
     g = percent (fixedSF (Just 0)) (Just 2) g'
@@ -152,10 +151,7 @@ opac (Colour _ _ _ o) = o
 
 -- | CSS-style representation
 showOpacity :: Colour -> ByteString
-showOpacity c =
-  [i|#{o}|]
-  where
-    o = formatOrShow (FixedStyle 2) Nothing (opac c)
+showOpacity c = pack $ Text.unpack $ formatOrShow (FixedStyle 2) Nothing (opac c)
 
 -- | lens for opacity (or alpha channel)
 opac' :: Lens' Colour Double
@@ -559,20 +555,18 @@ hue' = re lcha2colour' % lch' % hLCH'
 -- >>> showSwatch "swatch" dark
 -- "<div class=swatch style=\"background:rgba(5%, 5%, 5%, 1.00);\">swatch</div>"
 showSwatch :: Text -> Colour -> Text
-showSwatch label c =
-  [i|<div class=swatch style="background:#{rgba};">#{label}</div>|]
+showSwatch label (Colour r' g' b' a') =
+  "<div class=swatch style=\"background:" <> rgba <> ";\">" <> label <> "</div>"
   where
-    rgba = showRGBA c
+    rgba = "rgba(" <> r <> ", " <> g <> ", " <> b <> ", " <> a <> ")"
+    r = percent (fixedSF (Just 0)) (Just 2) r'
+    g = percent (fixedSF (Just 0)) (Just 2) g'
+    b = percent (fixedSF (Just 0)) (Just 2) b'
+    a = fixed (Just 2) a'
 
 -- | Show multiple colors with embedded text.
 showSwatches :: Text -> Text -> [(Text, Colour)] -> Text
-showSwatches pref suff hs =
-  [i|<div>
- #{pref}
- #{divs}
- #{suff}
-</div>
-|]
+showSwatches pref suff hs = "<div>" <> "\n" <> pref <> "\n" <> divs <> "\n" <> suff <> "\n" <> "</div>"
   where
     divs = Text.intercalate "\n" (uncurry showSwatch <$> hs)
 
