@@ -1,46 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="450" height="300" viewBox="-0.75 -0.5 1.5 1.0"><style>svg {
-  color-scheme: light dark;
-}
-{
-  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgb(5%, 5%, 5%);
-  }
-  .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgb(5%, 5%, 5%);
-  }
-  .legendBorder g {
-    fill: rgb(94%, 94%, 94%);
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgb(94%, 94%, 94%);
-  }
-  .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgb(94%, 94%, 94%);
-  }
-  .legendBorder g {
-    fill: rgb(5%, 5%, 5%);
-  }
-}
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="450" height="300" viewBox="-0.75 -0.5 1.5 1.0"><style>svg {color-scheme: light dark;} {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(5%, 5%, 5%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(5%, 5%, 5%);} .legendBorder g {fill: rgb(94%, 94%, 94%);}} @media (prefers-color-scheme:dark) {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(94%, 94%, 94%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(94%, 94%, 94%);} .legendBorder g {fill: rgb(5%, 5%, 5%);}}
 svg { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
 }
 
-ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-}
-
-
-{
-  .text g {
-    fill: rgb(5%, 5%, 5%);
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .text g {
-    fill: rgb(94%, 94%, 94%);
-  }
-}
-</style><g class="chart"><g class="text"><g stroke-width="0.0" stroke="none" fill="rgb(5%, 5%, 5%)" fill-opacity="1.0" font-size="0.1" text-anchor="middle"><text x="-0.6113" y="0.3822">a</text><text x="-0.4823" y="0.3507">b</text><text x="-0.3546" y="0.3192">c</text><text x="-0.2295" y="0.2877">d</text><text x="-0.1082" y="0.2562">e</text><text x="0.0081" y="0.2247">f</text><text x="0.1182" y="0.1932">g</text><text x="0.2210" y="0.1617">h</text><text x="0.3155" y="0.1302">i</text><text x="0.4007" y="0.0988">j</text><text x="0.4758" y="0.0673">k</text><text x="0.5401" y="0.0358">l</text><text x="0.5928" y="0.0043">m</text><text x="0.6336" y="-0.0272">n</text><text x="0.6618" y="-0.0587">o</text><text x="0.6774" y="-0.0902">p</text><text x="0.6801" y="-0.1217">q</text><text x="0.6699" y="-0.1532">r</text><text x="0.6469" y="-0.1847">s</text><text x="0.6113" y="-0.2162">t</text><text x="0.5635" y="-0.2477">u</text><text x="0.5039" y="-0.2791">v</text><text x="0.4332" y="-0.3106">w</text><text x="0.3521" y="-0.3421">x</text><text x="0.2614" y="-0.3736">y</text><text x="0.1619" y="-0.4051">z</text></g></g><g class="datapadding"></g></g><g class="hud"><g class="frame"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(100%, 100%, 100%)" fill-opacity="0.02"><rect width="1.3461" height="0.8743" x="-0.6387" y="-0.4684"/></g></g><g class="axis"><g class="axisbar"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><rect width="1.2956" height="0.0032" x="-0.6131" y="0.3901"/></g></g><g class="ticks"><g class="ticklines"><g stroke-width="0.0050" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.05" fill="none"><polyline points="-0.6113,0.3822 -0.6113,-0.4051"/><polyline points="-0.3529,0.3822 -0.3529,-0.4051"/><polyline points="-0.0945,0.3822 -0.0945,-0.4051"/><polyline points="0.1639,0.3822 0.1639,-0.4051"/><polyline points="0.4223,0.3822 0.4223,-0.4051"/><polyline points="0.6806,0.3822 0.6806,-0.4051"/></g></g><g class="tickglyph"><g stroke-width="0.0032" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><polyline points="-0.6113,0.4154
+ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;} {.text g {fill: rgb(5%, 5%, 5%);}} @media (prefers-color-scheme: dark) {.text g {fill: rgb(94%, 94%, 94%);}}</style><g class="chart"><g class="text"><g stroke-width="0.0" stroke="none" fill="rgb(5%, 5%, 5%)" fill-opacity="1.0" font-size="0.1" text-anchor="middle"><text x="-0.6113" y="0.3822">a</text><text x="-0.4823" y="0.3507">b</text><text x="-0.3546" y="0.3192">c</text><text x="-0.2295" y="0.2877">d</text><text x="-0.1082" y="0.2562">e</text><text x="0.0081" y="0.2247">f</text><text x="0.1182" y="0.1932">g</text><text x="0.2210" y="0.1617">h</text><text x="0.3155" y="0.1302">i</text><text x="0.4007" y="0.0988">j</text><text x="0.4758" y="0.0673">k</text><text x="0.5401" y="0.0358">l</text><text x="0.5928" y="0.0043">m</text><text x="0.6336" y="-0.0272">n</text><text x="0.6618" y="-0.0587">o</text><text x="0.6774" y="-0.0902">p</text><text x="0.6801" y="-0.1217">q</text><text x="0.6699" y="-0.1532">r</text><text x="0.6469" y="-0.1847">s</text><text x="0.6113" y="-0.2162">t</text><text x="0.5635" y="-0.2477">u</text><text x="0.5039" y="-0.2791">v</text><text x="0.4332" y="-0.3106">w</text><text x="0.3521" y="-0.3421">x</text><text x="0.2614" y="-0.3736">y</text><text x="0.1619" y="-0.4051">z</text></g></g><g class="datapadding"></g></g><g class="hud"><g class="frame"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(100%, 100%, 100%)" fill-opacity="0.02"><rect width="1.3461" height="0.8743" x="-0.6387" y="-0.4684"/></g></g><g class="axis"><g class="axisbar"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><rect width="1.2956" height="0.0032" x="-0.6131" y="0.3901"/></g></g><g class="ticks"><g class="ticklines"><g stroke-width="0.0050" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.05" fill="none"><polyline points="-0.6113,0.3822 -0.6113,-0.4051"/><polyline points="-0.3529,0.3822 -0.3529,-0.4051"/><polyline points="-0.0945,0.3822 -0.0945,-0.4051"/><polyline points="0.1639,0.3822 0.1639,-0.4051"/><polyline points="0.4223,0.3822 0.4223,-0.4051"/><polyline points="0.6806,0.3822 0.6806,-0.4051"/></g></g><g class="tickglyph"><g stroke-width="0.0032" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><polyline points="-0.6113,0.4154
 -0.6113,0.3917"/><polyline points="-0.3529,0.4154
 -0.3529,0.3917"/><polyline points="-0.0945,0.4154
 -0.0945,0.3917"/><polyline points="0.1639,0.4154

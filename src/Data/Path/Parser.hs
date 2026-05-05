@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 -- | Conversions to and from an SVG path to a 'PathData'
 module Data.Path.Parser
@@ -18,6 +17,7 @@ module Data.Path.Parser
 where
 
 import Chart.Data
+import Chart.Parse
 import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
 import Data.ByteString (ByteString, intercalate)
@@ -26,10 +26,9 @@ import Data.Data
 import Data.FormatN
 import Data.Path (ArcInfo (ArcInfo), PathData (..))
 import Data.Text.Encoding (encodeUtf8)
-import FlatParse.Basic
 import GHC.Generics
 import GHC.OverloadedLabels
-import NumHask.Prelude hiding (optional, (<|>))
+import NumHask.Prelude hiding (many, optional, some, (<|>))
 import Optics.Core hiding ((<|))
 
 -- * parsing helpers
@@ -41,21 +40,13 @@ runParserMaybe p b = case runParser p b of
   Err _ -> Nothing
 
 comma_ :: Parser e ()
-comma_ = $(char ',')
+comma_ = char ','
 
 ws_ :: Parser e ()
-ws_ =
-  $( switch
-       [|
-         case _ of
-           " " -> ws_
-           "\n" -> ws_
-           "\t" -> ws_
-           "\r" -> ws_
-           "\f" -> ws_
-           _ -> pure ()
-         |]
-   )
+ws_ = go
+  where
+    go = (satisfy isWhitespace >> go) <|> pure ()
+    isWhitespace c = c `elem` [' ', '\n', '\t', '\r', '\f']
 
 -- | Parse a raw path string.
 --
@@ -70,7 +61,7 @@ commaWsp :: Parser e (Maybe ())
 commaWsp = ws_ *> optional comma_ <* ws_
 
 minus :: Parser e ()
-minus = $(char '-') <|> byteString "¯"
+minus = char '-' <|> byteString "¯"
 
 digit :: Parser e Int
 digit = (\c -> ord c - ord '0') <$> satisfyAscii isDigit
@@ -87,7 +78,7 @@ double :: Parser e Double
 double = do
   (placel, nl) <- digits
   withOption
-    ($(char '.') *> digits)
+    (char '.' *> digits)
     ( \(placer, nr) ->
         case placel of
           1 -> empty
@@ -167,26 +158,26 @@ pathParser = ws_ *> manyComma command
 -- | Parser for a 'PathCommand'
 command :: Parser e PathCommand
 command =
-  (MoveTo OriginAbsolute <$ $(char 'M') <*> (ws_ *> points))
-    <|> (MoveTo OriginRelative <$ $(char 'm') <*> (ws_ *> points))
-    <|> (LineTo OriginAbsolute <$ $(char 'L') <*> (ws_ *> points))
-    <|> (LineTo OriginRelative <$ $(char 'l') <*> (ws_ *> points))
-    <|> (HorizontalTo OriginAbsolute <$ $(char 'H') <*> (ws_ *> nums))
-    <|> (HorizontalTo OriginRelative <$ $(char 'h') <*> (ws_ *> nums))
-    <|> (VerticalTo OriginAbsolute <$ $(char 'V') <*> (ws_ *> nums))
-    <|> (VerticalTo OriginRelative <$ $(char 'v') <*> (ws_ *> nums))
-    <|> (CurveTo OriginAbsolute <$ $(char 'C') <*> (ws_ *> manyComma curveToArgs))
-    <|> (CurveTo OriginRelative <$ $(char 'c') <*> (ws_ *> manyComma curveToArgs))
-    <|> (SmoothCurveTo OriginAbsolute <$ $(char 'S') <*> (ws_ *> pointPairs))
-    <|> (SmoothCurveTo OriginRelative <$ $(char 's') <*> (ws_ *> pointPairs))
-    <|> (QuadraticBezier OriginAbsolute <$ $(char 'Q') <*> (ws_ *> pointPairs))
-    <|> (QuadraticBezier OriginRelative <$ $(char 'q') <*> (ws_ *> pointPairs))
-    <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ $(char 'T') <*> (ws_ *> points))
-    <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ $(char 't') <*> (ws_ *> points))
-    <|> (EllipticalArc OriginAbsolute <$ $(char 'A') <*> (ws_ *> manyComma ellipticalArgs))
-    <|> (EllipticalArc OriginRelative <$ $(char 'a') <*> (ws_ *> manyComma ellipticalArgs))
-    <|> (EndPath <$ $(char 'Z') <* commaWsp)
-    <|> (EndPath <$ $(char 'z') <* commaWsp)
+  (MoveTo OriginAbsolute <$ char 'M' <*> (ws_ *> points))
+    <|> (MoveTo OriginRelative <$ char 'm' <*> (ws_ *> points))
+    <|> (LineTo OriginAbsolute <$ char 'L' <*> (ws_ *> points))
+    <|> (LineTo OriginRelative <$ char 'l' <*> (ws_ *> points))
+    <|> (HorizontalTo OriginAbsolute <$ char 'H' <*> (ws_ *> nums))
+    <|> (HorizontalTo OriginRelative <$ char 'h' <*> (ws_ *> nums))
+    <|> (VerticalTo OriginAbsolute <$ char 'V' <*> (ws_ *> nums))
+    <|> (VerticalTo OriginRelative <$ char 'v' <*> (ws_ *> nums))
+    <|> (CurveTo OriginAbsolute <$ char 'C' <*> (ws_ *> manyComma curveToArgs))
+    <|> (CurveTo OriginRelative <$ char 'c' <*> (ws_ *> manyComma curveToArgs))
+    <|> (SmoothCurveTo OriginAbsolute <$ char 'S' <*> (ws_ *> pointPairs))
+    <|> (SmoothCurveTo OriginRelative <$ char 's' <*> (ws_ *> pointPairs))
+    <|> (QuadraticBezier OriginAbsolute <$ char 'Q' <*> (ws_ *> pointPairs))
+    <|> (QuadraticBezier OriginRelative <$ char 'q' <*> (ws_ *> pointPairs))
+    <|> (SmoothQuadraticBezierCurveTo OriginAbsolute <$ char 'T' <*> (ws_ *> points))
+    <|> (SmoothQuadraticBezierCurveTo OriginRelative <$ char 't' <*> (ws_ *> points))
+    <|> (EllipticalArc OriginAbsolute <$ char 'A' <*> (ws_ *> manyComma ellipticalArgs))
+    <|> (EllipticalArc OriginRelative <$ char 'a' <*> (ws_ *> manyComma ellipticalArgs))
+    <|> (EndPath <$ char 'Z' <* commaWsp)
+    <|> (EndPath <$ char 'z' <* commaWsp)
 
 -- | Path command definition (ripped from reanimate-svg).
 data PathCommand

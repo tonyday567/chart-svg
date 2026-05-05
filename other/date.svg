@@ -1,35 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="450" height="300" viewBox="-0.75 -0.5 1.5 1.0"><style>svg {
-  color-scheme: light dark;
-}
-{
-  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgb(5%, 5%, 5%);
-  }
-  .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgb(5%, 5%, 5%);
-  }
-  .legendBorder g {
-    fill: rgb(94%, 94%, 94%);
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgb(94%, 94%, 94%);
-  }
-  .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgb(94%, 94%, 94%);
-  }
-  .legendBorder g {
-    fill: rgb(5%, 5%, 5%);
-  }
-}
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="450" height="300" viewBox="-0.75 -0.5 1.5 1.0"><style>svg {color-scheme: light dark;} {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(5%, 5%, 5%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(5%, 5%, 5%);} .legendBorder g {fill: rgb(94%, 94%, 94%);}} @media (prefers-color-scheme:dark) {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(94%, 94%, 94%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(94%, 94%, 94%);} .legendBorder g {fill: rgb(5%, 5%, 5%);}}
 svg { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
 }
 
-ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-}
-
-</style><g class="chart"></g><g class="hud"><g class="axis"><g class="axisbar"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><rect width="0.0033" height="0.7558" x="-0.5659" y="-0.4481"/></g></g><g class="ticks"><g class="ticklines"><g stroke-width="0.0050" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.05" fill="none"><polyline points="-0.5542,0.3063 0.7011,0.3063"/><polyline points="-0.5542,0.2122 0.7011,0.2122"/><polyline points="-0.5542,0.1181 0.7011,0.1181"/><polyline points="-0.5542,0.0240 0.7011,0.0240"/><polyline points="-0.5542,-0.0701 0.7011,-0.0701"/><polyline points="-0.5542,-0.1642 0.7011,-0.1642"/><polyline points="-0.5542,-0.2583 0.7011,-0.2583"/><polyline points="-0.5542,-0.3524 0.7011,-0.3524"/><polyline points="-0.5542,-0.4465 0.7011,-0.4465"/></g></g><g class="tickglyph"><g stroke-width="0.0033" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><polyline points="-0.5893,0.3063
+ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}</style><g class="chart"></g><g class="hud"><g class="axis"><g class="axisbar"><g stroke-width="0" stroke="rgb(0%, 0%, 0%)" stroke-opacity="0" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><rect width="0.0033" height="0.7558" x="-0.5659" y="-0.4481"/></g></g><g class="ticks"><g class="ticklines"><g stroke-width="0.0050" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.05" fill="none"><polyline points="-0.5542,0.3063 0.7011,0.3063"/><polyline points="-0.5542,0.2122 0.7011,0.2122"/><polyline points="-0.5542,0.1181 0.7011,0.1181"/><polyline points="-0.5542,0.0240 0.7011,0.0240"/><polyline points="-0.5542,-0.0701 0.7011,-0.0701"/><polyline points="-0.5542,-0.1642 0.7011,-0.1642"/><polyline points="-0.5542,-0.2583 0.7011,-0.2583"/><polyline points="-0.5542,-0.3524 0.7011,-0.3524"/><polyline points="-0.5542,-0.4465 0.7011,-0.4465"/></g></g><g class="tickglyph"><g stroke-width="0.0033" stroke="rgb(5%, 5%, 5%)" stroke-opacity="0.4" fill="rgb(5%, 5%, 5%)" fill-opacity="0.4"><polyline points="-0.5893,0.3063
 -0.5642,0.3063"/><polyline points="-0.5893,0.2122
 -0.5642,0.2122"/><polyline points="-0.5893,0.1181
 -0.5642,0.1181"/><polyline points="-0.5893,0.0240

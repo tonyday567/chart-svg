@@ -1,34 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="607" height="50" viewBox="-5.9896 -0.4916 11.9793 0.9857"><style>svg {
-  color-scheme: light dark;
-}
-{
-  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgb(5%, 5%, 5%);
-  }
-  .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgb(5%, 5%, 5%);
-  }
-  .legendBorder g {
-    fill: rgb(94%, 94%, 94%);
-  }
-}
-@media (prefers-color-scheme:dark) {
-  .canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {
-    fill: rgb(94%, 94%, 94%);
-  }
-  .ticklines g, .tickglyph g, .legendBorder g {
-    stroke: rgb(94%, 94%, 94%);
-  }
-  .legendBorder g {
-    fill: rgb(5%, 5%, 5%);
-  }
-}
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="607" height="50" viewBox="-5.9896 -0.4916 11.9793 0.9857"><style>svg {color-scheme: light dark;} {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(5%, 5%, 5%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(5%, 5%, 5%);} .legendBorder g {fill: rgb(94%, 94%, 94%);}} @media (prefers-color-scheme:dark) {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(94%, 94%, 94%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(94%, 94%, 94%);} .legendBorder g {fill: rgb(5%, 5%, 5%);}}
 svg { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
 }
 
-ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-}
-
-</style><g class="chart"><g class="glyphs"><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><circle cx="-5.5796" cy="0.0840" r="0.4"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><rect width="0.8000" height="0.8" x="-4.5847" y="-0.3160"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><rect width="0.8000" height="0.6000" x="-3.1898" y="-0.2160"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><rect width="0.8000" height="0.6000" x="-1.7949" y="-0.2160" rx="0.0100" ry="0.0100"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><ellipse cx="1.7763568394002505e-15" cy="8.40457922758524e-2" rx="0.4" ry="0.30000000000000004"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><polyline points="1.3949,0.4840
+ticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}</style><g class="chart"><g class="glyphs"><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><circle cx="-5.5796" cy="0.0840" r="0.4"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><rect width="0.8000" height="0.8" x="-4.5847" y="-0.3160"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><rect width="0.8000" height="0.6000" x="-3.1898" y="-0.2160"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><rect width="0.8000" height="0.6000" x="-1.7949" y="-0.2160" rx="0.0100" ry="0.0100"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><ellipse cx="1.7763568394002505e-15" cy="8.40457922758524e-2" rx="0.4" ry="0.30000000000000004"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><polyline points="1.3949,0.4840
 1.3949,-0.3160"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><polyline points="2.3898,0.0840
 3.1898,0.0840"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><polygon transform="translate(4.1847, 0.0840)" points="0,-0.5657 -0.4000,0.3464 0.4000,0.3464"/></g><g stroke-width="0.0200" stroke="rgb(2%, 29%, 48%)" stroke-opacity="1.0" fill="rgb(2%, 73%, 80%)" fill-opacity="0.2"><path d="M 0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0,0.5 A 1.0 1.0 -0.0 0 1 -0.5,-0.3660 A 1.0 1.0 -0.0 0 1 0.5,-0.3660 L 0.5,-0.3660 Z" transform="translate(5.5796, 0.0840) scale(0.8)"/></g></g></g><g class="hud"></g></svg>

@@ -45,12 +45,17 @@ import Data.Maybe
 import Data.Path
 import Data.Path.Parser
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.Generics
 import MarkupParse
 import NumHask.Space
 import Optics.Core hiding (element)
 import Prelude
+
+-- | Convert String to UTF-8 ByteString (local definition to avoid MarkupParse ambiguity)
+localStrToUtf8 :: String -> ByteString
+localStrToUtf8 = encodeUtf8 . T.pack
 
 -- $setup
 --
@@ -77,7 +82,7 @@ encodeNum = encodeUtf8 . formatOrShow (FixedStyle 4) Nothing
 -- >>> encodePx 300.0
 -- "300"
 encodePx :: Double -> ByteString
-encodePx = strToUtf8 . show . (floor :: Double -> Int)
+encodePx = localStrToUtf8 . show . (floor :: Double -> Int)
 
 -- | Convert a ChartTree to markup
 --
@@ -284,10 +289,10 @@ markupShape_ (EllipseGlyph x') s (Point x y) =
   where
     as =
       uncurry Attr
-        <$> [ ("cx", (strToUtf8 . show) x),
-              ("cy", (strToUtf8 . show) $ -y),
-              ("rx", (strToUtf8 . show) $ 0.5 * s),
-              ("ry", (strToUtf8 . show) $ 0.5 * s * x')
+        <$> [ ("cx", (localStrToUtf8 . show) x),
+              ("cy", (localStrToUtf8 . show) $ -y),
+              ("rx", (localStrToUtf8 . show) $ 0.5 * s),
+              ("ry", (localStrToUtf8 . show) $ 0.5 * s * x')
             ]
 markupShape_ VLineGlyph s (Point x y) =
   emptyElem "polyline" [Attr "points" $ encodeNum x <> "," <> encodeNum (-(y - s / 2)) <> "\n" <> encodeNum x <> "," <> encodeNum (-(y + s / 2))]
