@@ -4,10 +4,4 @@ packages:
 write-ghc-environment-files: always
 
 allow-newer:
-  indexed-traversable:base,
-  indexed-traversable:containers,
-  indexed-traversable-instances:base,
-  tdigest:base,
-  these:base,
-  optics-core:containers,
-  microlens-th:template-haskell
+  tdigest:base
