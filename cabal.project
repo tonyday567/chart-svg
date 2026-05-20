@@ -1,5 +1,7 @@
 packages:
   chart-svg.cabal
+  ../circuits-parser/circuits-parser.cabal
+  ../circuits/circuits.cabal
 
 write-ghc-environment-files: always
 

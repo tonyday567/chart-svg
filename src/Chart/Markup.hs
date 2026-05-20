@@ -48,7 +48,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.Generics
-import MarkupParse
+import Circuit.Markup
 import NumHask.Space
 import Optics.Core hiding (element)
 import Prelude
@@ -65,7 +65,7 @@ localStrToUtf8 = encodeUtf8 . T.pack
 -- >>> import Optics.Core
 -- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
 -- >>> import Chart.Examples
--- >>> import MarkupParse
+-- >>> import Circuit.Markup
 
 -- | Show a Double, or rounded to 4 decimal places if this is shorter.
 --
@@ -142,7 +142,7 @@ markupRect (Rect x z y w) =
 
 -- | Convert a Chart to Markup
 --
--- >>> import MarkupParse
+-- >>> import Circuit.Markup
 -- >>> import Optics.Core
 -- >>> import Control.Category ((>>>))
 -- >>> lineExample & toListOf (#chartTree % charts') & mconcat & fmap (markupChart >>> markdown_ Compact Xml)

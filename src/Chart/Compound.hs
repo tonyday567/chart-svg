@@ -21,7 +21,7 @@ import Data.ByteString.Char8 qualified as C
 import Data.Foldable
 import Data.List qualified as List
 import Data.Maybe
-import MarkupParse
+import Circuit.Markup
 import Optics.Core
 import Prelude
 
