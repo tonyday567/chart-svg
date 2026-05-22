@@ -1,7 +1,5 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | Simple parser implementation to replace flatparse
 module Chart.Parse
@@ -67,7 +65,7 @@ instance Monad (Parser e) where
     Err e -> Err e
 
 instance Alternative (Parser e) where
-  empty = Parser $ \_ -> Fail
+  empty = Parser $ const Fail
   Parser p <|> Parser q = Parser $ \s -> case p s of
     Fail -> q s
     ok -> ok

@@ -36,6 +36,7 @@ import Chart.Data
 import Chart.Hud
 import Chart.Primitive hiding (tree)
 import Chart.Style
+import Circuit.Markup
 import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
 import Data.Colour
@@ -48,7 +49,6 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.Generics
-import Circuit.Markup
 import NumHask.Space
 import Optics.Core hiding (element)
 import Prelude
