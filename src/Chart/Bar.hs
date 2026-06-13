@@ -80,7 +80,7 @@ data BarOptions = BarOptions
     barStacked :: Stacked,
     barLegendOptions :: LegendOptions
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official bar options.
 defaultBarOptions :: BarOptions
@@ -198,7 +198,7 @@ data BarData = BarData
     barRowLabels :: [Text],
     barColumnLabels :: [Text]
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Calculate the Rect range of a bar data set.
 --

@@ -89,19 +89,12 @@ import System.Random.Stateful
 
 -- | Colour type for the library: red, green, blue, opacity in [0,1].
 data Colour = Colour Double Double Double Double
-  deriving (Eq, Generic, Data)
+  deriving (Eq, Read, Generic, Data)
 
 instance Show Colour where
-  show (Colour r g b a) =
-    Text.unpack $
-      "Colour "
-        <> fixed (Just 2) r
-        <> " "
-        <> fixed (Just 2) g
-        <> " "
-        <> fixed (Just 2) b
-        <> " "
-        <> fixed (Just 2) a
+  show (Colour r g b a) = "Colour " ++ show r ++ " " ++ show g ++ " " ++ show b ++ " " ++ show a
+  showsPrec d p = showParen (d > app_prec) (showString (show p))
+    where app_prec = 10
 
 -- | CSS-style representation
 showRGBA :: Colour -> ByteString
@@ -254,7 +247,7 @@ class ArrayAs f s a where
 -- C: Chromacity, which ranges from 0 to around 0.32 or so.
 --
 -- H: Hue, which ranges from 0 to 360
-data LCH a = LCH a a a deriving (Eq, Show, Functor)
+data LCH a = LCH a a a deriving (Eq, Show, Read, Functor)
 
 instance ArrayAs LCH '[3] a where
   arrayAs a = LCH (a ! [0]) (a ! [1]) (a ! [2])
@@ -272,7 +265,7 @@ hLCH' :: Lens' (LCH Double) Double
 hLCH' = lens (\(LCH _ _ h) -> h) (\(LCH l c _) h -> LCH l c h)
 
 -- | LCHA representation, including an alpha channel.
-data LCHA = LCHA' {_lch :: LCH Double, _alpha :: Double} deriving (Eq, Show)
+data LCHA = LCHA' {_lch :: LCH Double, _alpha :: Double} deriving (Eq, Show, Read)
 
 -- | LCH lens for LCHA
 lch' :: Lens' LCHA (LCH Double)
@@ -294,7 +287,7 @@ pattern LCHA l c h a <-
 -- * RGB colour representation
 
 -- | A type to represent the RGB triple, useful as an intermediary between 'Colour' and 'LCHA'
-data RGB3 a = RGB3 a a a deriving (Eq, Show, Functor)
+data RGB3 a = RGB3 a a a deriving (Eq, Show, Read, Functor)
 
 instance ArrayAs RGB3 '[3] a where
   arrayAs a = RGB3 (a ! [0]) (a ! [1]) (a ! [2])
@@ -310,7 +303,7 @@ rgb32colour' = iso (\(RGB3 r g b, a) -> Colour r g b a) (\(Colour r g b a) -> (R
 -- * LAB colour representation
 
 -- | LAB colour representation. a is green-red and b is blue-yellow
-data LAB a = LAB a a a deriving (Eq, Show, Functor)
+data LAB a = LAB a a a deriving (Eq, Show, Read, Functor)
 
 instance ArrayAs LAB '[3] a where
   arrayAs a = LAB (a ! [0]) (a ! [1]) (a ! [2])

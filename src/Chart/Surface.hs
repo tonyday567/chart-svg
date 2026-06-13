@@ -53,7 +53,7 @@ data SurfaceOptions = SurfaceOptions
     -- | Chart range
     soRange :: Rect Double
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | official style
 defaultSurfaceOptions :: SurfaceOptions
@@ -71,7 +71,7 @@ data SurfaceStyle = SurfaceStyle
     surfaceColors :: [Colour],
     surfaceRectStyle :: Style
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
@@ -85,7 +85,7 @@ data SurfaceData = SurfaceData
     -- | Surface colour.
     surfaceColor :: Colour
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | surface chart without any hud trimmings
 surfaces :: Style -> [SurfaceData] -> [Chart]
@@ -134,7 +134,7 @@ data SurfaceLegendOptions = SurfaceLegendOptions
     sloRect :: Rect Double,
     sloSurfaceStyle :: SurfaceStyle
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | 'AxisOptions' for a surface chart legend.
 surfaceLegendAxisOptions :: AxisOptions

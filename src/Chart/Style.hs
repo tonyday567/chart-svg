@@ -115,7 +115,7 @@ data Style = Style
     -- | shape for glyph chart elements
     glyphShape :: GlyphShape
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official default style
 --
@@ -189,7 +189,7 @@ border :: Double -> Colour -> Style
 border s c = defaultRectStyle & set #borderSize s & set #borderColor c & set #color transparent
 
 -- | Whether to escape the common XML escaped characters.
-data EscapeText = EscapeText | NoEscapeText deriving (Eq, Show, Generic, Data)
+data EscapeText = EscapeText | NoEscapeText deriving (Eq, Show, Read, Generic, Data)
 
 -- | the extra area from text styling
 styleBoxText ::
@@ -227,7 +227,7 @@ data GlyphShape
   | VLineGlyph
   | HLineGlyph
   | PathGlyph ByteString
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | the extra area from glyph styling
 styleBoxGlyph :: Style -> Rect Double
@@ -271,7 +271,7 @@ gpalette1_ =
   ]
 
 -- | line cap style
-data LineCap = LineCapButt | LineCapRound | LineCapSquare deriving (Eq, Show, Generic, Data)
+data LineCap = LineCapButt | LineCapRound | LineCapSquare deriving (Eq, Show, Read, Generic, Data)
 
 -- | svg textifier
 fromLineCap :: (IsString s) => LineCap -> s
@@ -287,7 +287,7 @@ toLineCap "square" = LineCapSquare
 toLineCap _ = LineCapButt
 
 -- | line cap style
-data LineJoin = LineJoinMiter | LineJoinBevel | LineJoinRound deriving (Eq, Show, Generic, Data)
+data LineJoin = LineJoinMiter | LineJoinBevel | LineJoinRound deriving (Eq, Show, Read, Generic, Data)
 
 -- | svg textifier
 fromLineJoin :: (IsString s) => LineJoin -> s
@@ -303,7 +303,7 @@ toLineJoin "round" = LineJoinRound
 toLineJoin _ = LineJoinMiter
 
 -- | Text Anchor
-data TextAnchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Generic, Data)
+data TextAnchor = AnchorMiddle | AnchorStart | AnchorEnd deriving (Eq, Show, Read, Generic, Data)
 
 -- | Convert a 'TextAnchor' to a 'ByteString' label.
 fromTextAnchor :: TextAnchor -> ByteString
@@ -319,7 +319,7 @@ fromAnchoring x = case compare x zero of
   LT -> AnchorStart
 
 -- | Aligning stacked things.
-data Align = NoAlign | AlignRight | AlignLeft | AlignMid deriving (Eq, Show, Generic, Data)
+data Align = NoAlign | AlignRight | AlignLeft | AlignMid deriving (Eq, Show, Read, Generic, Data)
 
 -- | Scale Projection options
 data ScaleP
@@ -333,7 +333,7 @@ data ScaleP
     ScalePMinDim
   | -- | Scale based on the area ratio of a projection
     ScalePArea
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | given a ScaleP and two Rects, what is the scaling factor for a projection
 --

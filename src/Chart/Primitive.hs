@@ -1,7 +1,7 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE RebindableSyntax #-}
 
 -- | Base 'Chart' and 'ChartTree' types and support
 module Chart.Primitive
@@ -99,7 +99,7 @@ import Optics.Core
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> import NumHask.Prelude
--- >>> import Prelude qualified as P
+-- >>> import NumHask.Prelude qualified as P
 -- >>> let r = RectChart defaultRectStyle [one]
 
 -- | A product type consisting of a 'Style', which is the stylistic manifestation of chart data, and 'ChartData' representing where data is located on the chart canvas (an xy-plane).
@@ -119,7 +119,7 @@ data Chart
   { chartStyle :: Style,
     chartData :: ChartData
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Data of a 'Chart'
 --
@@ -144,7 +144,7 @@ data ChartData
     PathData [PathData Double]
   | -- | List of rectangles with no 'Style' representation
     BlankData [Rect Double]
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | RectData partial lens
 rectData' :: Lens' ChartData (Maybe [Rect Double])
@@ -255,7 +255,7 @@ blankChart1 r = Chart defaultStyle (BlankData [r])
 -- | A group of charts represented by a 'Tree' of chart lists with labelled branches. The labelling is particularly useful downstream, when groupings become grouped SVG elements with classes or ids.
 newtype ChartTree
   = ChartTree {tree :: Tree (Maybe Text, [Chart])}
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Group a list of trees into a new tree.
 group :: Maybe Text -> [ChartTree] -> ChartTree
@@ -341,7 +341,7 @@ sbox (Chart _ (BlankData a)) = foldRect a
 
 -- | projects a Chart to a new space from an old rectangular space, preserving linear metric structure.
 --
--- >>> projectWith (fmap (2*) one) one r
+-- >>> projectWith (fmap (\x -> x + x) one) one r
 -- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-1.0) 1.0 (-1.0) 1.0]}
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old c = c & over #chartStyle (scaleStyle (scaleRatio (view (#chartStyle % #scaleP) c) new old)) & over #chartData (projectChartDataWith new old)
@@ -547,10 +547,10 @@ pointize_ (RectData xs) = GlyphData (mid <$> xs)
 pointize_ (GlyphData xs) = GlyphData xs
 
 -- | Verticle or Horizontal
-data Orientation = Vert | Hori deriving (Eq, Show, Generic, Data)
+data Orientation = Vert | Hori deriving (Eq, Show, Read, Generic, Data)
 
 -- | Whether to stack chart data
-data Stacked = Stacked | NonStacked deriving (Eq, Show, Generic, Data)
+data Stacked = Stacked | NonStacked deriving (Eq, Show, Read, Generic, Data)
 
 -- | The basis for the x-y ratio of a chart
 --
@@ -564,7 +564,7 @@ data ChartAspect
     ChartAspect
   | -- | Do not rescale charts. The style values should make sense in relation to the data ranges.
     UnscaledAspect
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Rectangular placement
 data Place
@@ -573,7 +573,7 @@ data Place
   | PlaceTop
   | PlaceBottom
   | PlaceAbsolute (Point Double)
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Flip Place to the opposite side, or negate if 'PlaceAbsolute'.
 --

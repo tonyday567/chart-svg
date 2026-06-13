@@ -112,3 +112,24 @@ library
     Data.Path
     Data.Path.Parser
 
+executable life-expectancy
+  import: ghc-options-stanza
+  import: ghc2024-stanza
+  main-is: LifeExpectancy.hs
+  hs-source-dirs: intake
+  build-depends:
+    base >=4.14 && <5,
+    chart-svg,
+    optics-core >=0.4 && <0.5,
+
+executable test-read
+  import: ghc-options-stanza
+  import: ghc2024-stanza
+  main-is: TestFields.hs
+  hs-source-dirs: intake
+  build-depends:
+    base >=4.14 && <5,
+    chart-svg,
+    optics-core >=0.4 && <0.5,
+    text >=1.2 && <2.2,
+

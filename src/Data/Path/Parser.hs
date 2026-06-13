@@ -1,6 +1,6 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RebindableSyntax #-}
 
 -- | Conversions to and from an SVG path to a 'PathData'
 module Data.Path.Parser
@@ -12,6 +12,7 @@ module Data.Path.Parser
     pathDataToSvg,
     PathCommand (..),
     Origin (..),
+    PathCursor (..),
     toPathDatas,
   )
 where
@@ -201,7 +202,7 @@ data PathCommand
     EllipticalArc !Origin ![(Double, Double, Double, Bool, Bool, Point Double)]
   | -- | Close the path, Z or z svg path command.
     EndPath
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Tell if a path command is absolute (in the current
 -- user coordiante) or relative to the previous point.
@@ -210,7 +211,7 @@ data Origin
     OriginAbsolute
   | -- | Next point relative to the previous
     OriginRelative
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 pointToSvgCoords :: Point Double -> Point Double
 pointToSvgCoords (Point x y) = Point x (-y)
@@ -299,7 +300,7 @@ data PathCursor = PathCursor
     -- | last control point
     curControl :: Maybe (Point Double)
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 stateCur0 :: PathCursor
 stateCur0 = PathCursor zero zero Nothing

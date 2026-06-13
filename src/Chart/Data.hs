@@ -1,5 +1,5 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE RebindableSyntax #-}
 
 -- | Data primitives and utilities
 --
@@ -34,6 +34,7 @@ where
 
 import NumHask.Prelude
 import NumHask.Space
+import qualified Prelude as P
 
 -- $setup
 --
@@ -75,3 +76,14 @@ isSingleton (Rect x z y w) = x == z || y == w
 -- Point 1.0 3.0
 addp :: Point Double -> Point Double -> Point Double
 addp = (+)
+
+-- | Orphan: bridge NumHask operations to Prelude.Num so numeric literals
+-- and unary negation work without RebindableSyntax.
+instance P.Num (Point Double) where
+  (+) = (+)
+  (-) = (-)
+  (*) = (*)
+  negate = negate
+  abs = error "abs: not defined for Point"
+  signum = error "signum: not defined for Point"
+  fromInteger i = Point (P.fromInteger i) (P.fromInteger i)

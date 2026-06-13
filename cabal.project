@@ -1,5 +1,9 @@
 packages:
   chart-svg.cabal
+  ../numhask/numhask.cabal
+  ../numhask-space/numhask-space.cabal
+  ../formatn/formatn.cabal
+  ../circuits-parser/circuits-parser.cabal
 
 write-ghc-environment-files: always
 
