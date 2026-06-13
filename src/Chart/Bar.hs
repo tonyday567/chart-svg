@@ -52,7 +52,7 @@ import Prelude hiding (abs)
 -- - The value of inner and outer gaps are relative to this model.
 --
 -- >>> let barDataExample = BarData [[1, 2, 3, 5, 8, 0, -2, 11, 2, 1], [1 .. 10]] (("row " <>) . pack . show <$> [1 .. 11]) (("column " <>) . pack . show <$> [1 .. 2])
--- >>> let barExample = barChart defaultBarOptions barDataExample
+<interactive>:51:22: error: [GHC-87543]-<interactive>:51:22: error: [GHC-87543]-<interactive>:51:22: error: [GHC-87543] <interactive>:51:22: error: [GHC-87543]><interactive>:51:22: error: [GHC-87543]><interactive>:51:22: error: [GHC-87543]><interactive>:51:22: error: [GHC-87543] <interactive>:51:22: error: [GHC-87543]l<interactive>:51:22: error: [GHC-87543]e<interactive>:51:22: error: [GHC-87543]t<interactive>:51:22: error: [GHC-87543] <interactive>:51:22: error: [GHC-87543]b<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]r<interactive>:51:22: error: [GHC-87543]E<interactive>:51:22: error: [GHC-87543]x<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]m<interactive>:51:22: error: [GHC-87543]p<interactive>:51:22: error: [GHC-87543]l<interactive>:51:22: error: [GHC-87543]e<interactive>:51:22: error: [GHC-87543] <interactive>:51:22: error: [GHC-87543]=<interactive>:51:22: error: [GHC-87543] <interactive>:51:22: error: [GHC-87543]b<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]r<interactive>:51:22: error: [GHC-87543]C<interactive>:51:22: error: [GHC-87543]h<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]r<interactive>:51:22: error: [GHC-87543]t<interactive>:51:22: error: [GHC-87543] <interactive>:51:22: error: [GHC-87543]d<interactive>:51:22: error: [GHC-87543]e<interactive>:51:22: error: [GHC-87543]f<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]u<interactive>:51:22: error: [GHC-87543]l<interactive>:51:22: error: [GHC-87543]t<interactive>:51:22: error: [GHC-87543]B<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]r<interactive>:51:22: error: [GHC-87543]O<interactive>:51:22: error: [GHC-87543]p<interactive>:51:22: error: [GHC-87543]t<interactive>:51:22: error: [GHC-87543]i<interactive>:51:22: error: [GHC-87543]o<interactive>:51:22: error: [GHC-87543]n<interactive>:51:22: error: [GHC-87543]s<interactive>:51:22: error: [GHC-87543] <interactive>:51:22: error: [GHC-87543]b<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]r<interactive>:51:22: error: [GHC-87543]D<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]t<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]E<interactive>:51:22: error: [GHC-87543]x<interactive>:51:22: error: [GHC-87543]a<interactive>:51:22: error: [GHC-87543]m<interactive>:51:22: error: [GHC-87543]p<interactive>:51:22: error: [GHC-87543]l<interactive>:51:22: error: [GHC-87543]e<interactive>:51:22: error: [GHC-87543]
 --
 -- > writeChartOptions "other/bar.svg" barExample
 --
@@ -124,7 +124,7 @@ barX0 o xs i j = outerGap o / 2 + fromIntegral i + fromIntegral j * (barWidth o 
 -- | Make bars from the double list values, normalizing to one :: Rect.
 --
 -- >>> barRects defaultBarOptions [[1,2],[2,3]]
--- [[Rect (-0.5) (-0.26315789473684215) (-0.5) (-0.16666666666666669),Rect 2.631578947368418e-2 0.26315789473684204 (-0.5) 0.16666666666666663],[Rect (-0.26315789473684215) (-2.6315789473684292e-2) (-0.5) 0.16666666666666663,Rect 0.26315789473684204 0.4999999999999999 (-0.5) 0.5]]
+-- <interactive>:67:1: error: [GHC-87543]
 --
 -- >>> barRects defaultBarOptions [[]]
 -- []
@@ -168,7 +168,7 @@ appendZeros xs =
 -- | A bar chart.
 --
 -- >>> emptyBar = barChart defaultBarOptions (BarData [] [] [])
--- >>> foldOf (#chartTree % charts') emptyBar
+<interactive>:83:12: error: [GHC-87543]-<interactive>:83:12: error: [GHC-87543]-<interactive>:83:12: error: [GHC-87543] <interactive>:83:12: error: [GHC-87543]><interactive>:83:12: error: [GHC-87543]><interactive>:83:12: error: [GHC-87543]><interactive>:83:12: error: [GHC-87543] <interactive>:83:12: error: [GHC-87543]f<interactive>:83:12: error: [GHC-87543]o<interactive>:83:12: error: [GHC-87543]l<interactive>:83:12: error: [GHC-87543]d<interactive>:83:12: error: [GHC-87543]O<interactive>:83:12: error: [GHC-87543]f<interactive>:83:12: error: [GHC-87543] <interactive>:83:12: error: [GHC-87543](<interactive>:83:12: error: [GHC-87543]#<interactive>:83:12: error: [GHC-87543]c<interactive>:83:12: error: [GHC-87543]h<interactive>:83:12: error: [GHC-87543]a<interactive>:83:12: error: [GHC-87543]r<interactive>:83:12: error: [GHC-87543]t<interactive>:83:12: error: [GHC-87543]T<interactive>:83:12: error: [GHC-87543]r<interactive>:83:12: error: [GHC-87543]e<interactive>:83:12: error: [GHC-87543]e<interactive>:83:12: error: [GHC-87543] <interactive>:83:12: error: [GHC-87543]%<interactive>:83:12: error: [GHC-87543] <interactive>:83:12: error: [GHC-87543]c<interactive>:83:12: error: [GHC-87543]h<interactive>:83:12: error: [GHC-87543]a<interactive>:83:12: error: [GHC-87543]r<interactive>:83:12: error: [GHC-87543]t<interactive>:83:12: error: [GHC-87543]s<interactive>:83:12: error: [GHC-87543]'<interactive>:83:12: error: [GHC-87543])<interactive>:83:12: error: [GHC-87543] <interactive>:83:12: error: [GHC-87543]e<interactive>:83:12: error: [GHC-87543]m<interactive>:83:12: error: [GHC-87543]p<interactive>:83:12: error: [GHC-87543]t<interactive>:83:12: error: [GHC-87543]y<interactive>:83:12: error: [GHC-87543]B<interactive>:83:12: error: [GHC-87543]a<interactive>:83:12: error: [GHC-87543]r<interactive>:83:12: error: [GHC-87543]
 -- []
 barChart :: BarOptions -> BarData -> ChartOptions
 barChart bo bd =
@@ -203,7 +203,7 @@ data BarData = BarData
 -- | Calculate the Rect range of a bar data set.
 --
 -- >>> barRange [[1,2],[2,3]]
--- Rect 0.0 2.0 0.0 3.0
+-- <interactive>:99:1: error: [GHC-87543]
 --
 -- >>> barRange [[]]
 -- Rect (-0.5) 0.5 (-0.5) 0.5
@@ -216,7 +216,7 @@ barRange ys = padSingletons $ Rect 0 (fromIntegral $ rows ys) (min 0 l) u
 -- | A bar chart without hud trimmings.
 --
 -- >>> bars defaultBarOptions (BarData [[1,2],[2,3]] [] [])
--- [Chart {chartStyle = Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.02 0.29 0.48 0.70, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.5) (-0.26315789473684215) (-0.5) (-0.16666666666666669),Rect 2.631578947368418e-2 0.26315789473684204 (-0.5) 0.16666666666666663]},Chart {chartStyle = Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.66 0.07 0.55 0.70, borderColor = Colour 0.66 0.07 0.55 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.26315789473684215) (-2.6315789473684292e-2) (-0.5) 0.16666666666666663,Rect 0.26315789473684204 0.4999999999999999 (-0.5) 0.5]}]
+-- <interactive>:115:1: error: [GHC-87543]
 --
 -- >>> bars defaultBarOptions (BarData [[]] [] [])
 -- []
