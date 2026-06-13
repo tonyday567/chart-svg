@@ -11,3 +11,4 @@ dist-newstyle
 /checklist.org
 /cabal-fix.config
 /.ghc.environment.*
+other.bak

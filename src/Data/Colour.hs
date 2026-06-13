@@ -525,21 +525,21 @@ greyed = over chroma' (const 0)
 -- | Lightness lens
 --
 -- >>> over lightness' (*0.8) (Colour 0.4 0.7 0.8 0.4)
--- ...
+-- Colour 0.2164521158395537 0.52366760947314 0.6192919592501553 0.4
 lightness' :: Lens' Colour Double
 lightness' = re lcha2colour' % lch' % lLCH'
 
 -- | Chromacity lens
 --
 -- >>> over chroma' (*0.8) (Colour 0.4 0.7 0.8 0.4)
--- ...
+-- Colour 0.4617871186277957 0.6915093453577127 0.7707963054467656 0.4
 chroma' :: Lens' Colour Double
 chroma' = re lcha2colour' % lch' % cLCH'
 
 -- | Hue lens
 --
 -- >>> over hue' (+180) (Colour 0.4 0.7 0.8 0.4)
--- ...
+-- Colour 0.8320015577891179 0.5836799066928026 0.48874314193645124 0.4
 hue' :: Lens' Colour Double
 hue' = re lcha2colour' % lch' % hLCH'
 
