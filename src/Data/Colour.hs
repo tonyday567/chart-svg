@@ -473,7 +473,7 @@ lab2xyz_ lab =
 --
 -- >>> betterblack = set (lch' % hLCH') (view hue' (Colour 0.2 0.6 0.8 0.5)) (review lcha2colour' black)
 -- >>> view lcha2colour' $ mixLCHA 0.8 betterblack (review lcha2colour' $ Colour 0.2 0.6 0.8 0.5)
--- ...
+-- Colour 0.13796457900126569 0.4405742858448237 0.5918899179589158 0.6
 mix :: Double -> Colour -> Colour -> Colour
 mix x c0 c1 = view lcha2colour' (mixLCHA x (review lcha2colour' c0) (review lcha2colour' c1))
 

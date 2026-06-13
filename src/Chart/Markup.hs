@@ -64,7 +64,6 @@ localStrToUtf8 = encodeUtf8 . T.pack
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
-<interactive>:35:10: error: [GHC-87543]-<interactive>:35:10: error: [GHC-87543]-<interactive>:35:10: error: [GHC-87543] <interactive>:35:10: error: [GHC-87543]><interactive>:35:10: error: [GHC-87543]><interactive>:35:10: error: [GHC-87543]><interactive>:35:10: error: [GHC-87543] <interactive>:35:10: error: [GHC-87543]i<interactive>:35:10: error: [GHC-87543]m<interactive>:35:10: error: [GHC-87543]p<interactive>:35:10: error: [GHC-87543]o<interactive>:35:10: error: [GHC-87543]r<interactive>:35:10: error: [GHC-87543]t<interactive>:35:10: error: [GHC-87543] <interactive>:35:10: error: [GHC-87543]C<interactive>:35:10: error: [GHC-87543]h<interactive>:35:10: error: [GHC-87543]a<interactive>:35:10: error: [GHC-87543]r<interactive>:35:10: error: [GHC-87543]t<interactive>:35:10: error: [GHC-87543].<interactive>:35:10: error: [GHC-87543]E<interactive>:35:10: error: [GHC-87543]x<interactive>:35:10: error: [GHC-87543]a<interactive>:35:10: error: [GHC-87543]m<interactive>:35:10: error: [GHC-87543]p<interactive>:35:10: error: [GHC-87543]l<interactive>:35:10: error: [GHC-87543]e<interactive>:35:10: error: [GHC-87543]s<interactive>:35:10: error: [GHC-87543]
 -- >>> import Circuit.Markup
 
 -- | Show a Double, or rounded to 4 decimal places if this is shorter.

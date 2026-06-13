@@ -184,7 +184,6 @@ data ArcCentroid a = ArcCentroid
 -- See also [this](https://math.stackexchange.com/questions/55627/how-to-find-the-center-of-an-scaled-ellipse)
 --
 -- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
-<interactive>:47:9: error: [GHC-87543]-<interactive>:47:9: error: [GHC-87543]-<interactive>:47:9: error: [GHC-87543] <interactive>:47:9: error: [GHC-87543]><interactive>:47:9: error: [GHC-87543]><interactive>:47:9: error: [GHC-87543]><interactive>:47:9: error: [GHC-87543] <interactive>:47:9: error: [GHC-87543]a<interactive>:47:9: error: [GHC-87543]r<interactive>:47:9: error: [GHC-87543]c<interactive>:47:9: error: [GHC-87543]C<interactive>:47:9: error: [GHC-87543]e<interactive>:47:9: error: [GHC-87543]n<interactive>:47:9: error: [GHC-87543]t<interactive>:47:9: error: [GHC-87543]r<interactive>:47:9: error: [GHC-87543]o<interactive>:47:9: error: [GHC-87543]i<interactive>:47:9: error: [GHC-87543]d<interactive>:47:9: error: [GHC-87543] <interactive>:47:9: error: [GHC-87543]p<interactive>:47:9: error: [GHC-87543]
 -- ArcCentroid {centroid = Point 0.20952624903444356 (-0.48412291827592724), radius = Point 1.0 0.5, cphi = 0.7853981633974483, ang0 = 1.3753858999692936, angdiff = -1.823476581936975}
 arcCentroid :: (Num a, Ord a, FromInteger a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' large' clockwise')) = ArcCentroid c (Point rx ry) phi' ang1 angd
