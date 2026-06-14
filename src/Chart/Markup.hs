@@ -65,6 +65,10 @@ localStrToUtf8 = encodeUtf8 . T.pack
 -- >>> import Optics.Core
 -- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
 -- >>> import Circuit.Markup
+-- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
+-- >>> let styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
+-- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
+-- >>> let lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
 
 -- | Show a Double, or rounded to 4 decimal places if this is shorter.
 --

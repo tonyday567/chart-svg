@@ -76,7 +76,7 @@ import Prelude
 -- | Stylistic content of chart elements, involving how chart data is represented in the physical chart.
 --
 -- >>> defaultStyle
--- <interactive>:47:1: error: [GHC-87543]
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 0.1, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 data Style = Style
   { -- | The size of the element in relation to the canvas domain.
     size :: Double,
@@ -120,42 +120,42 @@ data Style = Style
 -- | The official default style
 --
 -- >>> defaultStyle
--- <interactive>:61:1: error: [GHC-87543]
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 0.1, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultStyle :: Style
 defaultStyle = Style 0.06 0.01 (paletteO 0 0.1) (paletteO 1 1) NoScaleP AnchorMiddle Nothing Nothing EscapeText Nothing Nothing Nothing Nothing Nothing 0.6 1.1 (-0.25) SquareGlyph
 
 -- | The official style for rectangles.
 --
 -- >>> defaultRectStyle
--- <interactive>:75:1: error: [GHC-87543]
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 0.1, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultRectStyle :: Style
 defaultRectStyle = defaultStyle
 
 -- | The official style for text elements.
 --
 -- >>> defaultTextStyle
--- <interactive>:89:1: error: [GHC-87543]
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 5.0e-2 5.0e-2 5.0e-2 1.0, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultTextStyle :: Style
 defaultTextStyle = defaultStyle & set #size 0.06 & set #color dark
 
 -- | The official style for glyphs.
 --
 -- >>> defaultGlyphStyle
--- <interactive>:103:1: error: [GHC-87543]
+-- Style {size = 3.0e-2, borderSize = 3.0e-3, color = Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 0.2, borderColor = Colour 1.9229539427673414e-2 0.2940827831517547 0.4771770051385044 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultGlyphStyle :: Style
 defaultGlyphStyle = defaultStyle & set #size 0.03 & set #color (paletteO 0 0.2) & set #borderColor (set lightness' 0.4 $ paletteO 1 1) & set #borderSize 0.003
 
 -- | The official style for lines.
 --
 -- >>> defaultLineStyle
--- <interactive>:117:1: error: [GHC-87543]
+-- Style {size = 1.2e-2, borderSize = 1.0e-2, color = Colour 5.0e-2 5.0e-2 5.0e-2 1.0, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultLineStyle :: Style
 defaultLineStyle = defaultStyle & set #size 0.012 & set #color dark
 
 -- | The official style for paths.
 --
 -- >>> defaultPathStyle
--- <interactive>:131:1: error: [GHC-87543]
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.655047675916546 6.808306412481399e-2 0.5464265360469063 1.0, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 defaultPathStyle :: Style
 defaultPathStyle = defaultStyle & set #color (palette 2) & set #borderColor (palette 1)
 
@@ -170,21 +170,21 @@ scaleStyle x s =
 -- | solid rectangle, no border
 --
 -- >>> blob black
--- <interactive>:145:1: error: [GHC-87543]
+-- Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.0 0.0 0.0 1.0, borderColor = Colour 0.0 0.0 0.0 0.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 blob :: Colour -> Style
 blob c = defaultRectStyle & set #borderSize 0 & set #borderColor transparent & set #color c
 
 -- | transparent rect
 --
 -- >>> clear
--- <interactive>:159:1: error: [GHC-87543]
+-- Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.0 0.0 0.0 0.0, borderColor = Colour 0.0 0.0 0.0 0.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 clear :: Style
 clear = defaultRectStyle & set #borderSize 0 & set #borderColor transparent & set #color transparent
 
 -- | transparent rectangle, with border
 --
 -- >>> border 0.01 transparent
--- <interactive>:173:1: error: [GHC-87543]
+-- Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.0 0.0 0.0 0.0, borderColor = Colour 0.0 0.0 0.0 0.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}
 border :: Double -> Colour -> Style
 border s c = defaultRectStyle & set #borderSize s & set #borderColor c & set #color transparent
 
@@ -252,7 +252,7 @@ styleBoxGlyph s = move p' $
 -- | Infinite list of glyph shapes
 --
 -- >>> gpalette 0
--- <interactive>:187:1: error: [GHC-87543]
+-- CircleGlyph
 gpalette :: Int -> GlyphShape
 gpalette x = cycle gpalette1_ List.!! x
 

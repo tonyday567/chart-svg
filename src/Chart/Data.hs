@@ -44,7 +44,7 @@ import qualified Prelude as P
 -- | Additive pad (or frame or buffer) a Rect.
 --
 -- >>> padRect 1 one
--- <interactive>:39:1: error: [GHC-87543]
+-- Rect (-1.5) 1.5 (-1.5) 1.5
 padRect :: (Subtractive a) => a -> Rect a -> Rect a
 padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
 
@@ -58,7 +58,7 @@ padRect p (Rect x z y w) = Rect (x - p) (z + p) (y - p) (w + p)
 -- Point NaN (-0.5)
 --
 -- >>> project (padSingletons (Rect 0 0 0 1)) one (Point 0 0)
--- <interactive>:51:10: error: [GHC-87543]
+-- Point 0.0 (-0.5)
 padSingletons :: Rect Double -> Rect Double
 padSingletons (Rect x z y w)
   | x == z && y == w = Rect (x - 0.5) (x + 0.5) (y - 0.5) (y + 0.5)
@@ -73,7 +73,7 @@ isSingleton (Rect x z y w) = x == z || y == w
 -- | add Points, dimension-wise
 --
 -- >>> Point 1 1 `addp` Point 0 2
--- <interactive>:61:11: error: [GHC-87543]
+-- Point 1.0 3.0
 addp :: Point Double -> Point Double -> Point Double
 addp = (+)
 

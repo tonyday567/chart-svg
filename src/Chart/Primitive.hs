@@ -92,21 +92,16 @@ import NumHask.Space
 import Optics.Core
 
 -- $setup
---
--- >>> :m -Prelude
--- >>> :set -XOverloadedLabels
--- >>> :set -XOverloadedStrings
 -- >>> import Chart
--- >>> import Optics.Core
--- >>> import NumHask.Prelude
--- >>> import NumHask.Prelude qualified as P
 -- >>> let r = RectChart defaultRectStyle [one]
+-- >>> let half = Rect (-0.25) 0.25 (-0.25) 0.25
+--
 -- | A product type consisting of a 'Style', which is the stylistic manifestation of chart data, and 'ChartData' representing where data is located on the chart canvas (an xy-plane).
 --
 -- A simple example is:
 --
--- >>> Chart defaultRectStyle (RectData [one])
--- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.5) 0.5 (-0.5) 0.5]}
+-- > Chart defaultRectStyle (RectData [Rect (-0.5) 0.5 (-0.5) 0.5])
+-- > Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 0.1, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-0.5) 0.5 (-0.5) 0.5]}
 --
 -- Using the defaults, this chart is rendered as:
 --
@@ -314,8 +309,8 @@ blank r = unnamed [Chart defaultStyle (BlankData [r])]
 
 -- | The 'Rect' which encloses the data elements of the chart. /Bounding box/ is a synonym.
 --
--- >>> box (chartData r)
--- Just Rect (-0.5) 0.5 (-0.5) 0.5
+-- >>> box (RectData [Rect (-0.5) 0.5 (-0.5) 0.5])
+-- Just (Rect (-0.5) 0.5 (-0.5) 0.5)
 box :: ChartData -> Maybe (Rect Double)
 box (RectData a) = foldRect a
 box (TextData a) = space1 $ snd <$> a
@@ -327,7 +322,7 @@ box (BlankData a) = foldRect a
 -- | The bounding box for a chart including both data and style elements.
 --
 -- >>> sbox r
--- Just Rect (-0.505) 0.505 (-0.505) 0.505
+-- Just (Rect (-0.505) 0.505 (-0.505) 0.505)
 --
 -- In the above example, the border of the rectangle adds an extra 0.1 to the height and width of the bounding box enclosing the chart.
 sbox :: Chart -> Maybe (Rect Double)
@@ -341,7 +336,7 @@ sbox (Chart _ (BlankData a)) = foldRect a
 -- | projects a Chart to a new space from an old rectangular space, preserving linear metric structure.
 --
 -- >>> projectWith (fmap (\x -> x + x) one) one r
--- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-1.0) 1.0 (-1.0) 1.0]}
+-- Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 0.1, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData [Rect (-1.0) 1.0 (-1.0) 1.0]}
 projectWith :: Rect Double -> Rect Double -> Chart -> Chart
 projectWith new old c = c & over #chartStyle (scaleStyle (scaleRatio (view (#chartStyle % #scaleP) c) new old)) & over #chartData (projectChartDataWith new old)
 
@@ -452,7 +447,7 @@ safeBox_ l ct
 -- | Create a frame over some charts with (additive) padding.
 --
 -- >>> frameChart defaultRectStyle 0.1 (unnamed [BlankChart defaultStyle []])
--- ChartTree {tree = Node {rootLabel = (Just "frame",[Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 0.02 0.73 0.80 0.10, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData []}]), subForest = []}}
+-- ChartTree {tree = Node {rootLabel = (Just "frame",[Chart {chartStyle = Style {size = 6.0e-2, borderSize = 1.0e-2, color = Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 0.1, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, chartData = RectData []}]), subForest = []}}
 frameChart :: Style -> Double -> ChartTree -> ChartTree
 frameChart rs p cs = named "frame" [Chart rs (RectData (maybeToList (padRect p <$> view styleBox' cs)))]
 

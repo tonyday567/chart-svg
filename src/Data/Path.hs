@@ -183,7 +183,7 @@ data ArcCentroid a = ArcCentroid
 --
 -- See also [this](https://math.stackexchange.com/questions/55627/how-to-find-the-center-of-an-scaled-ellipse)
 --
--- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
+-- >>> arcCentroid (ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True))
 -- ArcCentroid {centroid = Point 0.20952624903444356 (-0.48412291827592724), radius = Point 1.0 0.5, cphi = 0.7853981633974483, ang0 = 1.3753858999692936, angdiff = -1.823476581936975}
 arcCentroid :: (Num a, Ord a, FromInteger a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' large' clockwise')) = ArcCentroid c (Point rx ry) phi' ang1 angd
@@ -233,7 +233,7 @@ arcPosition (ArcCentroid c r phi' ang1 angd) =
 -- | Ellipse formulae
 --
 -- >>> ellipse zero (Point 1 2) (pi/6) pi
--- <interactive>:61:1: error: [GHC-87543]
+-- Point (-0.8660254037844388) (-0.4999999999999997)
 --
 -- Compare this "elegent" definition from [stackexchange](https://math.stackexchange.com/questions/426150/what-is-the-general-equation-of-the-ellipse-that-is-not-in-the-origin-and-rotate)
 --
@@ -276,7 +276,7 @@ arcBox p = unsafeSpace1 pts
 -- | Potential arc turning points.
 --
 -- >>> arcDerivs (Point 1 0.5) (pi/4)
--- <interactive>:75:1: error: [GHC-87543]
+-- (-0.4636476090008061,0.4636476090008062)
 arcDerivs :: Point Double -> Double -> (Double, Double)
 arcDerivs (Point rx ry) phi' = (thetax1, thetay1)
   where
@@ -308,7 +308,7 @@ data QuadPolar a = QuadPolar
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
 -- >>> quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
--- <interactive>:89:1: error: [GHC-87543]
+-- QuadPolar {qpolStart = Point 0.0 0.0, qpolEnd = Point 1.0 1.0, qpolControl = Polar {radial = 2.1213203435596424, azimuth = -0.7853981633974483}}
 quadPolar :: (Eq a, TrigField a, ExpField a) => QuadPosition a -> QuadPolar a
 quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
   where
@@ -321,7 +321,7 @@ quadPolar (QuadPosition start' end control) = QuadPolar start' end control'
 -- > quadPolar . quadPosition == id
 --
 -- >>> quadPosition $ quadPolar (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
--- <interactive>:103:1: error: [GHC-87543]
+-- QuadPosition {qposStart = Point 0.0 0.0, qposEnd = Point 1.0 1.0, qposControl = Point 2.0 (-0.9999999999999998)}
 quadPosition :: (TrigField a) => QuadPolar a -> QuadPosition a
 quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
   where
@@ -330,7 +330,7 @@ quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
 -- | The quadratic bezier equation
 --
 -- >>> quadBezier (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))) 0.33333333
--- <interactive>:117:1: error: [GHC-87543]
+-- Point 0.9999999933333332 (-0.33333333333333326)
 quadBezier :: (Num a, FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start' end control) theta =
   (1 - theta)
@@ -347,7 +347,7 @@ quadBezier (QuadPosition start' end control) theta =
 -- | QuadPosition turning points.
 --
 -- >>> quadDerivs (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
--- <interactive>:131:1: error: [GHC-87543]
+-- [0.6666666666666666,0.3333333333333333]
 quadDerivs :: QuadPosition Double -> [Double]
 quadDerivs (QuadPosition start' end control) = [x', y']
   where
@@ -358,7 +358,7 @@ quadDerivs (QuadPosition start' end control) = [x', y']
 -- | Bounding box for a QuadPosition
 --
 -- >>> quadBox (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1)))
--- <interactive>:145:1: error: [GHC-87543]
+-- Rect 0.0 1.3333333333333335 (-0.33333333333333337) 1.0
 quadBox :: QuadPosition Double -> Rect Double
 quadBox p = unsafeSpace1 pts
   where
@@ -399,7 +399,7 @@ data CubicPolar a = CubicPolar
 -- > cubicPolar . cubicPosition == id
 --
 -- >>> cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
--- <interactive>:159:1: error: [GHC-87543]
+-- CubicPolar {cpolStart = Point 0.0 0.0, cpolEnd = Point 1.0 1.0, cpolControl1 = Polar {radial = 1.1180339887498947, azimuth = -1.2490457723982544}, cpolControl2 = Polar {radial = 1.1180339887498947, azimuth = 1.8925468811915387}}
 cubicPolar :: (Eq a, ExpField a, TrigField a) => CubicPosition a -> CubicPolar a
 cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end control1' control2'
   where
@@ -413,7 +413,7 @@ cubicPolar (CubicPosition start' end control1 control2) = CubicPolar start' end 
 -- > cubicPolar . cubicPosition == id
 --
 -- >>> cubicPosition $ cubicPolar (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
--- <interactive>:173:1: error: [GHC-87543]
+-- CubicPosition {cposStart = Point 0.0 0.0, cposEnd = Point 1.0 1.0, cposControl1 = Point 1.0 (-1.0), cposControl2 = Point 1.6653345369377348e-16 2.0}
 cubicPosition :: (Eq a, TrigField a, ExpField a) => CubicPolar a -> CubicPosition a
 cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' end control1' control2'
   where
@@ -423,7 +423,7 @@ cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' e
 -- | The cubic bezier equation
 --
 -- >>> cubicBezier (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2)) 0.8535533905932737
--- <interactive>:187:1: error: [GHC-87543]
+-- Point 0.6767766952966369 1.2071067811865475
 cubicBezier :: (Num a, FromInteger a, TrigField a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start' end control1 control2) theta =
   (1 - theta)
@@ -446,7 +446,7 @@ cubicBezier (CubicPosition start' end control1 control2) theta =
 -- | Turning point positions for a CubicPosition (0,1 or 2)
 --
 -- >>> cubicDerivs (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
--- <interactive>:201:1: error: [GHC-87543]
+-- [0.8535533905932737,0.14644660940672624,0.5]
 cubicDerivs :: CubicPosition Double -> [Double]
 cubicDerivs
   ( CubicPosition
@@ -467,7 +467,7 @@ cubicDerivs
 -- | Bounding box for a CubicPosition
 --
 -- >>> cubicBox (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2))
--- <interactive>:215:1: error: [GHC-87543]
+-- Rect 0.0 1.0 (-0.20710678118654752) 1.2071067811865475
 cubicBox :: CubicPosition Double -> Rect Double
 cubicBox p = unsafeSpace1 pts
   where

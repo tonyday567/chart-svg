@@ -63,7 +63,7 @@ defaultSurfaceOptions =
 -- | A surface chart is a specialization of a 'RectChart'
 --
 -- >>> defaultSurfaceStyle
--- <interactive>:47:1: error: [GHC-87543]
+-- SurfaceStyle {surfaceColors = [Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 1.0,Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0], surfaceRectStyle = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 5.0e-2 5.0e-2 5.0e-2 1.0, borderColor = Colour 0.0 0.0 0.0 0.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}}
 --
 -- ![surface example](other/surface.svg)
 data SurfaceStyle = SurfaceStyle
