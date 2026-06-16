@@ -92,7 +92,7 @@ data Colour = Colour Double Double Double Double
   deriving (Eq, Read, Generic, Data)
 
 instance Show Colour where
-  show (Colour r g b a) = "Colour " <> (show r ++ " " ++ show g ++ " " ++ show b ++ " " ++ show a)
+  show (Colour r g b a) = "Colour " <> show r <> " " <> show g <> " " <> show b <> " " <> show a
   showsPrec d p = showParen (d > app_prec) (showString (show p))
     where
       app_prec = 10
