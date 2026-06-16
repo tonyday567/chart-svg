@@ -94,7 +94,8 @@ data Colour = Colour Double Double Double Double
 instance Show Colour where
   show (Colour r g b a) = "Colour " ++ show r ++ " " ++ show g ++ " " ++ show b ++ " " ++ show a
   showsPrec d p = showParen (d > app_prec) (showString (show p))
-    where app_prec = 10
+    where
+      app_prec = 10
 
 -- | CSS-style representation
 showRGBA :: Colour -> ByteString

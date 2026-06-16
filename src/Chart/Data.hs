@@ -1,5 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -- | Data primitives and utilities
 --
@@ -34,7 +34,7 @@ where
 
 import NumHask.Prelude
 import NumHask.Space
-import qualified Prelude as P
+import Prelude qualified as P
 
 -- $setup
 --

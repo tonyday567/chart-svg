@@ -1,7 +1,7 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -- | Base 'Chart' and 'ChartTree' types and support
 module Chart.Primitive
@@ -108,6 +108,7 @@ import Optics.Core
 -- > writeChartOptions "other/unit.hs" $ mempty & #hudOptions .~ defaultHudOptions & #chartTree .~ unnamed [r]
 --
 -- ![unit example](other/unit.svg)
+
 data Chart
   = Chart
   { chartStyle :: Style,
