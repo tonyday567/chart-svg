@@ -303,7 +303,7 @@ data QuadPolar a = QuadPolar
     -- | control point in terms of distance from and angle to the qp0 - qp2 line
     qpolControl :: Polar a
   }
-  deriving (Eq, Show, Read, Generic, Data)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
@@ -391,7 +391,7 @@ data CubicPolar a = CubicPolar
     -- | control point in terms of distance from and angle to the start end line
     cpolControl2 :: Polar a
   }
-  deriving (Eq, Show, Read, Generic, Data)
+  deriving (Eq, Show, Generic, Data)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
