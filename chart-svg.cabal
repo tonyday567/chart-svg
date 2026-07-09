@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: chart-svg
-version: 0.8.3.2
+version: 0.8.4.0
 license: BSD-3-Clause
 license-file: LICENSE
 copyright: Tony Day (c) 2017
@@ -79,22 +79,21 @@ library
   import: ghc2024-stanza
   hs-source-dirs: src
   build-depends:
-    Color >=0.3.2 && <0.5,
     base >=4.14 && <5,
     bytestring >=0.11.3 && <0.13,
+    circuits-parser >=0.1 && <0.2,
+    Color >=0.3.2 && <0.5,
     containers >=0.6 && <0.9,
     cubicbezier >=0.6 && <0.7,
     formatn >=0.3 && <0.4,
     harpie >=0.1 && <0.3,
-    lens >=5 && <5.4,
-    circuits-parser >=0.1 && <0.2,
     mtl >=2.2.2 && <2.4,
     numhask >=0.11 && <0.14,
     numhask-space >=0.10 && <0.14,
     optics-core >=0.4 && <0.5,
     random >=1.2 && <1.4,
     text >=1.2 && <2.2,
-    time >=1.9 && <1.15,
+    time >=1.9 && <1.17,
 
   exposed-modules:
     Chart
@@ -111,4 +110,3 @@ library
     Data.Colour
     Data.Path
     Data.Path.Parser
-

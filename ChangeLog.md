@@ -1,3 +1,11 @@
+0.8.4
+===
+
+- aligned with circuits 0.2 API and bounds
+- added Read instances throughout the type hierarchy
+- removed RebindableSyntax dependency
+- refreshed examples and documentation
+
 0.8.3
 ===
 
