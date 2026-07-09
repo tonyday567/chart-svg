@@ -9,7 +9,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/tonyday567/numhask-space.git
-  branch: fix/show-prec
+  branch: main
 
 source-repository-package
   type: git
@@ -19,12 +19,12 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/tonyday567/circuits-parser.git
-  branch: feat/ci-cleanup
+  branch: main
 
 source-repository-package
   type: git
   location: https://github.com/tonyday567/circuits.git
-  branch: feat/circuits-0.2-cleanup
+  branch: main
 
 constraints:
   circuits >= 0.2
