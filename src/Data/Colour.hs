@@ -89,19 +89,13 @@ import System.Random.Stateful
 
 -- | Colour type for the library: red, green, blue, opacity in [0,1].
 data Colour = Colour Double Double Double Double
-  deriving (Eq, Generic, Data)
+  deriving (Eq, Read, Generic, Data)
 
 instance Show Colour where
-  show (Colour r g b a) =
-    Text.unpack $
-      "Colour "
-        <> fixed (Just 2) r
-        <> " "
-        <> fixed (Just 2) g
-        <> " "
-        <> fixed (Just 2) b
-        <> " "
-        <> fixed (Just 2) a
+  show (Colour r g b a) = "Colour " <> show r <> " " <> show g <> " " <> show b <> " " <> show a
+  showsPrec d p = showParen (d > app_prec) (showString (show p))
+    where
+      app_prec = 10
 
 -- | CSS-style representation
 showRGBA :: Colour -> ByteString
@@ -132,7 +126,7 @@ validColour (Colour r g b o) = r >= 0 && r <= 1 && g >= 0 && g <= 1 && b >= 0 &&
 -- | Trim colour back to gamut.
 --
 -- >>> trimColour (Colour 1 1 1.01 1)
--- Colour 1.00 1.00 1.00 1.00
+-- Colour 1.0 1.0 1.0 1.0
 trimColour :: Colour -> Colour
 trimColour (Colour r g b a) = Colour (trim r) (trim g) (trim b) (trim a)
   where
@@ -164,7 +158,7 @@ rgb (Colour r g b _) (Colour _ _ _ o) = Colour r g b o
 -- | Select a Colour from the palette
 --
 -- >>> palette 0
--- Colour 0.02 0.73 0.80 1.00
+-- Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 1.0
 --
 -- ![wheel](other/wheel.svg)
 palette :: Int -> Colour
@@ -184,21 +178,21 @@ palette1_ = trimColour . view lcha2colour' <$> palette1LCHA_
 -- | Select a Colour from the palette with a specified opacity
 --
 -- >>> paletteO 0 0.5
--- Colour 0.02 0.73 0.80 0.50
+-- Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 0.5
 paletteO :: Int -> Double -> Colour
 paletteO x a = set opac' a $ cycle palette1_ List.!! x
 
 -- | black
 --
 -- >>> black
--- Colour 0.00 0.00 0.00 1.00
+-- Colour 0.0 0.0 0.0 1.0
 black :: Colour
 black = Colour 0 0 0 1
 
 -- | white
 --
 -- >>> white
--- Colour 0.99 0.99 0.99 1.00
+-- Colour 0.99 0.99 0.99 1.0
 white :: Colour
 white = Colour 0.99 0.99 0.99 1
 
@@ -209,7 +203,7 @@ white = Colour 0.99 0.99 0.99 1
 -- > colourHudOptions light defaultHudOptions
 --
 -- >>> light
--- Colour 0.94 0.94 0.94 1.00
+-- Colour 0.94 0.94 0.94 1.0
 light :: Colour
 light = Colour 0.94 0.94 0.94 1
 
@@ -218,21 +212,21 @@ light = Colour 0.94 0.94 0.94 1
 -- dark is hardcoded in most of the default options.
 --
 -- >>> dark
--- Colour 0.05 0.05 0.05 1.00
+-- Colour 5.0e-2 5.0e-2 5.0e-2 1.0
 dark :: Colour
 dark = Colour 0.05 0.05 0.05 1
 
 -- | Grey(scale) colour inputting lightness and opacity.
 --
 -- >>> grey 0.5 0.4
--- Colour 0.50 0.50 0.50 0.40
+-- Colour 0.5 0.5 0.5 0.4
 grey :: Double -> Double -> Colour
 grey g a = Colour g g g a
 
 -- | Zero-opacity black
 --
 -- >>> transparent
--- Colour 0.00 0.00 0.00 0.00
+-- Colour 0.0 0.0 0.0 0.0
 transparent :: Colour
 transparent = Colour 0 0 0 0
 
@@ -254,7 +248,7 @@ class ArrayAs f s a where
 -- C: Chromacity, which ranges from 0 to around 0.32 or so.
 --
 -- H: Hue, which ranges from 0 to 360
-data LCH a = LCH a a a deriving (Eq, Show, Functor)
+data LCH a = LCH a a a deriving (Eq, Show, Read, Functor)
 
 instance ArrayAs LCH '[3] a where
   arrayAs a = LCH (a ! [0]) (a ! [1]) (a ! [2])
@@ -272,7 +266,7 @@ hLCH' :: Lens' (LCH Double) Double
 hLCH' = lens (\(LCH _ _ h) -> h) (\(LCH l c _) h -> LCH l c h)
 
 -- | LCHA representation, including an alpha channel.
-data LCHA = LCHA' {_lch :: LCH Double, _alpha :: Double} deriving (Eq, Show)
+data LCHA = LCHA' {_lch :: LCH Double, _alpha :: Double} deriving (Eq, Show, Read)
 
 -- | LCH lens for LCHA
 lch' :: Lens' LCHA (LCH Double)
@@ -294,7 +288,7 @@ pattern LCHA l c h a <-
 -- * RGB colour representation
 
 -- | A type to represent the RGB triple, useful as an intermediary between 'Colour' and 'LCHA'
-data RGB3 a = RGB3 a a a deriving (Eq, Show, Functor)
+data RGB3 a = RGB3 a a a deriving (Eq, Show, Read, Functor)
 
 instance ArrayAs RGB3 '[3] a where
   arrayAs a = RGB3 (a ! [0]) (a ! [1]) (a ! [2])
@@ -310,7 +304,7 @@ rgb32colour' = iso (\(RGB3 r g b, a) -> Colour r g b a) (\(Colour r g b a) -> (R
 -- * LAB colour representation
 
 -- | LAB colour representation. a is green-red and b is blue-yellow
-data LAB a = LAB a a a deriving (Eq, Show, Functor)
+data LAB a = LAB a a a deriving (Eq, Show, Read, Functor)
 
 instance ArrayAs LAB '[3] a where
   arrayAs a = LAB (a ! [0]) (a ! [1]) (a ! [2])
@@ -326,14 +320,14 @@ instance ArrayAs LAB '[3] a where
 -- LCHA' {_lch = LCH 0.5969891006896103 0.15793931531669247 49.191113810479784, _alpha = 1.0}
 --
 -- >>> view (re lcha2colour' % lcha2colour') c0
--- Colour 0.78 0.36 0.02 1.00
+-- Colour 0.7799971480660184 0.36002701529867864 2.0019279558778965e-2 1.0
 --
 -- >>> c1 = Colour 0.49 0.14 0.16 1
 -- >>> view (re lcha2colour') c1
 -- LCHA' {_lch = LCH 0.40115567099848914 0.12279066817938503 21.51476756026837, _alpha = 1.0}
 --
 -- >>> view (re lcha2colour' % lcha2colour') c1
--- Colour 0.49 0.14 0.16 1.00
+-- Colour 0.4899986884783269 0.14002320537292892 0.16000148010470103 1.0
 lcha2colour' :: Iso' LCHA Colour
 lcha2colour' =
   iso
@@ -472,7 +466,7 @@ lab2xyz_ lab =
 -- This may not always be what you expect. One example is mixing black and another colour:
 --
 -- >>> mix 0.8 (Colour 0 0 0 1) (Colour 0.2 0.6 0.8 0.5)
--- Colour -0.09 0.48 0.45 0.60
+-- Colour -9.09931254727234e-2 0.4761749098994677 0.448853534456995 0.6
 --
 -- The mix has gone out of gamut because we are swishing through hue mixes.
 --
@@ -480,14 +474,14 @@ lab2xyz_ lab =
 --
 -- >>> betterblack = set (lch' % hLCH') (view hue' (Colour 0.2 0.6 0.8 0.5)) (review lcha2colour' black)
 -- >>> view lcha2colour' $ mixLCHA 0.8 betterblack (review lcha2colour' $ Colour 0.2 0.6 0.8 0.5)
--- Colour 0.14 0.44 0.59 0.60
+-- Colour 0.13796457900126569 0.4405742858448237 0.5918899179589158 0.6
 mix :: Double -> Colour -> Colour -> Colour
 mix x c0 c1 = view lcha2colour' (mixLCHA x (review lcha2colour' c0) (review lcha2colour' c1))
 
 -- | Mix 2 colours, using the oklch model, trimming the reult back to in-gamut.
 --
 -- >>> mixTrim 0.8 (Colour 0 0 0 1) (Colour 0.2 0.6 0.8 0.5)
--- Colour 0.00 0.48 0.45 0.60
+-- Colour 0.0 0.4761749098994677 0.448853534456995 0.6
 mixTrim :: Double -> Colour -> Colour -> Colour
 mixTrim x c0 c1 = trimColour (mix x c0 c1)
 
@@ -503,13 +497,13 @@ mixLCHA x (LCHA l c h a) (LCHA l' c' h' a') = LCHA l'' c'' h'' a''
 -- | Interpolate across a list of Colours, with input being in Range 0 1
 --
 -- >>> mixes 0 [black, (Colour 0.2 0.6 0.8 0.5), white]
--- Colour 0.00 0.00 0.00 1.00
+-- Colour 0.0 0.0 0.0 1.0
 --
 -- >>> mixes 1 [black, (Colour 0.2 0.6 0.8 0.5), white]
--- Colour 0.99 0.99 0.99 1.00
+-- Colour 0.990006487680139 0.9900235338998363 0.9900069013222627 1.0
 --
 -- >>> mixes 0.6 [black, (Colour 0.2 0.6 0.8 0.5), white]
--- Colour 0.42 0.67 0.86 0.60
+-- Colour 0.42326087775523685 0.6697483588860055 0.8551643643270169 0.6
 mixes :: Double -> [Colour] -> Colour
 mixes _ [] = light
 mixes _ [c] = c
@@ -525,28 +519,28 @@ mixes x cs = mix r (cs List.!! i') (cs List.!! (i' + 1))
 -- | Convert a colour to grayscale with the same lightness.
 --
 -- >>> greyed (Colour 0.4 0.7 0.8 0.4)
--- Colour 0.65 0.65 0.65 0.40
+-- Colour 0.6512795852495924 0.6512170310301152 0.6509875897399052 0.4
 greyed :: Colour -> Colour
 greyed = over chroma' (const 0)
 
 -- | Lightness lens
 --
 -- >>> over lightness' (*0.8) (Colour 0.4 0.7 0.8 0.4)
--- Colour 0.22 0.52 0.62 0.40
+-- Colour 0.2164521158395537 0.52366760947314 0.6192919592501553 0.4
 lightness' :: Lens' Colour Double
 lightness' = re lcha2colour' % lch' % lLCH'
 
 -- | Chromacity lens
 --
 -- >>> over chroma' (*0.8) (Colour 0.4 0.7 0.8 0.4)
--- Colour 0.46 0.69 0.77 0.40
+-- Colour 0.4617871186277957 0.6915093453577127 0.7707963054467656 0.4
 chroma' :: Lens' Colour Double
 chroma' = re lcha2colour' % lch' % cLCH'
 
 -- | Hue lens
 --
 -- >>> over hue' (+180) (Colour 0.4 0.7 0.8 0.4)
--- Colour 0.83 0.58 0.49 0.40
+-- Colour 0.8320015577891179 0.5836799066928026 0.48874314193645124 0.4
 hue' :: Lens' Colour Double
 hue' = re lcha2colour' % lch' % hLCH'
 

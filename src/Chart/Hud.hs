@@ -1,7 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -- | A hud stands for <https://en.wikipedia.org/wiki/Head-up_display head-up display>, and is a collective noun used to name chart elements that assist in data interpretation or otherwise annotate and decorate data.
 --
@@ -137,7 +137,7 @@ import Optics.Core
 -- ![priorityv2 example](other/priorityv2.svg)
 data Priority a
   = Priority {priority :: Double, item :: a}
-  deriving (Eq, Ord, Show, Generic, Data, Functor)
+  deriving (Eq, Ord, Show, Read, Generic, Data, Functor)
 
 -- | Heads-up display additions to charts
 newtype Hud = Hud {phud :: Priority (HudChart -> ChartTree)} deriving (Generic)
@@ -151,7 +151,7 @@ data HudChart = HudChart
   { chartSection :: ChartTree,
     hudSection :: ChartTree
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | A type for Rect to represent the bounding box of a chart.
 type ChartBox = Rect Double
@@ -169,7 +169,7 @@ data HudChartSection
     HudSection
   | -- | The hud and canvas sections, including style
     HudStyleSection
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The 'Rect' of a particular 'HudChartSection' of a 'HudChart'
 hudChartBox' :: HudChartSection -> Getter HudChart (Maybe (Rect Double))
@@ -268,7 +268,7 @@ data HudOptions = HudOptions
     legends :: [Priority LegendOptions],
     titles :: [Priority TitleOptions]
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 instance Semigroup HudOptions where
   (<>) (HudOptions a c l t) (HudOptions a' c' l' t') =
@@ -336,7 +336,7 @@ data AxisOptions = AxisOptions
     ticks :: Ticks,
     place :: Place
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official X-axis
 defaultXAxisOptions :: AxisOptions
@@ -349,7 +349,7 @@ defaultYAxisOptions = AxisOptions (Just defaultAxisBar) (Just defaultAdjustments
 -- | The bar on an axis representing the x or y plane.
 --
 -- >>> defaultAxisBar
--- AxisBar {style = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, size = 4.0e-3, buffer = 1.0e-2, overhang = 2.0e-3, anchorTo = CanvasSection}
+-- AxisBar {style = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 5.0e-2 5.0e-2 5.0e-2 0.4, borderColor = Colour 0.0 0.0 0.0 0.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, size = 4.0e-3, buffer = 1.0e-2, overhang = 2.0e-3, anchorTo = CanvasSection}
 data AxisBar = AxisBar
   { style :: Style,
     size :: Double,
@@ -359,7 +359,7 @@ data AxisBar = AxisBar
     -- | Which hud-chart section to anchor to
     anchorTo :: HudChartSection
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official axis bar
 defaultAxisBar :: AxisBar
@@ -368,7 +368,7 @@ defaultAxisBar = AxisBar (defaultRectStyle & set #borderSize 0 & set #borderColo
 -- | Options for titles.  Defaults to center aligned, and placed at Top of the hud
 --
 -- >>> defaultTitleOptions "title"
--- TitleOptions {text = "title", style = Style {size = 0.12, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, place = PlaceTop, anchoring = 0.0, buffer = 4.0e-2}
+-- TitleOptions {text = "title", style = Style {size = 0.12, borderSize = 1.0e-2, color = Colour 5.0e-2 5.0e-2 5.0e-2 1.0, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, place = PlaceTop, anchoring = 0.0, buffer = 4.0e-2}
 data TitleOptions = TitleOptions
   { text :: Text,
     style :: Style,
@@ -376,7 +376,7 @@ data TitleOptions = TitleOptions
     anchoring :: Double,
     buffer :: Double
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official hud title
 defaultTitleOptions :: Text -> TitleOptions
@@ -393,14 +393,14 @@ defaultTitleOptions txt =
 -- | axis tick markings
 --
 -- >>> defaultXTicks
--- Ticks {tick = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 5 TickExtend, glyphTick = Just (TickStyle {style = Style {size = 3.0e-2, borderSize = 4.0e-3, color = Colour 0.05 0.05 0.05 0.40, borderColor = Colour 0.05 0.05 0.05 0.40, scaleP = ScalePY, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = VLineGlyph}, anchorTo = CanvasSection, buffer = 1.0e-2}), textTick = Just (TickStyle {style = Style {size = 4.0e-2, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, anchorTo = HudStyleSection, buffer = 1.0e-2}), lineTick = Just (TickStyle {style = Style {size = 5.0e-3, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 0.05, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, anchorTo = CanvasSection, buffer = 0.0})}
+-- Ticks {tick = TickRound (FormatN {fstyle = FSCommaPrec, sigFigs = Just 1, maxDistinguishIterations = 4, addLPad = True, cutRightZeros = True}) 5 TickExtend, glyphTick = Just (TickStyle {style = Style {size = 3.0e-2, borderSize = 4.0e-3, color = Colour 5.0e-2 5.0e-2 5.0e-2 0.4, borderColor = Colour 5.0e-2 5.0e-2 5.0e-2 0.4, scaleP = ScalePY, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = VLineGlyph}, anchorTo = CanvasSection, buffer = 1.0e-2}), textTick = Just (TickStyle {style = Style {size = 4.0e-2, borderSize = 1.0e-2, color = Colour 5.0e-2 5.0e-2 5.0e-2 1.0, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, anchorTo = HudStyleSection, buffer = 1.0e-2}), lineTick = Just (TickStyle {style = Style {size = 5.0e-3, borderSize = 1.0e-2, color = Colour 5.0e-2 5.0e-2 5.0e-2 5.0e-2, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, anchorTo = CanvasSection, buffer = 0.0})}
 data Ticks = Ticks
   { tick :: Tick,
     glyphTick :: Maybe TickStyle,
     textTick :: Maybe TickStyle,
     lineTick :: Maybe TickStyle
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Common elements across all tick types.
 data TickStyle = TickStyle
@@ -408,7 +408,7 @@ data TickStyle = TickStyle
     anchorTo :: HudChartSection,
     buffer :: Double
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official glyph tick
 defaultGlyphTickStyleX :: TickStyle
@@ -487,7 +487,7 @@ data Tick
     TickExact FormatN Int
   | -- | specific labels and placement
     TickPlaced [(Double, Text)]
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Lens between a FormatN and a Tick.
 formatN' :: Lens' Tick (Maybe FormatN)
@@ -548,7 +548,7 @@ defaultTick :: Tick
 defaultTick = TickRound (FormatN FSCommaPrec (Just 1) 4 True True) 5 TickExtend
 
 -- | Whether Ticks are allowed to extend the data range
-data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Generic, Data)
+data TickExtend = TickExtend | NoTickExtend deriving (Eq, Show, Read, Generic, Data)
 
 -- | options for prettifying axis decorations
 --
@@ -560,7 +560,7 @@ data Adjustments = Adjustments
     angledRatio :: Double,
     allowDiagonal :: Bool
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official hud adjustments.
 defaultAdjustments :: Adjustments
@@ -569,7 +569,7 @@ defaultAdjustments = Adjustments 0.08 0.06 0.12 True
 -- | Legend options
 --
 -- >>> defaultLegendOptions
--- LegendOptions {legendSize = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = Style {size = 0.16, borderSize = 1.0e-2, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.02 0.29 0.48 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 0.05 0.05 0.05 0.00, borderColor = Colour 0.05 0.05 0.05 1.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}), place = PlaceRight, anchoring = 0.0, anchorTo = CanvasStyleSection, numStacks = 1, alignCharts = AlignRight, scaleChartsBy = 0.25, scaleP = ScalePX, legendCharts = []}
+-- LegendOptions {legendSize = 0.3, buffer = 0.1, vgap = 0.2, hgap = 0.1, textStyle = Style {size = 0.16, borderSize = 1.0e-2, color = Colour 5.0e-2 5.0e-2 5.0e-2 1.0, borderColor = Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}, innerPad = 0.1, outerPad = 2.0e-2, frame = Just (Style {size = 6.0e-2, borderSize = 5.0e-3, color = Colour 5.0e-2 5.0e-2 5.0e-2 0.0, borderColor = Colour 5.0e-2 5.0e-2 5.0e-2 1.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}), place = PlaceRight, anchoring = 0.0, anchorTo = CanvasStyleSection, numStacks = 1, alignCharts = AlignRight, scaleChartsBy = 0.25, scaleP = ScalePX, legendCharts = []}
 data LegendOptions = LegendOptions
   { legendSize :: Double,
     buffer :: Double,
@@ -588,7 +588,7 @@ data LegendOptions = LegendOptions
     scaleP :: ScaleP,
     legendCharts :: [(Text, [Chart])]
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official legend options
 defaultLegendOptions :: LegendOptions
@@ -614,13 +614,13 @@ defaultLegendOptions =
 -- | Options for hud frames
 --
 -- >>> defaultFrameOptions
--- FrameOptions {frame = Just (Style {size = 6.0e-2, borderSize = 0.0, color = Colour 1.00 1.00 1.00 0.02, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}), anchorTo = HudStyleSection, buffer = 0.0}
+-- FrameOptions {frame = Just (Style {size = 6.0e-2, borderSize = 0.0, color = Colour 1.0 1.0 1.0 2.0e-2, borderColor = Colour 0.0 0.0 0.0 0.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}), anchorTo = HudStyleSection, buffer = 0.0}
 data FrameOptions = FrameOptions
   { frame :: Maybe Style,
     anchorTo :: HudChartSection,
     buffer :: Double
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official hud frame
 defaultFrameOptions :: FrameOptions

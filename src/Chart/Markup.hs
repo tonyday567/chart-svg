@@ -36,6 +36,7 @@ import Chart.Data
 import Chart.Hud
 import Chart.Primitive hiding (tree)
 import Chart.Style
+import Circuit.Markup
 import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
 import Data.Colour
@@ -48,7 +49,6 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.Generics
-import Circuit.Markup
 import NumHask.Space
 import Optics.Core hiding (element)
 import Prelude
@@ -64,8 +64,11 @@ localStrToUtf8 = encodeUtf8 . T.pack
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
--- >>> import Chart.Examples
 -- >>> import Circuit.Markup
+-- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
+-- >>> let styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
+-- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
+-- >>> let lineExample = mempty & #chartTree .~ named "line" cs & #hudOptions .~ defaultHudOptions :: ChartOptions
 
 -- | Show a Double, or rounded to 4 decimal places if this is shorter.
 --
@@ -363,7 +366,7 @@ data MarkupOptions = MarkupOptions
     cssOptions :: CssOptions,
     renderStyle :: RenderStyle
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official markup options
 defaultMarkupOptions :: MarkupOptions
@@ -378,7 +381,7 @@ data ShapeRendering
   = UseGeometricPrecision
   | UseCssCrisp
   | NoShapeRendering
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | CSS prefer-color-scheme options
 data PreferColorScheme
@@ -387,7 +390,7 @@ data PreferColorScheme
   | PreferDark
   | PreferLight
   | PreferNormal
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | css options
 --
@@ -395,7 +398,7 @@ data PreferColorScheme
 -- CssOptions {shapeRendering = NoShapeRendering, preferColorScheme = PreferHud, fontFamilies = "\nsvg { font-family: system-ui,-apple-system,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";\n}\n\nticktext { font-family: SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;}", cssExtra = ""}
 data CssOptions
   = CssOptions {shapeRendering :: ShapeRendering, preferColorScheme :: PreferColorScheme, fontFamilies :: ByteString, cssExtra :: ByteString}
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | No special shape rendering and default hud responds to user color scheme preferences.
 defaultCssOptions :: CssOptions
@@ -422,7 +425,7 @@ data ChartOptions = ChartOptions
     hudOptions :: HudOptions,
     chartTree :: ChartTree
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Processes the hud options and turns them into charts, rescales the existing charts, resets the hud options to mempty, and turns on 'ScalePArea' in chart styles.
 --

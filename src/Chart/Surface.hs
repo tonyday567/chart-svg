@@ -53,7 +53,7 @@ data SurfaceOptions = SurfaceOptions
     -- | Chart range
     soRange :: Rect Double
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | official style
 defaultSurfaceOptions :: SurfaceOptions
@@ -63,7 +63,7 @@ defaultSurfaceOptions =
 -- | A surface chart is a specialization of a 'RectChart'
 --
 -- >>> defaultSurfaceStyle
--- SurfaceStyle {surfaceColors = [Colour 0.02 0.73 0.80 1.00,Colour 0.02 0.29 0.48 1.00], surfaceRectStyle = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 0.05 0.05 0.05 1.00, borderColor = Colour 0.00 0.00 0.00 0.00, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}}
+-- SurfaceStyle {surfaceColors = [Colour 1.745945680532727e-2 0.7278003002346461 0.7974711192713982 1.0,Colour 1.9180119772191934e-2 0.294085059498629 0.477180670721628 1.0], surfaceRectStyle = Style {size = 6.0e-2, borderSize = 0.0, color = Colour 5.0e-2 5.0e-2 5.0e-2 1.0, borderColor = Colour 0.0 0.0 0.0 0.0, scaleP = NoScaleP, textAnchor = AnchorMiddle, rotation = Nothing, translate = Nothing, escapeText = EscapeText, frame = Nothing, lineCap = Nothing, lineJoin = Nothing, dasharray = Nothing, dashoffset = Nothing, hsize = 0.6, vsize = 1.1, vshift = -0.25, glyphShape = SquareGlyph}}
 --
 -- ![surface example](other/surface.svg)
 data SurfaceStyle = SurfaceStyle
@@ -71,7 +71,7 @@ data SurfaceStyle = SurfaceStyle
     surfaceColors :: [Colour],
     surfaceRectStyle :: Style
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | The official surface style.
 defaultSurfaceStyle :: SurfaceStyle
@@ -85,7 +85,7 @@ data SurfaceData = SurfaceData
     -- | Surface colour.
     surfaceColor :: Colour
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | surface chart without any hud trimmings
 surfaces :: Style -> [SurfaceData] -> [Chart]
@@ -134,7 +134,7 @@ data SurfaceLegendOptions = SurfaceLegendOptions
     sloRect :: Rect Double,
     sloSurfaceStyle :: SurfaceStyle
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | 'AxisOptions' for a surface chart legend.
 surfaceLegendAxisOptions :: AxisOptions

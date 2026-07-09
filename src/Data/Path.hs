@@ -1,5 +1,5 @@
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -- | SVG path manipulation
 module Data.Path
@@ -79,7 +79,7 @@ data PathData a
     QuadP (Point a) (Point a)
   | -- arc
     ArcP (ArcInfo a) (Point a)
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | View the Point part of a PathData
 pointPath :: PathData a -> Point a
@@ -152,7 +152,7 @@ data ArcInfo a = ArcInfo
     -- | sweep means clockwise
     clockwise :: Bool
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Specification of an Arc using positional referencing as per SVG standard.
 data ArcPosition a = ArcPosition
@@ -160,7 +160,7 @@ data ArcPosition a = ArcPosition
     posEnd :: Point a,
     posInfo :: ArcInfo a
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Arc specification based on centroidal interpretation.
 --
@@ -177,16 +177,15 @@ data ArcCentroid a = ArcCentroid
     -- | difference between ending point angle and starting point angle
     angdiff :: a
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | convert from an ArcPosition spec to ArcCentroid spec.
 --
 -- See also [this](https://math.stackexchange.com/questions/55627/how-to-find-the-center-of-an-scaled-ellipse)
 --
--- >>> let p = ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True)
--- >>> arcCentroid p
+-- >>> arcCentroid (ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True))
 -- ArcCentroid {centroid = Point 0.20952624903444356 (-0.48412291827592724), radius = Point 1.0 0.5, cphi = 0.7853981633974483, ang0 = 1.3753858999692936, angdiff = -1.823476581936975}
-arcCentroid :: (Ord a, FromInteger a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
+arcCentroid :: (Num a, Ord a, FromInteger a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' large' clockwise')) = ArcCentroid c (Point rx ry) phi' ang1 angd
   where
     (Point x1' y1') = rotateP (-phi') ((p1 - p2) |/ two)
@@ -293,7 +292,7 @@ data QuadPosition a = QuadPosition
     -- | control point
     qposControl :: Point a
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Quadratic bezier curve with control point expressed in polar terms normalised to the start - end line.
 data QuadPolar a = QuadPolar
@@ -304,7 +303,7 @@ data QuadPolar a = QuadPolar
     -- | control point in terms of distance from and angle to the qp0 - qp2 line
     qpolControl :: Polar a
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
@@ -332,7 +331,7 @@ quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
 --
 -- >>> quadBezier (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))) 0.33333333
 -- Point 0.9999999933333332 (-0.33333333333333326)
-quadBezier :: (FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
+quadBezier :: (Num a, FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start' end control) theta =
   (1 - theta)
     ^ 2
@@ -379,7 +378,7 @@ data CubicPosition a = CubicPosition
     -- | control point 2
     cposControl2 :: Point a
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | A polar representation of a cubic bezier with control points expressed as polar and normalised to the start - end line.
 data CubicPolar a = CubicPolar
@@ -392,7 +391,7 @@ data CubicPolar a = CubicPolar
     -- | control point in terms of distance from and angle to the start end line
     cpolControl2 :: Polar a
   }
-  deriving (Eq, Show, Generic, Data)
+  deriving (Eq, Show, Read, Generic, Data)
 
 -- | Convert from a positional to a polar representation of a cubic bezier.
 --
@@ -425,7 +424,7 @@ cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' e
 --
 -- >>> cubicBezier (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2)) 0.8535533905932737
 -- Point 0.6767766952966369 1.2071067811865475
-cubicBezier :: (FromInteger a, TrigField a) => CubicPosition a -> a -> Point a
+cubicBezier :: (Num a, FromInteger a, TrigField a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start' end control1 control2) theta =
   (1 - theta)
     ^ 3
