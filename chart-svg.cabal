@@ -110,3 +110,13 @@ library
     Data.Colour
     Data.Path
     Data.Path.Parser
+
+test-suite roundtrip
+  import: ghc-options-stanza
+  import: ghc2024-stanza
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: roundtrip.hs
+  build-depends:
+    base >=4.14 && <5,
+    chart-svg,
