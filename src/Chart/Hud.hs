@@ -96,7 +96,7 @@ import Data.Text qualified as Text
 import Data.Tuple
 import GHC.Generics hiding (to)
 import NumHask.Prelude hiding (to)
-import NumHask.Space
+import NumHask.Space hiding (Chart)
 import Optics.Core
 
 -- $setup

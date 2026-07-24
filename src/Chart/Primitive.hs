@@ -88,7 +88,7 @@ import Data.Text (Text)
 import Data.Tree
 import GHC.Generics
 import NumHask.Prelude
-import NumHask.Space
+import NumHask.Space hiding (Chart)
 import Optics.Core
 
 -- $setup

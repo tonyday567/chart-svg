@@ -49,7 +49,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.Generics
-import NumHask.Space
+import NumHask.Space hiding (Chart)
 import Optics.Core hiding (element)
 import Prelude
 

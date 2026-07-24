@@ -33,7 +33,7 @@ module Chart.Data
 where
 
 import NumHask.Prelude
-import NumHask.Space
+import NumHask.Space hiding (Chart)
 import Prelude qualified as P
 
 -- $setup

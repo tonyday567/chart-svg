@@ -62,7 +62,7 @@ import Data.String
 import Data.Text (Text)
 import Data.Text qualified as Text
 import GHC.Generics
-import NumHask.Space
+import NumHask.Space hiding (Chart)
 import Optics.Core
 import Prelude
 

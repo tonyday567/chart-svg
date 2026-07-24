@@ -33,7 +33,7 @@ import Data.Foldable
 import Data.FormatN
 import Data.Maybe
 import GHC.Generics
-import NumHask.Space
+import NumHask.Space hiding (Chart)
 import Optics.Core
 import Prelude
 

@@ -60,7 +60,7 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Time
-import NumHask.Space
+import NumHask.Space hiding (Chart)
 import Optics.Core
 import Prelude hiding (abs)
 

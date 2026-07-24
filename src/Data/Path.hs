@@ -49,7 +49,7 @@ import Data.Data
 import GHC.Generics
 import Geom2D.CubicBezier qualified as B
 import NumHask.Prelude
-import NumHask.Space hiding (rw, rx, ry, rz)
+import NumHask.Space hiding (Chart, rw, rx, ry, rz)
 
 -- $setup
 --
