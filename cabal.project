@@ -1,14 +1,18 @@
 packages:
   chart-svg.cabal
-  ../numhask/numhask.cabal
-  ../numhask-space/numhask-space.cabal
-  ../formatn/formatn.cabal
+  ../markup-parse/markup-parse.cabal
   ../circuits-parser/circuits-parser.cabal
   ../circuits/circuits.cabal
+  ../numhask/numhask.cabal
+  ../numhask-space/numhask-space.cabal
+  ../numhask-diff/numhask-diff.cabal
+  ../formatn/formatn.cabal
   ../harpie/harpie.cabal
+  ../harpie-numhask/harpie-numhask.cabal
+  ../mealy/mealy.cabal
 
 constraints:
-  circuits >= 0.2
+  circuits >= 0.3
 
 write-ghc-environment-files: always
 

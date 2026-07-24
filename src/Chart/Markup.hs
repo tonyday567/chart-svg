@@ -36,7 +36,9 @@ import Chart.Data
 import Chart.Hud
 import Chart.Primitive hiding (tree)
 import Chart.Style
-import Circuit.Markup
+import Data.Markup
+import Data.Markup.Parser
+import Data.Markup.Render
 import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
 import Data.Colour
@@ -48,6 +50,7 @@ import Data.Path.Parser
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import Data.Tree (Tree (..))
 import GHC.Generics
 import NumHask.Space hiding (Chart)
 import Optics.Core hiding (element)
@@ -64,7 +67,7 @@ localStrToUtf8 = encodeUtf8 . T.pack
 -- >>> import Chart
 -- >>> import Optics.Core
 -- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
--- >>> import Circuit.Markup
+-- >>> import Data.Markup
 -- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
 -- >>> let styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
 -- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
@@ -145,7 +148,7 @@ markupRect (Rect x z y w) =
 
 -- | Convert a Chart to Markup
 --
--- >>> import Circuit.Markup
+-- >>> import Data.Markup
 -- >>> import Optics.Core
 -- >>> import Control.Category ((>>>))
 -- >>> lineExample & toListOf (#chartTree % charts') & mconcat & fmap (markupChart >>> markdown_ Compact Xml)

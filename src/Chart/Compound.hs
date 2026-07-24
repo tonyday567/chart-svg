@@ -16,7 +16,8 @@ import Chart.Hud
 import Chart.Markup
 import Chart.Primitive
 import Chart.Style
-import Circuit.Markup
+import Data.Markup
+import Data.Markup.Render
 import Data.Bool
 import Data.ByteString.Char8 qualified as C
 import Data.Foldable
