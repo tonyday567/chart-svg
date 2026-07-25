@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>gallery.html</title>
+<meta http-equiv="Content-Type" content="application/xhtml+xml;charset=utf-8"/>
+<link rel="stylesheet" type="text/css" media="all" href="/Users/tonyday567/.config/emacs/.local/straight/build-30.2/markdown-xwidget/resources/github_css/dark.css"  />
+<link rel="stylesheet" type="text/css" media="all" href="/Users/tonyday567/.config/emacs/.local/straight/build-30.2/markdown-xwidget/resources/highlight_css/github.css"  /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<style>
+  body {
+    box-sizing: border-box;
+    min-width: 200px;
+    max-width: 980px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 45px;
+  }
+</style>
+
+<script
+  type="text/javascript"
+  id="MathJax-script"
+  src="/Users/tonyday567/.config/emacs/.local/straight/build-30.2/markdown-xwidget/resources/tex-mml-chtml.js"
+></script>
+
+<script type="text/javascript" src="/Users/tonyday567/.config/emacs/.local/straight/build-30.2/markdown-xwidget/resources/highlight.min.js"></script>
+
+<script type="text/javascript" src="/Users/tonyday567/.config/emacs/.local/straight/build-30.2/markdown-xwidget/resources/mermaid.min.js"></script>
+
+<script type="text/javascript">
+  // Use highlight.js for syntax highlighting on non-mermaid code blocks.
+  hljs.configure({ noHighlightRe: /^mermaid$/i });
+  hljs.highlightAll();
+</script>
+
+<script type="text/javascript">
+  mermaid.initialize({
+    theme: "dark",
+    startOnLoad: true,
+  });
+</script>
+
+<script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", () => {
+    // Add a "markdown-body" class attribute to the body. We must do this because
+    // the GitHub CSS only applies to a div with the "markdown-body" class.
+    document.body.classList.add("markdown-body");
+
+    // If there's a stored scroll location, scroll to that location. Otherwise,
+    // the document resets to the top of the page every time it is refreshed.
+    let prevScroll = sessionStorage.getItem("scrollY");
+    if (prevScroll) window.scroll(0, prevScroll);
+  });
+
+  // Save new scroll locations on scroll.
+  // See: https://developer.mozilla.org/en-US/docs/Web/API/Document/scroll_event
+  let ticking = false;
+  document.addEventListener("scroll", (event) => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        sessionStorage.setItem("scrollY", window.scrollY);
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+</script>
+
+</head>
+
+<body>
+
+[WARNING] Deprecated: --highlight-style. Use --syntax-highlighting instead.
+<h1 id="gallery">gallery</h1>
+<p>All example charts from <a
+href="src/Chart/Examples.hs"><code>Chart.Examples</code></a>
+(<code>pathChartOptions</code> / <code>writeAllExamples</code>).</p>
+<p>SVGs use <strong>PreferHud</strong> — HUD ink follows
+<code>prefers-color-scheme</code> (responsive light/dark). Regenerate
+from the package root:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Chart.Examples</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>writeAllExamples</span></code></pre></div>
+<p>(Hardcoded dark siblings via <code>writeAllExamplesDark</code> →
+<code>*d.svg</code> are optional and not listed here.)</p>
+<h2 id="unit">unit</h2>
+<figure>
+<img src="other/unit.svg" alt="unit" />
+<figcaption aria-hidden="true">unit</figcaption>
+</figure>
+<h2 id="rect">rect</h2>
+<figure>
+<img src="other/rect.svg" alt="rect" />
+<figcaption aria-hidden="true">rect</figcaption>
+</figure>
+<h2 id="text">text</h2>
+<figure>
+<img src="other/text.svg" alt="text" />
+<figcaption aria-hidden="true">text</figcaption>
+</figure>
+<h2 id="glyphs">glyphs</h2>
+<figure>
+<img src="other/glyphs.svg" alt="glyphs" />
+<figcaption aria-hidden="true">glyphs</figcaption>
+</figure>
+<h2 id="line">line</h2>
+<figure>
+<img src="other/line.svg" alt="line" />
+<figcaption aria-hidden="true">line</figcaption>
+</figure>
+<h2 id="hudoptions">hudoptions</h2>
+<figure>
+<img src="other/hudoptions.svg" alt="hudoptions" />
+<figcaption aria-hidden="true">hudoptions</figcaption>
+</figure>
+<h2 id="bar">bar</h2>
+<figure>
+<img src="other/bar.svg" alt="bar" />
+<figcaption aria-hidden="true">bar</figcaption>
+</figure>
+<h2 id="sbar">sbar</h2>
+<figure>
+<img src="other/sbar.svg" alt="sbar" />
+<figcaption aria-hidden="true">sbar</figcaption>
+</figure>
+<h2 id="surface">surface</h2>
+<figure>
+<img src="other/surface.svg" alt="surface" />
+<figcaption aria-hidden="true">surface</figcaption>
+</figure>
+<h2 id="wave">wave</h2>
+<figure>
+<img src="other/wave.svg" alt="wave" />
+<figcaption aria-hidden="true">wave</figcaption>
+</figure>
+<h2 id="venn">venn</h2>
+<figure>
+<img src="other/venn.svg" alt="venn" />
+<figcaption aria-hidden="true">venn</figcaption>
+</figure>
+<h2 id="path">path</h2>
+<figure>
+<img src="other/path.svg" alt="path" />
+<figcaption aria-hidden="true">path</figcaption>
+</figure>
+<h2 id="arcflags">arcflags</h2>
+<figure>
+<img src="other/arcflags.svg" alt="arcflags" />
+<figcaption aria-hidden="true">arcflags</figcaption>
+</figure>
+<h2 id="ellipse">ellipse</h2>
+<figure>
+<img src="other/ellipse.svg" alt="ellipse" />
+<figcaption aria-hidden="true">ellipse</figcaption>
+</figure>
+<figure>
+<img src="other/ellipse2.svg" alt="ellipse2" />
+<figcaption aria-hidden="true">ellipse2</figcaption>
+</figure>
+<h2 id="quad">quad</h2>
+<figure>
+<img src="other/quad.svg" alt="quad" />
+<figcaption aria-hidden="true">quad</figcaption>
+</figure>
+<h2 id="cubic">cubic</h2>
+<figure>
+<img src="other/cubic.svg" alt="cubic" />
+<figcaption aria-hidden="true">cubic</figcaption>
+</figure>
+<h2 id="arrow">arrow</h2>
+<figure>
+<img src="other/arrow.svg" alt="arrow" />
+<figcaption aria-hidden="true">arrow</figcaption>
+</figure>
+<h2 id="date">date</h2>
+<figure>
+<img src="other/date.svg" alt="date" />
+<figcaption aria-hidden="true">date</figcaption>
+</figure>
+<h2 id="gradient">gradient</h2>
+<figure>
+<img src="other/gradient.svg" alt="gradient" />
+<figcaption aria-hidden="true">gradient</figcaption>
+</figure>
+<h2 id="wheel">wheel</h2>
+<figure>
+<img src="other/wheel.svg" alt="wheel" />
+<figcaption aria-hidden="true">wheel</figcaption>
+</figure>
+<h2 id="debug">debug</h2>
+<figure>
+<img src="other/debug.svg" alt="debug" />
+<figcaption aria-hidden="true">debug</figcaption>
+</figure>
+<h2 id="priorityv1">priorityv1</h2>
+<figure>
+<img src="other/priorityv1.svg" alt="priorityv1" />
+<figcaption aria-hidden="true">priorityv1</figcaption>
+</figure>
+<h2 id="priorityv2">priorityv2</h2>
+<figure>
+<img src="other/priorityv2.svg" alt="priorityv2" />
+<figcaption aria-hidden="true">priorityv2</figcaption>
+</figure>
+<h2 id="compound">compound</h2>
+<figure>
+<img src="other/compound.svg" alt="compound" />
+<figcaption aria-hidden="true">compound</figcaption>
+</figure>
+<h2 id="stack">stack</h2>
+<figure>
+<img src="other/stack.svg" alt="stack" />
+<figcaption aria-hidden="true">stack</figcaption>
+</figure>
+
+</body>
+</html>
