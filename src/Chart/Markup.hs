@@ -339,32 +339,21 @@ header markupheight viewbox content' =
 
 -- | CSS prefer-color-scheme text snippet
 --
--- PreferHud flips HUD ink under @media (prefers-color-scheme: dark). Presentation
--- attributes still bake light-theme opacities (axisbar 0.4, ticklines 0.05); dark
--- mode must override those or axes/grids stay invisible on a dark page.
+-- PreferHud flips HUD *ink colour* under @media (prefers-color-scheme: dark).
+-- Opacities stay on presentation attributes (axisbar 0.4, ticklines 0.05, etc.)
+-- by design — low-opacity hud chrome, not a bug to “fix” in CSS.
 --
 -- >>> cssPreferColorScheme (light, dark) PreferHud
--- "svg {color-scheme: light dark;} {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(5%, 5%, 5%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(5%, 5%, 5%);} .legendBorder g {fill: rgb(94%, 94%, 94%);}} @media (prefers-color-scheme:dark) {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(94%, 94%, 94%);} .title g, .ticktext g, .legendContent g text {fill-opacity: 1;} .axisbar g {fill-opacity: 0.9;} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(94%, 94%, 94%);} .ticklines g {stroke-opacity: 0.35;} .tickglyph g {stroke-opacity: 0.9; fill-opacity: 0.9;} .legendBorder g {fill: rgb(5%, 5%, 5%);}}"
+-- "svg {color-scheme: light dark;} {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(5%, 5%, 5%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(5%, 5%, 5%);} .legendBorder g {fill: rgb(94%, 94%, 94%);}} @media (prefers-color-scheme:dark) {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: rgb(94%, 94%, 94%);} .ticklines g, .tickglyph g, .legendBorder g {stroke: rgb(94%, 94%, 94%);} .legendBorder g {fill: rgb(5%, 5%, 5%);}}"
 cssPreferColorScheme :: (Colour, Colour) -> PreferColorScheme -> ByteString
 cssPreferColorScheme (cl, cd) PreferHud =
-  "svg {color-scheme: light dark;} {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: "
-    <> showRGB cd
-    <> ";} .ticklines g, .tickglyph g, .legendBorder g {stroke: "
-    <> showRGB cd
-    <> ";} .legendBorder g {fill: "
-    <> showRGB cl
-    <> ";}} @media (prefers-color-scheme:dark) {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: "
-    <> showRGB cl
-    <> ";} .title g, .ticktext g, .legendContent g text {fill-opacity: 1;} .axisbar g {fill-opacity: 0.9;} .ticklines g, .tickglyph g, .legendBorder g {stroke: "
-    <> showRGB cl
-    <> ";} .ticklines g {stroke-opacity: 0.35;} .tickglyph g {stroke-opacity: 0.9; fill-opacity: 0.9;} .legendBorder g {fill: "
-    <> showRGB cd
-    <> ";}}"
+  "svg {color-scheme: light dark;} {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: " <> showRGB cd <> ";} .ticklines g, .tickglyph g, .legendBorder g {stroke: " <> showRGB cd <> ";} .legendBorder g {fill: " <> showRGB cl <> ";}} @media (prefers-color-scheme:dark) {.canvas g, .title g, .axisbar g, .ticktext g, .tickglyph g, .ticklines g, .legendContent g text {fill: " <> showRGB cl <> ";} .ticklines g, .tickglyph g, .legendBorder g {stroke: " <> showRGB cl <> ";} .legendBorder g {fill: " <> showRGB cd <> ";}}"
 cssPreferColorScheme (cl, _) PreferLight =
   "svg {color-scheme: light dark;} @media (prefers-color-scheme:dark) {markup {background-color: " <> showRGB cl <> ";}}"
 cssPreferColorScheme (_, cd) PreferDark =
   "svg {color-scheme: light dark;} @media (prefers-color-scheme:light) {markup {background-color: " <> showRGB cd <> ";}}"
 cssPreferColorScheme _ PreferNormal = mempty
+
 
 -- | CSS snippet to switch between dark and light mode
 --
