@@ -11,8 +11,5 @@ packages:
   ../harpie-numhask/harpie-numhask.cabal
   ../process-stats/process-stats.cabal
 
-constraints:
-  circuits >= 0.3
-
 write-ghc-environment-files: always
 
