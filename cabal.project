@@ -5,7 +5,7 @@ packages:
   ../circuits/circuits.cabal
   ../numhask/numhask.cabal
   ../numhask-space/numhask-space.cabal
-  ../numhask-diff/numhask-diff.cabal
+  ../circuits-diff/circuits-diff.cabal
   ../formatn/formatn.cabal
   ../harpie/harpie.cabal
   ../process-stats/process-stats.cabal
