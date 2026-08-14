@@ -8,7 +8,6 @@ packages:
   ../numhask-diff/numhask-diff.cabal
   ../formatn/formatn.cabal
   ../harpie/harpie.cabal
-  ../harpie-numhask/harpie-numhask.cabal
   ../process-stats/process-stats.cabal
 
 write-ghc-environment-files: always
