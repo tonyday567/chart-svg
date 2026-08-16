@@ -16,12 +16,12 @@ import Chart.Hud
 import Chart.Markup
 import Chart.Primitive
 import Chart.Style
-import Data.Markup
-import Data.Markup.Render
 import Data.Bool
 import Data.ByteString.Char8 qualified as C
 import Data.Foldable
 import Data.List qualified as List
+import Data.Markup
+import Data.Markup.Render
 import Data.Maybe
 import Optics.Core
 import Prelude

@@ -36,14 +36,14 @@ import Chart.Data
 import Chart.Hud
 import Chart.Primitive hiding (tree)
 import Chart.Style
-import Data.Markup
-import Data.Markup.Parser
-import Data.Markup.Render
 import Data.Bool
 import Data.ByteString (ByteString, intercalate, writeFile)
 import Data.Colour
 import Data.Data
 import Data.FormatN
+import Data.Markup
+import Data.Markup.Parser
+import Data.Markup.Render
 import Data.Maybe
 import Data.Path
 import Data.Path.Parser
@@ -68,6 +68,8 @@ localStrToUtf8 = encodeUtf8 . T.pack
 -- >>> import Optics.Core
 -- >>> let c0 = ChartOptions (defaultMarkupOptions & #cssOptions % #preferColorScheme .~ PreferNormal) mempty mempty
 -- >>> import Data.Markup
+-- >>> import Data.Markup.Render (markdown_)
+-- >>> import Data.Markup.Parser (element_)
 -- >>> let lines = [[Point 0.0 1.0, Point 1.0 1.0, Point 2.0 5.0],[Point 0.0 0.0, Point 2.8 3.0],[Point 0.5 4.0, Point 0.5 0]]
 -- >>> let styles = (\c -> defaultLineStyle & #color .~ palette c & #size .~ 0.015) <$> [0..2]
 -- >>> let cs = zipWith (\s x -> LineChart s [x]) styles lines
@@ -353,7 +355,6 @@ cssPreferColorScheme (cl, _) PreferLight =
 cssPreferColorScheme (_, cd) PreferDark =
   "svg {color-scheme: light dark;} @media (prefers-color-scheme:light) {markup {background-color: " <> showRGB cd <> ";}}"
 cssPreferColorScheme _ PreferNormal = mempty
-
 
 -- | CSS snippet to switch between dark and light mode
 --
