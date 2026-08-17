@@ -1,3 +1,54 @@
-packages: chart-svg.cabal
+packages:
+  chart-svg.cabal
 
 write-ghc-environment-files: always
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/circuits.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/circuits-diff.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/circuits-mat.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/circuits-parser.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/circuits-stats.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/formatn.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/harpie.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/markup-parse.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/numhask.git
+  tag: main
+
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/numhask-space.git
+  tag: main
