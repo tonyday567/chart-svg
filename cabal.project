@@ -1,15 +1,3 @@
-packages:
-  chart-svg.cabal
-  ../markup-parse/markup-parse.cabal
-  ../circuits-parser/circuits-parser.cabal
-  ../circuits/circuits.cabal
-  ../numhask/numhask.cabal
-  ../numhask-space/numhask-space.cabal
-  ../circuits-diff/circuits-diff.cabal
-  ../circuits-mat/circuits-mat.cabal
-  ../formatn/formatn.cabal
-  ../harpie/harpie.cabal
-  ../circuits-stats/circuits-stats.cabal
+packages: chart-svg.cabal
 
 write-ghc-environment-files: always
-
