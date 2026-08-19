@@ -75,12 +75,12 @@ instance MonadPlus (Parser e)
 -- * Primitives
 
 satisfy :: (Char -> Bool) -> Parser e Char
-satisfy pred = Parser $ \s ->
+satisfy predicate = Parser $ \s ->
   if B.null s
     then Fail
     else
       let c = BC.head s
-       in if pred c
+       in if predicate c
             then OK c (B.tail s)
             else Fail
 

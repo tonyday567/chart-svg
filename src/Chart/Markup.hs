@@ -37,7 +37,8 @@ import Chart.Hud
 import Chart.Primitive hiding (tree)
 import Chart.Style
 import Data.Bool
-import Data.ByteString (ByteString, intercalate, writeFile)
+import Data.ByteString (ByteString, writeFile)
+import Data.ByteString.Char8 qualified as C8
 import Data.Colour
 import Data.Data
 import Data.FormatN
@@ -170,7 +171,7 @@ markupLine lss =
   mconcat $ emptyElem "polyline" . (: []) . Attr "points" . toPointsText <$> lss
 
 toPointsText :: [Point Double] -> ByteString
-toPointsText xs = intercalate " " $ (\(Point x y) -> encodeNum x <> "," <> encodeNum (-y)) <$> xs
+toPointsText xs = C8.unwords $ (\(Point x y) -> encodeNum x <> "," <> encodeNum (-y)) <$> xs
 
 -- | Path markup
 markupPath :: [PathData Double] -> Markup
@@ -189,7 +190,7 @@ markupGlyph s p =
 
 -- | Convert a dash representation from a list to text
 fromDashArray :: [Double] -> ByteString
-fromDashArray xs = intercalate " " $ encodeNum <$> xs
+fromDashArray xs = C8.unwords $ encodeNum <$> xs
 
 fromDashOffset :: Double -> ByteString
 fromDashOffset x = encodeNum x

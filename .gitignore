@@ -6,7 +6,6 @@ TAGS
 dist-newstyle
 /stack.yaml.lock
 /.hie/
-/cabal.project.local*
 /.hkgr/
 /checklist.org
 /cabal-fix.config

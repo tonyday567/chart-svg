@@ -185,7 +185,7 @@ data ArcCentroid a = ArcCentroid
 --
 -- >>> arcCentroid (ArcPosition (Point 0 0) (Point 1 0) (ArcInfo (Point 1 0.5) (pi/4) False True))
 -- ArcCentroid {centroid = Point 0.20952624903444356 (-0.48412291827592724), radius = Point 1.0 0.5, cphi = 0.7853981633974483, ang0 = 1.3753858999692936, angdiff = -1.823476581936975}
-arcCentroid :: (Num a, Ord a, FromInteger a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
+arcCentroid :: (Num a, Ord a, TrigField a, ExpField a) => ArcPosition a -> ArcCentroid a
 arcCentroid (ArcPosition p1@(Point x1 y1) p2@(Point x2 y2) (ArcInfo rad phi' large' clockwise')) = ArcCentroid c (Point rx ry) phi' ang1 angd
   where
     (Point x1' y1') = rotateP (-phi') ((p1 - p2) |/ two)
@@ -331,7 +331,7 @@ quadPosition (QuadPolar start' end control) = QuadPosition start' end control'
 --
 -- >>> quadBezier (QuadPosition (Point 0 0) (Point 1 1) (Point 2 (-1))) 0.33333333
 -- Point 0.9999999933333332 (-0.33333333333333326)
-quadBezier :: (Num a, FromInteger a, ExpField a) => QuadPosition a -> a -> Point a
+quadBezier :: (Num a, ExpField a) => QuadPosition a -> a -> Point a
 quadBezier (QuadPosition start' end control) theta =
   (1 - theta)
     ^ 2
@@ -424,7 +424,7 @@ cubicPosition (CubicPolar start' end control1 control2) = CubicPosition start' e
 --
 -- >>> cubicBezier (CubicPosition (Point 0 0) (Point 1 1) (Point 1 (-1)) (Point 0 2)) 0.8535533905932737
 -- Point 0.6767766952966369 1.2071067811865475
-cubicBezier :: (Num a, FromInteger a, TrigField a) => CubicPosition a -> a -> Point a
+cubicBezier :: (Num a, TrigField a) => CubicPosition a -> a -> Point a
 cubicBezier (CubicPosition start' end control1 control2) theta =
   (1 - theta)
     ^ 3

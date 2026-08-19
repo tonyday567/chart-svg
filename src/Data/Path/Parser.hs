@@ -21,14 +21,15 @@ import Chart.Data
 import Chart.Parse
 import Control.Applicative hiding (many, optional, some, (<|>))
 import Control.Monad.State.Lazy
-import Data.ByteString (ByteString, intercalate)
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 qualified as C8
 import Data.Char hiding (isDigit)
 import Data.Data
 import Data.FormatN
 import Data.Path (ArcInfo (ArcInfo), PathData (..))
 import Data.Text.Encoding (encodeUtf8)
 import GHC.Generics
-import GHC.OverloadedLabels
+import GHC.OverloadedLabels ()
 import NumHask.Prelude hiding (many, optional, some, (<|>))
 import Optics.Core hiding ((<|))
 
@@ -311,7 +312,7 @@ svgToPathData = foldMap toPathDatas . parsePath
 
 -- | Convert from [`PathData` `Double`] to an SVG d path text snippet.
 pathDataToSvg :: [PathData Double] -> ByteString
-pathDataToSvg xs = intercalate " " $ fmap toPathAbsolute xs
+pathDataToSvg xs = C8.unwords $ fmap toPathAbsolute xs
 
 -- | Convert from a path command list to a PathA specification
 toPathDatas :: [PathCommand] -> [PathData Double]

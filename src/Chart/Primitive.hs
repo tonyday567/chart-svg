@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -Wno-pattern-namespace-specifier #-}
 
 -- | Base 'Chart' and 'ChartTree' types and support
 module Chart.Primitive
@@ -329,7 +330,7 @@ box (BlankData a) = foldRect a
 sbox :: Chart -> Maybe (Rect Double)
 sbox (Chart s (RectData a)) = foldRect $ padRect (0.5 * view #borderSize s) <$> a
 sbox (Chart s (TextData a)) = foldRect $ uncurry (styleBoxText s) <$> a
-sbox (Chart s (LineData a)) = padRect (0.5 * view #size s) <$> (space1 $ mconcat a)
+sbox (Chart s (LineData a)) = padRect (0.5 * view #size s) <$> space1 (mconcat a)
 sbox (Chart s (GlyphData a)) = foldRect $ (\x -> addPoint x (styleBoxGlyph s)) <$> a
 sbox (Chart s (PathData a)) = padRect (0.5 * view #borderSize s) <$> pathBoxes a
 sbox (Chart _ (BlankData a)) = foldRect a
@@ -440,7 +441,7 @@ safeBox' = Optics.Core.to (safeBox_ box')
 
 safeBox_ :: Lens' ChartTree (Maybe (Rect Double)) -> ChartTree -> Rect Double
 safeBox_ l ct
-  | b == Nothing || (Just True == fmap isSingleton b) = maybe one padSingletons (view l ct)
+  | isNothing b || (Just True == fmap isSingleton b) = maybe one padSingletons (view l ct)
   | otherwise = fromMaybe one b
   where
     b = view l ct
@@ -476,7 +477,8 @@ hori align gap cs = foldl' step mempty (reverse cs)
         zero
         (-gap +)
         ( (-)
-            <$> (rx <$> view styleBox' x)
+            . rx
+            <$> view styleBox' x
             <*> (rz <$> view styleBox' c)
         )
     aligny x = case foldOf charts' x of
@@ -497,7 +499,8 @@ vert align gap cs = foldl' step mempty (reverse cs)
         zero
         (gap +)
         ( (-)
-            <$> (rw <$> view styleBox' x)
+            . rw
+            <$> view styleBox' x
             <*> (ry <$> view styleBox' c)
         )
     alignx x = case foldOf charts' x of
