@@ -80,12 +80,12 @@ library
   hs-source-dirs: src
   build-depends:
     base >=4.14 && <5,
-    bytestring >=0.11.3 && <0.13,
+    bytestring >=0.11 && <0.13,
     Color >=0.3.2 && <0.5,
     containers >=0.6 && <0.9,
     cubicbezier >=0.6 && <0.7,
     formatn >=0.3 && <0.4,
-    harpie >=0.1 && <0.4,
+    harpie >=0.3 && <0.4,
     markup-parse >=0.3 && <0.4,
     mtl >=2.2.2 && <2.4,
     numhask >=0.11 && <0.15,
