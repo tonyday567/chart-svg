@@ -8,6 +8,11 @@ source-repository-package
 
 source-repository-package
   type: git
+  location: https://github.com/tonyday567/circuits-tools.git
+  tag: main
+
+source-repository-package
+  type: git
   location: https://github.com/tonyday567/circuits-diff.git
   tag: main
 
