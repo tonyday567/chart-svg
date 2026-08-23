@@ -11,3 +11,7 @@ dist-newstyle
 /cabal-fix.config
 /.ghc.environment.*
 other.bak
+dist-newstyle/
+*.ghc.environment.*
+.stack-work/
+cabal.project.local
