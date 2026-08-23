@@ -56,4 +56,9 @@ source-repository-package
   location: https://github.com/tonyday567/numhask-space.git
   tag: main
 
+source-repository-package
+  type: git
+  location: https://github.com/tonyday567/circuits-prob.git
+  tag: main
+
 write-ghc-environment-files: always
